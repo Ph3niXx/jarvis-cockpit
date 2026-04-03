@@ -78,7 +78,7 @@ HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
     "Content-Type": "application/json",
-    "Prefer": "resolution=ignore-duplicates",
+    "Prefer": "return=minimal,resolution=ignore-duplicates",
 }
 
 def fetch_recent_articles():
@@ -151,10 +151,10 @@ def web_search_ai_news():
     print("🌐 Recherche web en temps réel...")
     genai.configure(api_key=GEMINI_API_KEY)
 
-    # Gemini avec Google Search grounding activé
-    model = genai.GenerativeModel("gemini-2.5-flash-lite")
-    search_tool = genai.protos.Tool(
-        google_search=genai.protos.GoogleSearch()
+    # Gemini avec Google Search grounding — syntaxe correcte v0.8+
+    model = genai.GenerativeModel(
+        model_name="gemini-2.5-flash-lite",
+        tools="google_search_retrieval",
     )
 
     today = datetime.now().strftime("%d %B %Y")
@@ -172,9 +172,7 @@ def web_search_ai_news():
             response = model.generate_content(
                 f"Recherche les dernières actualités sur : {query}. "
                 f"Résume en 3-4 points factuels avec les URLs des sources. "
-                f"Sois très concis. Format : bullet points avec [SOURCE] URL",
-                tools=[search_tool],
-                tool_config={"google_search_retrieval": {"dynamic_retrieval_config": {"mode": "MODE_DYNAMIC"}}},
+                f"Sois très concis. Format: bullet points avec [SOURCE] URL"
             )
             if response.text:
                 web_results.append({
@@ -183,9 +181,10 @@ def web_search_ai_news():
                 })
                 print(f"   → Web search OK: {query[:50]}...")
         except Exception as e:
-            # Fallback sans grounding si l'API n'est pas dispo
+            # Fallback sans grounding
             try:
-                response = model.generate_content(
+                fallback = genai.GenerativeModel("gemini-2.5-flash-lite")
+                response = fallback.generate_content(
                     f"Donne les dernières infos que tu connais sur : {query}. "
                     f"3-4 points max, très concis."
                 )
@@ -194,6 +193,7 @@ def web_search_ai_news():
                         "query": query,
                         "result": response.text[:800],
                     })
+                    print(f"   → Fallback OK: {query[:50]}...")
             except Exception as e2:
                 print(f"   [WARN] Web search failed for '{query[:40]}': {e2}")
 
