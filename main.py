@@ -25,7 +25,7 @@ RSS_FEEDS = [
     ("VentureBeat AI",          "https://venturebeat.com/category/ai/feed/"),
     ("The Batch (Andrew Ng)",   "https://www.deeplearning.ai/the-batch/feed/"),
     # Recherche
-    ("Arxiv CS.AI",             "https://rss.arxiv.org/rss/cs.AI"),
+    ("Arxiv CS.AI",             "https://rss.arxiv.org/rssh/cs.AI"),
     ("Arxiv CS.LG",             "https://rss.arxiv.org/rss/cs.LG"),
 ]
 
@@ -80,7 +80,7 @@ def fetch_recent_articles():
 
 def generate_digest(articles: list[dict]) -> str:
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash-lite")
 
     articles_text = "\n\n".join([
         f"[{a['source']}] {a['title']} ({a['date']})\n{a['summary']}\nURL: {a['link']}"
