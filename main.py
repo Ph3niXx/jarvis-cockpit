@@ -17,29 +17,61 @@ SUPABASE_KEY    = os.environ["SUPABASE_KEY"]
 SITE_URL = "https://ph3nixx.github.io/-ai-daily-digest"
 
 RSS_FEEDS = [
-    ("Anthropic",            "https://www.anthropic.com/rss.xml",                    "llm"),
-    ("OpenAI",               "https://openai.com/blog/rss.xml",                      "llm"),
-    ("Google DeepMind",      "https://deepmind.google/blog/rss.xml",                 "llm"),
-    ("Google AI",            "https://blog.google/technology/ai/rss/",               "llm"),
-    ("Meta AI",              "https://ai.meta.com/blog/feed/",                       "llm"),
-    ("Mistral AI",           "https://mistral.ai/news/feed.xml",                     "llm"),
-    ("HuggingFace",          "https://huggingface.co/blog/feed.xml",                 "llm"),
-    ("LangChain",            "https://blog.langchain.dev/rss/",                      "agents"),
-    ("LlamaIndex",           "https://medium.com/feed/llamaindex",                   "agents"),
-    ("Finextra AI",          "https://www.finextra.com/rss/channel.aspx?channel=ai", "finserv"),
-    ("The Financial Brand",  "https://thefinancialbrand.com/feed/",                  "finserv"),
-    ("Insurance TL",         "https://www.insurancethoughtleadership.com/feed",      "finserv"),
-    ("Towards Data Science", "https://towardsdatascience.com/feed",                  "tools"),
-    ("The Gradient",         "https://thegradient.pub/rss/",                         "tools"),
-    ("Weaviate",             "https://weaviate.io/blog/feed.xml",                    "tools"),
-    ("VentureBeat AI",       "https://venturebeat.com/category/ai/feed/",            "biz"),
-    ("TechCrunch AI",        "https://techcrunch.com/category/artificial-intelligence/feed/", "biz"),
-    ("MIT Tech Review",      "https://www.technologyreview.com/feed/",               "reg"),
-    ("AI Snake Oil",         "https://www.aisnakeoil.com/feed",                      "reg"),
-    ("Future of Life",       "https://futureoflife.org/feed/",                       "reg"),
-    ("The Batch",            "https://www.deeplearning.ai/the-batch/feed/",          "llm"),
-    ("Arxiv CS.AI",          "https://rss.arxiv.org/rss/cs.AI",                      "papers"),
-    ("Arxiv CS.LG",          "https://rss.arxiv.org/rss/cs.LG",                      "papers"),
+    # ── LLMs & Modèles ──────────────────────────────────────────────────────
+    ("Anthropic",          "https://www.anthropic.com/rss.xml",                          "llm"),
+    ("OpenAI",             "https://openai.com/blog/rss.xml",                            "llm"),
+    ("Google DeepMind",    "https://deepmind.google/blog/rss.xml",                       "llm"),
+    ("Google AI",          "https://blog.google/technology/ai/rss/",                     "llm"),
+    ("Meta AI",            "https://ai.meta.com/blog/feed/",                             "llm"),
+    ("Mistral AI",         "https://mistral.ai/news/feed.xml",                           "llm"),
+    ("HuggingFace",        "https://huggingface.co/blog/feed.xml",                       "llm"),
+    ("Cohere",             "https://cohere.com/blog/feed",                               "llm"),
+    ("Together AI",        "https://www.together.ai/blog/rss.xml",                       "llm"),
+    ("The Batch",          "https://www.deeplearning.ai/the-batch/feed/",                "llm"),
+    ("Ahead of AI",        "https://magazine.sebastianraschka.com/feed",                 "llm"),
+    ("Import AI",          "https://importai.substack.com/feed",                         "llm"),
+
+    # ── Nouveautés IA Grand Public (ChatGPT, Claude, Gemini...) ─────────────
+    ("OpenAI Changelog",   "https://help.openai.com/en/articles/feed",                   "updates"),
+    ("Anthropic News",     "https://www.anthropic.com/rss.xml",                          "updates"),
+    ("Google Workspace AI","https://workspace.google.com/blog/feed",                     "updates"),
+    ("The Algorithmic Bridge","https://thealgorithmicbridge.substack.com/feed",          "updates"),
+    ("One Useful Thing",   "https://www.oneusefulthing.org/feed",                        "updates"),
+    ("Simon Willison",     "https://simonwillison.net/atom/everything/",                 "updates"),
+    ("Stratechery",        "https://stratechery.com/feed/",                              "updates"),
+
+    # ── Agents & Automatisation ──────────────────────────────────────────────
+    ("LangChain",          "https://blog.langchain.dev/rss/",                            "agents"),
+    ("LlamaIndex",         "https://medium.com/feed/llamaindex",                         "agents"),
+    ("Langfuse",           "https://langfuse.com/blog/rss",                              "agents"),
+    ("Zapier AI",          "https://zapier.com/blog/ai/feed/",                           "agents"),
+
+    # ── IA Finance & Assurance ───────────────────────────────────────────────
+    ("Finextra AI",        "https://www.finextra.com/rss/channel.aspx?channel=ai",       "finserv"),
+    ("The Financial Brand","https://thefinancialbrand.com/feed/",                        "finserv"),
+    ("Insurance TL",       "https://www.insurancethoughtleadership.com/feed",            "finserv"),
+    ("McKinsey QuantumBlack","https://www.mckinsey.com/capabilities/quantumblack/our-insights/rss","finserv"),
+
+    # ── Outils Dev (RAG, VectorDB, MLOps) ───────────────────────────────────
+    ("Towards Data Science","https://towardsdatascience.com/feed",                       "tools"),
+    ("The Gradient",       "https://thegradient.pub/rss/",                               "tools"),
+    ("Weaviate",           "https://weaviate.io/blog/feed.xml",                          "tools"),
+    ("Qdrant",             "https://qdrant.tech/blog/rss.xml",                           "tools"),
+    ("MLflow",             "https://mlflow.org/blog/feed.xml",                           "tools"),
+
+    # ── Business & Funding ───────────────────────────────────────────────────
+    ("VentureBeat AI",     "https://venturebeat.com/category/ai/feed/",                  "biz"),
+    ("TechCrunch AI",      "https://techcrunch.com/category/artificial-intelligence/feed/","biz"),
+
+    # ── Régulation & Éthique ─────────────────────────────────────────────────
+    ("MIT Tech Review",    "https://www.technologyreview.com/feed/",                     "reg"),
+    ("AI Snake Oil",       "https://www.aisnakeoil.com/feed",                            "reg"),
+    ("Future of Life",     "https://futureoflife.org/feed/",                             "reg"),
+    ("CNIL",               "https://www.cnil.fr/fr/rss.xml",                             "reg"),
+
+    # ── Recherche Arxiv ──────────────────────────────────────────────────────
+    ("Arxiv CS.AI",        "https://rss.arxiv.org/rss/cs.AI",                            "papers"),
+    ("Arxiv CS.LG",        "https://rss.arxiv.org/rss/cs.LG",                            "papers"),
 ]
 
 MAX_ARTICLES_PER_FEED = 4
@@ -74,13 +106,13 @@ def fetch_recent_articles():
                 link    = entry.get("link", "#")
                 summary = entry.get("summary", entry.get("description", ""))[:800]
                 articles.append({
-                    "source":  source_name,
-                    "title":   title,
-                    "link":    link,
-                    "summary": summary,
-                    "date":    pub.strftime("%d/%m %H:%M") if pub else "N/A",
-                    "date_iso": pub.isoformat() if pub else None,
-                    "section": section,
+                    "source":    source_name,
+                    "title":     title,
+                    "link":      link,
+                    "summary":   summary,
+                    "date":      pub.strftime("%d/%m %H:%M") if pub else "N/A",
+                    "date_iso":  pub.isoformat() if pub else None,
+                    "section":   section,
                 })
                 count += 1
         except Exception as e:
@@ -89,17 +121,15 @@ def fetch_recent_articles():
     return articles
 
 def save_to_supabase(articles):
-    rows = []
-    for a in articles:
-        rows.append({
-            "source":         a["source"],
-            "title":          a["title"],
-            "url":            a["link"],
-            "summary":        a["summary"],
-            "date_published": a["date_iso"],
-            "section":        a["section"],
-            "tags":           [a["section"]],
-        })
+    rows = [{
+        "source":         a["source"],
+        "title":          a["title"],
+        "url":            a["link"],
+        "summary":        a["summary"],
+        "date_published": a["date_iso"],
+        "section":        a["section"],
+        "tags":           [a["section"]],
+    } for a in articles]
     if not rows:
         return
     resp = requests.post(
@@ -126,45 +156,56 @@ def ping_supabase():
 def generate_brief(articles):
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel("gemini-2.5-flash-lite")
+
     articles_text = "\n\n".join([
-        f"[{a['source']}] {a['title']} ({a['date']})\n{a['summary']}\nURL: {a['link']}"
+        f"[{a['source']}] [{a['section']}] {a['title']} ({a['date']})\n{a['summary']}\nURL: {a['link']}"
         for a in articles
     ])
     today = datetime.now().strftime("%A %d %B %Y")
-    prompt = f"""Tu es un expert senior en intelligence artificielle. Tu génères la section "Brief du jour" d'un digest IA quotidien pour Jean, Manager transformation digitale dans les services financiers, utilisateur quotidien intensif d'IA générative.
+
+    prompt = f"""Tu es un expert senior en intelligence artificielle. Tu génères le "Brief du jour" d'un digest IA quotidien pour Jean, Manager transformation digitale dans les services financiers, utilisateur quotidien intensif d'IA générative (Claude, ChatGPT, Gemini) pour raisonner, créer, coder, synthétiser.
 
 Date : {today} | {len(articles)} articles analysés.
 
-ARTICLES :
+ARTICLES (avec section) :
 {articles_text}
 
-Génère UNIQUEMENT du HTML valide (pas de balises html/head/body, pas de markdown).
+---
+Génère UNIQUEMENT du HTML valide (pas de balises html/head/body, pas de markdown, pas de backticks).
 
-Structure exacte à produire :
+Structure exacte :
 
 <div class="macro-block">
 <p class="macro-text">ANALYSE MACRO 4-5 phrases : tendances de fond du jour, signal faible important, ce que ça dit du marché IA globalement.</p>
 </div>
 
 <div class="user-block">
-<div class="user-title">Ce qui change pour toi aujourd'hui</div>
+<div class="user-title">Nouveautés IA grand public — Ce qui change pour toi</div>
 <ul class="user-list">
-<li>Item concret sur un nouveau modèle/outil/capability impactant l'usage quotidien d'IA générative</li>
-<li>Item sur productivité/raisonnement/création avec l'IA</li>
-<li>Item prompt engineering tip ou workflow IA avancé issu des news</li>
-<li>Item sur ce qu'un manager FS doit surveiller cette semaine</li>
+<li><strong>Claude / Anthropic :</strong> [nouveauté concrète si disponible, sinon omets ce bullet]</li>
+<li><strong>ChatGPT / OpenAI :</strong> [nouveauté concrète si disponible, sinon omets ce bullet]</li>
+<li><strong>Gemini / Google :</strong> [nouveauté concrète si disponible, sinon omets ce bullet]</li>
+<li><strong>Autres modèles :</strong> [Mistral, Meta, etc. si pertinent]</li>
+<li><strong>Workflow & productivité :</strong> tip ou évolution d'outil qui change ton usage quotidien</li>
+<li><strong>À surveiller cette semaine :</strong> signal important pour un manager FS</li>
 </ul>
 </div>
 
 <div class="top5-label">Top 5 incontournables du jour</div>
 
-[Répète 5 fois ce bloc pour les 5 news les plus importantes :]
+[Répète 5 fois ce bloc pour les 5 articles les plus importants :]
 <div class="top-card">
 <div class="top-meta"><span class="src-badge">SOURCE</span><span class="top-date">DATE</span></div>
-<a href="URL_EXACTE" class="top-link" target="_blank">TITRE DE L'ARTICLE</a>
-<p class="top-desc">Résumé analytique 3-4 phrases avec impact pour un manager FS.</p>
+<a href="URL_EXACTE_DE_L_ARTICLE" class="top-link" target="_blank">TITRE DE L'ARTICLE</a>
+<p class="top-desc">Résumé analytique 3-4 phrases avec impact concret pour un manager FS.</p>
 <span class="tag">TAG</span>
 </div>
+
+Règles :
+- Tous les liens doivent pointer vers l'URL exacte de l'article source
+- Les bullets "user-block" : sois très concret, cite les vraies features/évolutions du jour
+- Omets les bullets pour lesquels tu n'as pas d'info concrète du jour
+- Tags possibles : LLM | Agent | RAG | FinTech | InsurTech | MLOps | Régulation | Recherche | Funding | Open Source | Productivité | ChatGPT | Claude | Gemini
 """
     response = model.generate_content(prompt)
     return response.text
@@ -181,15 +222,13 @@ def send_notification_email(article_count):
   <div style="background:#1a1a2e;border:1px solid #2d2d4e;border-radius:12px;padding:32px;text-align:center">
     <div style="font-size:40px;margin-bottom:16px">🤖</div>
     <h1 style="font-size:22px;font-weight:700;color:#a89ff5;margin:0 0 8px">AI Digest du {today}</h1>
-    <p style="color:#8888aa;font-size:14px;margin:0 0 24px">{article_count} articles analysés · {datetime.now().strftime('%H:%M')}</p>
+    <p style="color:#8888aa;font-size:14px;margin:0 0 6px">{article_count} articles · {len(RSS_FEEDS)} sources · {datetime.now().strftime('%H:%M')}</p>
+    <p style="color:#555577;font-size:12px;margin:0 0 24px">LLMs · Agents · Nouveautés grand public · FinServ · Régulation</p>
     <a href="{SITE_URL}" target="_blank"
        style="display:inline-block;background:#7c6fea;color:white;text-decoration:none;
               padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px">
       Lire le digest →
     </a>
-    <p style="color:#444466;font-size:12px;margin:24px 0 0">
-      LLMs · Agents · FinServ · Régulation · Business
-    </p>
   </div>
 </div>
 </body></html>"""
@@ -224,7 +263,6 @@ def main():
     brief_html = generate_brief(articles)
     print("   → Brief généré ✓")
 
-    # Save brief to Supabase as a daily summary
     today_key = datetime.now().strftime("%Y-%m-%d")
     resp = requests.post(
         f"{SUPABASE_URL}/rest/v1/daily_briefs",
@@ -232,7 +270,7 @@ def main():
         json={"date": today_key, "brief_html": brief_html, "article_count": len(articles)},
     )
     if resp.status_code not in (200, 201):
-        print(f"   [WARN] Brief save: {resp.status_code} — table daily_briefs maybe missing")
+        print(f"   [WARN] Brief save: {resp.status_code}")
 
     print("📧 Envoi email de notification...")
     send_notification_email(len(articles))
