@@ -139,6 +139,7 @@ a{color:inherit;text-decoration:none}
       </div>
       <div class="nav" id="nav">
         <div class="nav-link active" data-panel="brief"><span class="nav-icon">⚡</span><span class="nav-label">Brief du jour</span></div>
+        <div class="nav-link" data-panel="updates"><span class="nav-icon">✨</span><span class="nav-label">Nouveautés IA</span><span class="nav-count" id="c-updates">—</span></div>
         <div class="nav-link" data-panel="llm"><span class="nav-icon">🤖</span><span class="nav-label">LLMs &amp; Modèles</span><span class="nav-count" id="c-llm">—</span></div>
         <div class="nav-link" data-panel="agents"><span class="nav-icon">⚙️</span><span class="nav-label">Agents</span><span class="nav-count" id="c-agents">—</span></div>
         <div class="nav-link" data-panel="finserv"><span class="nav-icon">🏦</span><span class="nav-label">FinServ</span><span class="nav-count" id="c-finserv">—</span></div>
@@ -157,6 +158,11 @@ a{color:inherit;text-decoration:none}
       <div class="panel active" id="panel-brief">
         <div class="panel-head">Brief du jour</div>
         <div id="brief-content"><div class="loading">Chargement du brief...</div></div>
+      </div>
+
+      <div class="panel" id="panel-updates">
+        <div class="panel-head">✨ Nouveautés IA grand public — Claude · ChatGPT · Gemini · Mistral</div>
+        <div id="cards-updates"><div class="loading">Chargement...</div></div>
       </div>
 
       <div class="panel" id="panel-llm">
@@ -215,7 +221,7 @@ a{color:inherit;text-decoration:none}
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
 
-const SECTIONS = ["llm","agents","finserv","tools","biz","reg","papers"];
+const SECTIONS = ["updates","llm","agents","finserv","tools","biz","reg","papers"];
 let allArticles = [];
 let availableDates = [];
 let currentDateIdx = 0;
