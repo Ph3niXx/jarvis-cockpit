@@ -123,18 +123,33 @@ def call_claude(system_prompt, user_prompt, max_tokens=MAX_OUTPUT_TOKENS):
 
 
 def parse_json_response(text):
-    """Parse JSON depuis une réponse Claude (gère les backticks)."""
+    """Parse JSON depuis une réponse Claude (gère les backticks, texte extra)."""
     if not text:
         return None
     import re
     cleaned = text.strip()
-    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
-    cleaned = re.sub(r"\s*```$", "", cleaned)
+    # Extraire le contenu entre ```json ... ```
+    fence_match = re.search(r"```(?:json)?\s*\n?(.*?)\n?\s*```", cleaned, re.DOTALL)
+    if fence_match:
+        cleaned = fence_match.group(1).strip()
+    # Sinon, tenter d'extraire le premier array ou object JSON
+    else:
+        json_match = re.search(r"(\[[\s\S]*\]|\{[\s\S]*\})", cleaned)
+        if json_match:
+            cleaned = json_match.group(1).strip()
     try:
         return json.loads(cleaned)
-    except json.JSONDecodeError as e:
-        print(f"   [WARN] JSON parse failed: {e}")
-        return None
+    except json.JSONDecodeError:
+        # Fallback : tenter un json.JSONDecoder pour extraire le premier objet/array valide
+        try:
+            decoder = json.JSONDecoder()
+            result, _ = decoder.raw_decode(cleaned)
+            print(f"   [WARN] JSON had extra data after valid content, truncated")
+            return result
+        except json.JSONDecodeError as e:
+            print(f"   [WARN] JSON parse failed: {e}")
+            print(f"   [DEBUG] First 200 chars: {cleaned[:200]}")
+            return None
 
 
 # ─── SUPABASE HELPERS ─────────────────────────────────────────────────────────
@@ -143,8 +158,13 @@ def sb_get(table, params=""):
     r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}?{params}", headers=HEADERS_SUPABASE)
     return r.json() if r.status_code == 200 else []
 
-def sb_post(table, data):
-    r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=HEADERS_SUPABASE, json=data)
+def sb_post(table, data, upsert=False):
+    headers = {**HEADERS_SUPABASE}
+    if upsert:
+        headers["Prefer"] = "resolution=merge-duplicates"
+    r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=headers, json=data)
+    if r.status_code not in (200, 201):
+        print(f"   [ERROR] sb_post {table} failed ({r.status_code}): {r.text[:200]}")
     return r.status_code in (200, 201)
 
 def sb_patch(table, filters, data):
@@ -511,7 +531,7 @@ def save_weekly_analysis(signals_summary, concepts_enriched, concepts_updated,
     today = datetime.now()
     week_start = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
 
-    sb_post("weekly_analysis", {
+    success = sb_post("weekly_analysis", {
         "week_start": week_start,
         "signals_summary": signals_summary,
         "concepts_added": concepts_enriched,
@@ -520,7 +540,8 @@ def save_weekly_analysis(signals_summary, concepts_enriched, concepts_updated,
         "challenge_generated": challenge_title,
         "tokens_used": json.dumps(tracker.summary()),
         "raw_analysis": f"Wiki: {len(concepts_enriched)}, Recos: {recommendations_count}, RTE: {rte_count}, Opportunités: {opps_count}",
-    })
+    }, upsert=True)
+    print(f"   → Sauvegarde {'OK' if success else 'ÉCHOUÉE'}")
 
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
