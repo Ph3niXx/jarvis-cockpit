@@ -343,6 +343,11 @@ a:hover{text-decoration:underline}
   </div>
 
   <div class="sb-section">
+    <div class="sb-section-label">Gaming</div>
+    <button class="sb-link" data-panel="tft"><span class="icon">🎮</span><span class="label">TFT Matches</span></button>
+  </div>
+
+  <div class="sb-section">
     <div class="sb-section-label">Outils</div>
     <button class="sb-link" data-panel="profile"><span class="icon">👤</span><span class="label">Mon profil</span></button>
     <button class="sb-link" data-panel="search"><span class="icon">🔍</span><span class="label">Recherche</span></button>
@@ -468,6 +473,46 @@ a:hover{text-decoration:underline}
   </div>
 
   <!-- COSTS DASHBOARD -->
+  <!-- ── TFT MATCHES ──────────────────────────────────────── -->
+  <div class="panel" id="panel-tft">
+    <div class="page-header"><div class="page-title">TFT Matches</div><div class="page-subtitle">Historique et analyse de vos parties Teamfight Tactics</div></div>
+    <div class="content">
+      <!-- Stats rapides -->
+      <div id="tft-stats" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px"></div>
+
+      <!-- Filtres -->
+      <div id="tft-filters" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+        <select id="tft-filter-set" style="padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px;background:var(--bg3)">
+          <option value="">Tous les sets</option>
+        </select>
+        <select id="tft-filter-queue" style="padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px;background:var(--bg3)">
+          <option value="">Tous modes</option>
+          <option value="1100">Ranked</option>
+          <option value="1090">Normal</option>
+        </select>
+        <select id="tft-filter-result" style="padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px;background:var(--bg3)">
+          <option value="">Tous résultats</option>
+          <option value="top4">Top 4</option>
+          <option value="bot4">Bot 4</option>
+        </select>
+        <input id="tft-filter-search" type="text" placeholder="Rechercher trait / champion..." style="padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px;flex:1;min-width:180px;background:var(--bg3)">
+      </div>
+
+      <!-- Tableau -->
+      <div id="tft-table"></div>
+    </div>
+  </div>
+
+  <!-- TFT Detail Overlay -->
+  <div id="tft-detail-overlay" style="display:none;position:fixed;top:0;right:0;bottom:0;width:520px;background:var(--bg3);border-left:1px solid var(--bd);z-index:200;overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,.08);padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-size:18px;font-weight:700" id="tft-detail-title">Détail du match</div>
+      <button onclick="closeTftDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx2)">✕</button>
+    </div>
+    <div id="tft-detail-content"></div>
+  </div>
+  <div id="tft-detail-backdrop" onclick="closeTftDetail()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.15);z-index:199"></div>
+
   <div class="panel" id="panel-costs">
     <div class="page-header"><div class="page-title">Coûts API</div><div class="page-subtitle">Suivi des tokens et dépenses Claude Haiku</div></div>
     <div class="content">
@@ -525,6 +570,7 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='rte') loadRTE();
     if(panel==='recos') loadRecos();
     if(panel==='history') loadHistory();
+    if(panel==='tft') loadTft();
     if(panel==='costs') loadCosts();
     if(panel==='profile') loadProfile();
     // Close mobile sidebar
@@ -1345,6 +1391,335 @@ async function loadCosts(){
       </div>`;
 
   }catch(e){console.error('loadCosts',e)}
+}
+
+// ── TFT MATCHES ───────────────────────────────────────────
+let tftMatches=[];
+let tftTraitsCache={};
+let tftUnitsCache={};
+let tftLoaded=false;
+
+async function loadTft(){
+  if(tftLoaded) return;
+  try{
+    const matches=await fetchJSON(`${SUPABASE_URL}/rest/v1/tft_matches?select=*&order=played_at.desc&limit=100`);
+    tftMatches=matches;
+
+    // Prefetch traits and units for all matches
+    const matchIds=matches.map(m=>m.match_id);
+    if(matchIds.length){
+      const idsParam=matchIds.map(id=>`"${id}"`).join(',');
+      const [traits,units]=await Promise.all([
+        fetchJSON(`${SUPABASE_URL}/rest/v1/tft_match_traits?match_id=in.(${idsParam})&is_active=eq.true&select=match_id,trait_name,style`),
+        fetchJSON(`${SUPABASE_URL}/rest/v1/tft_match_units?match_id=in.(${idsParam})&select=match_id,champion_name,tier,cost,items,num_items`)
+      ]);
+      // Group by match_id
+      traits.forEach(t=>{
+        if(!tftTraitsCache[t.match_id]) tftTraitsCache[t.match_id]=[];
+        tftTraitsCache[t.match_id].push(t);
+      });
+      units.forEach(u=>{
+        if(!tftUnitsCache[u.match_id]) tftUnitsCache[u.match_id]=[];
+        tftUnitsCache[u.match_id].push(u);
+      });
+    }
+
+    // Populate set filter
+    const sets=[...new Set(matches.map(m=>m.set_number).filter(Boolean))].sort();
+    const setSelect=document.getElementById('tft-filter-set');
+    sets.forEach(s=>{
+      const opt=document.createElement('option');
+      opt.value=s;opt.textContent=`Set ${s}`;
+      setSelect.appendChild(opt);
+    });
+
+    // Wire filters
+    ['tft-filter-set','tft-filter-queue','tft-filter-result'].forEach(id=>{
+      document.getElementById(id).addEventListener('change',renderTftTable);
+    });
+    document.getElementById('tft-filter-search').addEventListener('input',renderTftTable);
+
+    tftLoaded=true;
+    renderTftStats();
+    renderTftTable();
+  }catch(e){
+    console.error('loadTft',e);
+    document.getElementById('tft-table').innerHTML=`<div class="empty"><div class="empty-icon">🎮</div>Erreur de chargement des matchs TFT.<br>Vérifiez que le pipeline a bien tourné.</div>`;
+  }
+}
+
+function renderTftStats(){
+  const m=tftMatches;
+  if(!m.length){
+    document.getElementById('tft-stats').innerHTML='';
+    return;
+  }
+  const total=m.length;
+  const avgPlace=(m.reduce((s,x)=>s+x.placement,0)/total).toFixed(1);
+  const winrate=((m.filter(x=>x.is_win).length/total)*100).toFixed(0);
+
+  // Most played trait
+  const traitCount={};
+  Object.values(tftTraitsCache).flat().filter(t=>t.style>=2).forEach(t=>{
+    traitCount[t.trait_name]=(traitCount[t.trait_name]||0)+1;
+  });
+  const topTrait=Object.entries(traitCount).sort((a,b)=>b[1]-a[1])[0];
+
+  // Most played carry (unit with most items per match)
+  const carryCount={};
+  Object.entries(tftUnitsCache).forEach(([mid,units])=>{
+    if(!units.length) return;
+    const carry=units.reduce((a,b)=>(b.num_items||0)>(a.num_items||0)?b:a);
+    if(carry.champion_name) carryCount[carry.champion_name]=(carryCount[carry.champion_name]||0)+1;
+  });
+  const topCarry=Object.entries(carryCount).sort((a,b)=>b[1]-a[1])[0];
+
+  const card=(label,value,sub)=>`<div style="background:var(--bg2);border-radius:var(--radius);padding:14px 18px">
+    <div style="font-size:11px;color:var(--tx3)">${label}</div>
+    <div style="font-size:22px;font-weight:700;margin:2px 0">${value}</div>
+    ${sub?`<div style="font-size:11px;color:var(--tx3)">${sub}</div>`:''}
+  </div>`;
+
+  document.getElementById('tft-stats').innerHTML=
+    card('Matchs',total,'')+
+    card('Placement moyen',avgPlace,'')+
+    card('Winrate',winrate+'%','Top 4')+
+    card('Top trait',topTrait?topTrait[0]:'-',topTrait?topTrait[1]+' matchs':'')+
+    card('Top carry',topCarry?topCarry[0]:'-',topCarry?topCarry[1]+' matchs':'');
+}
+
+function getFilteredTftMatches(){
+  let filtered=[...tftMatches];
+  const setV=document.getElementById('tft-filter-set').value;
+  const queueV=document.getElementById('tft-filter-queue').value;
+  const resultV=document.getElementById('tft-filter-result').value;
+  const searchV=document.getElementById('tft-filter-search').value.toLowerCase().trim();
+
+  if(setV) filtered=filtered.filter(m=>m.set_number==setV);
+  if(queueV) filtered=filtered.filter(m=>m.queue_id==queueV);
+  if(resultV==='top4') filtered=filtered.filter(m=>m.is_win);
+  if(resultV==='bot4') filtered=filtered.filter(m=>!m.is_win);
+  if(searchV){
+    filtered=filtered.filter(m=>{
+      const traits=(tftTraitsCache[m.match_id]||[]).map(t=>t.trait_name.toLowerCase()).join(' ');
+      const units=(tftUnitsCache[m.match_id]||[]).map(u=>u.champion_name.toLowerCase()).join(' ');
+      return traits.includes(searchV)||units.includes(searchV);
+    });
+  }
+  return filtered;
+}
+
+function renderTftTable(){
+  const filtered=getFilteredTftMatches();
+  const tableEl=document.getElementById('tft-table');
+
+  if(!filtered.length){
+    tableEl.innerHTML=`<div class="empty"><div class="empty-icon">🎮</div>Aucun match trouvé avec ces filtres.</div>`;
+    return;
+  }
+
+  const placeBadge=(p)=>{
+    if(p===1) return `<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;font-weight:700;font-size:13px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#fff">1</span>`;
+    if(p<=4) return `<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;font-weight:700;font-size:13px;background:var(--green);color:#fff">${p}</span>`;
+    return `<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;font-weight:700;font-size:13px;background:var(--red);color:#fff">${p}</span>`;
+  };
+
+  const formatDate=(d)=>{
+    const dt=new Date(d);
+    return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  };
+
+  const getCompo=(mid)=>{
+    const traits=(tftTraitsCache[mid]||[]).filter(t=>t.style>=2).map(t=>t.trait_name);
+    return traits.length?traits.join(', '):'—';
+  };
+
+  const getCarry=(mid)=>{
+    const units=tftUnitsCache[mid]||[];
+    if(!units.length) return '—';
+    const carry=units.reduce((a,b)=>(b.num_items||0)>(a.num_items||0)?b:a);
+    return carry.champion_name?(carry.champion_name+(carry.tier?'★'.repeat(carry.tier):'')):'—';
+  };
+
+  const formatDuration=(s)=>s?Math.floor(s/60)+'m'+String(Math.floor(s%60)).padStart(2,'0'):'—';
+
+  const th='style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)"';
+  const thr='style="text-align:right;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)"';
+
+  tableEl.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <tr><th ${th}>Date</th><th style="text-align:center;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Place</th><th ${th}>Compo</th><th ${th}>Carry</th><th ${thr}>Lvl</th><th ${thr}>DMG</th><th ${thr}>Durée</th><th ${th}>Note</th></tr>
+    ${filtered.map(m=>`<tr class="tft-row" data-matchid="${m.match_id}" style="cursor:pointer;transition:background .1s" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''" onclick="openTftDetail('${m.match_id}')">
+      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);white-space:nowrap">${formatDate(m.played_at)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:center">${placeBadge(m.placement)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12px;color:var(--tx2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${getCompo(m.match_id)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12px;font-weight:600">${getCarry(m.match_id)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right">${m.level||'—'}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right;font-family:var(--mono);font-size:12px">${m.total_damage||'—'}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right;font-size:12px">${formatDuration(m.game_length_s)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12px;color:var(--tx3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.user_note||''}</td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+async function openTftDetail(matchId){
+  const m=tftMatches.find(x=>x.match_id===matchId);
+  if(!m) return;
+
+  // Fetch detail data
+  const [units,traits,lobby]=await Promise.all([
+    fetchJSON(`${SUPABASE_URL}/rest/v1/tft_match_units?match_id=eq.${matchId}&order=cost.desc`),
+    fetchJSON(`${SUPABASE_URL}/rest/v1/tft_match_traits?match_id=eq.${matchId}&order=is_active.desc,style.desc`),
+    fetchJSON(`${SUPABASE_URL}/rest/v1/tft_match_lobby?match_id=eq.${matchId}&order=placement.asc`)
+  ]);
+
+  const formatDate=(d)=>new Date(d).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const formatDuration=(s)=>s?Math.floor(s/60)+'m'+String(Math.floor(s%60)).padStart(2,'0'):'—';
+  const placeBadge=(p)=>{
+    const bg=p===1?'linear-gradient(135deg,#FFD700,#FFA500)':p<=4?'var(--green)':'var(--red)';
+    return `<span style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;border-radius:50%;font-weight:700;font-size:15px;background:${bg};color:#fff">${p}</span>`;
+  };
+  const stars=(n)=>n?'★'.repeat(n):'';
+  const styleBg=(s)=>s>=4?'var(--accent-bg)':s>=3?'var(--amber-bg)':s>=2?'#E8E8E8':'var(--bg2)';
+  const styleColor=(s)=>s>=4?'var(--accent)':s>=3?'var(--amber)':s>=2?'var(--tx)':'var(--tx3)';
+
+  let html=`
+    <!-- Match header -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      ${placeBadge(m.placement)}
+      <div>
+        <div style="font-weight:600">${m.is_win?'Victoire (Top 4)':'Défaite (Bot 4)'} — #${m.placement}</div>
+        <div style="font-size:12px;color:var(--tx3)">${formatDate(m.played_at)} · ${formatDuration(m.game_length_s)} · Lvl ${m.level||'?'}</div>
+      </div>
+    </div>
+
+    <!-- Match info -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
+      <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px">
+        <div style="color:var(--tx3)">Mode</div>
+        <div style="font-weight:600">${m.queue_id===1100?'Ranked':m.queue_id===1090?'Normal':'Autre'}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px">
+        <div style="color:var(--tx3)">Dommages</div>
+        <div style="font-weight:600">${m.total_damage||'—'}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px">
+        <div style="color:var(--tx3)">Gold restant</div>
+        <div style="font-weight:600">${m.gold_left??'—'}</div>
+      </div>
+    </div>
+
+    <!-- Champions -->
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">🛡️ Champions (${units.length})</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
+      ${units.map(u=>`<div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px">
+        <div style="font-weight:600;min-width:100px">${u.champion_name} <span style="color:var(--amber);font-size:11px">${stars(u.tier)}</span></div>
+        <div style="font-size:11px;color:var(--tx3)">${u.cost}g</div>
+        <div style="font-size:11px;flex:1">${(u.items||[]).length?u.items.join(', '):'<span style="color:var(--tx3)">pas d\'items</span>'}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- Traits -->
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">⚔️ Traits</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
+      ${traits.map(t=>`<span style="display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${t.is_active?styleBg(t.style):'var(--bg2)'};color:${t.is_active?styleColor(t.style):'var(--tx3)'}">${t.trait_name} ${t.is_active?t.num_units:'off'}</span>`).join('')}
+    </div>
+
+    <!-- Lobby -->
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">👥 Lobby (${lobby.length} adversaires)</div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:24px">
+      ${lobby.map(l=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:var(--radius-sm);font-size:12px;background:${l.placement<=4?'var(--green-bg)':'var(--bg2)'}">
+        <span style="font-weight:700;min-width:20px">#${l.placement}</span>
+        <span style="flex:1;font-weight:500">${l.game_name||'???'}${l.tag_line?'#'+l.tag_line:''}</span>
+        <span style="font-size:11px;color:var(--tx3)">${l.main_carry||''}</span>
+        <span style="font-size:10px;color:var(--tx3)">${(l.main_traits||[]).join(', ')}</span>
+      </div>`).join('')}
+    </div>
+
+    <!-- Édition -->
+    <div style="border-top:1px solid var(--bd);padding-top:20px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">📝 Notes personnelles</div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:4px">Note</label>
+        <textarea id="tft-edit-note" rows="2" style="width:100%;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:13px;font-family:var(--font);resize:vertical">${m.user_note||''}</textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:4px">Mood</label>
+          <select id="tft-edit-mood" style="width:100%;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px">
+            <option value="">—</option>
+            <option value="focused" ${m.user_mood==='focused'?'selected':''}>🎯 Focused</option>
+            <option value="tilted" ${m.user_mood==='tilted'?'selected':''}>😤 Tilted</option>
+            <option value="chill" ${m.user_mood==='chill'?'selected':''}>😎 Chill</option>
+            <option value="tryhard" ${m.user_mood==='tryhard'?'selected':''}>🔥 Tryhard</option>
+            <option value="autopilot" ${m.user_mood==='autopilot'?'selected':''}>😴 Autopilot</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:4px">Rating</label>
+          <select id="tft-edit-rating" style="width:100%;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px">
+            <option value="">—</option>
+            <option value="1" ${m.user_rating===1?'selected':''}>1 ⭐</option>
+            <option value="2" ${m.user_rating===2?'selected':''}>2 ⭐</option>
+            <option value="3" ${m.user_rating===3?'selected':''}>3 ⭐</option>
+            <option value="4" ${m.user_rating===4?'selected':''}>4 ⭐</option>
+            <option value="5" ${m.user_rating===5?'selected':''}>5 ⭐</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:4px">Tags (séparés par des virgules)</label>
+        <input id="tft-edit-tags" type="text" value="${(m.user_tags||[]).join(', ')}" style="width:100%;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px">
+      </div>
+      <button onclick="saveTftDetail('${matchId}')" style="width:100%;padding:10px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'">Sauvegarder</button>
+      <div id="tft-save-status" style="text-align:center;margin-top:8px;font-size:12px"></div>
+    </div>
+  `;
+
+  document.getElementById('tft-detail-content').innerHTML=html;
+  document.getElementById('tft-detail-overlay').style.display='block';
+  document.getElementById('tft-detail-backdrop').style.display='block';
+}
+
+function closeTftDetail(){
+  document.getElementById('tft-detail-overlay').style.display='none';
+  document.getElementById('tft-detail-backdrop').style.display='none';
+}
+
+async function saveTftDetail(matchId){
+  const note=document.getElementById('tft-edit-note').value.trim();
+  const mood=document.getElementById('tft-edit-mood').value;
+  const rating=document.getElementById('tft-edit-rating').value;
+  const tagsRaw=document.getElementById('tft-edit-tags').value;
+  const tags=tagsRaw?tagsRaw.split(',').map(t=>t.trim()).filter(Boolean):[];
+
+  const body={
+    user_note:note||null,
+    user_mood:mood||null,
+    user_rating:rating?parseInt(rating):null,
+    user_tags:tags.length?tags:null,
+  };
+
+  const statusEl=document.getElementById('tft-save-status');
+  statusEl.textContent='Sauvegarde...';
+  statusEl.style.color='var(--tx3)';
+
+  try{
+    const r=await patchJSON(`${SUPABASE_URL}/rest/v1/tft_matches?match_id=eq.${matchId}`,body);
+    if(r.ok){
+      statusEl.textContent='✅ Sauvegardé';
+      statusEl.style.color='var(--green)';
+      // Update local cache
+      const idx=tftMatches.findIndex(m=>m.match_id===matchId);
+      if(idx>=0) Object.assign(tftMatches[idx],body);
+      renderTftTable();
+    }else{
+      statusEl.textContent='❌ Erreur de sauvegarde';
+      statusEl.style.color='var(--red)';
+    }
+  }catch(e){
+    statusEl.textContent='❌ '+e.message;
+    statusEl.style.color='var(--red)';
+  }
 }
 
 // ── INIT ───────────────────────────────────────────────────
