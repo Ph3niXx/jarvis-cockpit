@@ -332,6 +332,7 @@ a:hover{text-decoration:underline}
   <div class="sb-section">
     <div class="sb-section-label">Apprentissage</div>
     <button class="sb-link" data-panel="radar"><span class="icon">🎯</span><span class="label">Radar compétences</span></button>
+    <button class="sb-link" data-panel="recos"><span class="icon">📚</span><span class="label">Recommandations</span></button>
     <button class="sb-link" data-panel="challenges"><span class="icon">🏆</span><span class="label">Challenges</span></button>
   </div>
 
@@ -395,7 +396,16 @@ a:hover{text-decoration:underline}
   <!-- RADAR -->
   <div class="panel" id="panel-radar">
     <div class="page-header"><div class="page-title">Radar de compétences</div><div class="page-subtitle">Ton niveau sur 8 axes IA — évolue au fil du temps</div></div>
-    <div class="content"><div class="radar-container" id="radar-container"><div class="loading">Chargement…</div></div></div>
+    <div class="content">
+      <div id="radar-diagnostic" style="margin-bottom:24px"></div>
+      <div class="radar-container" id="radar-container"><div class="loading">Chargement…</div></div>
+    </div>
+  </div>
+
+  <!-- RECOMMANDATIONS -->
+  <div class="panel" id="panel-recos">
+    <div class="page-header"><div class="page-title">Recommandations</div><div class="page-subtitle">Contenu ciblé sur tes axes faibles — généré chaque semaine</div></div>
+    <div class="content"><div id="recos-content"><div class="loading">Chargement…</div></div></div>
   </div>
 
   <!-- CHALLENGES -->
@@ -463,7 +473,7 @@ a:hover{text-decoration:underline}
 <script>
 // ── CONFIG ─────────────────────────────────────────────────
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
-const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e"; 
+const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
 const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg","papers"];
 
 let currentDate = null;
@@ -501,6 +511,7 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='maturity') loadMaturity();
     if(panel==='ideas') loadIdeas();
     if(panel==='rte') loadRTE();
+    if(panel==='recos') loadRecos();
     if(panel==='history') loadHistory();
     if(panel==='costs') loadCosts();
     // Close mobile sidebar
@@ -700,6 +711,8 @@ async function loadRadar(){
       </div>`).join('');
 
     container.innerHTML=svg+`<div class="radar-details">${details}</div>`;
+    // Show diagnostic if all scores are 0
+    if(axes.every(a=>Number(a.score)===0)) showDiagnostic();
     radarLoaded=true;
   }catch(e){console.error('loadRadar',e)}
 }
@@ -864,6 +877,127 @@ function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/<
 function stripHtml(s){if(!s)return'';const d=document.createElement('div');d.innerHTML=s;let t=d.textContent||d.innerText||'';t=t.replace(/The post .+ appeared first on .+/g,'').replace(/\s+/g,' ').trim();return t;}
 function fmtDate(iso){if(!iso)return'';try{return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch{return''}}
 function fmtDateShort(d){if(!d)return'';try{return new Date(d+"T12:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}catch{return''}}
+
+// ── RECOMMANDATIONS ────────────────────────────────────────
+let recosLoaded=false;
+async function loadRecos(){
+  if(recosLoaded)return;
+  try{
+    const recos=await fetchJSON(`${SUPABASE_URL}/rest/v1/learning_recommendations?order=week_start.desc,target_axis&limit=20`);
+    const el=document.getElementById('recos-content');
+    if(!recos.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📚</div>Les recommandations seront générées par le run hebdomadaire Claude</div>`;return;}
+
+    const axisColors={llm_fundamentals:'var(--blue)',prompt_engineering:'var(--accent)',agents:'var(--green)',rag_data:'var(--coral)',mlops:'var(--amber)',ethics:'var(--red)',business:'var(--pink)',code_integration:'var(--tx2)'};
+    const typeIcons={article:'📄',tutorial:'🛠',video:'🎬',paper:'📑',course:'🎓'};
+
+    el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${recos.map(r=>`
+      <div class="card" style="border-left:3px solid ${axisColors[r.target_axis]||'var(--bd)'}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:16px">${typeIcons[r.resource_type]||'📄'}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg2);color:var(--tx3)">${r.target_axis}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${r.difficulty==='beginner'?'var(--green-bg)':r.difficulty==='advanced'?'var(--red-bg)':'var(--amber-bg)'};color:${r.difficulty==='beginner'?'var(--green)':r.difficulty==='advanced'?'var(--red)':'var(--amber)'}">${r.difficulty}</span>
+          ${r.completed?'<span style="font-size:14px">✅</span>':''}
+        </div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">${esc(r.title)}</div>
+        <div style="font-size:13px;color:var(--tx2);margin-bottom:8px">${esc(r.description||'')}</div>
+        ${r.resource_url?`<a href="${esc(r.resource_url)}" target="_blank" style="font-size:12px">Voir la ressource →</a>`:''}
+      </div>`).join('')}</div>`;
+    recosLoaded=true;
+  }catch(e){console.error('loadRecos',e)}
+}
+
+// ── DIAGNOSTIC QUIZ ────────────────────────────────────────
+const DIAG_QUESTIONS=[
+  {axis:'llm_fundamentals',q:"Tu sais expliquer la différence entre un transformer et un RNN ?",opts:[{l:"Non, c'est quoi ?",s:0},{l:"Vaguement",s:1.5},{l:"Oui, avec les détails techniques",s:3.5},{l:"Je pourrais donner un cours dessus",s:5}]},
+  {axis:'prompt_engineering',q:"Tu utilises des techniques de prompting avancées (few-shot, chain-of-thought, system prompts) ?",opts:[{l:"Je tape juste ma question",s:0.5},{l:"J'utilise des system prompts",s:2},{l:"Few-shot + CoT régulièrement",s:3.5},{l:"J'optimise mes prompts comme du code",s:5}]},
+  {axis:'agents',q:"Tu as déjà construit ou utilisé un agent IA (LangChain, CrewAI, function calling) ?",opts:[{l:"Jamais",s:0},{l:"J'ai testé un peu",s:1.5},{l:"J'ai buildé un workflow agent",s:3},{l:"Je déploie des agents en prod",s:5}]},
+  {axis:'rag_data',q:"Tu comprends comment fonctionne un pipeline RAG (embeddings → vectorDB → retrieval → generation) ?",opts:[{l:"C'est quoi RAG ?",s:0},{l:"J'ai lu des articles dessus",s:1.5},{l:"J'en ai implémenté un",s:3.5},{l:"J'optimise des RAG en prod (chunking, reranking...)",s:5}]},
+  {axis:'mlops',q:"Tu sais déployer un modèle ou une API IA (fine-tuning, serving, monitoring) ?",opts:[{l:"Non, je suis côté usage",s:0},{l:"J'ai fait un peu de fine-tuning",s:1.5},{l:"Je sais déployer et monitorer",s:3.5},{l:"MLOps complet : CI/CD, A/B testing, observabilité",s:5}]},
+  {axis:'ethics',q:"Tu connais l'AI Act européen et les enjeux de gouvernance IA ?",opts:[{l:"Pas du tout",s:0},{l:"J'en ai entendu parler",s:1.5},{l:"Je connais les grandes lignes et les impacts",s:3},{l:"Je pourrais conseiller une entreprise dessus",s:5}]},
+  {axis:'business',q:"Tu sais identifier un use case IA rentable et estimer son ROI ?",opts:[{l:"Pas encore",s:0.5},{l:"Je vois les use cases mais pas le ROI",s:2},{l:"Je sais pitcher un use case avec business case",s:3.5},{l:"J'ai lancé/vendu des projets IA",s:5}]},
+  {axis:'code_integration',q:"Tu codes avec l'IA (Copilot, Claude Code, Cursor) et tu intègres des APIs IA ?",opts:[{l:"Je ne code pas",s:0},{l:"Je utilise Copilot basiquement",s:1.5},{l:"J'intègre des APIs IA dans mes projets",s:3.5},{l:"Je build des apps complètes avec l'IA",s:5}]},
+];
+
+let diagStep=0;
+let diagScores={};
+
+function showDiagnostic(){
+  const container=document.getElementById('radar-diagnostic');
+  const allDone=Object.keys(diagScores).length===DIAG_QUESTIONS.length;
+
+  if(allDone){
+    container.innerHTML='';
+    return;
+  }
+
+  // Check if radar already has scores > 0
+  // Show quiz button if all at 0
+  container.innerHTML=`
+    <div style="border:2px dashed var(--accent);border-radius:var(--radius);padding:20px 24px;background:var(--accent-bg)">
+      <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px">Diagnostic initial</div>
+      <div style="font-size:14px;color:var(--tx2);margin-bottom:16px">Réponds à 8 questions rapides pour calibrer ton radar. Ça prend 2 minutes.</div>
+      <button class="btn btn-primary" onclick="startDiagnostic()">Commencer le diagnostic</button>
+    </div>`;
+}
+
+function startDiagnostic(){
+  diagStep=0;
+  diagScores={};
+  renderDiagQuestion();
+}
+
+function renderDiagQuestion(){
+  if(diagStep>=DIAG_QUESTIONS.length){
+    saveDiagnostic();
+    return;
+  }
+  const q=DIAG_QUESTIONS[diagStep];
+  const container=document.getElementById('radar-diagnostic');
+  container.innerHTML=`
+    <div style="border:2px solid var(--accent);border-radius:var(--radius);padding:24px;background:var(--accent-bg)">
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:8px">Question ${diagStep+1}/${DIAG_QUESTIONS.length} — ${q.axis.replace(/_/g,' ')}</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:16px">${q.q}</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${q.opts.map((o,i)=>`<button class="btn" style="text-align:left;padding:12px 16px" onclick="answerDiag('${q.axis}',${o.s})">${o.l}</button>`).join('')}
+      </div>
+      <div style="margin-top:12px;height:4px;background:var(--bd);border-radius:2px;overflow:hidden">
+        <div style="width:${(diagStep/DIAG_QUESTIONS.length)*100}%;height:100%;background:var(--accent);border-radius:2px;transition:width .3s"></div>
+      </div>
+    </div>`;
+}
+
+function answerDiag(axis,score){
+  diagScores[axis]=score;
+  diagStep++;
+  renderDiagQuestion();
+}
+
+async function saveDiagnostic(){
+  const container=document.getElementById('radar-diagnostic');
+  container.innerHTML=`<div style="text-align:center;padding:20px;color:var(--accent);font-weight:600">Sauvegarde en cours…</div>`;
+
+  for(const[axis,score]of Object.entries(diagScores)){
+    const now=new Date().toISOString().split('T')[0];
+    const history=JSON.stringify([{date:now,score:score,reason:"diagnostic initial"}]);
+    await patchJSON(`${SUPABASE_URL}/rest/v1/skill_radar?axis=eq.${axis}`,{
+      score:score,
+      last_assessed:now,
+      history:history,
+      updated_at:new Date().toISOString(),
+    });
+  }
+
+  container.innerHTML=`
+    <div style="border:2px solid var(--green);border-radius:var(--radius);padding:20px 24px;background:var(--green-bg);text-align:center">
+      <div style="font-size:24px;margin-bottom:8px">✅</div>
+      <div style="font-size:16px;font-weight:700;color:var(--green)">Diagnostic terminé !</div>
+      <div style="font-size:14px;color:var(--tx2);margin-top:4px">Ton radar est calibré. Il évoluera avec les challenges et ta progression.</div>
+    </div>`;
+
+  // Reload radar
+  radarLoaded=false;
+  setTimeout(()=>loadRadar(),1000);
+}
 
 // ── COSTS DASHBOARD ────────────────────────────────────────
 let costsLoaded=false;
