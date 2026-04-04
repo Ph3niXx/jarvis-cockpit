@@ -1274,7 +1274,7 @@ async function loadCosts(){
       <div style="background:var(--bg2);border-radius:var(--radius);padding:16px 20px">
         <div style="font-size:12px;color:var(--tx3)">Coût total</div>
         <div style="font-size:24px;font-weight:700;color:${totalCost>4?'var(--red)':'var(--green)'}">${totalCost.toFixed(2)}$</div>
-        <div style="font-size:11px;color:var(--tx3)">${parsedRuns.length} runs</div>
+        <div style="font-size:11px;color:var(--tx3)">${parsedRuns.reduce((s,r)=>s+(r.t.runs||1),0)} runs</div>
       </div>
       <div style="background:var(--bg2);border-radius:var(--radius);padding:16px 20px">
         <div style="font-size:12px;color:var(--tx3)">Coût moyen / run</div>

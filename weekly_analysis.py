@@ -73,6 +73,7 @@ class CostTracker:
             "total_tokens": self.total_input + self.total_output,
             "cost_usd": round(self.cost, 4),
             "calls": self.calls,
+            "runs": 1,
         }
 
 tracker = CostTracker(MAX_COST_PER_RUN)
@@ -545,6 +546,7 @@ def save_weekly_analysis(signals_summary, concepts_enriched, concepts_updated,
                 "total_tokens": prev_tokens.get("total_tokens", 0) + tracker.summary()["total_tokens"],
                 "cost_usd": round(prev_tokens.get("cost_usd", 0) + tracker.summary()["cost_usd"], 4),
                 "calls": prev_tokens.get("calls", 0) + tracker.summary()["calls"],
+                "runs": prev_tokens.get("runs", 1) + 1,
             }
             print(f"   → Cumul avec run précédent: {prev_tokens.get('cost_usd', 0)}$ + {tracker.summary()['cost_usd']}$ = {current_summary['cost_usd']}$")
         except Exception as e:
