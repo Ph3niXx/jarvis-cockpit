@@ -1,0 +1,28 @@
+name: AI Cockpit — Weekly Intelligence
+ 
+on:
+  schedule:
+    # Dimanche 22h UTC (minuit Paris)
+    - cron: '0 22 * * 0'
+  workflow_dispatch:  # Lancement manuel
+ 
+jobs:
+  weekly-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+ 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+ 
+      - name: Install dependencies
+        run: pip install requests
+ 
+      - name: Run weekly analysis
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python weekly_analysis.py
