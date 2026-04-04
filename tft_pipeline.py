@@ -287,9 +287,21 @@ def parse_and_insert_lobby(match_id, info):
 
 def fetch_and_insert_rank():
     """Fetch le rang actuel et insère un snapshot si pas déjà fait aujourd'hui."""
+    # Step 1: Fetch summoner ID from PUUID
+    summoner_url = (
+        f"https://{RIOT_PLATFORM}.api.riotgames.com"
+        f"/tft/summoner/v1/summoners/by-puuid/{RIOT_PUUID}"
+    )
+    summoner = riot_get(summoner_url)
+    summoner_id = summoner.get("id")
+    if not summoner_id:
+        print("   ⚠️  Impossible de récupérer le summoner ID")
+        return
+
+    # Step 2: Fetch ranked entries by summoner ID
     url = (
         f"https://{RIOT_PLATFORM}.api.riotgames.com"
-        f"/tft/league/v1/entries/by-puuid/{RIOT_PUUID}"
+        f"/tft/league/v1/entries/by-summoner/{summoner_id}"
     )
     entries = riot_get(url)
 
@@ -308,7 +320,7 @@ def fetch_and_insert_rank():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     existing = sb_get(
         "tft_rank_history",
-        f"user_id=eq.{USER_ID}&captured_at=gte.{today}T00:00:00Z&captured_at=lt.{today}T23:59:59Z&limit=1",
+        f"user_id=eq.{USER_ID}&captured_date=eq.{today}&limit=1",
     )
     if existing:
         print(f"   ⏭️  Rank snapshot déjà enregistré aujourd'hui ({ranked.get('tier')} {ranked.get('rank')} {ranked.get('leaguePoints')} LP)")
