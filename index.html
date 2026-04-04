@@ -326,7 +326,7 @@ a:hover{text-decoration:underline}
     <div class="sb-section-label">Intelligence</div>
     <button class="sb-link" data-panel="wiki"><span class="icon">📖</span><span class="label">Wiki IA</span></button>
     <button class="sb-link" data-panel="signals"><span class="icon">📡</span><span class="label">Signaux faibles</span></button>
-    <button class="sb-link" data-panel="maturity"><span class="icon">📊</span><span class="label">Maturité use cases</span></button>
+    <button class="sb-link" data-panel="opportunities"><span class="icon">💰</span><span class="label">Opportunités</span></button>
   </div>
 
   <div class="sb-section">
@@ -344,6 +344,7 @@ a:hover{text-decoration:underline}
 
   <div class="sb-section">
     <div class="sb-section-label">Outils</div>
+    <button class="sb-link" data-panel="profile"><span class="icon">👤</span><span class="label">Mon profil</span></button>
     <button class="sb-link" data-panel="search"><span class="icon">🔍</span><span class="label">Recherche</span></button>
     <button class="sb-link" data-panel="history"><span class="icon">📅</span><span class="label">Historique</span></button>
     <button class="sb-link" data-panel="costs"><span class="icon">💲</span><span class="label">Coûts API</span></button>
@@ -414,10 +415,10 @@ a:hover{text-decoration:underline}
     <div class="content"><div id="challenges-content"><div class="loading">Chargement…</div></div></div>
   </div>
 
-  <!-- MATURITY -->
-  <div class="panel" id="panel-maturity">
-    <div class="page-header"><div class="page-title">Maturité use cases</div><div class="page-subtitle">Où en sont les use cases IA par secteur</div></div>
-    <div class="content"><div id="maturity-content"><div class="loading">Chargement…</div></div></div>
+  <!-- OPPORTUNITIES -->
+  <div class="panel" id="panel-opportunities">
+    <div class="page-header"><div class="page-title">Opportunités</div><div class="page-subtitle">Use cases détectés cette semaine — hypothèses business basées sur l'actualité IA</div></div>
+    <div class="content"><div id="opportunities-content"><div class="loading">Chargement…</div></div></div>
   </div>
 
   <!-- IDEAS -->
@@ -455,6 +456,17 @@ a:hover{text-decoration:underline}
     <div class="content"><div id="history-content"><div class="loading">Chargement…</div></div></div>
   </div>
 
+  <!-- PROFILE -->
+  <div class="panel" id="panel-profile">
+    <div class="page-header"><div class="page-title">Mon profil</div><div class="page-subtitle">Contexte personnel — utilisé par Claude pour personnaliser tout le cockpit</div></div>
+    <div class="content">
+      <div style="background:var(--accent-bg);border-radius:var(--radius);padding:16px 20px;margin-bottom:24px;font-size:13px;color:var(--tx2)">
+        Ce profil est injecté comme contexte dans chaque run hebdomadaire Claude. Plus il est riche, plus les recommandations, challenges, et opportunités seront pertinentes pour toi. Mets-le à jour quand ta situation évolue.
+      </div>
+      <div id="profile-fields"><div class="loading">Chargement…</div></div>
+    </div>
+  </div>
+
   <!-- COSTS DASHBOARD -->
   <div class="panel" id="panel-costs">
     <div class="page-header"><div class="page-title">Coûts API</div><div class="page-subtitle">Suivi des tokens et dépenses Claude Haiku</div></div>
@@ -473,7 +485,7 @@ a:hover{text-decoration:underline}
 <script>
 // ── CONFIG ─────────────────────────────────────────────────
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
-const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e"; 
+const SUPABASE_KEY = "SUPABASE_ANON_KEY_PLACEHOLDER";  // ← REMPLACE PAR TA PUBLISHABLE KEY
 const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg","papers"];
 
 let currentDate = null;
@@ -508,12 +520,13 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='signals') loadSignals();
     if(panel==='radar') loadRadar();
     if(panel==='challenges') loadChallenges();
-    if(panel==='maturity') loadMaturity();
+    if(panel==='opportunities') loadOpportunities();
     if(panel==='ideas') loadIdeas();
     if(panel==='rte') loadRTE();
     if(panel==='recos') loadRecos();
     if(panel==='history') loadHistory();
     if(panel==='costs') loadCosts();
+    if(panel==='profile') loadProfile();
     // Close mobile sidebar
     if(window.innerWidth<=768) toggleSidebar();
   });
@@ -817,25 +830,65 @@ async function loadChallenges(){
   }catch(e){console.error('loadChallenges',e)}
 }
 
-// ── MATURITY ───────────────────────────────────────────────
-let maturityLoaded=false;
-async function loadMaturity(){
-  if(maturityLoaded)return;
+// ── OPPORTUNITIES ──────────────────────────────────────────
+let oppsLoaded=false;
+async function loadOpportunities(){
+  if(oppsLoaded)return;
   try{
-    const data=await fetchJSON(`${SUPABASE_URL}/rest/v1/usecase_maturity?order=sector,maturity&limit=100`);
-    const el=document.getElementById('maturity-content');
-    if(!data.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📊</div>Les use cases seront enrichis par le run hebdomadaire</div>`;return;}
-    el.innerHTML=`<table class="maturity-table">
-      <tr><th>Secteur</th><th>Use case</th><th>Maturité</th><th>Opportunité</th></tr>
-      ${data.map(d=>`<tr>
-        <td>${esc(d.sector_label||d.sector)}</td>
-        <td><strong>${esc(d.usecase)}</strong><br><span style="font-size:12px;color:var(--tx3)">${esc(d.description||'').substring(0,80)}</span></td>
-        <td><span class="maturity-badge ${d.maturity}">${d.maturity}</span></td>
-        <td><span class="opp-bar"><span class="opp-fill" style="width:${d.opportunity_score}%"></span></span>${d.opportunity_score}%</td>
-      </tr>`).join('')}
-    </table>`;
-    maturityLoaded=true;
-  }catch(e){console.error('loadMaturity',e)}
+    const opps=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_opportunities?order=week_start.desc,relevance_score.desc&limit=30`);
+    const el=document.getElementById('opportunities-content');
+    if(!opps.length){el.innerHTML=`<div class="empty"><div class="empty-icon">💰</div>Les opportunités seront générées dimanche soir par le run hebdomadaire Claude.<br>Il analysera les articles de la semaine et identifiera des use cases concrets avec hypothèses business.</div>`;return;}
+
+    const catIcons={money:'💰',life:'⚡'};
+    const catLabels={money:'Rapporter de l\'argent',life:'Simplifier ta vie'};
+    const timingColors={too_early:'var(--blue)',right_time:'var(--green)',getting_late:'var(--amber)'};
+    const confidenceColors={high:'var(--green)',medium:'var(--amber)',low:'var(--tx3)'};
+    const effortLabels={weekend_project:'Weekend project',['1_month']:'~1 mois',['3_months']:'~3 mois',['6_months+']:'6+ mois'};
+
+    // Group by category
+    const money=opps.filter(o=>o.category==='money');
+    const life=opps.filter(o=>o.category==='life');
+
+    function renderOpp(o){
+      return `<div class="card" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <span style="font-size:16px">${catIcons[o.category]||'💡'}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg2);color:var(--tx3)">${esc(o.sector||'')}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${o.timing==='right_time'?'var(--green-bg)':o.timing==='too_early'?'var(--blue-bg)':'var(--amber-bg)'};color:${timingColors[o.timing]||'var(--tx3)'}">${o.timing==='right_time'?'Bon timing':o.timing==='too_early'?'Trop tôt':'Se dépêcher'}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid ${confidenceColors[o.confidence]||'var(--bd)'};color:${confidenceColors[o.confidence]||'var(--tx3)'}">Confiance: ${o.confidence}</span>
+          <span style="margin-left:auto;font-size:14px;font-weight:700;color:var(--accent)">${o.relevance_score}%</span>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">${esc(o.usecase_title)}</div>
+        <div style="font-size:13px;color:var(--tx2);margin-bottom:10px;line-height:1.5">${esc(o.usecase_description||'')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:10px">
+          <div><span style="color:var(--tx3)">Qui paie :</span> ${esc(o.who_pays||'')}</div>
+          <div><span style="color:var(--tx3)">Marché :</span> ${o.market_size}</div>
+          <div><span style="color:var(--tx3)">Effort :</span> ${effortLabels[o.effort_to_build]||o.effort_to_build}</div>
+          <div><span style="color:var(--tx3)">Concurrence :</span> ${o.competition}</div>
+        </div>
+        <div style="font-size:13px;color:var(--accent);margin-bottom:8px"><strong>Pourquoi toi :</strong> ${esc(o.relevance_why||'')}</div>
+        <div style="font-size:13px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm)">
+          <strong>Next step :</strong> ${esc(o.next_step||'')}
+        </div>
+        ${(o.source_articles||[]).length?`<div style="margin-top:8px;font-size:11px">${o.source_articles.map(u=>`<a href="${esc(u)}" target="_blank" style="margin-right:8px">Article source →</a>`).join('')}</div>`:''}
+      </div>`;
+    }
+
+    let html='';
+    if(money.length){
+      html+=`<div class="section-label" style="color:var(--green)">💰 Opportunités business — rapporter de l'argent</div>`;
+      html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+        ${money.map(renderOpp).join('')}</div>`;
+    }
+    if(life.length){
+      html+=`<div class="section-label" style="color:var(--blue)">⚡ Simplifier ta vie — mission actuelle</div>`;
+      html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${life.map(renderOpp).join('')}</div>`;
+    }
+
+    el.innerHTML=html;
+    oppsLoaded=true;
+  }catch(e){console.error('loadOpportunities',e)}
 }
 
 // ── IDEAS ──────────────────────────────────────────────────
@@ -955,6 +1008,67 @@ function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/<
 function stripHtml(s){if(!s)return'';const d=document.createElement('div');d.innerHTML=s;let t=d.textContent||d.innerText||'';t=t.replace(/The post .+ appeared first on .+/g,'').replace(/\s+/g,' ').trim();return t;}
 function fmtDate(iso){if(!iso)return'';try{return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch{return''}}
 function fmtDateShort(d){if(!d)return'';try{return new Date(d+"T12:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}catch{return''}}
+
+// ── PROFILE ────────────────────────────────────────────────
+const PROFILE_LABELS={
+  identity:'Qui je suis',
+  current_role:'Mon rôle actuel',
+  company_context:'Contexte entreprise',
+  ambitions:'Mes ambitions',
+  interests:'Centres d\'intérêt IA',
+  what_excites_me:'Ce qui m\'anime en ce moment',
+  what_frustrates_me:'Ce qui me frustre / bloque',
+  current_projects:'Projets en cours',
+  sectors_of_interest:'Secteurs qui m\'intéressent',
+  learning_style:'Comment j\'apprends le mieux',
+  weekly_notes:'Notes libres (mis à jour quand tu veux)',
+};
+const PROFILE_ORDER=['identity','current_role','company_context','ambitions','interests','what_excites_me','what_frustrates_me','current_projects','sectors_of_interest','learning_style','weekly_notes'];
+
+let profileLoaded=false;
+async function loadProfile(){
+  if(profileLoaded)return;
+  try{
+    const rows=await fetchJSON(`${SUPABASE_URL}/rest/v1/user_profile?order=key`);
+    const el=document.getElementById('profile-fields');
+    const byKey={};
+    rows.forEach(r=>byKey[r.key]=r.value);
+
+    el.innerHTML=PROFILE_ORDER.map(key=>{
+      const label=PROFILE_LABELS[key]||key;
+      const val=byKey[key]||'';
+      const isLong=key==='weekly_notes'||key==='what_excites_me'||key==='what_frustrates_me'||key==='ambitions';
+      return `<div style="margin-bottom:16px">
+        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">${label}</label>
+        ${isLong
+          ?`<textarea id="pf-${key}" style="width:100%;padding:10px 14px;border:1px solid var(--bd);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;min-height:80px;resize:vertical;background:var(--bg3)">${esc(val)}</textarea>`
+          :`<input type="text" id="pf-${key}" value="${esc(val)}" style="width:100%;padding:8px 14px;border:1px solid var(--bd);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;background:var(--bg3)">`
+        }
+      </div>`;
+    }).join('')+`<button class="btn btn-primary" onclick="saveProfile()">Sauvegarder le profil</button>
+    <span id="profile-status" style="margin-left:12px;font-size:13px;color:var(--green)"></span>`;
+    profileLoaded=true;
+  }catch(e){console.error('loadProfile',e)}
+}
+
+async function saveProfile(){
+  const status=document.getElementById('profile-status');
+  status.textContent='Sauvegarde…';
+  let saved=0;
+  for(const key of PROFILE_ORDER){
+    const el=document.getElementById(`pf-${key}`);
+    if(!el)continue;
+    const val=el.value;
+    await fetch(`${SUPABASE_URL}/rest/v1/user_profile?key=eq.${key}`,{
+      method:'PATCH',
+      headers:{...headers,'Content-Type':'application/json'},
+      body:JSON.stringify({value:val,updated_at:new Date().toISOString()}),
+    });
+    saved++;
+  }
+  status.textContent=`✅ ${saved} champs sauvegardés`;
+  setTimeout(()=>status.textContent='',3000);
+}
 
 // ── RECOMMANDATIONS ────────────────────────────────────────
 let recosLoaded=false;
