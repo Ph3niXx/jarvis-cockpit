@@ -36,6 +36,7 @@ a:hover{text-decoration:underline}
   background:var(--bg3);border-right:1px solid var(--bd);
   display:flex;flex-direction:column;z-index:100;
   transition:transform .25s ease;
+  overflow-y:auto;overflow-x:hidden;
 }
 .main{margin-left:var(--sidebar-w);flex:1;min-width:0;padding:0 0 4rem}
 .content{padding:2rem 2.5rem}
@@ -462,7 +463,7 @@ a:hover{text-decoration:underline}
 <script>
 // ── CONFIG ─────────────────────────────────────────────────
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
-const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
+const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e"; 
 const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg","papers"];
 
 let currentDate = null;
