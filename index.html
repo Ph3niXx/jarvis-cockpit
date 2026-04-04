@@ -446,7 +446,7 @@ a:hover{text-decoration:underline}
 <script>
 // ── CONFIG ─────────────────────────────────────────────────
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
-const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e"; 
+const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
 const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg","papers"];
 
 let currentDate = null;
@@ -536,7 +536,7 @@ async function loadDay(dateStr){
         <div class="card">
           <div class="card-meta"><span class="card-source">${esc(a.source)}</span><span class="card-date">${fmtDate(a.date_published)}</span></div>
           <div class="card-title"><a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></div>
-          <div class="card-summary" id="sum-${a.id}">${esc(a.summary||'')}</div>
+          <div class="card-summary" id="sum-${a.id}">${esc(stripHtml(a.summary||''))}</div>
           ${(a.summary||'').length>120?`<button class="card-expand" onclick="toggleSummary('${a.id}')">voir plus</button>`:''}
         </div>`).join('');
     });
@@ -777,6 +777,7 @@ async function loadRTE(){
         <div class="rte-card-footer">
           <span class="rte-badge rte-effort">Effort: ${d.effort}</span>
           <span class="rte-badge rte-impact">Impact: ${d.impact}</span>
+          <a href="https://www.google.com/search?q=AI+${encodeURIComponent(d.usecase)}+${encodeURIComponent(d.tool_label)}" target="_blank" style="margin-left:auto;font-size:11px;color:var(--blue)">Explorer →</a>
         </div>
       </div>`).join('');
     rteLoaded=true;
@@ -800,7 +801,7 @@ async function doSearch(q){
       <div class="card">
         <div class="card-meta"><span class="card-source">${esc(a.source)}</span><span class="card-date">${fmtDate(a.date_published)}</span></div>
         <div class="card-title"><a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></div>
-        <div class="card-summary">${esc(a.summary||'')}</div>
+        <div class="card-summary">${esc(stripHtml(a.summary||''))}</div>
       </div>`).join('');
   }catch(e){console.error('doSearch',e)}
 }
@@ -832,6 +833,7 @@ function navigateTo(dateStr){
 
 // ── UTILS ──────────────────────────────────────────────────
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function stripHtml(s){if(!s)return'';const d=document.createElement('div');d.innerHTML=s;let t=d.textContent||d.innerText||'';t=t.replace(/The post .+ appeared first on .+/g,'').replace(/\s+/g,' ').trim();return t;}
 function fmtDate(iso){if(!iso)return'';try{return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch{return''}}
 function fmtDateShort(d){if(!d)return'';try{return new Date(d+"T12:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}catch{return''}}
 
