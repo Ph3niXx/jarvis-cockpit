@@ -526,13 +526,12 @@ RÈGLES :
 
 # ─── STEP 7 : LOGGER LES RÉSULTATS ───────────────────────────────────────────
 
-def save_weekly_analysis(signals_summary, concepts_enriched, concepts_updated, 
+def save_weekly_analysis(signals_summary, concepts_enriched, concepts_updated,
                          recommendations_count, challenge_title, rte_count, opps_count):
     today = datetime.now()
     week_start = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
 
-    success = sb_post("weekly_analysis", {
-        "week_start": week_start,
+    data = {
         "signals_summary": signals_summary,
         "concepts_added": concepts_enriched,
         "concepts_updated": concepts_updated or [],
@@ -540,8 +539,17 @@ def save_weekly_analysis(signals_summary, concepts_enriched, concepts_updated,
         "challenge_generated": challenge_title,
         "tokens_used": json.dumps(tracker.summary()),
         "raw_analysis": f"Wiki: {len(concepts_enriched)}, Recos: {recommendations_count}, RTE: {rte_count}, Opportunités: {opps_count}",
-    }, upsert=True)
-    print(f"   → Sauvegarde {'OK' if success else 'ÉCHOUÉE'}")
+    }
+
+    # Vérifier si une ligne existe déjà pour cette semaine
+    existing = sb_get("weekly_analysis", f"week_start=eq.{week_start}&limit=1")
+    if existing:
+        success = sb_patch("weekly_analysis", f"week_start=eq.{week_start}", data)
+        print(f"   → Mise à jour semaine {week_start} {'OK' if success else 'ÉCHOUÉE'}")
+    else:
+        data["week_start"] = week_start
+        success = sb_post("weekly_analysis", data)
+        print(f"   → Insertion semaine {week_start} {'OK' if success else 'ÉCHOUÉE'}")
 
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
