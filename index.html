@@ -168,7 +168,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ── MAIN ───────────────────────────────────────────── */
 .main { flex: 1; overflow-y: auto; }
-.panel { display: none; max-width: 740px; margin: 0 auto; padding: 32px 24px; }
+.panel { display: none; max-width: 1400px; margin: 0 auto; padding: 32px 48px; }
 .panel.active { display: block; }
 
 /* ── SECTION LABEL ──────────────────────────────────── */
@@ -391,12 +391,40 @@ a { color: inherit; text-decoration: none; }
   font-family: var(--serif);
 }
 
+
+/* ── TWO COLUMN GRID (desktop) ──────────────────────── */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 48px;
+}
+.cards-grid .news-card {
+  border-bottom: 1px solid var(--border);
+  padding: 16px 0;
+}
+.cards-grid .news-card:last-of-type { border-bottom: 1px solid var(--border); }
+
+/* Brief uses side-by-side on desktop */
+.brief-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+.brief-grid .macro-block { margin-bottom: 0; }
+.brief-grid .user-block  { margin-bottom: 0; }
+
+@media (max-width: 900px) {
+  .cards-grid { grid-template-columns: 1fr; gap: 0; }
+  .brief-grid { grid-template-columns: 1fr; gap: 16px; }
+}
+
 /* ── MOBILE ──────────────────────────────────────────── */
 @media (max-width: 600px) {
   .hdr { padding: 0 16px; }
   .hdr-date { display: none; }
   .nav-strip { padding: 8px 16px; }
-  .panel { padding: 20px 16px; }
+  .panel { padding: 20px 16px; max-width: 100%; }
   .hdr-pill { display: none; }
   .macro-block, .user-block { padding: 14px 16px; }
   .top-link { font-size: 15px; }
@@ -542,9 +570,15 @@ function renderSection(section, articles) {
   const items = articles.filter(a => a.section === section);
   const countEl = document.getElementById(`c-${section}`);
   if (countEl) countEl.textContent = items.length;
-  el.innerHTML = items.length
-    ? items.map(makeCard).join("")
-    : `<div class="empty"><div class="empty-icon">📭</div><p>Aucun article dans cette catégorie</p></div>`;
+  if (!items.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>Aucun article dans cette catégorie</p></div>`;
+    return;
+  }
+  // Split into two columns for desktop
+  const mid = Math.ceil(items.length / 2);
+  const col1 = items.slice(0, mid).map(makeCard).join("");
+  const col2 = items.slice(mid).map(makeCard).join("");
+  el.innerHTML = `<div class="cards-grid"><div>${col1}</div><div>${col2}</div></div>`;
 }
 
 async function loadDay(dateStr) {
@@ -566,7 +600,13 @@ async function loadBrief(dateStr) {
   try {
     const data = await api(`/rest/v1/daily_briefs?date=eq.${dateStr}&limit=1`);
     if (data.length && data[0].brief_html) {
-      el.innerHTML = data[0].brief_html;
+      // Wrap macro-block + user-block side by side on desktop
+      let html = data[0].brief_html;
+      html = html.replace(
+        /(<div class="macro-block">[\s\S]*?<\/div>)\s*(<div class="user-block">[\s\S]*?<\/div>)/,
+        '<div class="brief-grid">$1$2</div>'
+      );
+      el.innerHTML = html;
     } else {
       el.innerHTML = `<div class="empty"><div class="empty-icon">📝</div><p>Brief non disponible pour cette date.</p></div>`;
     }
