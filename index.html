@@ -268,13 +268,9 @@ function renderCards(section, articles) {
 }
 
 async function loadDay(dateStr) {
-  // date range: that day 00:00 to 23:59 UTC
-  const start = `${dateStr}T00:00:00Z`;
-  const end   = `${dateStr}T23:59:59Z`;
-
   try {
     const articles = await fetchJSON(
-      `${SUPABASE_URL}/rest/v1/articles?date_fetched=gte.${start}&date_fetched=lte.${end}&order=date_fetched.desc&limit=200`
+      `${SUPABASE_URL}/rest/v1/articles?fetch_date=eq.${dateStr}&order=date_fetched.desc&limit=200`
     );
     allArticles = articles;
 
@@ -314,9 +310,9 @@ async function loadAvailableDates() {
   try {
     // Get distinct dates from articles
     const data = await fetchJSON(
-      `${SUPABASE_URL}/rest/v1/articles?select=date_fetched&order=date_fetched.desc&limit=500`
+      `${SUPABASE_URL}/rest/v1/articles?select=fetch_date&order=fetch_date.desc&limit=500`
     );
-    const dates = [...new Set(data.map(a => a.date_fetched?.substring(0,10)).filter(Boolean))].sort().reverse();
+    const dates = [...new Set(data.map(a => a.fetch_date).filter(Boolean))].sort().reverse();
     availableDates = dates;
 
     // Populate date selector
@@ -342,7 +338,7 @@ async function loadHistory() {
     // Group by date
     const byDate = {};
     articles.forEach(a => {
-      const d = (a.date_fetched||'').substring(0,10);
+      const d = a.fetch_date || '';
       if (!byDate[d]) byDate[d] = [];
       byDate[d].push(a);
     });
