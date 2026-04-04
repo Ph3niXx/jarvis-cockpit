@@ -38,11 +38,11 @@ a:hover{text-decoration:underline}
   transition:transform .25s ease;
 }
 .main{margin-left:var(--sidebar-w);flex:1;min-width:0;padding:0 0 4rem}
-.content{max-width:1100px;margin:0 auto;padding:2rem 2.5rem}
+.content{padding:2rem 2.5rem}
 
 /* ── PAGE HEADER ──────────────────────────────────────────── */
 .page-header{
-  padding:2rem 2.5rem 1rem;max-width:1100px;margin:0 auto;
+  padding:2rem 2.5rem 1rem;
   border-bottom:1px solid var(--bd);margin-bottom:0;
 }
 .sb-header{padding:20px 20px 16px;border-bottom:1px solid var(--bd)}
@@ -449,7 +449,7 @@ a:hover{text-decoration:underline}
 <script>
 // ── CONFIG ─────────────────────────────────────────────────
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
-const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";  // ← REMPLACE PAR TA PUBLISHABLE KEY
+const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
 const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg","papers"];
 
 let currentDate = null;
