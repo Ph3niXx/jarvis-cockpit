@@ -1,11 +1,40 @@
 import os
+import re
 import smtplib
 import feedparser
 import requests
 from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from html.parser import HTMLParser
 import google.generativeai as genai
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.reset()
+        self.fed = []
+    def handle_data(self, d):
+        self.fed.append(d)
+    def get_data(self):
+        return " ".join(self.fed)
+
+def strip_html(html):
+    """Strip HTML tags and clean up whitespace from RSS summaries."""
+    if not html:
+        return ""
+    s = MLStripper()
+    try:
+        s.feed(html)
+        text = s.get_data()
+    except Exception:
+        text = re.sub(r"<[^>]+>", " ", html)
+    # Clean up whitespace
+    text = re.sub(r"\s+", " ", text).strip()
+    # Remove common RSS artifacts
+    text = re.sub(r"^The post .+ appeared first on .+$", "", text, flags=re.MULTILINE)
+    text = re.sub(r"\[\u2026\]|\.\.\.", "…", text)
+    return text.strip()
 
 GEMINI_API_KEY  = os.environ["GEMINI_API_KEY"]
 GMAIL_ADDRESS   = os.environ["GMAIL_ADDRESS"]
@@ -103,7 +132,8 @@ def fetch_recent_articles():
                     continue
                 title   = entry.get("title", "Sans titre").strip()
                 link    = entry.get("link", "#")
-                summary = entry.get("summary", entry.get("description", ""))[:800]
+                raw_summary = entry.get("summary", entry.get("description", ""))
+summary = strip_html(raw_summary)[:800]
                 articles.append({
                     "source":   source_name,
                     "title":    title,
