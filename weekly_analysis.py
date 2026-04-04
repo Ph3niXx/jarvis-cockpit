@@ -531,18 +531,35 @@ def save_weekly_analysis(signals_summary, concepts_enriched, concepts_updated,
     today = datetime.now()
     week_start = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
 
+    current_summary = tracker.summary()
+
+    # Vérifier si une ligne existe déjà pour cette semaine → cumuler les coûts
+    existing = sb_get("weekly_analysis", f"week_start=eq.{week_start}&limit=1")
+    if existing:
+        try:
+            prev = existing[0].get("tokens_used", "{}")
+            prev_tokens = json.loads(prev) if isinstance(prev, str) else (prev or {})
+            current_summary = {
+                "input_tokens": prev_tokens.get("input_tokens", 0) + tracker.summary()["input_tokens"],
+                "output_tokens": prev_tokens.get("output_tokens", 0) + tracker.summary()["output_tokens"],
+                "total_tokens": prev_tokens.get("total_tokens", 0) + tracker.summary()["total_tokens"],
+                "cost_usd": round(prev_tokens.get("cost_usd", 0) + tracker.summary()["cost_usd"], 4),
+                "calls": prev_tokens.get("calls", 0) + tracker.summary()["calls"],
+            }
+            print(f"   → Cumul avec run précédent: {prev_tokens.get('cost_usd', 0)}$ + {tracker.summary()['cost_usd']}$ = {current_summary['cost_usd']}$")
+        except Exception as e:
+            print(f"   [WARN] Impossible de cumuler les coûts: {e}")
+
     data = {
         "signals_summary": signals_summary,
         "concepts_added": concepts_enriched,
         "concepts_updated": concepts_updated or [],
         "recommendations_generated": recommendations_count,
         "challenge_generated": challenge_title,
-        "tokens_used": json.dumps(tracker.summary()),
+        "tokens_used": json.dumps(current_summary),
         "raw_analysis": f"Wiki: {len(concepts_enriched)}, Recos: {recommendations_count}, RTE: {rte_count}, Opportunités: {opps_count}",
     }
 
-    # Vérifier si une ligne existe déjà pour cette semaine
-    existing = sb_get("weekly_analysis", f"week_start=eq.{week_start}&limit=1")
     if existing:
         success = sb_patch("weekly_analysis", f"week_start=eq.{week_start}", data)
         print(f"   → Mise à jour semaine {week_start} {'OK' if success else 'ÉCHOUÉE'}")
