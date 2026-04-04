@@ -704,10 +704,16 @@ async function loadRadar(){
     </svg>`;
 
     const details=axes.map(a=>`
-      <div class="radar-axis">
-        <span class="radar-axis-label">${esc(a.axis_label)}</span>
-        <div class="radar-axis-bar"><div class="radar-axis-fill" style="width:${a.score/5*100}%"></div></div>
-        <span class="radar-axis-score">${a.score}/5</span>
+      <div class="radar-axis" style="flex-direction:column;align-items:stretch;padding:12px 0">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="radar-axis-label">${esc(a.axis_label)}</span>
+          <div class="radar-axis-bar"><div class="radar-axis-fill" style="width:${a.score/5*100}%"></div></div>
+          <span class="radar-axis-score">${a.score}/5</span>
+        </div>
+        ${a.strengths||a.gaps?`<div style="display:flex;gap:16px;margin-top:6px;font-size:12px">
+          ${a.strengths?`<div style="color:var(--green)">✓ ${esc(a.strengths)}</div>`:''}
+          ${a.gaps?`<div style="color:var(--coral)">△ ${esc(a.gaps)}</div>`:''}
+        </div>`:''}
       </div>`).join('');
 
     container.innerHTML=svg+`<div class="radar-details">${details}</div>`;
@@ -908,14 +914,62 @@ async function loadRecos(){
 
 // ── DIAGNOSTIC QUIZ ────────────────────────────────────────
 const DIAG_QUESTIONS=[
-  {axis:'llm_fundamentals',q:"Tu sais expliquer la différence entre un transformer et un RNN ?",opts:[{l:"Non, c'est quoi ?",s:0},{l:"Vaguement",s:1.5},{l:"Oui, avec les détails techniques",s:3.5},{l:"Je pourrais donner un cours dessus",s:5}]},
-  {axis:'prompt_engineering',q:"Tu utilises des techniques de prompting avancées (few-shot, chain-of-thought, system prompts) ?",opts:[{l:"Je tape juste ma question",s:0.5},{l:"J'utilise des system prompts",s:2},{l:"Few-shot + CoT régulièrement",s:3.5},{l:"J'optimise mes prompts comme du code",s:5}]},
-  {axis:'agents',q:"Tu as déjà construit ou utilisé un agent IA (LangChain, CrewAI, function calling) ?",opts:[{l:"Jamais",s:0},{l:"J'ai testé un peu",s:1.5},{l:"J'ai buildé un workflow agent",s:3},{l:"Je déploie des agents en prod",s:5}]},
-  {axis:'rag_data',q:"Tu comprends comment fonctionne un pipeline RAG (embeddings → vectorDB → retrieval → generation) ?",opts:[{l:"C'est quoi RAG ?",s:0},{l:"J'ai lu des articles dessus",s:1.5},{l:"J'en ai implémenté un",s:3.5},{l:"J'optimise des RAG en prod (chunking, reranking...)",s:5}]},
-  {axis:'mlops',q:"Tu sais déployer un modèle ou une API IA (fine-tuning, serving, monitoring) ?",opts:[{l:"Non, je suis côté usage",s:0},{l:"J'ai fait un peu de fine-tuning",s:1.5},{l:"Je sais déployer et monitorer",s:3.5},{l:"MLOps complet : CI/CD, A/B testing, observabilité",s:5}]},
-  {axis:'ethics',q:"Tu connais l'AI Act européen et les enjeux de gouvernance IA ?",opts:[{l:"Pas du tout",s:0},{l:"J'en ai entendu parler",s:1.5},{l:"Je connais les grandes lignes et les impacts",s:3},{l:"Je pourrais conseiller une entreprise dessus",s:5}]},
-  {axis:'business',q:"Tu sais identifier un use case IA rentable et estimer son ROI ?",opts:[{l:"Pas encore",s:0.5},{l:"Je vois les use cases mais pas le ROI",s:2},{l:"Je sais pitcher un use case avec business case",s:3.5},{l:"J'ai lancé/vendu des projets IA",s:5}]},
-  {axis:'code_integration',q:"Tu codes avec l'IA (Copilot, Claude Code, Cursor) et tu intègres des APIs IA ?",opts:[{l:"Je ne code pas",s:0},{l:"Je utilise Copilot basiquement",s:1.5},{l:"J'intègre des APIs IA dans mes projets",s:3.5},{l:"Je build des apps complètes avec l'IA",s:5}]},
+  {axis:'llm_fundamentals',q:"Tu sais expliquer la différence entre un transformer et un RNN ?",
+   opts:[
+     {l:"Non, c'est quoi ?",s:0,strengths:"Aucune base technique LLM",gaps:"Architecture transformer, tokenisation, attention, training"},
+     {l:"Vaguement",s:1.5,strengths:"Notions de base sur les LLMs",gaps:"Mécanisme d'attention, architecture en détail, différences entre modèles"},
+     {l:"Oui, avec les détails techniques",s:3.5,strengths:"Bonne compréhension des architectures, attention, MoE",gaps:"Optimisations avancées (sparse attention, KV cache), scaling laws"},
+     {l:"Je pourrais donner un cours dessus",s:5,strengths:"Expert en architectures LLM, scaling, training",gaps:"Recherche de pointe uniquement"}
+   ]},
+  {axis:'prompt_engineering',q:"Tu utilises des techniques de prompting avancées (few-shot, chain-of-thought, system prompts) ?",
+   opts:[
+     {l:"Je tape juste ma question",s:0.5,strengths:"Usage basique de chatbots",gaps:"System prompts, few-shot, chain-of-thought, structured output, prompt chaining"},
+     {l:"J'utilise des system prompts",s:2,strengths:"System prompts, contexte, rôles",gaps:"Few-shot, chain-of-thought, évaluation de prompts, prompt engineering avancé"},
+     {l:"Few-shot + CoT régulièrement",s:3.5,strengths:"Techniques avancées de prompting, structured output",gaps:"Prompt optimization automatique, DSPy, évaluation systématique"},
+     {l:"J'optimise mes prompts comme du code",s:5,strengths:"Expert en prompt engineering, évaluation, optimisation",gaps:"Frameworks de recherche automatique de prompts"}
+   ]},
+  {axis:'agents',q:"Tu as déjà construit ou utilisé un agent IA (LangChain, CrewAI, function calling) ?",
+   opts:[
+     {l:"Jamais",s:0,strengths:"Aucune expérience agents",gaps:"Function calling, tool use, MCP, orchestration, LangChain, workflows autonomes"},
+     {l:"J'ai testé un peu",s:1.5,strengths:"Notions de base sur les agents, a testé quelques outils",gaps:"Architecture agent robuste, gestion d'erreurs, multi-agents, orchestration"},
+     {l:"J'ai buildé un workflow agent",s:3,strengths:"Expérience pratique agents, function calling, workflows",gaps:"Multi-agents en prod, observabilité agents, patterns avancés (reflection, planning)"},
+     {l:"Je déploie des agents en prod",s:5,strengths:"Expert agents IA, déploiement production, monitoring",gaps:"Recherche de pointe uniquement (agents autonomes, self-improvement)"}
+   ]},
+  {axis:'rag_data',q:"Tu comprends comment fonctionne un pipeline RAG (embeddings → vectorDB → retrieval → generation) ?",
+   opts:[
+     {l:"C'est quoi RAG ?",s:0,strengths:"Aucune connaissance RAG",gaps:"Embeddings, vector DB, chunking, retrieval, reranking, pipeline complet"},
+     {l:"J'ai lu des articles dessus",s:1.5,strengths:"Comprend le concept de RAG",gaps:"Implémentation pratique, choix de vector DB, stratégies de chunking, évaluation"},
+     {l:"J'en ai implémenté un",s:3.5,strengths:"Expérience RAG pratique, vector DB, embeddings",gaps:"Optimisation (reranking, hybrid search, GraphRAG), évaluation systématique"},
+     {l:"J'optimise des RAG en prod",s:5,strengths:"Expert RAG, optimisation avancée, production",gaps:"Architectures de recherche de pointe"}
+   ]},
+  {axis:'mlops',q:"Tu sais déployer un modèle ou une API IA (fine-tuning, serving, monitoring) ?",
+   opts:[
+     {l:"Non, je suis côté usage",s:0,strengths:"Utilisateur final d'IA",gaps:"Fine-tuning, déploiement, serving, monitoring, CI/CD ML, containerisation"},
+     {l:"J'ai fait un peu de fine-tuning",s:1.5,strengths:"Notions de fine-tuning",gaps:"Déploiement production, monitoring, scaling, coûts infra, MLflow/W&B"},
+     {l:"Je sais déployer et monitorer",s:3.5,strengths:"Déploiement, monitoring, infra basique",gaps:"CI/CD ML avancé, A/B testing modèles, drift detection, optimisation coûts GPU"},
+     {l:"MLOps complet",s:5,strengths:"Expert MLOps, CI/CD, monitoring, scaling",gaps:"Infra de recherche à très grande échelle"}
+   ]},
+  {axis:'ethics',q:"Tu connais l'AI Act européen et les enjeux de gouvernance IA ?",
+   opts:[
+     {l:"Pas du tout",s:0,strengths:"Aucune connaissance régulation IA",gaps:"AI Act, classification des risques, obligations, CNIL, gouvernance, biais, red teaming"},
+     {l:"J'en ai entendu parler",s:1.5,strengths:"Awareness de la régulation IA",gaps:"Détails AI Act, implications pratiques, mise en conformité, éthique appliquée"},
+     {l:"Je connais les grandes lignes",s:3,strengths:"Bonne compréhension AI Act et enjeux de gouvernance",gaps:"Mise en conformité opérationnelle, audits IA, documentation technique"},
+     {l:"Je pourrais conseiller dessus",s:5,strengths:"Expert régulation et gouvernance IA",gaps:"Jurisprudence émergente uniquement"}
+   ]},
+  {axis:'business',q:"Tu sais identifier un use case IA rentable et estimer son ROI ?",
+   opts:[
+     {l:"Pas encore",s:0.5,strengths:"Intérêt pour le business IA",gaps:"Identification use cases, estimation ROI, business case, go-to-market, pricing"},
+     {l:"Je vois les use cases mais pas le ROI",s:2,strengths:"Capacité à identifier des use cases pertinents",gaps:"Business case chiffré, ROI, pricing modèles IA, go-to-market"},
+     {l:"Je sais pitcher avec business case",s:3.5,strengths:"Business case IA, pitch, identification d'opportunités",gaps:"Stratégie produit IA, scaling, fundraising, marché concurrentiel"},
+     {l:"J'ai lancé/vendu des projets IA",s:5,strengths:"Entrepreneur IA, vente, stratégie produit",gaps:"Scaling international, fundraising série A+"}
+   ]},
+  {axis:'code_integration',q:"Tu codes avec l'IA (Copilot, Claude Code, Cursor) et tu intègres des APIs IA ?",
+   opts:[
+     {l:"Je ne code pas",s:0,strengths:"Non-développeur",gaps:"Bases Python, appels API, intégration IA, scripting, automation"},
+     {l:"J'utilise Copilot basiquement",s:1.5,strengths:"Usage basique d'assistants code",gaps:"Intégration APIs IA, Python avancé, architecture applicative, CI/CD"},
+     {l:"J'intègre des APIs IA",s:3.5,strengths:"Intégration APIs, Python, scripting, automation",gaps:"Architecture applicative complexe, tests, performance, sécurité"},
+     {l:"Je build des apps complètes",s:5,strengths:"Développeur IA full-stack",gaps:"Architecture distribuée à grande échelle"}
+   ]},
 ];
 
 let diagStep=0;
@@ -924,18 +978,12 @@ let diagScores={};
 function showDiagnostic(){
   const container=document.getElementById('radar-diagnostic');
   const allDone=Object.keys(diagScores).length===DIAG_QUESTIONS.length;
+  if(allDone){container.innerHTML='';return;}
 
-  if(allDone){
-    container.innerHTML='';
-    return;
-  }
-
-  // Check if radar already has scores > 0
-  // Show quiz button if all at 0
   container.innerHTML=`
     <div style="border:2px dashed var(--accent);border-radius:var(--radius);padding:20px 24px;background:var(--accent-bg)">
       <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px">Diagnostic initial</div>
-      <div style="font-size:14px;color:var(--tx2);margin-bottom:16px">Réponds à 8 questions rapides pour calibrer ton radar. Ça prend 2 minutes.</div>
+      <div style="font-size:14px;color:var(--tx2);margin-bottom:16px">Réponds à 8 questions rapides pour calibrer ton radar. Ton profil qualitatif (forces, lacunes) sera utilisé par Claude pour te recommander du contenu ciblé.</div>
       <button class="btn btn-primary" onclick="startDiagnostic()">Commencer le diagnostic</button>
     </div>`;
 }
@@ -958,7 +1006,7 @@ function renderDiagQuestion(){
       <div style="font-size:12px;color:var(--tx3);margin-bottom:8px">Question ${diagStep+1}/${DIAG_QUESTIONS.length} — ${q.axis.replace(/_/g,' ')}</div>
       <div style="font-size:16px;font-weight:600;margin-bottom:16px">${q.q}</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        ${q.opts.map((o,i)=>`<button class="btn" style="text-align:left;padding:12px 16px" onclick="answerDiag('${q.axis}',${o.s})">${o.l}</button>`).join('')}
+        ${q.opts.map((o,i)=>`<button class="btn" style="text-align:left;padding:12px 16px" onclick="answerDiag('${q.axis}',${o.s},${i})">${o.l}</button>`).join('')}
       </div>
       <div style="margin-top:12px;height:4px;background:var(--bd);border-radius:2px;overflow:hidden">
         <div style="width:${(diagStep/DIAG_QUESTIONS.length)*100}%;height:100%;background:var(--accent);border-radius:2px;transition:width .3s"></div>
@@ -966,23 +1014,28 @@ function renderDiagQuestion(){
     </div>`;
 }
 
-function answerDiag(axis,score){
-  diagScores[axis]=score;
+function answerDiag(axis,score,optIndex){
+  const q=DIAG_QUESTIONS[diagStep];
+  const opt=q.opts[optIndex];
+  diagScores[axis]={score,strengths:opt.strengths,gaps:opt.gaps,answer:opt.l};
   diagStep++;
   renderDiagQuestion();
 }
 
 async function saveDiagnostic(){
   const container=document.getElementById('radar-diagnostic');
-  container.innerHTML=`<div style="text-align:center;padding:20px;color:var(--accent);font-weight:600">Sauvegarde en cours…</div>`;
+  container.innerHTML=`<div style="text-align:center;padding:20px;color:var(--accent);font-weight:600">Sauvegarde du profil…</div>`;
 
-  for(const[axis,score]of Object.entries(diagScores)){
-    const now=new Date().toISOString().split('T')[0];
-    const history=JSON.stringify([{date:now,score:score,reason:"diagnostic initial"}]);
+  const now=new Date().toISOString().split('T')[0];
+  for(const[axis,data]of Object.entries(diagScores)){
+    const history=JSON.stringify([{date:now,score:data.score,reason:"diagnostic initial"}]);
     await patchJSON(`${SUPABASE_URL}/rest/v1/skill_radar?axis=eq.${axis}`,{
-      score:score,
+      score:data.score,
       last_assessed:now,
       history:history,
+      strengths:data.strengths,
+      gaps:data.gaps,
+      diagnostic_answer:data.answer,
       updated_at:new Date().toISOString(),
     });
   }
@@ -990,11 +1043,10 @@ async function saveDiagnostic(){
   container.innerHTML=`
     <div style="border:2px solid var(--green);border-radius:var(--radius);padding:20px 24px;background:var(--green-bg);text-align:center">
       <div style="font-size:24px;margin-bottom:8px">✅</div>
-      <div style="font-size:16px;font-weight:700;color:var(--green)">Diagnostic terminé !</div>
-      <div style="font-size:14px;color:var(--tx2);margin-top:4px">Ton radar est calibré. Il évoluera avec les challenges et ta progression.</div>
+      <div style="font-size:16px;font-weight:700;color:var(--green)">Profil calibré !</div>
+      <div style="font-size:14px;color:var(--tx2);margin-top:4px">Ton radar + profil qualitatif sont sauvegardés. Les recommandations et challenges seront adaptés à tes forces et lacunes.</div>
     </div>`;
 
-  // Reload radar
   radarLoaded=false;
   setTimeout(()=>loadRadar(),1000);
 }
