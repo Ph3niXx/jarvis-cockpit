@@ -3,115 +3,404 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Daily Digest</title>
+<title>AI Digest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#0f0f1a; --bg2:#1a1a2e; --bg3:#22223a;
-  --border:#2d2d4e; --text:#e0e0f0; --muted:#8888aa;
-  --accent:#7c6fea; --accent-l:#a89ff5; --gold:#f0b429;
-  --sw:220px; --hh:56px;
+  --ink: #111;
+  --muted: #888;
+  --faint: #f5f4f1;
+  --border: #ebebeb;
+  --accent: #2a6ef5;
+  --accent-bg: #eef3ff;
+  --gold: #c9850a;
+  --gold-bg: #fef9ee;
+  --green: #1a7a4a;
+  --green-bg: #edf7f2;
+  --red: #c0392b;
+  --red-bg: #fdf0ef;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --serif: 'Fraunces', Georgia, serif;
 }
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
-a{color:inherit;text-decoration:none}
 
-/* LAYOUT */
-.app{display:flex;flex-direction:column;height:100vh}
-.hdr{height:var(--hh);background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:100}
-.hdr-logo{font-size:17px;font-weight:700;color:var(--accent-l)}
-.hdr-date{font-size:12px;color:var(--muted)}
-.hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px}
-.hdr-count{font-size:11px;background:var(--bg3);color:var(--muted);padding:3px 10px;border-radius:20px}
-.date-nav{display:flex;align-items:center;gap:6px}
-.date-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px}
-.date-btn:hover{color:var(--text);border-color:var(--accent)}
-.date-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:6px;font-size:12px;cursor:pointer}
+* { margin:0; padding:0; box-sizing:border-box; }
 
-.body{display:flex;flex:1;overflow:hidden}
+html, body {
+  height: 100%;
+  font-family: var(--sans);
+  background: #fff;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
 
-/* SIDEBAR */
-.sidebar{width:var(--sw);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
-.sb-stats{padding:14px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stat{text-align:center;background:var(--bg3);border-radius:6px;padding:8px 4px}
-.stat-n{font-size:20px;font-weight:700;color:var(--accent-l)}
-.stat-l{font-size:10px;color:var(--muted);margin-top:1px}
-.nav{flex:1;padding:8px 0}
-.nav-link{display:flex;align-items:center;gap:10px;padding:10px 16px;color:var(--muted);font-size:13px;border-left:2px solid transparent;cursor:pointer;transition:all .15s}
-.nav-link:hover{background:var(--bg3);color:var(--text)}
-.nav-link.active{background:var(--bg3);color:var(--accent-l);border-left-color:var(--accent)}
-.nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
-.nav-label{flex:1}
-.nav-count{font-size:10px;background:var(--bg);color:var(--muted);padding:1px 6px;border-radius:10px}
-.nav-link.active .nav-count{background:rgba(124,111,234,.2);color:var(--accent-l)}
-.sb-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:10px;color:#333355}
+a { color: inherit; text-decoration: none; }
 
-/* MAIN */
-.main{flex:1;overflow-y:auto;padding:24px}
-.panel{display:none;max-width:780px;margin:0 auto}
-.panel.active{display:block}
-.panel-head{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+/* ── LAYOUT ─────────────────────────────────────────── */
+.app { display: flex; flex-direction: column; height: 100vh; }
 
-/* BRIEF */
-.macro-block{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:18px 20px;margin-bottom:14px}
-.macro-text{font-size:13px;color:#ccc;line-height:1.8}
-.user-block{background:#16163a;border:1px solid #3a3a6e;border-radius:10px;padding:18px 20px;margin-bottom:20px}
-.user-title{font-size:10px;font-weight:700;color:var(--accent-l);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
-.user-list{list-style:none;display:flex;flex-direction:column;gap:8px}
-.user-list li{font-size:13px;color:#c5c5e8;padding:8px 12px;background:rgba(124,111,234,.08);border-radius:6px;border-left:2px solid var(--accent);line-height:1.5}
-.top5-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
-.top-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px}
-.top-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
-.top-link{display:block;font-size:14px;font-weight:600;color:var(--accent-l);margin-bottom:8px;line-height:1.4}
-.top-link:hover{color:#fff;text-decoration:underline}
-.top-desc{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:10px}
-.top-date,.card-date{font-size:11px;color:#444466;margin-left:auto}
+/* ── HEADER ─────────────────────────────────────────── */
+.hdr {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 16px;
+}
+.hdr-brand {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--ink);
+  letter-spacing: -.3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hdr-brand-dot {
+  width: 7px; height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: inline-block;
+}
+.hdr-date {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 300;
+}
+.hdr-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.date-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.date-btn:hover { border-color: var(--accent); color: var(--accent); }
+.date-select {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--sans);
+  height: 28px;
+}
+.hdr-pill {
+  font-size: 11px;
+  background: var(--faint);
+  color: var(--muted);
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
 
-/* CARDS */
-.news-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px}
-.news-card:hover{border-color:#4a4a7a}
-.card-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
-.card-title{display:block;font-size:13px;font-weight:600;color:var(--accent-l);margin-bottom:6px;line-height:1.4}
-.card-title:hover{color:#fff;text-decoration:underline}
-.card-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:8px}
-.card-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
-.card-source-link{font-size:11px;color:#444466}
-.card-source-link:hover{color:var(--accent-l)}
+/* ── NAV PILLS ──────────────────────────────────────── */
+.nav-strip {
+  display: flex;
+  gap: 4px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  background: #fff;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.nav-strip::-webkit-scrollbar { display: none; }
+.nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+  background: none;
+  flex-shrink: 0;
+}
+.nav-pill:hover { background: var(--faint); color: var(--ink); }
+.nav-pill.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+.nav-pill-count {
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(255,255,255,.2);
+  padding: 0 5px;
+  border-radius: 8px;
+  min-width: 16px;
+  text-align: center;
+}
+.nav-pill:not(.active) .nav-pill-count {
+  background: var(--faint);
+  color: var(--muted);
+}
 
-/* BADGES */
-.src-badge{font-size:10px;font-weight:700;color:var(--accent);background:rgba(124,111,234,.15);padding:2px 8px;border-radius:4px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
-.tag{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--bg3);color:#666688;text-transform:uppercase;letter-spacing:.5px}
+/* ── MAIN ───────────────────────────────────────────── */
+.main { flex: 1; overflow-y: auto; }
+.panel { display: none; max-width: 740px; margin: 0 auto; padding: 32px 24px; }
+.panel.active { display: block; }
 
-/* SEARCH */
-.search-bar{display:flex;gap:8px;margin-bottom:20px}
-.search-input{flex:1;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;outline:none}
-.search-input:focus{border-color:var(--accent)}
-.search-input::placeholder{color:#444466}
+/* ── SECTION LABEL ──────────────────────────────────── */
+.section-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
 
-/* HISTORY */
-.history-day{margin-bottom:24px}
-.history-day-label{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;padding:6px 12px;background:var(--bg2);border-radius:6px;border:1px solid var(--border)}
+/* ── BRIEF BLOCKS ───────────────────────────────────── */
+.macro-block {
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  background: var(--faint);
+  border-radius: 10px;
+  border-left: 3px solid var(--accent);
+}
+.macro-text {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.8;
+  color: #333;
+  font-style: italic;
+}
 
-/* EMPTY */
-.empty{text-align:center;padding:60px 20px;color:var(--muted)}
-.empty-icon{font-size:40px;margin-bottom:12px}
-.loading{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+.user-block {
+  margin-bottom: 28px;
+  padding: 20px 24px;
+  background: var(--accent-bg);
+  border-radius: 10px;
+}
+.user-title {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.user-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.user-list li {
+  font-size: 13px;
+  color: #2c3e70;
+  padding: 10px 14px;
+  background: rgba(255,255,255,.7);
+  border-radius: 7px;
+  line-height: 1.55;
+  border-left: 2px solid var(--accent);
+}
+.user-list li strong { color: var(--ink); font-weight: 500; }
 
-/* MOBILE */
-@media(max-width:640px){
-  :root{--sw:100%;--hh:50px}
-  .body{flex-direction:column}
-  .sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border);flex-shrink:0}
-  .sb-stats{display:none}
-  .sb-footer{display:none}
-  .nav{display:flex;flex-direction:row;overflow-x:auto;padding:0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-  .nav::-webkit-scrollbar{display:none}
-  .nav-link{flex-direction:column;gap:3px;padding:10px 12px;font-size:10px;border-left:none;border-bottom:2px solid transparent;min-width:60px;justify-content:center;align-items:center;text-align:center;white-space:nowrap}
-  .nav-link.active{border-bottom-color:var(--accent);border-left-color:transparent}
-  .nav-icon{font-size:16px;width:auto}
-  .nav-count{display:none}
-  .main{padding:16px}
-  .hdr-count{display:none}
-  .date-nav{display:none}
+.top5-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+/* ── TOP CARDS ──────────────────────────────────────── */
+.top-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.top-card:hover { border-color: #d0d0d0; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+.top-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.top-date, .card-date {
+  font-size: 11px;
+  color: #bbb;
+  margin-left: auto;
+}
+.top-link {
+  display: block;
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 8px;
+  line-height: 1.35;
+  transition: color .15s;
+}
+.top-link:hover { color: var(--accent); }
+.top-desc {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.65;
+  margin-bottom: 10px;
+}
+
+/* ── NEWS CARDS ─────────────────────────────────────── */
+.news-card {
+  border-bottom: 1px solid var(--border);
+  padding: 16px 0;
+  transition: all .15s;
+}
+.news-card:first-of-type { padding-top: 0; }
+.news-card:last-of-type { border-bottom: none; }
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  flex-wrap: wrap;
+}
+.card-title {
+  display: block;
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 5px;
+  line-height: 1.35;
+  transition: color .15s;
+}
+.card-title:hover { color: var(--accent); }
+.card-desc {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.65;
+  margin-bottom: 8px;
+}
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-read-link {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 500;
+}
+.card-read-link:hover { text-decoration: underline; }
+
+/* ── BADGES ─────────────────────────────────────────── */
+.src-badge {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+}
+.tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--faint);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+/* ── SEARCH ─────────────────────────────────────────── */
+.search-wrap { margin-bottom: 24px; }
+.search-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--faint);
+  color: var(--ink);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--sans);
+  outline: none;
+  transition: border-color .15s;
+}
+.search-input:focus { border-color: var(--accent); background: #fff; }
+.search-input::placeholder { color: #bbb; }
+
+/* ── HISTORY ─────────────────────────────────────────── */
+.history-day { margin-bottom: 32px; }
+.history-day-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  padding: 6px 12px;
+  background: var(--faint);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+/* ── EMPTY / LOADING ────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+.empty-icon { font-size: 32px; margin-bottom: 12px; }
+.loading {
+  text-align: center;
+  padding: 48px;
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
+  font-family: var(--serif);
+}
+
+/* ── MOBILE ──────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .hdr { padding: 0 16px; }
+  .hdr-date { display: none; }
+  .nav-strip { padding: 8px 16px; }
+  .panel { padding: 20px 16px; }
+  .hdr-pill { display: none; }
+  .macro-block, .user-block { padding: 14px 16px; }
+  .top-link { font-size: 15px; }
+  .card-title { font-size: 14px; }
 }
 </style>
 </head>
@@ -119,7 +408,7 @@ a{color:inherit;text-decoration:none}
 <div class="app">
 
   <header class="hdr">
-    <div class="hdr-logo">🤖 AI Digest</div>
+    <div class="hdr-brand">AI Digest <span class="hdr-brand-dot"></span></div>
     <div class="hdr-date" id="hdr-date"></div>
     <div class="hdr-right">
       <div class="date-nav">
@@ -127,284 +416,248 @@ a{color:inherit;text-decoration:none}
         <select class="date-select" id="date-select"></select>
         <button class="date-btn" id="btn-next">→</button>
       </div>
-      <div class="hdr-count" id="hdr-count"></div>
+      <div class="hdr-pill" id="hdr-count"></div>
     </div>
   </header>
 
-  <div class="body">
-    <nav class="sidebar">
-      <div class="sb-stats">
-        <div class="stat"><div class="stat-n" id="stat-articles">—</div><div class="stat-l">articles</div></div>
-        <div class="stat"><div class="stat-n" id="stat-sources">23</div><div class="stat-l">sources</div></div>
-      </div>
-      <div class="nav" id="nav">
-        <div class="nav-link active" data-panel="brief"><span class="nav-icon">⚡</span><span class="nav-label">Brief du jour</span></div>
-        <div class="nav-link" data-panel="updates"><span class="nav-icon">✨</span><span class="nav-label">Nouveautés IA</span><span class="nav-count" id="c-updates">—</span></div>
-        <div class="nav-link" data-panel="llm"><span class="nav-icon">🤖</span><span class="nav-label">LLMs &amp; Modèles</span><span class="nav-count" id="c-llm">—</span></div>
-        <div class="nav-link" data-panel="agents"><span class="nav-icon">⚙️</span><span class="nav-label">Agents</span><span class="nav-count" id="c-agents">—</span></div>
-        <div class="nav-link" data-panel="finserv"><span class="nav-icon">🏦</span><span class="nav-label">FinServ</span><span class="nav-count" id="c-finserv">—</span></div>
-        <div class="nav-link" data-panel="tools"><span class="nav-icon">🛠️</span><span class="nav-label">Outils Dev</span><span class="nav-count" id="c-tools">—</span></div>
-        <div class="nav-link" data-panel="biz"><span class="nav-icon">💰</span><span class="nav-label">Business</span><span class="nav-count" id="c-biz">—</span></div>
-        <div class="nav-link" data-panel="reg"><span class="nav-icon">⚖️</span><span class="nav-label">Régulation</span><span class="nav-count" id="c-reg">—</span></div>
-        <div class="nav-link" data-panel="papers"><span class="nav-icon">📚</span><span class="nav-label">Arxiv</span><span class="nav-count" id="c-papers">—</span></div>
-        <div class="nav-link" data-panel="search"><span class="nav-icon">🔍</span><span class="nav-label">Recherche</span></div>
-        <div class="nav-link" data-panel="history"><span class="nav-icon">📅</span><span class="nav-label">Historique</span></div>
-      </div>
-      <div class="sb-footer">Gemini 2.5 Flash Lite · RSS publics</div>
-    </nav>
+  <nav class="nav-strip" id="nav-strip">
+    <button class="nav-pill active" data-panel="brief">⚡ Brief</button>
+    <button class="nav-pill" data-panel="updates">✨ Nouveautés IA <span class="nav-pill-count" id="c-updates">—</span></button>
+    <button class="nav-pill" data-panel="llm">🤖 LLMs <span class="nav-pill-count" id="c-llm">—</span></button>
+    <button class="nav-pill" data-panel="agents">⚙️ Agents <span class="nav-pill-count" id="c-agents">—</span></button>
+    <button class="nav-pill" data-panel="finserv">🏦 FinServ <span class="nav-pill-count" id="c-finserv">—</span></button>
+    <button class="nav-pill" data-panel="tools">🛠 Outils <span class="nav-pill-count" id="c-tools">—</span></button>
+    <button class="nav-pill" data-panel="biz">💰 Business <span class="nav-pill-count" id="c-biz">—</span></button>
+    <button class="nav-pill" data-panel="reg">⚖️ Régulation <span class="nav-pill-count" id="c-reg">—</span></button>
+    <button class="nav-pill" data-panel="papers">📚 Arxiv <span class="nav-pill-count" id="c-papers">—</span></button>
+    <button class="nav-pill" data-panel="search">🔍 Recherche</button>
+    <button class="nav-pill" data-panel="history">📅 Historique</button>
+  </nav>
 
-    <main class="main">
+  <main class="main">
 
-      <div class="panel active" id="panel-brief">
-        <div class="panel-head">Brief du jour</div>
-        <div id="brief-content"><div class="loading">Chargement du brief...</div></div>
+    <div class="panel active" id="panel-brief">
+      <div class="section-label">Brief du jour</div>
+      <div id="brief-content"><div class="loading">Chargement du brief…</div></div>
+    </div>
+
+    <div class="panel" id="panel-updates">
+      <div class="section-label">Nouveautés IA grand public — Claude · ChatGPT · Gemini</div>
+      <div id="cards-updates"><div class="loading">Chargement…</div></div>
+    </div>
+
+    <div class="panel" id="panel-llm">
+      <div class="section-label">LLMs &amp; Modèles</div>
+      <div id="cards-llm"><div class="loading">Chargement…</div></div>
+    </div>
+
+    <div class="panel" id="panel-agents">
+      <div class="section-label">Agents &amp; Automatisation</div>
+      <div id="cards-agents"><div class="loading">Chargement…</div></div>
+    </div>
+
+    <div class="panel" id="panel-finserv">
+      <div class="section-label">IA dans les Services Financiers &amp; Assurance</div>
+      <div id="cards-finserv"><div class="loading">Chargement…</div></div>
+    </div>
+
+    <div class="panel" id="panel-tools">
+      <div class="section-label">Outils Dev — RAG · VectorDB · MLOps</div>
+      <div id="cards-tools"><div class="loading">Chargement…</div></div>
+    </div>
+
+    <div class="panel" id="panel-biz">
+      <div class="section-label">Business &amp; Funding</div>
+      <div id="cards-biz"><div class="loading">Chargement…</div></div>
+    </div>
+
+    <div class="panel" id="panel-reg">
+      <div class="section-label">Régulation &amp; Éthique</div>
+      <div id="cards-reg"><div class="loading">Chargement…</div></div>
+    </div>
+
+    <div class="panel" id="panel-papers">
+      <div class="section-label">Papers Arxiv notables</div>
+      <div id="cards-papers"><div class="loading">Chargement…</div></div>
+    </div>
+
+    <div class="panel" id="panel-search">
+      <div class="section-label">Recherche dans tous les articles</div>
+      <div class="search-wrap">
+        <input class="search-input" id="search-input" type="text" placeholder="Rechercher un sujet, une source, un mot-clé…" autocomplete="off">
       </div>
-
-      <div class="panel" id="panel-updates">
-        <div class="panel-head">✨ Nouveautés IA grand public — Claude · ChatGPT · Gemini · Mistral</div>
-        <div id="cards-updates"><div class="loading">Chargement...</div></div>
+      <div id="search-results">
+        <div class="empty"><div class="empty-icon">🔍</div><p>Tape un mot-clé pour chercher dans tous les articles</p></div>
       </div>
+    </div>
 
-      <div class="panel" id="panel-llm">
-        <div class="panel-head">LLMs &amp; Modèles</div>
-        <div id="cards-llm"><div class="loading">Chargement...</div></div>
-      </div>
+    <div class="panel" id="panel-history">
+      <div class="section-label">Historique complet</div>
+      <div id="history-content"><div class="loading">Chargement de l'historique…</div></div>
+    </div>
 
-      <div class="panel" id="panel-agents">
-        <div class="panel-head">Agents &amp; Automatisation</div>
-        <div id="cards-agents"><div class="loading">Chargement...</div></div>
-      </div>
-
-      <div class="panel" id="panel-finserv">
-        <div class="panel-head">IA dans les Services Financiers &amp; Assurance</div>
-        <div id="cards-finserv"><div class="loading">Chargement...</div></div>
-      </div>
-
-      <div class="panel" id="panel-tools">
-        <div class="panel-head">Outils Dev — RAG · VectorDB · MLOps</div>
-        <div id="cards-tools"><div class="loading">Chargement...</div></div>
-      </div>
-
-      <div class="panel" id="panel-biz">
-        <div class="panel-head">Business &amp; Funding</div>
-        <div id="cards-biz"><div class="loading">Chargement...</div></div>
-      </div>
-
-      <div class="panel" id="panel-reg">
-        <div class="panel-head">Régulation &amp; Éthique</div>
-        <div id="cards-reg"><div class="loading">Chargement...</div></div>
-      </div>
-
-      <div class="panel" id="panel-papers">
-        <div class="panel-head">Papers Arxiv notables</div>
-        <div id="cards-papers"><div class="loading">Chargement...</div></div>
-      </div>
-
-      <div class="panel" id="panel-search">
-        <div class="panel-head">Recherche dans tous les articles</div>
-        <div class="search-bar">
-          <input class="search-input" id="search-input" type="text" placeholder="Rechercher un sujet, une source, un mot-clé...">
-        </div>
-        <div id="search-results"><div class="empty"><div class="empty-icon">🔍</div><p>Tape un mot-clé pour chercher dans tous les articles</p></div></div>
-      </div>
-
-      <div class="panel" id="panel-history">
-        <div class="panel-head">Historique complet</div>
-        <div id="history-content"><div class="loading">Chargement de l'historique...</div></div>
-      </div>
-
-    </main>
-  </div>
+  </main>
 </div>
 
 <script>
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
-
 const SECTIONS = ["updates","llm","agents","finserv","tools","biz","reg","papers"];
-let allArticles = [];
+
 let availableDates = [];
 let currentDateIdx = 0;
+const H = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
 
-const headers = {"apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`};
-
-async function fetchJSON(url) {
-  const r = await fetch(url, {headers});
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+async function api(path) {
+  const r = await fetch(SUPABASE_URL + path, { headers: H });
+  if (!r.ok) throw new Error(r.status);
   return r.json();
 }
 
-function formatDate(iso) {
-  if (!iso) return "N/A";
+function fmtDate(iso) {
+  if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleDateString("fr-FR", {day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"});
+  return d.toLocaleDateString("fr-FR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
 }
 
 function makeCard(a) {
+  const summary = (a.summary || "").substring(0, 280);
   return `<div class="news-card">
     <div class="card-meta">
       <span class="src-badge">${a.source}</span>
-      <span class="card-date">${formatDate(a.date_published || a.date_fetched)}</span>
+      <span class="card-date">${fmtDate(a.date_published || a.date_fetched)}</span>
     </div>
-    <a href="${a.url}" class="card-title" target="_blank">${a.title}</a>
-    <p class="card-desc">${(a.summary||'').substring(0,300)}${(a.summary||'').length>300?'…':''}</p>
+    <a href="${a.url}" class="card-title" target="_blank" rel="noopener">${a.title}</a>
+    <p class="card-desc">${summary}${summary.length >= 280 ? "…" : ""}</p>
     <div class="card-footer">
-      <span class="tag">${a.section||''}</span>
-      <a href="${a.url}" class="card-source-link" target="_blank">Lire l'article →</a>
+      <span class="tag">${a.section || ""}</span>
+      <a href="${a.url}" class="card-read-link" target="_blank" rel="noopener">Lire l'article →</a>
     </div>
   </div>`;
 }
 
-function renderCards(section, articles) {
+function renderSection(section, articles) {
   const el = document.getElementById(`cards-${section}`);
   if (!el) return;
-  const filtered = articles.filter(a => a.section === section);
-  document.getElementById(`c-${section}`).textContent = filtered.length;
-  if (filtered.length === 0) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>Aucun article dans cette catégorie aujourd'hui</p></div>`;
-  } else {
-    el.innerHTML = filtered.map(makeCard).join('');
-  }
+  const items = articles.filter(a => a.section === section);
+  const countEl = document.getElementById(`c-${section}`);
+  if (countEl) countEl.textContent = items.length;
+  el.innerHTML = items.length
+    ? items.map(makeCard).join("")
+    : `<div class="empty"><div class="empty-icon">📭</div><p>Aucun article dans cette catégorie</p></div>`;
 }
 
 async function loadDay(dateStr) {
   try {
-    const articles = await fetchJSON(
-      `${SUPABASE_URL}/rest/v1/articles?fetch_date=eq.${dateStr}&order=date_fetched.desc&limit=200`
+    const articles = await api(
+      `/rest/v1/articles?fetch_date=eq.${dateStr}&order=date_fetched.desc&limit=200`
     );
-    allArticles = articles;
-
-    // Update stats
-    document.getElementById("stat-articles").textContent = articles.length;
     document.getElementById("hdr-count").textContent = `${articles.length} articles`;
-
-    // Render section cards
-    SECTIONS.forEach(s => renderCards(s, articles));
-
-    // Load brief
+    SECTIONS.forEach(s => renderSection(s, articles));
     await loadBrief(dateStr);
-
   } catch(e) {
-    console.error(e);
-    document.getElementById("brief-content").innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Erreur de chargement: ${e.message}</p></div>`;
+    document.getElementById("brief-content").innerHTML =
+      `<div class="empty"><div class="empty-icon">⚠️</div><p>Erreur : ${e.message}</p></div>`;
   }
 }
 
 async function loadBrief(dateStr) {
-  const briefEl = document.getElementById("brief-content");
+  const el = document.getElementById("brief-content");
   try {
-    const briefs = await fetchJSON(
-      `${SUPABASE_URL}/rest/v1/daily_briefs?date=eq.${dateStr}&limit=1`
-    );
-    if (briefs.length > 0 && briefs[0].brief_html) {
-      briefEl.innerHTML = briefs[0].brief_html;
+    const data = await api(`/rest/v1/daily_briefs?date=eq.${dateStr}&limit=1`);
+    if (data.length && data[0].brief_html) {
+      el.innerHTML = data[0].brief_html;
     } else {
-      briefEl.innerHTML = `<div class="empty"><div class="empty-icon">📝</div><p>Brief non disponible pour cette date.<br>Il sera généré demain matin automatiquement.</p></div>`;
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📝</div><p>Brief non disponible pour cette date.</p></div>`;
     }
   } catch(e) {
-    briefEl.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Brief indisponible</p></div>`;
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Brief indisponible</p></div>`;
   }
 }
 
-async function loadAvailableDates() {
+async function loadDates() {
   try {
-    // Get distinct dates from articles
-    const data = await fetchJSON(
-      `${SUPABASE_URL}/rest/v1/articles?select=fetch_date&order=fetch_date.desc&limit=500`
-    );
+    const data = await api(`/rest/v1/articles?select=fetch_date&order=fetch_date.desc&limit=500`);
     const dates = [...new Set(data.map(a => a.fetch_date).filter(Boolean))].sort().reverse();
     availableDates = dates;
-
-    // Populate date selector
     const sel = document.getElementById("date-select");
-    sel.innerHTML = dates.map((d,i) => {
-      const label = i===0 ? `${d} (aujourd'hui)` : d;
-      return `<option value="${d}">${label}</option>`;
-    }).join('');
-
+    sel.innerHTML = dates.map((d, i) =>
+      `<option value="${d}">${i === 0 ? d + " (aujourd'hui)" : d}</option>`
+    ).join("");
     return dates;
-  } catch(e) {
-    return [];
-  }
+  } catch(e) { return []; }
 }
 
 async function loadHistory() {
   const el = document.getElementById("history-content");
   try {
-    const articles = await fetchJSON(
-      `${SUPABASE_URL}/rest/v1/articles?order=date_fetched.desc&limit=500`
-    );
-
-    // Group by date
+    const articles = await api(`/rest/v1/articles?order=date_fetched.desc&limit=600`);
     const byDate = {};
     articles.forEach(a => {
-      const d = a.fetch_date || '';
+      const d = a.fetch_date || (a.date_fetched || "").substring(0, 10);
       if (!byDate[d]) byDate[d] = [];
       byDate[d].push(a);
     });
-
     const dates = Object.keys(byDate).sort().reverse();
-    if (dates.length === 0) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Aucun historique disponible</p></div>`;
+    if (!dates.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Aucun historique</p></div>`;
       return;
     }
-
     el.innerHTML = dates.map(d => `
       <div class="history-day">
         <div class="history-day-label">📅 ${d} — ${byDate[d].length} articles</div>
-        ${byDate[d].slice(0,5).map(makeCard).join('')}
-        ${byDate[d].length > 5 ? `<div class="loading" style="font-size:12px">${byDate[d].length - 5} articles supplémentaires ce jour-là</div>` : ''}
-      </div>
-    `).join('');
+        ${byDate[d].slice(0, 4).map(makeCard).join("")}
+        ${byDate[d].length > 4
+          ? `<p style="font-size:12px;color:var(--muted);padding:8px 0">${byDate[d].length - 4} autres articles ce jour-là</p>`
+          : ""}
+      </div>`
+    ).join("");
   } catch(e) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Erreur: ${e.message}</p></div>`;
+    el.innerHTML = `<div class="empty"><p>Erreur : ${e.message}</p></div>`;
   }
 }
 
-// Search
-let searchTimeout;
+let searchTimer;
 document.getElementById("search-input").addEventListener("input", function() {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(async () => {
-    const q = this.value.trim().toLowerCase();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    const q = this.value.trim();
     const el = document.getElementById("search-results");
     if (q.length < 2) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><p>Tape un mot-clé pour chercher dans tous les articles</p></div>`;
+      el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><p>Tape un mot-clé pour chercher</p></div>`;
       return;
     }
-    el.innerHTML = `<div class="loading">Recherche...</div>`;
+    el.innerHTML = `<div class="loading">Recherche…</div>`;
     try {
-      const data = await fetchJSON(
-        `${SUPABASE_URL}/rest/v1/articles?or=(title.ilike.*${encodeURIComponent(q)}*,summary.ilike.*${encodeURIComponent(q)}*)&order=date_fetched.desc&limit=50`
+      const enc = encodeURIComponent(q);
+      const data = await api(
+        `/rest/v1/articles?or=(title.ilike.*${enc}*,summary.ilike.*${enc}*)&order=date_fetched.desc&limit=60`
       );
-      if (data.length === 0) {
-        el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><p>Aucun résultat pour "${q}"</p></div>`;
-      } else {
-        el.innerHTML = `<div class="panel-head" style="margin-bottom:12px">${data.length} résultat(s) pour "${q}"</div>` + data.map(makeCard).join('');
-      }
+      el.innerHTML = data.length
+        ? `<div class="section-label">${data.length} résultat(s) pour "${q}"</div>` + data.map(makeCard).join("")
+        : `<div class="empty"><div class="empty-icon">🔍</div><p>Aucun résultat pour "${q}"</p></div>`;
     } catch(e) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Erreur: ${e.message}</p></div>`;
+      el.innerHTML = `<div class="empty"><p>Erreur : ${e.message}</p></div>`;
     }
-  }, 400);
+  }, 380);
 });
 
-// Navigation
-document.getElementById("nav").addEventListener("click", e => {
-  const link = e.target.closest(".nav-link");
-  if (!link) return;
-  const panel = link.dataset.panel;
-  document.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active"));
+document.getElementById("nav-strip").addEventListener("click", e => {
+  const btn = e.target.closest(".nav-pill");
+  if (!btn) return;
+  const panel = btn.dataset.panel;
+  document.querySelectorAll(".nav-pill").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-  link.classList.add("active");
+  btn.classList.add("active");
   document.getElementById(`panel-${panel}`).classList.add("active");
   if (panel === "history") loadHistory();
 });
 
-// Date navigation
 document.getElementById("date-select").addEventListener("change", function() {
   currentDateIdx = availableDates.indexOf(this.value);
   const d = new Date(this.value);
-  document.getElementById("hdr-date").textContent = d.toLocaleDateString("fr-FR", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
+  document.getElementById("hdr-date").textContent =
+    d.toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
   loadDay(this.value);
 });
 
@@ -426,21 +679,22 @@ document.getElementById("btn-next").addEventListener("click", () => {
   }
 });
 
-// Init
 async function init() {
-  const dates = await loadAvailableDates();
-  if (dates.length > 0) {
-    const today = dates[0];
+  const dates = await loadDates();
+  if (dates.length) {
     currentDateIdx = 0;
-    document.getElementById("date-select").value = today;
-    const d = new Date(today);
-    document.getElementById("hdr-date").textContent = d.toLocaleDateString("fr-FR", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
-    await loadDay(today);
+    const sel = document.getElementById("date-select");
+    sel.value = dates[0];
+    const d = new Date(dates[0]);
+    document.getElementById("hdr-date").textContent =
+      d.toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+    await loadDay(dates[0]);
   } else {
-    document.getElementById("brief-content").innerHTML = `<div class="empty"><div class="empty-icon">🚀</div><p>Aucune donnée encore.<br>Lance le workflow GitHub Actions pour remplir la base !</p></div>`;
+    document.getElementById("brief-content").innerHTML =
+      `<div class="empty"><div class="empty-icon">🚀</div><p>Lance le workflow GitHub Actions pour remplir la base !</p></div>`;
     SECTIONS.forEach(s => {
       const el = document.getElementById(`cards-${s}`);
-      if (el) el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>En attente du premier digest...</p></div>`;
+      if (el) el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>En attente du premier digest…</p></div>`;
     });
   }
 }
