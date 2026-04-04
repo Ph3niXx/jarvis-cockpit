@@ -707,7 +707,7 @@ async function loadSignals(){
     if(summary){
       html+=`<div style="border-left:3px solid var(--accent);padding:12px 20px;margin-bottom:20px;background:var(--accent-bg);border-radius:0 var(--radius) var(--radius) 0">
         <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:6px">Analyse hebdo Claude</div>
-        <div style="font-size:14px;color:var(--tx);line-height:1.6">${esc(summary)}</div>
+        <div style="font-size:14px;color:var(--tx);line-height:1.6">${mdToHtml(summary)}</div>
       </div>`;
     }
 
@@ -1006,6 +1006,18 @@ function navigateTo(dateStr){
 // ── UTILS ──────────────────────────────────────────────────
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function stripHtml(s){if(!s)return'';const d=document.createElement('div');d.innerHTML=s;let t=d.textContent||d.innerText||'';t=t.replace(/The post .+ appeared first on .+/g,'').replace(/\s+/g,' ').trim();return t;}
+function mdToHtml(s){if(!s)return'';
+  return esc(s)
+    .replace(/^### (.+)$/gm,'<h4 style="margin:12px 0 4px;font-size:14px;font-weight:700">$1</h4>')
+    .replace(/^## (.+)$/gm,'<h3 style="margin:14px 0 6px;font-size:15px;font-weight:700">$1</h3>')
+    .replace(/^# (.+)$/gm,'<h3 style="margin:14px 0 6px;font-size:15px;font-weight:700">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^- (.+)$/gm,'<li style="margin:2px 0">$1</li>')
+    .replace(/(<li[^>]*>.*<\/li>)/gs,'<ul style="margin:6px 0 6px 16px;padding:0">$1</ul>')
+    .replace(/\n\n/g,'</p><p style="margin:8px 0">')
+    .replace(/\n/g,'<br>');
+}
 function fmtDate(iso){if(!iso)return'';try{return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch{return''}}
 function fmtDateShort(d){if(!d)return'';try{return new Date(d+"T12:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}catch{return''}}
 
@@ -1238,9 +1250,7 @@ async function saveDiagnostic(){
 }
 
 // ── COSTS DASHBOARD ────────────────────────────────────────
-let costsLoaded=false;
 async function loadCosts(){
-  if(costsLoaded)return;
   try{
     const runs=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_analysis?order=week_start.desc&limit=20&select=week_start,tokens_used,concepts_added,recommendations_generated,challenge_generated`);
 
@@ -1331,7 +1341,6 @@ async function loadCosts(){
         <div style="font-size:11px;padding:2px 8px;border-radius:10px;background:#EAF3DE;color:#3B6D11;display:inline-block;margin-top:6px">Gratuit</div>
       </div>`;
 
-    costsLoaded=true;
   }catch(e){console.error('loadCosts',e)}
 }
 
