@@ -3,656 +3,857 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Digest</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<title>AI Cockpit</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
 <style>
-:root {
-  --ink: #111;
-  --muted: #999;
-  --faint: #f6f5f2;
-  --border: #e8e8e8;
-  --accent: #2a6ef5;
-  --accent-bg: #eef3ff;
-  --sans: 'DM Sans', system-ui, sans-serif;
-  --serif: 'Fraunces', Georgia, serif;
+/* ── RESET & BASE ─────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#FAFAF8;--bg2:#F2F1ED;--bg3:#FFFFFF;
+  --tx:#1A1A18;--tx2:#6B6A65;--tx3:#9C9B96;
+  --bd:#E5E4DF;--bd2:#D1D0CB;
+  --accent:#6C5CE7;--accent2:#8B7CF7;--accent-bg:#EEEDFE;
+  --blue:#378ADD;--blue-bg:#E6F1FB;
+  --green:#1D9E75;--green-bg:#E1F5EE;
+  --amber:#BA7517;--amber-bg:#FAEEDA;
+  --coral:#D85A30;--coral-bg:#FAECE7;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --pink:#D4537E;--pink-bg:#FBEAF0;
+  --font:'Segoe UI','SF Pro Display',-apple-system,system-ui,sans-serif;
+  --mono:'SF Mono','Fira Code','Consolas',monospace;
+  --radius:10px;--radius-sm:6px;
+  --sidebar-w:240px;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-html, body {
-  height: 100%;
-  font-family: var(--sans);
-  background: #fff;
-  color: var(--ink);
-  font-size: 14px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-a { color: inherit; text-decoration: none; }
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.6;min-height:100vh}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
 
-.app { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+/* ── LAYOUT ───────────────────────────────────────────────── */
+.app{display:flex;min-height:100vh}
+.sidebar{
+  width:var(--sidebar-w);position:fixed;top:0;left:0;bottom:0;
+  background:var(--bg3);border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;z-index:100;
+  transition:transform .25s ease;
+}
+.main{margin-left:var(--sidebar-w);flex:1;min-width:0;padding:0 0 4rem}
+.content{max-width:820px;margin:0 auto;padding:2rem 2.5rem}
 
-/* HEADER */
-.hdr {
-  display:flex; align-items:center;
-  padding: 0 28px; height: 52px;
-  border-bottom: 1px solid var(--border);
-  background: #fff;
-  flex-shrink: 0; gap: 14px;
-}
-.hdr-brand {
-  font-family: var(--serif);
-  font-weight: 700; font-size: 18px;
-  letter-spacing: -.3px;
-  display:flex; align-items:center; gap:7px;
-}
-.hdr-dot { width:7px; height:7px; background:var(--accent); border-radius:50%; flex-shrink:0; }
-.hdr-date { font-size:12px; color:var(--muted); font-weight:300; }
-.hdr-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
-.date-nav { display:flex; align-items:center; gap:4px; }
-.date-btn {
-  background:none; border:1px solid var(--border);
-  color:var(--muted); width:28px; height:28px;
-  border-radius:6px; cursor:pointer; font-size:13px;
-  display:flex; align-items:center; justify-content:center;
-  transition:all .15s; font-family:var(--sans);
-}
-.date-btn:hover { border-color:var(--accent); color:var(--accent); }
-.date-select {
-  border:1px solid var(--border); background:#fff; color:var(--ink);
-  font-size:12px; padding:4px 8px; border-radius:6px;
-  cursor:pointer; font-family:var(--sans); height:28px; outline:none;
-}
-.hdr-pill {
-  font-size:11px; background:var(--faint); color:var(--muted);
-  padding:3px 10px; border-radius:20px; white-space:nowrap;
-}
+/* ── SIDEBAR ──────────────────────────────────────────────── */
+.sb-header{padding:20px 20px 16px;border-bottom:1px solid var(--bd)}
+.sb-logo{font-size:18px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+.sb-logo span{font-size:22px}
+.sb-date{font-size:12px;color:var(--tx2);margin-top:4px}
 
-/* NAV PILLS */
-.nav-strip {
-  display:flex; gap:4px; padding:10px 28px;
-  border-bottom:1px solid var(--border);
-  overflow-x:auto; background:#fff;
-  scrollbar-width:none; flex-shrink:0;
-}
-.nav-strip::-webkit-scrollbar { display:none; }
-.nav-pill {
-  display:flex; align-items:center; gap:5px;
-  padding:5px 13px; border-radius:20px;
-  font-size:12px; font-weight:400;
-  color:var(--muted); border:1px solid transparent;
-  cursor:pointer; white-space:nowrap;
-  transition:all .15s; background:none;
-  flex-shrink:0; font-family:var(--sans);
-}
-.nav-pill:hover { background:var(--faint); color:var(--ink); }
-.nav-pill.active { background:var(--ink); color:#fff; border-color:var(--ink); }
-.nav-count {
-  font-size:10px; font-weight:500;
-  background:rgba(255,255,255,.2);
-  padding:1px 5px; border-radius:8px; min-width:16px; text-align:center;
-}
-.nav-pill:not(.active) .nav-count { background:var(--faint); color:var(--muted); }
+.sb-section{padding:12px 12px 4px}
+.sb-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--tx3);padding:0 8px;margin-bottom:4px}
 
-/* MAIN */
-.main { flex:1; overflow-y:auto; }
-.panel { display:none; padding:36px 48px; max-width:1600px; margin:0 auto; }
-.panel.active { display:block; }
+.sb-link{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;
+  font-size:13px;color:var(--tx2);transition:all .12s;
+  border:none;background:none;width:100%;text-align:left;
+}
+.sb-link:hover{background:var(--bg2);color:var(--tx)}
+.sb-link.active{background:var(--accent-bg);color:var(--accent);font-weight:600}
+.sb-link .icon{width:20px;text-align:center;font-size:14px;flex-shrink:0}
+.sb-link .label{flex:1}
+.sb-link .count{
+  font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;
+  background:var(--bg2);color:var(--tx3);min-width:22px;text-align:center;
+}
+.sb-link.active .count{background:var(--accent);color:#fff}
 
-/* SECTION LABEL */
-.slabel {
-  font-size:10px; font-weight:500; letter-spacing:1.2px;
-  text-transform:uppercase; color:var(--muted);
-  margin-bottom:24px; padding-bottom:10px;
-  border-bottom:1px solid var(--border);
+.sb-bottom{margin-top:auto;padding:12px;border-top:1px solid var(--bd)}
+.sb-nav-date{display:flex;align-items:center;gap:6px;justify-content:center}
+.sb-nav-btn{
+  background:none;border:1px solid var(--bd);border-radius:var(--radius-sm);
+  width:28px;height:28px;cursor:pointer;font-size:13px;color:var(--tx2);
+  display:flex;align-items:center;justify-content:center;
+}
+.sb-nav-btn:hover{background:var(--bg2);color:var(--tx)}
+.sb-nav-label{font-size:12px;color:var(--tx2);min-width:90px;text-align:center}
+
+/* ── MOBILE TOGGLE ────────────────────────────────────────── */
+.mobile-toggle{
+  display:none;position:fixed;top:12px;left:12px;z-index:200;
+  background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius-sm);
+  width:36px;height:36px;cursor:pointer;font-size:18px;
+  align-items:center;justify-content:center;
+}
+@media(max-width:768px){
+  .mobile-toggle{display:flex}
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0);box-shadow:4px 0 20px rgba(0,0,0,.1)}
+  .main{margin-left:0}
+  .content{padding:1rem 1rem 3rem}
+  .sb-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:99;display:none}
+  .sb-overlay.show{display:block}
 }
 
-/* BRIEF — 3 col layout */
-.brief-grid {
-  display:grid;
-  grid-template-columns: 1.1fr 1fr 1fr;
-  gap: 24px;
-  margin-bottom: 0;
-  align-items: start;
-}
+/* ── PANELS ───────────────────────────────────────────────── */
+.panel{display:none}
+.panel.active{display:block}
 
-.macro-block {
-  background:var(--faint);
-  border-radius:10px;
-  border-left:3px solid var(--accent);
-  padding:20px 22px;
+/* ── HEADER BAR ───────────────────────────────────────────── */
+.page-header{
+  padding:2rem 2.5rem 1rem;max-width:820px;margin:0 auto;
+  border-bottom:1px solid var(--bd);margin-bottom:0;
 }
-.macro-label {
-  font-size:9px; font-weight:600; letter-spacing:1.2px;
-  text-transform:uppercase; color:var(--accent); margin-bottom:10px;
-}
-.macro-text {
-  font-family:var(--serif);
-  font-size:14px; font-weight:300;
-  line-height:1.8; color:#444;
-  font-style:italic;
-}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-.3px}
+.page-subtitle{font-size:13px;color:var(--tx2);margin-top:2px}
 
-.user-block {
-  background:var(--accent-bg);
-  border-radius:10px;
-  padding:20px 22px;
+/* ── BRIEF ────────────────────────────────────────────────── */
+.brief-content{line-height:1.7}
+.brief-content .macro-block{
+  background:var(--bg2);border-radius:var(--radius);padding:20px 24px;margin-bottom:24px;
 }
-.user-title {
-  font-size:9px; font-weight:600; letter-spacing:1.2px;
-  text-transform:uppercase; color:var(--accent); margin-bottom:12px;
+.brief-content .macro-text{font-size:15px;color:var(--tx)}
+.brief-content .user-block{margin-bottom:24px}
+.brief-content .user-title{font-size:14px;font-weight:700;margin-bottom:8px;color:var(--accent)}
+.brief-content .user-list{padding-left:20px}
+.brief-content .user-list li{margin-bottom:6px;font-size:14px}
+.brief-content .top5-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);margin-bottom:12px}
+.brief-content .top-card{
+  border:1px solid var(--bd);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;
+  transition:border-color .12s;
 }
-.user-list { list-style:none; display:flex; flex-direction:column; gap:7px; }
-.user-list li {
-  font-size:13px; color:#2c3e70;
-  padding:8px 11px;
-  background:rgba(255,255,255,.75);
-  border-radius:6px; line-height:1.5;
-  border-left:2px solid var(--accent);
-}
-.user-list li strong { color:var(--ink); font-weight:500; }
+.brief-content .top-card:hover{border-color:var(--bd2)}
+.brief-content .top-meta{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.brief-content .src-badge{font-size:11px;font-weight:600;background:var(--bg2);padding:2px 8px;border-radius:4px;color:var(--tx2)}
+.brief-content .top-date{font-size:11px;color:var(--tx3)}
+.brief-content .top-link{font-size:15px;font-weight:600;display:block;margin-bottom:4px;color:var(--tx)}
+.brief-content .top-desc{font-size:13px;color:var(--tx2);line-height:1.5}
+.brief-content .top-section{font-size:11px;color:var(--accent);font-weight:600;margin-top:6px;display:inline-block}
 
-/* TOP 5 */
-.top5-wrap { display:flex; flex-direction:column; gap:9px; }
-.top5-label {
-  font-size:9px; font-weight:600; letter-spacing:1.2px;
-  text-transform:uppercase; color:var(--muted); margin-bottom:3px;
+/* ── ARTICLE CARDS ────────────────────────────────────────── */
+.cards-grid{display:flex;flex-direction:column;gap:8px}
+.card{
+  border:1px solid var(--bd);border-radius:var(--radius);padding:16px 20px;
+  transition:border-color .12s;cursor:default;
 }
-.top-card {
-  border:1px solid var(--border); border-radius:8px;
-  padding:12px 14px; transition:border-color .15s, box-shadow .15s;
-}
-.top-card:hover { border-color:#ccc; box-shadow:0 1px 6px rgba(0,0,0,.05); }
-.top-meta { display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap; }
-.top-date { font-size:10px; color:#ccc; margin-left:auto; }
-.top-link {
-  display:block; font-family:var(--serif);
-  font-size:15px; font-weight:500; color:var(--ink);
-  margin-bottom:5px; line-height:1.35; transition:color .15s;
-}
-.top-link:hover { color:var(--accent); text-decoration:underline; }
-.top-desc { font-size:11px; color:#666; line-height:1.6; margin-bottom:7px; }
+.card:hover{border-color:var(--bd2)}
+.card-meta{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.card-source{font-size:11px;font-weight:600;background:var(--bg2);padding:2px 8px;border-radius:4px;color:var(--tx2)}
+.card-date{font-size:11px;color:var(--tx3)}
+.card-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.card-title a{color:var(--tx)}
+.card-summary{font-size:13px;color:var(--tx2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-summary.expanded{display:block;-webkit-line-clamp:unset}
+.card-expand{font-size:12px;color:var(--accent);cursor:pointer;margin-top:4px;background:none;border:none;font-family:inherit}
 
-/* CARDS — adaptive layout */
-.cards-wrap {
-  display:grid;
-  grid-template-columns:repeat(2, minmax(0,1fr));
-  gap:0 52px;
-}
-.cards-wrap.single { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
-.news-card {
-  border-bottom:1px solid var(--border);
-  padding:17px 0;
-}
-.news-card:first-child { padding-top:0; }
-.card-col:first-child .news-card:first-child { padding-top:0; }
-.card-meta { display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap; }
-.card-date { font-size:10px; color:#ccc; margin-left:auto; }
-.card-title {
-  display:block; font-family:var(--serif);
-  font-size:15px; font-weight:500; color:var(--ink);
-  margin-bottom:5px; line-height:1.35; transition:color .15s;
-}
-.card-title:hover { color:var(--accent); text-decoration:underline; }
-.card-desc { font-size:13px; color:#555; line-height:1.65; margin-bottom:7px; }
-.card-footer { display:flex; align-items:center; justify-content:space-between; }
-.card-link { font-size:11px; color:var(--accent); font-weight:500; }
-.card-link:hover { text-decoration:underline; }
+/* ── SECTION COLORS ───────────────────────────────────────── */
+.section-bar{height:3px;border-radius:2px;margin-bottom:16px}
+.section-bar.updates{background:var(--accent)}
+.section-bar.llm{background:var(--blue)}
+.section-bar.agents{background:var(--green)}
+.section-bar.finserv{background:var(--amber)}
+.section-bar.tools{background:var(--coral)}
+.section-bar.biz{background:var(--pink)}
+.section-bar.reg{background:var(--red)}
+.section-bar.papers{background:var(--tx3)}
+.section-bar.energy{background:#639922}
 
-/* BADGES */
-.src, .src-badge { font-size:10px; font-weight:500; color:var(--accent); text-transform:uppercase; letter-spacing:.6px; font-family:var(--sans); }
-.tag {
-  display:inline-block; font-size:9px; font-weight:500;
-  padding:2px 7px; border-radius:4px;
-  background:var(--faint); color:var(--muted);
-  text-transform:uppercase; letter-spacing:.5px;
+/* ── WIKI ─────────────────────────────────────────────────── */
+.wiki-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.wiki-grid{grid-template-columns:1fr}}
+.wiki-card{
+  border:1px solid var(--bd);border-radius:var(--radius);padding:14px 18px;
+  cursor:pointer;transition:all .12s;
 }
+.wiki-card:hover{border-color:var(--accent);background:var(--accent-bg)}
+.wiki-card-name{font-size:14px;font-weight:600;margin-bottom:4px}
+.wiki-card-cat{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px}
+.wiki-card-stats{font-size:12px;color:var(--tx2);margin-top:6px;display:flex;gap:12px}
+.wiki-detail{display:none;border:1px solid var(--accent);border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;background:var(--accent-bg)}
+.wiki-detail.show{display:block}
+.wiki-detail h3{font-size:16px;font-weight:700;margin-bottom:12px}
+.wiki-detail .level-tabs{display:flex;gap:6px;margin-bottom:12px}
+.wiki-detail .level-tab{font-size:12px;padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid var(--bd);background:var(--bg3)}
+.wiki-detail .level-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.wiki-detail .level-content{font-size:14px;line-height:1.6;color:var(--tx2)}
+.wiki-detail .wiki-sources{margin-top:12px;font-size:12px;color:var(--tx3)}
 
-/* SEARCH */
-.search-wrap { margin-bottom:24px; }
-.search-input {
-  width:100%; border:1px solid var(--border);
-  background:var(--faint); color:var(--ink);
-  padding:10px 16px; border-radius:8px;
-  font-size:14px; font-family:var(--sans);
-  outline:none; transition:border-color .15s;
+/* ── SIGNALS ──────────────────────────────────────────────── */
+.signal-list{display:flex;flex-direction:column;gap:6px}
+.signal-item{
+  display:flex;align-items:center;gap:12px;padding:10px 16px;
+  border:1px solid var(--bd);border-radius:var(--radius-sm);
 }
-.search-input:focus { border-color:var(--accent); background:#fff; }
-.search-input::placeholder { color:#ccc; }
+.signal-trend{font-size:16px;width:24px;text-align:center}
+.signal-name{flex:1;font-size:14px;font-weight:500}
+.signal-count{font-size:13px;color:var(--tx2);font-family:var(--mono)}
+.signal-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+.signal-badge.rising{background:#EAF3DE;color:#3B6D11}
+.signal-badge.new{background:var(--blue-bg);color:var(--blue)}
+.signal-badge.stable{background:var(--bg2);color:var(--tx3)}
+.signal-badge.declining{background:var(--red-bg);color:var(--red)}
 
-/* HISTORY */
-.history-day { margin-bottom:36px; }
-.history-label {
-  font-size:10px; font-weight:500; color:var(--muted);
-  text-transform:uppercase; letter-spacing:.8px;
-  padding:5px 12px; background:var(--faint);
-  border-radius:6px; margin-bottom:14px; display:inline-block;
+/* ── RADAR ────────────────────────────────────────────────── */
+.radar-container{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap}
+.radar-chart{flex-shrink:0}
+.radar-details{flex:1;min-width:250px}
+.radar-axis{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.radar-axis:last-child{border:none}
+.radar-axis-label{flex:1;font-size:13px}
+.radar-axis-bar{width:120px;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden}
+.radar-axis-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .3s}
+.radar-axis-score{font-size:13px;font-weight:600;font-family:var(--mono);width:36px;text-align:right}
+
+/* ── MATURITY ─────────────────────────────────────────────── */
+.maturity-table{width:100%;border-collapse:collapse;font-size:13px}
+.maturity-table th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);border-bottom:1px solid var(--bd)}
+.maturity-table td{padding:10px 12px;border-bottom:1px solid var(--bd);vertical-align:middle}
+.maturity-badge{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:600;display:inline-block}
+.maturity-badge.emerging{background:var(--blue-bg);color:var(--blue)}
+.maturity-badge.poc{background:var(--amber-bg);color:var(--amber)}
+.maturity-badge.pilot{background:var(--coral-bg);color:var(--coral)}
+.maturity-badge.production{background:var(--green-bg);color:var(--green)}
+.maturity-badge.commodity{background:var(--bg2);color:var(--tx3)}
+.opp-bar{width:60px;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
+.opp-fill{height:100%;border-radius:3px;background:var(--green)}
+
+/* ── IDEAS ────────────────────────────────────────────────── */
+.idea-card{
+  border:1px solid var(--bd);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;
 }
-
-/* EMPTY / LOADING */
-.empty { text-align:center; padding:48px 20px; color:var(--muted); }
-.empty-icon { font-size:28px; margin-bottom:10px; }
-.loading {
-  text-align:center; padding:48px;
-  color:var(--muted); font-size:13px;
-  font-style:italic; font-family:var(--serif);
+.idea-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.idea-title{font-size:15px;font-weight:600;flex:1}
+.idea-status{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:600}
+.idea-status.seed{background:var(--blue-bg);color:var(--blue)}
+.idea-status.exploring{background:var(--amber-bg);color:var(--amber)}
+.idea-status.validating{background:var(--green-bg);color:var(--green)}
+.idea-status.parked{background:var(--bg2);color:var(--tx3)}
+.idea-desc{font-size:13px;color:var(--tx2);margin-bottom:8px}
+.idea-tags{display:flex;gap:6px;flex-wrap:wrap}
+.idea-tag{font-size:11px;padding:2px 8px;border-radius:4px;background:var(--bg2);color:var(--tx2)}
+.idea-form{border:1px dashed var(--bd2);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.idea-form input,.idea-form textarea,.idea-form select{
+  width:100%;padding:8px 12px;border:1px solid var(--bd);border-radius:var(--radius-sm);
+  font-family:inherit;font-size:13px;margin-bottom:8px;background:var(--bg3);
 }
-
-
-.tag.llm, .tag[class*="llm"] { background:#eef3ff; color:#2a6ef5; }
-.tag.updates, .tag.productivité { background:#f0fdf4; color:#16a34a; }
-.tag.agents, .tag.agent { background:#fdf4ff; color:#9333ea; }
-.tag.finserv, .tag.fintech, .tag.insurtech { background:#fff7ed; color:#ea580c; }
-.tag.tools, .tag.rag, .tag.mlops { background:#f0fdfa; color:#0d9488; }
-.tag.biz, .tag.funding { background:#fffbeb; color:#d97706; }
-.tag.reg, .tag.régulation { background:#fff1f2; color:#e11d48; }
-.tag.papers, .tag.recherche { background:#f8fafc; color:#64748b; }
-
-.top-card > p {
-  font-size:13px; color:#555; line-height:1.6; margin-bottom:7px;
+.idea-form textarea{height:60px;resize:vertical}
+.btn{
+  padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;
+  cursor:pointer;border:1px solid var(--bd);background:var(--bg3);color:var(--tx);
+  transition:all .12s;
 }
+.btn:hover{background:var(--bg2)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent2)}
 
+/* ── RTE TOOLBOX ──────────────────────────────────────────── */
+.rte-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.rte-grid{grid-template-columns:1fr}}
+.rte-card{border:1px solid var(--bd);border-radius:var(--radius);padding:14px 18px}
+.rte-card-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.rte-card-tool{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--amber-bg);color:var(--amber)}
+.rte-card-title{font-size:14px;font-weight:600}
+.rte-card-desc{font-size:12px;color:var(--tx2);line-height:1.5}
+.rte-card-footer{display:flex;gap:8px;margin-top:8px}
+.rte-badge{font-size:10px;padding:2px 6px;border-radius:4px}
+.rte-effort{background:var(--bg2);color:var(--tx3)}
+.rte-impact{background:var(--green-bg);color:var(--green)}
+.rte-status{font-size:10px;padding:2px 6px;border-radius:4px}
+.rte-status.idea{background:var(--blue-bg);color:var(--blue)}
+.rte-status.testing{background:var(--amber-bg);color:var(--amber)}
+.rte-status.deployed{background:var(--green-bg);color:var(--green)}
 
-/* FONT ENFORCEMENT — prevent inheritance issues from Gemini HTML */
-.news-card *, .top-card *, .history-day * { font-family:var(--sans); }
-.card-title, .top-link { font-family:var(--serif) !important; }
-.macro-text { font-family:var(--serif) !important; }
-/* Unified text scale */
-.card-desc, .top-card > p, .user-list li, .top-desc { font-size:13px !important; line-height:1.65; }
-.card-date, .top-date, .src, .src-badge, .tag, .slabel, .macro-label, .user-title, .top5-label { font-size:10px !important; }
-.card-title { font-size:15px !important; }
-.top-link { font-size:15px !important; }
-
-/* RESPONSIVE */
-@media(max-width:1100px) {
-  .brief-grid { grid-template-columns:1fr 1fr; }
-  .brief-grid > .top5-col { grid-column:1/-1; }
-  .top5-wrap { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
-  .top5-label { grid-column:1/-1; margin-bottom:0; }
+/* ── SEARCH ───────────────────────────────────────────────── */
+.search-box{position:relative;margin-bottom:20px}
+.search-input{
+  width:100%;padding:10px 16px 10px 40px;border:1px solid var(--bd);border-radius:var(--radius);
+  font-size:14px;font-family:inherit;background:var(--bg3);
 }
-@media(max-width:860px) {
-  .brief-grid { grid-template-columns:1fr; }
-  .top5-wrap { grid-template-columns:1fr; }
-  .cards-wrap { grid-template-columns:1fr; gap:0; }
-  .panel { padding:20px 18px; }
-  .hdr { padding:0 16px; }
-  .hdr-date, .hdr-pill { display:none; }
-  .nav-strip { padding:8px 16px; }
+.search-input:focus{outline:none;border-color:var(--accent)}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--tx3)}
+
+/* ── CHALLENGES ───────────────────────────────────────────── */
+.challenge-card{
+  border:2px solid var(--accent);border-radius:var(--radius);padding:20px 24px;
+  background:var(--accent-bg);margin-bottom:16px;
 }
+.challenge-title{font-size:16px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.challenge-desc{font-size:14px;color:var(--tx2);margin-bottom:12px}
+.challenge-meta{display:flex;gap:12px;font-size:12px;color:var(--tx3)}
+
+/* ── LOADING & EMPTY ──────────────────────────────────────── */
+.loading{text-align:center;padding:40px;color:var(--tx3);font-size:14px}
+.loading::before{content:"";display:block;width:24px;height:24px;border:2px solid var(--bd);border-top-color:var(--accent);border-radius:50%;margin:0 auto 12px;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:40px;color:var(--tx3);font-size:14px}
+.empty-icon{font-size:32px;margin-bottom:8px}
+
+/* ── SECTION LABEL ────────────────────────────────────────── */
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);margin-bottom:16px}
 </style>
 </head>
 <body>
+
+<!-- MOBILE TOGGLE -->
+<button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
+<div class="sb-overlay" id="sb-overlay" onclick="toggleSidebar()"></div>
+
 <div class="app">
 
-<header class="hdr">
-  <div class="hdr-brand">AI Digest <span class="hdr-dot"></span></div>
-  <div class="hdr-date" id="hdr-date"></div>
-  <div class="hdr-right">
-    <div class="date-nav">
-      <button class="date-btn" id="btn-prev" title="Jour précédent">←</button>
-      <select class="date-select" id="date-select"></select>
-      <button class="date-btn" id="btn-next" title="Jour suivant">→</button>
-    </div>
-    <div class="hdr-pill" id="hdr-count"></div>
+<!-- ── SIDEBAR ─────────────────────────────────────────────── -->
+<nav class="sidebar" id="sidebar">
+  <div class="sb-header">
+    <div class="sb-logo"><span>🧠</span> AI Cockpit</div>
+    <div class="sb-date" id="sb-date"></div>
   </div>
-</header>
 
-<nav class="nav-strip" id="nav-strip">
-  <button class="nav-pill active" data-panel="brief">⚡ Brief</button>
-  <button class="nav-pill" data-panel="updates">✨ Nouveautés IA <span class="nav-count" id="c-updates">—</span></button>
-  <button class="nav-pill" data-panel="llm">🤖 LLMs <span class="nav-count" id="c-llm">—</span></button>
-  <button class="nav-pill" data-panel="agents">⚙️ Agents <span class="nav-count" id="c-agents">—</span></button>
-  <button class="nav-pill" data-panel="finserv">🏦 FinServ <span class="nav-count" id="c-finserv">—</span></button>
-  <button class="nav-pill" data-panel="tools">🛠 Outils <span class="nav-count" id="c-tools">—</span></button>
-  <button class="nav-pill" data-panel="biz">💰 Business <span class="nav-count" id="c-biz">—</span></button>
-  <button class="nav-pill" data-panel="reg">⚖️ Régulation <span class="nav-count" id="c-reg">—</span></button>
-  <button class="nav-pill" data-panel="papers">📚 Arxiv <span class="nav-count" id="c-papers">—</span></button>
-  <button class="nav-pill" data-panel="search">🔍 Recherche</button>
-  <button class="nav-pill" data-panel="history">📅 Historique</button>
+  <div class="sb-section">
+    <div class="sb-section-label">Veille</div>
+    <button class="sb-link active" data-panel="brief"><span class="icon">⚡</span><span class="label">Brief du jour</span></button>
+    <button class="sb-link" data-panel="updates"><span class="icon">✨</span><span class="label">Nouveautés IA</span><span class="count" id="c-updates">-</span></button>
+    <button class="sb-link" data-panel="llm"><span class="icon">🤖</span><span class="label">LLMs</span><span class="count" id="c-llm">-</span></button>
+    <button class="sb-link" data-panel="agents"><span class="icon">⚙️</span><span class="label">Agents</span><span class="count" id="c-agents">-</span></button>
+    <button class="sb-link" data-panel="energy"><span class="icon">⚡</span><span class="label">IA x Énergie</span><span class="count" id="c-energy">-</span></button>
+    <button class="sb-link" data-panel="finserv"><span class="icon">🏦</span><span class="label">FinServ</span><span class="count" id="c-finserv">-</span></button>
+    <button class="sb-link" data-panel="tools"><span class="icon">🛠</span><span class="label">Outils</span><span class="count" id="c-tools">-</span></button>
+    <button class="sb-link" data-panel="biz"><span class="icon">💰</span><span class="label">Business</span><span class="count" id="c-biz">-</span></button>
+    <button class="sb-link" data-panel="reg"><span class="icon">⚖️</span><span class="label">Régulation</span><span class="count" id="c-reg">-</span></button>
+    <button class="sb-link" data-panel="papers"><span class="icon">📚</span><span class="label">Arxiv</span><span class="count" id="c-papers">-</span></button>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Intelligence</div>
+    <button class="sb-link" data-panel="wiki"><span class="icon">📖</span><span class="label">Wiki IA</span></button>
+    <button class="sb-link" data-panel="signals"><span class="icon">📡</span><span class="label">Signaux faibles</span></button>
+    <button class="sb-link" data-panel="maturity"><span class="icon">📊</span><span class="label">Maturité use cases</span></button>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Apprentissage</div>
+    <button class="sb-link" data-panel="radar"><span class="icon">🎯</span><span class="label">Radar compétences</span></button>
+    <button class="sb-link" data-panel="challenges"><span class="icon">🏆</span><span class="label">Challenges</span></button>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Incubateur</div>
+    <button class="sb-link" data-panel="ideas"><span class="icon">💡</span><span class="label">Carnet d'idées</span></button>
+    <button class="sb-link" data-panel="rte"><span class="icon">🚂</span><span class="label">RTE Toolbox</span></button>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-section-label">Outils</div>
+    <button class="sb-link" data-panel="search"><span class="icon">🔍</span><span class="label">Recherche</span></button>
+    <button class="sb-link" data-panel="history"><span class="icon">📅</span><span class="label">Historique</span></button>
+  </div>
+
+  <div class="sb-bottom">
+    <div class="sb-nav-date">
+      <button class="sb-nav-btn" id="btn-prev" title="Jour précédent">←</button>
+      <span class="sb-nav-label" id="nav-label">-</span>
+      <button class="sb-nav-btn" id="btn-next" title="Jour suivant">→</button>
+    </div>
+  </div>
 </nav>
 
-<main class="main">
+<!-- ── MAIN CONTENT ────────────────────────────────────────── -->
+<div class="main">
 
+  <!-- BRIEF -->
   <div class="panel active" id="panel-brief">
-    <div class="slabel">Brief du jour</div>
-    <div id="brief-content"><div class="loading">Chargement…</div></div>
+    <div class="page-header"><div class="page-title">Brief du jour</div><div class="page-subtitle">Synthèse macro + top 5 incontournables</div></div>
+    <div class="content"><div class="brief-content" id="brief-content"><div class="loading">Chargement du brief…</div></div></div>
   </div>
 
-  <div class="panel" id="panel-updates">
-    <div class="slabel">Nouveautés IA grand public — Claude · ChatGPT · Gemini</div>
-    <div id="cards-updates"></div>
+  <!-- ARTICLE SECTIONS -->
+  <div class="panel" id="panel-updates"><div class="page-header"><div class="page-title">Nouveautés IA</div><div class="page-subtitle">Claude · ChatGPT · Gemini · Mistral</div></div><div class="content"><div class="section-bar updates"></div><div class="cards-grid" id="cards-updates"></div></div></div>
+  <div class="panel" id="panel-llm"><div class="page-header"><div class="page-title">LLMs & Modèles</div><div class="page-subtitle">Architectures, benchmarks, releases</div></div><div class="content"><div class="section-bar llm"></div><div class="cards-grid" id="cards-llm"></div></div></div>
+  <div class="panel" id="panel-agents"><div class="page-header"><div class="page-title">Agents & Automatisation</div><div class="page-subtitle">LangChain, CrewAI, MCP, orchestration</div></div><div class="content"><div class="section-bar agents"></div><div class="cards-grid" id="cards-agents"></div></div></div>
+  <div class="panel" id="panel-energy"><div class="page-header"><div class="page-title">IA x Énergie</div><div class="page-subtitle">Smart grid, maintenance prédictive, flexibilité</div></div><div class="content"><div class="section-bar energy"></div><div class="cards-grid" id="cards-energy"></div></div></div>
+  <div class="panel" id="panel-finserv"><div class="page-header"><div class="page-title">IA FinServ</div><div class="page-subtitle">Banque, assurance, mutuelle</div></div><div class="content"><div class="section-bar finserv"></div><div class="cards-grid" id="cards-finserv"></div></div></div>
+  <div class="panel" id="panel-tools"><div class="page-header"><div class="page-title">Outils Dev</div><div class="page-subtitle">RAG, VectorDB, MLOps, frameworks</div></div><div class="content"><div class="section-bar tools"></div><div class="cards-grid" id="cards-tools"></div></div></div>
+  <div class="panel" id="panel-biz"><div class="page-header"><div class="page-title">Business & Funding</div><div class="page-subtitle">Levées de fonds, stratégie, marché</div></div><div class="content"><div class="section-bar biz"></div><div class="cards-grid" id="cards-biz"></div></div></div>
+  <div class="panel" id="panel-reg"><div class="page-header"><div class="page-title">Régulation & Éthique</div><div class="page-subtitle">AI Act, CNIL, guardrails, red teaming</div></div><div class="content"><div class="section-bar reg"></div><div class="cards-grid" id="cards-reg"></div></div></div>
+  <div class="panel" id="panel-papers"><div class="page-header"><div class="page-title">Papers Arxiv</div><div class="page-subtitle">Recherche académique CS.AI & CS.LG</div></div><div class="content"><div class="section-bar papers"></div><div class="cards-grid" id="cards-papers"></div></div></div>
+
+  <!-- WIKI -->
+  <div class="panel" id="panel-wiki">
+    <div class="page-header"><div class="page-title">Wiki IA</div><div class="page-subtitle">Base de connaissances auto-alimentée par les articles</div></div>
+    <div class="content">
+      <div id="wiki-detail-container"></div>
+      <div class="wiki-grid" id="wiki-grid"><div class="loading">Chargement…</div></div>
+    </div>
   </div>
 
-  <div class="panel" id="panel-llm">
-    <div class="slabel">LLMs &amp; Modèles</div>
-    <div id="cards-llm"></div>
+  <!-- SIGNALS -->
+  <div class="panel" id="panel-signals">
+    <div class="page-header"><div class="page-title">Signaux faibles</div><div class="page-subtitle">Termes en hausse sur 7 jours — détection précoce</div></div>
+    <div class="content"><div class="signal-list" id="signal-list"><div class="loading">Chargement…</div></div></div>
   </div>
 
-  <div class="panel" id="panel-agents">
-    <div class="slabel">Agents &amp; Automatisation</div>
-    <div id="cards-agents"></div>
+  <!-- RADAR -->
+  <div class="panel" id="panel-radar">
+    <div class="page-header"><div class="page-title">Radar de compétences</div><div class="page-subtitle">Ton niveau sur 8 axes IA — évolue au fil du temps</div></div>
+    <div class="content"><div class="radar-container" id="radar-container"><div class="loading">Chargement…</div></div></div>
   </div>
 
-  <div class="panel" id="panel-finserv">
-    <div class="slabel">IA dans les Services Financiers &amp; Assurance</div>
-    <div id="cards-finserv"></div>
+  <!-- CHALLENGES -->
+  <div class="panel" id="panel-challenges">
+    <div class="page-header"><div class="page-title">Challenges</div><div class="page-subtitle">Mini-défis hebdo pour monter en compétence</div></div>
+    <div class="content"><div id="challenges-content"><div class="loading">Chargement…</div></div></div>
   </div>
 
-  <div class="panel" id="panel-tools">
-    <div class="slabel">Outils Dev — RAG · VectorDB · MLOps</div>
-    <div id="cards-tools"></div>
+  <!-- MATURITY -->
+  <div class="panel" id="panel-maturity">
+    <div class="page-header"><div class="page-title">Maturité use cases</div><div class="page-subtitle">Où en sont les use cases IA par secteur</div></div>
+    <div class="content"><div id="maturity-content"><div class="loading">Chargement…</div></div></div>
   </div>
 
-  <div class="panel" id="panel-biz">
-    <div class="slabel">Business &amp; Funding</div>
-    <div id="cards-biz"></div>
+  <!-- IDEAS -->
+  <div class="panel" id="panel-ideas">
+    <div class="page-header"><div class="page-title">Carnet d'idées</div><div class="page-subtitle">Tes idées business liées aux tendances IA</div></div>
+    <div class="content">
+      <div class="idea-form" id="idea-form">
+        <input type="text" id="idea-title" placeholder="Titre de l'idée…">
+        <textarea id="idea-desc" placeholder="Description…"></textarea>
+        <select id="idea-sector"><option value="">Secteur…</option><option value="energy">Énergie</option><option value="finance">Finance</option><option value="insurance">Assurance</option><option value="health">Santé</option><option value="retail">Retail</option><option value="legal">Juridique</option><option value="other">Autre</option></select>
+        <button class="btn btn-primary" onclick="saveIdea()">Ajouter l'idée</button>
+      </div>
+      <div id="ideas-list"><div class="loading">Chargement…</div></div>
+    </div>
   </div>
 
-  <div class="panel" id="panel-reg">
-    <div class="slabel">Régulation &amp; Éthique</div>
-    <div id="cards-reg"></div>
+  <!-- RTE TOOLBOX -->
+  <div class="panel" id="panel-rte">
+    <div class="page-header"><div class="page-title">RTE Toolbox</div><div class="page-subtitle">Use cases IA pour ta mission Malakoff Humanis</div></div>
+    <div class="content"><div class="rte-grid" id="rte-grid"><div class="loading">Chargement…</div></div></div>
   </div>
 
-  <div class="panel" id="panel-papers">
-    <div class="slabel">Papers Arxiv notables</div>
-    <div id="cards-papers"></div>
-  </div>
-
+  <!-- SEARCH -->
   <div class="panel" id="panel-search">
-    <div class="slabel">Recherche dans tous les articles</div>
-    <div class="search-wrap">
-      <input class="search-input" id="search-input" type="text"
-        placeholder="Rechercher un sujet, une source, un mot-clé…" autocomplete="off">
-    </div>
-    <div id="search-results">
-      <div class="empty"><div class="empty-icon">🔍</div><p>Tape un mot-clé pour chercher dans tous les articles</p></div>
+    <div class="page-header"><div class="page-title">Recherche</div><div class="page-subtitle">Cherche dans tous les articles</div></div>
+    <div class="content">
+      <div class="search-box"><span class="search-icon">🔍</span><input class="search-input" id="search-input" type="text" placeholder="Rechercher un article, concept, source…" autofocus></div>
+      <div class="cards-grid" id="search-results"></div>
     </div>
   </div>
 
+  <!-- HISTORY -->
   <div class="panel" id="panel-history">
-    <div class="slabel">Historique complet</div>
-    <div id="history-content"><div class="loading">Chargement…</div></div>
+    <div class="page-header"><div class="page-title">Historique</div><div class="page-subtitle">Articles par date</div></div>
+    <div class="content"><div id="history-content"><div class="loading">Chargement…</div></div></div>
   </div>
 
-</main>
-</div>
+</div><!-- /main -->
+</div><!-- /app -->
 
 <script>
+// ── CONFIG ─────────────────────────────────────────────────
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
-const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
-const SECTIONS = ["updates","llm","agents","finserv","tools","biz","reg","papers"];
+const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e"; 
+const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg","papers"];
 
-let availableDates = [], currentDateIdx = 0;
-const H = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
+let currentDate = null;
+let allDates = [];
 
-async function api(path) {
-  const r = await fetch(SUPABASE_URL + path, { headers: H });
-  if (!r.ok) throw new Error(r.status);
+// ── SUPABASE HELPERS ───────────────────────────────────────
+const headers = {"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`};
+async function fetchJSON(url){
+  const r=await fetch(url,{headers});
+  if(!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
-
-function fmtDate(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleDateString("fr-FR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+async function postJSON(url,body){
+  const r=await fetch(url,{method:"POST",headers:{...headers,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify(body)});
+  return r.json();
+}
+async function patchJSON(url,body){
+  const r=await fetch(url,{method:"PATCH",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  return r;
 }
 
-const TAG_LABELS = {
-  llm:"LLM", updates:"Nouveautés", agents:"Agent",
-  finserv:"FinServ", tools:"Outils", biz:"Funding",
-  reg:"Régulation", papers:"Recherche"
-};
+// ── NAVIGATION ─────────────────────────────────────────────
+document.querySelectorAll('.sb-link').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.sb-link').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const panel=btn.dataset.panel;
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById(`panel-${panel}`).classList.add('active');
+    // Load data on first visit
+    if(panel==='wiki') loadWiki();
+    if(panel==='signals') loadSignals();
+    if(panel==='radar') loadRadar();
+    if(panel==='challenges') loadChallenges();
+    if(panel==='maturity') loadMaturity();
+    if(panel==='ideas') loadIdeas();
+    if(panel==='rte') loadRTE();
+    if(panel==='history') loadHistory();
+    // Close mobile sidebar
+    if(window.innerWidth<=768) toggleSidebar();
+  });
+});
 
-function stripHtml(html) {
-  const tmp = document.createElement("div");
-  tmp.innerHTML = html || "";
-  let text = tmp.textContent || tmp.innerText || "";
-  // Remove duplicate title patterns (often RSS summaries start with the title)
-  return text.replace(/^\s+/, "").trim();
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sb-overlay').classList.toggle('show');
 }
 
-function cleanSummary(summary, title) {
-  let text = stripHtml(summary);
-  // Remove if summary starts with the title (common in Simon Willison, HuggingFace etc)
-  if (title && text.toLowerCase().startsWith(title.toLowerCase().substring(0, 30))) {
-    text = text.substring(title.length).trim().replace(/^[:\-–—.\s]+/, "");
-  }
-  // Remove leading punctuation artifacts
-  text = text.replace(/^[\s\n\r]+/, "").trim();
-  return text.substring(0, 260) + (text.length > 260 ? "…" : "");
-}
+// ── DATE NAVIGATION ────────────────────────────────────────
+document.getElementById('btn-prev').addEventListener('click',()=>navigateDate(-1));
+document.getElementById('btn-next').addEventListener('click',()=>navigateDate(1));
 
-function makeCard(a) {
-  const desc = cleanSummary(a.summary, a.title);
-  const sec = (a.section || "").toLowerCase();
-  const tagLabel = TAG_LABELS[sec] || a.section || "";
-  return `<div class="news-card">
-    <div class="card-meta">
-      <span class="src">${a.source}</span>
-      <span class="card-date">${fmtDate(a.date_published || a.date_fetched)}</span>
-    </div>
-    <a href="${a.url}" class="card-title" target="_blank" rel="noopener">${a.title}</a>
-    ${desc ? `<p class="card-desc">${desc}</p>` : ""}
-    <div class="card-footer">
-      <span class="tag ${sec}">${tagLabel}</span>
-      <a href="${a.url}" class="card-link" target="_blank" rel="noopener">Lire →</a>
-    </div>
-  </div>`;
-}
-
-function renderCards(el, items) {
-  if (!items.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>Aucun article dans cette catégorie</p></div>`;
-    return;
-  }
-  // Always 2 columns, but if only 1 item don't leave empty right column
-  const mid = Math.ceil(items.length / 2);
-  const col1 = items.slice(0, mid).map(makeCard).join("");
-  const col2 = items.slice(mid).map(makeCard).join("");
-  el.innerHTML = `<div class="cards-wrap">
-    <div class="card-col">${col1}</div>
-    <div class="card-col">${col2}</div>
-  </div>`;
-}
-
-function renderSection(section, articles) {
-  const el = document.getElementById(`cards-${section}`);
-  if (!el) return;
-  const items = articles.filter(a => a.section === section);
-  const cEl = document.getElementById(`c-${section}`);
-  if (cEl) cEl.textContent = items.length;
-  renderCards(el, items);
-}
-
-/* Brief rendering — parse DOM directly, no fragile regex */
-function renderBrief(html) {
-  const el = document.getElementById("brief-content");
-  const tmp = document.createElement("div");
-  tmp.innerHTML = html;
-
-  const macro = tmp.querySelector(".macro-block");
-  const user  = tmp.querySelector(".user-block");
-  const topCards = Array.from(tmp.querySelectorAll(".top-card"));
-  const top5Label = tmp.querySelector(".top5-label");
-
-  // Build macro col
-  let macroHTML = macro
-    ? `<div class="macro-label">Analyse du jour</div>${macro.innerHTML}`
-    : `<p class="macro-text" style="font-style:italic;font-family:var(--serif);color:#444">Analyse non disponible.</p>`;
-  macroHTML = `<div class="macro-block">${macroHTML}</div>`;
-
-  // Build user col
-  let userHTML = user ? user.outerHTML
-    : `<div class="user-block"><div class="user-title">Ce qui change pour toi</div><p style="font-size:12px;color:#666">Données non disponibles</p></div>`;
-
-  // Build top5 col — extract full content from each card
-  let top5Inner = "";
-  if (topCards.length) {
-    top5Inner = topCards.map(c => {
-      // Make sure links are preserved
-      return c.outerHTML;
-    }).join("");
-  } else {
-    top5Inner = `<div class="top-card"><p style="font-size:12px;color:var(--muted)">Top 5 non disponible — relance le workflow pour régénérer.</p></div>`;
-  }
-
-  el.innerHTML = `
-    <div class="brief-grid">
-      <div>${macroHTML}</div>
-      <div>${userHTML}</div>
-      <div class="top5-col">
-        <div class="top5-wrap">
-          <div class="top5-label">Top 5 incontournables</div>
-          ${top5Inner}
-        </div>
-      </div>
-    </div>`;
-}
-
-async function loadDay(dateStr) {
-  try {
-    const articles = await api(`/rest/v1/articles?fetch_date=eq.${dateStr}&order=date_fetched.desc&limit=200`);
-    document.getElementById("hdr-count").textContent = `${articles.length} articles`;
-    SECTIONS.forEach(s => renderSection(s, articles));
-    await loadBrief(dateStr);
-  } catch(e) {
-    document.getElementById("brief-content").innerHTML =
-      `<div class="empty"><div class="empty-icon">⚠️</div><p>Erreur : ${e.message}</p></div>`;
+function navigateDate(dir){
+  const idx=allDates.indexOf(currentDate);
+  const newIdx=idx+dir;
+  if(newIdx>=0 && newIdx<allDates.length){
+    currentDate=allDates[newIdx];
+    loadDay(currentDate);
   }
 }
 
-async function loadBrief(dateStr) {
-  try {
-    const data = await api(`/rest/v1/daily_briefs?date=eq.${dateStr}&limit=1`);
-    if (data.length && data[0].brief_html) {
-      renderBrief(data[0].brief_html);
-    } else {
-      document.getElementById("brief-content").innerHTML =
-        `<div class="empty"><div class="empty-icon">📝</div><p>Brief non disponible pour cette date.</p></div>`;
-    }
-  } catch(e) {
-    document.getElementById("brief-content").innerHTML =
-      `<div class="empty"><div class="empty-icon">⚠️</div><p>Brief indisponible</p></div>`;
-  }
+function updateNavLabel(){
+  const d=new Date(currentDate+"T12:00:00");
+  const opts={weekday:'short',day:'numeric',month:'short'};
+  document.getElementById('nav-label').textContent=d.toLocaleDateString('fr-FR',opts);
+  document.getElementById('sb-date').textContent=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const idx=allDates.indexOf(currentDate);
+  document.getElementById('btn-prev').disabled=idx>=allDates.length-1;
+  document.getElementById('btn-next').disabled=idx<=0;
 }
 
-async function loadDates() {
-  try {
-    const data = await api(`/rest/v1/articles?select=fetch_date&order=fetch_date.desc&limit=500`);
-    const dates = [...new Set(data.map(a => a.fetch_date).filter(Boolean))].sort().reverse();
-    availableDates = dates;
-    const sel = document.getElementById("date-select");
-    sel.innerHTML = dates.map((d,i) =>
-      `<option value="${d}">${i===0 ? d+" (aujourd'hui)" : d}</option>`
-    ).join("");
-    return dates;
-  } catch(e) { return []; }
-}
-
-async function loadHistory() {
-  const el = document.getElementById("history-content");
-  try {
-    const articles = await api(`/rest/v1/articles?order=date_fetched.desc&limit=600`);
-    const byDate = {};
-    articles.forEach(a => {
-      const d = a.fetch_date || (a.date_fetched||"").substring(0,10);
-      if (!byDate[d]) byDate[d] = [];
-      byDate[d].push(a);
+// ── LOAD DAY DATA ──────────────────────────────────────────
+async function loadDay(dateStr){
+  currentDate=dateStr;
+  updateNavLabel();
+  // Load articles
+  try{
+    const articles=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?fetch_date=eq.${dateStr}&order=date_fetched.desc&limit=200`);
+    SECTIONS.forEach(s=>{
+      const el=document.getElementById(`cards-${s}`);
+      const filtered=articles.filter(a=>a.section===s);
+      const countEl=document.getElementById(`c-${s}`);
+      if(countEl) countEl.textContent=filtered.length||'-';
+      if(!el)return;
+      if(!filtered.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📭</div>Aucun article dans cette section</div>`;return;}
+      el.innerHTML=filtered.map(a=>`
+        <div class="card">
+          <div class="card-meta"><span class="card-source">${esc(a.source)}</span><span class="card-date">${fmtDate(a.date_published)}</span></div>
+          <div class="card-title"><a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></div>
+          <div class="card-summary" id="sum-${a.id}">${esc(a.summary||'')}</div>
+          ${(a.summary||'').length>120?`<button class="card-expand" onclick="toggleSummary('${a.id}')">voir plus</button>`:''}
+        </div>`).join('');
     });
-    const dates = Object.keys(byDate).sort().reverse();
-    if (!dates.length) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Aucun historique</p></div>`;
-      return;
+  }catch(e){console.error('loadDay',e)}
+  // Load brief
+  try{
+    const briefs=await fetchJSON(`${SUPABASE_URL}/rest/v1/daily_briefs?date=eq.${dateStr}&limit=1`);
+    const el=document.getElementById('brief-content');
+    if(briefs.length&&briefs[0].brief_html){
+      el.innerHTML=briefs[0].brief_html;
+    }else{
+      el.innerHTML=`<div class="empty"><div class="empty-icon">📝</div>Brief non disponible pour cette date</div>`;
     }
-    el.innerHTML = dates.map(d => {
-      const items = byDate[d];
-      const mid = Math.ceil(Math.min(items.length, 6) / 2);
-      const col1 = items.slice(0, mid).map(makeCard).join("");
-      const col2 = items.slice(mid, 6).map(makeCard).join("");
-      return `<div class="history-day">
-        <div class="history-label">📅 ${d} — ${items.length} articles</div>
-        <div class="cards-wrap">
-          <div class="card-col">${col1}</div>
-          <div class="card-col">${col2}</div>
+  }catch(e){console.error('loadBrief',e)}
+}
+
+function toggleSummary(id){
+  const el=document.getElementById(`sum-${id}`);
+  el.classList.toggle('expanded');
+  el.nextElementSibling.textContent=el.classList.contains('expanded')?'voir moins':'voir plus';
+}
+
+// ── WIKI ───────────────────────────────────────────────────
+let wikiLoaded=false;
+async function loadWiki(){
+  if(wikiLoaded)return;
+  try{
+    const concepts=await fetchJSON(`${SUPABASE_URL}/rest/v1/wiki_concepts?order=mention_count.desc&limit=100`);
+    const grid=document.getElementById('wiki-grid');
+    if(!concepts.length){grid.innerHTML=`<div class="empty"><div class="empty-icon">📖</div>Le wiki se remplit automatiquement avec les articles quotidiens</div>`;return;}
+    grid.innerHTML=concepts.map(c=>`
+      <div class="wiki-card" onclick="showWikiDetail('${esc(c.slug)}')">
+        <div class="wiki-card-name">${esc(c.name)}</div>
+        <div class="wiki-card-cat">${esc(c.category)}</div>
+        <div class="wiki-card-stats">
+          <span>${c.mention_count} mentions</span>
+          <span>Vu le ${fmtDateShort(c.last_mentioned)}</span>
         </div>
-        ${items.length > 6 ? `<p style="font-size:11px;color:var(--muted);padding:8px 0">+ ${items.length-6} autres articles ce jour-là</p>` : ""}
+      </div>`).join('');
+    wikiLoaded=true;
+  }catch(e){console.error('loadWiki',e)}
+}
+
+async function showWikiDetail(slug){
+  try{
+    const data=await fetchJSON(`${SUPABASE_URL}/rest/v1/wiki_concepts?slug=eq.${slug}&limit=1`);
+    if(!data.length)return;
+    const c=data[0];
+    const container=document.getElementById('wiki-detail-container');
+    container.innerHTML=`
+      <div class="wiki-detail show">
+        <h3>${esc(c.name)}</h3>
+        <div class="level-tabs">
+          <span class="level-tab active" onclick="setWikiLevel(this,'beginner')">Débutant</span>
+          <span class="level-tab" onclick="setWikiLevel(this,'intermediate')">Intermédiaire</span>
+          <span class="level-tab" onclick="setWikiLevel(this,'advanced')">Avancé</span>
+        </div>
+        <div class="level-content" id="wiki-level-content">${c.summary_beginner||'<em>Contenu généré lors du prochain run hebdomadaire Claude</em>'}</div>
+        <div class="wiki-sources">
+          ${(c.sources||[]).slice(0,5).map(s=>`<a href="${esc(s)}" target="_blank" style="font-size:12px;display:block;margin-top:4px">${esc(s.substring(0,80))}…</a>`).join('')}
+        </div>
       </div>`;
-    }).join("");
-  } catch(e) {
-    el.innerHTML = `<div class="empty"><p>Erreur : ${e.message}</p></div>`;
-  }
+    // Store levels
+    container._levels={beginner:c.summary_beginner,intermediate:c.summary_intermediate,advanced:c.summary_advanced};
+  }catch(e){console.error('showWikiDetail',e)}
 }
 
-// Search
-let searchTimer;
-document.getElementById("search-input").addEventListener("input", function() {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(async () => {
-    const q = this.value.trim();
-    const el = document.getElementById("search-results");
-    if (q.length < 2) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><p>Tape un mot-clé</p></div>`;
-      return;
-    }
-    el.innerHTML = `<div class="loading">Recherche…</div>`;
-    try {
-      const enc = encodeURIComponent(q);
-      const data = await api(`/rest/v1/articles?or=(title.ilike.*${enc}*,summary.ilike.*${enc}*)&order=date_fetched.desc&limit=60`);
-      if (!data.length) {
-        el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><p>Aucun résultat pour "${q}"</p></div>`;
-      } else {
-        el.innerHTML = `<div class="slabel">${data.length} résultat(s) pour "${q}"</div><div id="search-cards"></div>`;
-        renderCards(document.getElementById("search-cards"), data);
-      }
-    } catch(e) {
-      el.innerHTML = `<div class="empty"><p>Erreur : ${e.message}</p></div>`;
-    }
-  }, 380);
-});
-
-// Nav
-document.getElementById("nav-strip").addEventListener("click", e => {
-  const btn = e.target.closest(".nav-pill");
-  if (!btn) return;
-  const panel = btn.dataset.panel;
-  document.querySelectorAll(".nav-pill").forEach(b => b.classList.remove("active"));
-  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById(`panel-${panel}`).classList.add("active");
-  if (panel === "history") loadHistory();
-});
-
-// Date navigation
-function setDate(dateStr) {
-  currentDateIdx = availableDates.indexOf(dateStr);
-  document.getElementById("date-select").value = dateStr;
-  const d = new Date(dateStr);
-  document.getElementById("hdr-date").textContent =
-    d.toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
-  loadDay(dateStr);
+function setWikiLevel(btn,level){
+  btn.parentElement.querySelectorAll('.level-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const container=document.getElementById('wiki-detail-container');
+  const content=container._levels?.[level];
+  document.getElementById('wiki-level-content').innerHTML=content||'<em>Contenu généré lors du prochain run hebdomadaire Claude</em>';
 }
 
-document.getElementById("date-select").addEventListener("change", function() { setDate(this.value); });
-document.getElementById("btn-prev").addEventListener("click", () => {
-  if (currentDateIdx < availableDates.length - 1) setDate(availableDates[currentDateIdx + 1]);
-});
-document.getElementById("btn-next").addEventListener("click", () => {
-  if (currentDateIdx > 0) setDate(availableDates[currentDateIdx - 1]);
-});
+// ── SIGNALS ────────────────────────────────────────────────
+let signalsLoaded=false;
+async function loadSignals(){
+  if(signalsLoaded)return;
+  try{
+    const signals=await fetchJSON(`${SUPABASE_URL}/rest/v1/signal_tracking?order=mention_count.desc&limit=50`);
+    const el=document.getElementById('signal-list');
+    if(!signals.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📡</div>Les signaux se construisent au fil des jours</div>`;return;}
+    const trendIcons={rising:'📈',new:'🆕',stable:'➡️',declining:'📉'};
+    el.innerHTML=signals.map(s=>`
+      <div class="signal-item">
+        <span class="signal-trend">${trendIcons[s.trend]||'➡️'}</span>
+        <span class="signal-name">${esc(s.term)}</span>
+        <span class="signal-count">${s.mention_count}x</span>
+        <span class="signal-badge ${s.trend}">${s.trend}</span>
+      </div>`).join('');
+    signalsLoaded=true;
+  }catch(e){console.error('loadSignals',e)}
+}
 
-// Init
-(async () => {
-  const dates = await loadDates();
-  if (dates.length) {
-    setDate(dates[0]);
-  } else {
-    document.getElementById("brief-content").innerHTML =
-      `<div class="empty"><div class="empty-icon">🚀</div><p>Lance le workflow GitHub Actions pour remplir la base !</p></div>`;
-    SECTIONS.forEach(s => {
-      const el = document.getElementById(`cards-${s}`);
-      if (el) el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>En attente du premier digest…</p></div>`;
+// ── RADAR ──────────────────────────────────────────────────
+let radarLoaded=false;
+async function loadRadar(){
+  if(radarLoaded)return;
+  try{
+    const axes=await fetchJSON(`${SUPABASE_URL}/rest/v1/skill_radar?order=axis`);
+    const container=document.getElementById('radar-container');
+    if(!axes.length){container.innerHTML=`<div class="empty">Radar non initialisé</div>`;return;}
+
+    // SVG radar chart
+    const size=220,cx=size/2,cy=size/2,r=80;
+    const n=axes.length;
+    const points=axes.map((a,i)=>{
+      const angle=(Math.PI*2*i/n)-Math.PI/2;
+      const val=a.score/5;
+      return{x:cx+Math.cos(angle)*r*val,y:cy+Math.sin(angle)*r*val,
+             lx:cx+Math.cos(angle)*(r+18),ly:cy+Math.sin(angle)*(r+18),
+             ox:cx+Math.cos(angle)*r,oy:cy+Math.sin(angle)*r,label:a.axis_label,score:a.score};
     });
+    const polyPoints=points.map(p=>`${p.x},${p.y}`).join(' ');
+    const outerPoints=points.map(p=>`${p.ox},${p.oy}`).join(' ');
+
+    const svg=`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="radar-chart">
+      <polygon points="${outerPoints}" fill="none" stroke="#E5E4DF" stroke-width="1"/>
+      <polygon points="${points.map(p=>`${cx+(p.ox-cx)*.6},${cy+(p.oy-cy)*.6}`).join(' ')}" fill="none" stroke="#E5E4DF" stroke-width=".5" stroke-dasharray="3 3"/>
+      <polygon points="${points.map(p=>`${cx+(p.ox-cx)*.3},${cy+(p.oy-cy)*.3}`).join(' ')}" fill="none" stroke="#E5E4DF" stroke-width=".5" stroke-dasharray="3 3"/>
+      ${points.map(p=>`<line x1="${cx}" y1="${cy}" x2="${p.ox}" y2="${p.oy}" stroke="#E5E4DF" stroke-width=".5"/>`).join('')}
+      <polygon points="${polyPoints}" fill="rgba(108,92,231,.15)" stroke="#6C5CE7" stroke-width="2"/>
+      ${points.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="3" fill="#6C5CE7"/>`).join('')}
+      ${points.map(p=>`<text x="${p.lx}" y="${p.ly}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#6B6A65" font-family="var(--font)">${p.label.substring(0,12)}</text>`).join('')}
+    </svg>`;
+
+    const details=axes.map(a=>`
+      <div class="radar-axis">
+        <span class="radar-axis-label">${esc(a.axis_label)}</span>
+        <div class="radar-axis-bar"><div class="radar-axis-fill" style="width:${a.score/5*100}%"></div></div>
+        <span class="radar-axis-score">${a.score}/5</span>
+      </div>`).join('');
+
+    container.innerHTML=svg+`<div class="radar-details">${details}</div>`;
+    radarLoaded=true;
+  }catch(e){console.error('loadRadar',e)}
+}
+
+// ── CHALLENGES ─────────────────────────────────────────────
+let challengesLoaded=false;
+async function loadChallenges(){
+  if(challengesLoaded)return;
+  try{
+    const challenges=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_challenges?order=week_start.desc&limit=10`);
+    const el=document.getElementById('challenges-content');
+    if(!challenges.length){el.innerHTML=`<div class="empty"><div class="empty-icon">🏆</div>Les challenges seront générés par le run hebdomadaire Claude</div>`;return;}
+    el.innerHTML=challenges.map(c=>`
+      <div class="challenge-card" style="${c.status==='completed'?'opacity:.6;border-color:var(--green)':''}">
+        <div class="challenge-title">${c.status==='completed'?'✅ ':''} ${esc(c.title)}</div>
+        <div class="challenge-desc">${esc(c.description||'')}</div>
+        <div class="challenge-meta">
+          <span>Axe : ${esc(c.target_axis)}</span>
+          <span>+${c.score_reward} pts</span>
+          <span>${c.difficulty}</span>
+        </div>
+      </div>`).join('');
+    challengesLoaded=true;
+  }catch(e){console.error('loadChallenges',e)}
+}
+
+// ── MATURITY ───────────────────────────────────────────────
+let maturityLoaded=false;
+async function loadMaturity(){
+  if(maturityLoaded)return;
+  try{
+    const data=await fetchJSON(`${SUPABASE_URL}/rest/v1/usecase_maturity?order=sector,maturity&limit=100`);
+    const el=document.getElementById('maturity-content');
+    if(!data.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📊</div>Les use cases seront enrichis par le run hebdomadaire</div>`;return;}
+    el.innerHTML=`<table class="maturity-table">
+      <tr><th>Secteur</th><th>Use case</th><th>Maturité</th><th>Opportunité</th></tr>
+      ${data.map(d=>`<tr>
+        <td>${esc(d.sector_label||d.sector)}</td>
+        <td><strong>${esc(d.usecase)}</strong><br><span style="font-size:12px;color:var(--tx3)">${esc(d.description||'').substring(0,80)}</span></td>
+        <td><span class="maturity-badge ${d.maturity}">${d.maturity}</span></td>
+        <td><span class="opp-bar"><span class="opp-fill" style="width:${d.opportunity_score}%"></span></span>${d.opportunity_score}%</td>
+      </tr>`).join('')}
+    </table>`;
+    maturityLoaded=true;
+  }catch(e){console.error('loadMaturity',e)}
+}
+
+// ── IDEAS ──────────────────────────────────────────────────
+let ideasLoaded=false;
+async function loadIdeas(){
+  if(ideasLoaded)return;
+  try{
+    const ideas=await fetchJSON(`${SUPABASE_URL}/rest/v1/business_ideas?order=created_at.desc&limit=50`);
+    const el=document.getElementById('ideas-list');
+    if(!ideas.length){el.innerHTML=`<div class="empty"><div class="empty-icon">💡</div>Aucune idée pour l'instant — utilise le formulaire ci-dessus !</div>`;return;}
+    el.innerHTML=ideas.map(i=>`
+      <div class="idea-card">
+        <div class="idea-header">
+          <div class="idea-title">${esc(i.title)}</div>
+          <span class="idea-status ${i.status}">${i.status}</span>
+        </div>
+        <div class="idea-desc">${esc(i.description||'')}</div>
+        <div class="idea-tags">
+          ${i.sector?`<span class="idea-tag">${esc(i.sector)}</span>`:''}
+          ${(i.related_trends||[]).map(t=>`<span class="idea-tag">${esc(t)}</span>`).join('')}
+        </div>
+      </div>`).join('');
+    ideasLoaded=true;
+  }catch(e){console.error('loadIdeas',e)}
+}
+
+async function saveIdea(){
+  const title=document.getElementById('idea-title').value.trim();
+  if(!title){alert('Donne un titre à ton idée !');return;}
+  const desc=document.getElementById('idea-desc').value.trim();
+  const sector=document.getElementById('idea-sector').value;
+  try{
+    await postJSON(`${SUPABASE_URL}/rest/v1/business_ideas`,{title,description:desc,sector:sector||null});
+    document.getElementById('idea-title').value='';
+    document.getElementById('idea-desc').value='';
+    document.getElementById('idea-sector').value='';
+    ideasLoaded=false;
+    loadIdeas();
+  }catch(e){alert('Erreur: '+e.message)}
+}
+
+// ── RTE TOOLBOX ────────────────────────────────────────────
+let rteLoaded=false;
+async function loadRTE(){
+  if(rteLoaded)return;
+  try{
+    const data=await fetchJSON(`${SUPABASE_URL}/rest/v1/rte_usecases?order=tool,usecase&limit=50`);
+    const el=document.getElementById('rte-grid');
+    if(!data.length){el.innerHTML=`<div class="empty">Aucun use case RTE</div>`;return;}
+    el.innerHTML=data.map(d=>`
+      <div class="rte-card">
+        <div class="rte-card-header">
+          <span class="rte-card-tool">${esc(d.tool_label)}</span>
+          <span class="rte-status ${d.implementation_status}">${d.implementation_status}</span>
+        </div>
+        <div class="rte-card-title">${esc(d.usecase)}</div>
+        <div class="rte-card-desc">${esc(d.description||'')}</div>
+        <div class="rte-card-footer">
+          <span class="rte-badge rte-effort">Effort: ${d.effort}</span>
+          <span class="rte-badge rte-impact">Impact: ${d.impact}</span>
+        </div>
+      </div>`).join('');
+    rteLoaded=true;
+  }catch(e){console.error('loadRTE',e)}
+}
+
+// ── SEARCH ─────────────────────────────────────────────────
+let searchTimeout;
+document.getElementById('search-input').addEventListener('input',e=>{
+  clearTimeout(searchTimeout);
+  searchTimeout=setTimeout(()=>doSearch(e.target.value),300);
+});
+
+async function doSearch(q){
+  const el=document.getElementById('search-results');
+  if(q.length<2){el.innerHTML='';return;}
+  try{
+    const articles=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?or=(title.ilike.*${encodeURIComponent(q)}*,summary.ilike.*${encodeURIComponent(q)}*,source.ilike.*${encodeURIComponent(q)}*)&order=date_fetched.desc&limit=30`);
+    if(!articles.length){el.innerHTML=`<div class="empty">Aucun résultat pour "${esc(q)}"</div>`;return;}
+    el.innerHTML=articles.map(a=>`
+      <div class="card">
+        <div class="card-meta"><span class="card-source">${esc(a.source)}</span><span class="card-date">${fmtDate(a.date_published)}</span></div>
+        <div class="card-title"><a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></div>
+        <div class="card-summary">${esc(a.summary||'')}</div>
+      </div>`).join('');
+  }catch(e){console.error('doSearch',e)}
+}
+
+// ── HISTORY ────────────────────────────────────────────────
+let historyLoaded=false;
+async function loadHistory(){
+  if(historyLoaded)return;
+  try{
+    const el=document.getElementById('history-content');
+    el.innerHTML=allDates.map(d=>{
+      const date=new Date(d+"T12:00:00");
+      return`<div style="padding:8px 0;border-bottom:1px solid var(--bd);cursor:pointer" onclick="navigateTo('${d}')">
+        <span style="font-weight:600">${date.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</span>
+      </div>`;
+    }).join('');
+    historyLoaded=true;
+  }catch(e){console.error('loadHistory',e)}
+}
+
+function navigateTo(dateStr){
+  currentDate=dateStr;
+  loadDay(dateStr);
+  document.querySelectorAll('.sb-link').forEach(b=>b.classList.remove('active'));
+  document.querySelector('[data-panel="brief"]').classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-brief').classList.add('active');
+}
+
+// ── UTILS ──────────────────────────────────────────────────
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fmtDate(iso){if(!iso)return'';try{return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch{return''}}
+function fmtDateShort(d){if(!d)return'';try{return new Date(d+"T12:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}catch{return''}}
+
+// ── INIT ───────────────────────────────────────────────────
+async function init(){
+  try{
+    const data=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?select=fetch_date&order=fetch_date.desc&limit=500`);
+    allDates=[...new Set(data.map(a=>a.fetch_date).filter(Boolean))].sort().reverse();
+    if(allDates.length){
+      currentDate=allDates[0];
+      loadDay(currentDate);
+    }else{
+      document.getElementById('brief-content').innerHTML=`<div class="empty"><div class="empty-icon">🚀</div>En attente du premier digest — lance le pipeline GitHub Actions !</div>`;
+      document.getElementById('sb-date').textContent='En attente…';
+    }
+  }catch(e){
+    console.error('init',e);
+    document.getElementById('brief-content').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div>Erreur de connexion à Supabase</div>`;
   }
-})();
+}
+
+init();
 </script>
 </body>
 </html>
