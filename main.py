@@ -199,22 +199,7 @@ def web_search_ai_news():
                 })
                 print(f"   → Web search OK: {query[:50]}...")
         except Exception as e:
-            # Fallback sans grounding
-            try:
-                time.sleep(4)
-                fallback = genai.GenerativeModel("gemini-2.5-flash-lite")
-                response = fallback.generate_content(
-                    f"Donne les dernières infos que tu connais sur : {query}. "
-                    f"3-4 points max, très concis."
-                )
-                if response.text:
-                    web_results.append({
-                        "query": query,
-                        "result": response.text[:800],
-                    })
-                    print(f"   → Fallback OK: {query[:50]}...")
-            except Exception as e2:
-                print(f"   [WARN] Web search failed for '{query[:40]}': {e2}")
+            print(f"   [WARN] Web search failed for '{query[:40]}': {e}")
 
     return web_results
 
@@ -339,17 +324,22 @@ def main():
     print(f"   → {len(web_results)} recherches web complétées")
 
     print("🧠 Génération du brief avec Gemini...")
-    brief_html = generate_brief(articles, web_results)
-    print("   → Brief généré ✓")
+    brief_html = None
+    try:
+        brief_html = generate_brief(articles, web_results)
+        print("   → Brief généré ✓")
+    except Exception as e:
+        print(f"   [WARN] Brief generation failed (quota?): {e}")
 
     today_key = datetime.now().strftime("%Y-%m-%d")
-    resp = requests.post(
-        f"{SUPABASE_URL}/rest/v1/daily_briefs",
-        headers={**HEADERS, "Prefer": "resolution=merge-duplicates"},
-        json={"date": today_key, "brief_html": brief_html, "article_count": len(articles)},
-    )
-    if resp.status_code not in (200, 201):
-        print(f"   [WARN] Brief save: {resp.status_code}")
+    if brief_html:
+        resp = requests.post(
+            f"{SUPABASE_URL}/rest/v1/daily_briefs",
+            headers={**HEADERS, "Prefer": "resolution=merge-duplicates"},
+            json={"date": today_key, "brief_html": brief_html, "article_count": len(articles)},
+        )
+        if resp.status_code not in (200, 201):
+            print(f"   [WARN] Brief save: {resp.status_code}")
 
     print("📧 Envoi email...")
     send_notification_email(len(articles))
