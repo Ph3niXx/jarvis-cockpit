@@ -1,28 +1,34 @@
-name: AI Daily Digest
- 
+name: AI Cockpit Pipeline
+
 on:
   schedule:
-    - cron: '0 6 * * *'
-  workflow_dispatch:
- 
+    # Quotidien lun-ven à 6h UTC (8h Paris)
+    - cron: '0 6 * * 1-5'
+    # Ping anti-pause le week-end (samedi 10h UTC)
+    - cron: '0 10 * * 6'
+  workflow_dispatch:  # Lancement manuel
+
 jobs:
-  send-digest:
+  daily-digest:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Ne pas tourner le samedi sauf pour le ping
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run AI Digest
+
+      - name: Run daily pipeline
         env:
-          GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
-          GMAIL_ADDRESS:     ${{ secrets.GMAIL_ADDRESS }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          RECIPIENT_EMAIL:   ${{ secrets.RECIPIENT_EMAIL }}
-          SUPABASE_URL:      ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY:      ${{ secrets.SUPABASE_KEY }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python main.py
