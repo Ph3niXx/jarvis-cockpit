@@ -152,6 +152,26 @@ def sb_patch(table, filters, data):
     return r.status_code in (200, 204)
 
 
+# ─── USER CONTEXT ─────────────────────────────────────────────────────────────
+
+def get_user_context():
+    """Charge le profil utilisateur complet pour l'injecter dans les prompts Claude."""
+    profile = sb_get("user_profile", "order=key")
+    radar = sb_get("skill_radar", "select=axis_label,score,strengths,gaps,goals&order=axis")
+    
+    profile_text = "\n".join([f"- {p['key']}: {p['value']}" for p in profile if p.get('value')])
+    radar_text = "\n".join([
+        f"- {a['axis_label']}: {a['score']}/5 | Forces: {a.get('strengths','?')} | Lacunes: {a.get('gaps','?')}"
+        for a in radar
+    ])
+    
+    return f"""PROFIL DE L'UTILISATEUR :
+{profile_text}
+
+RADAR DE COMPÉTENCES :
+{radar_text}"""
+
+
 # ─── STEP 1 : ENRICHIR LE WIKI ───────────────────────────────────────────────
 
 def enrich_wiki():
@@ -223,16 +243,20 @@ def analyze_signals():
     signal_text = "\n".join([f"- {s['term']}: {s['mention_count']} mentions, trend={s['trend']}" for s in signals])
 
     system = "Tu es un analyste IA. Tu identifies les tendances émergentes à partir de signaux faibles. Sois concis et actionnable."
-    prompt = f"""Voici les termes IA les plus mentionnés cette semaine dans mon flux de veille :
+    
+    user_ctx = get_user_context()
+    prompt = f"""{user_ctx}
+
+Voici les termes IA les plus mentionnés cette semaine dans mon flux de veille :
 
 {signal_text}
 
 Génère une analyse en 4-5 phrases :
 1. Quels termes montrent une vraie tendance de fond vs du bruit ?
 2. Y a-t-il un signal faible important que la plupart des gens ignorent encore ?
-3. Quelles implications pour quelqu'un qui veut se positionner comme expert IA ou lancer un business ?
+3. Quelles implications concrètes pour MOI vu mon profil, ma mission actuelle et mes ambitions ?
 
-Sois direct et factuel."""
+Sois direct et factuel. Parle-moi en "tu"."""
 
     return call_claude(system, prompt) or ""
 
@@ -404,10 +428,86 @@ Sois très concret : mentionne les plugins Jira, les API endpoints, les scripts 
     return count
 
 
-# ─── STEP 6 : LOGGER LES RÉSULTATS ───────────────────────────────────────────
+# ─── STEP 6 : RADAR D'OPPORTUNITÉS ───────────────────────────────────────────
+
+def analyze_opportunities():
+    """Analyse les articles de la semaine pour identifier des use cases concrets et des opportunités business."""
+    today = datetime.now()
+    week_start = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
+
+    # Récupérer les articles de la semaine
+    articles = sb_get("articles", f"fetch_date=gte.{week_start}&order=date_fetched.desc&limit=60&select=title,summary,url,section,source")
+    if not articles:
+        print("   Aucun article cette semaine")
+        return 0
+
+    articles_text = "\n".join([
+        f"- [{a['source']} | {a['section']}] {a['title']}\n  {(a.get('summary') or '')[:200]}\n  URL: {a['url']}"
+        for a in articles[:40]
+    ])
+
+    # Récupérer le profil complet
+    user_ctx = get_user_context()
+
+    system = """Tu es un analyste stratégique IA et un business developer. Tu lis l'actualité IA de la semaine et tu en extrais des OPPORTUNITÉS CONCRÈTES.
+
+Tu penses en entrepreneur : chaque nouveauté IA est soit un outil pour se simplifier la vie, soit une opportunité de business.
+
+Tu émets des hypothèses business avec un niveau de confiance (low/medium/high).
+Réponds UNIQUEMENT en JSON valide."""
+
+    prompt = f"""ARTICLES IA DE LA SEMAINE :
+{articles_text}
+
+{user_ctx}
+
+À partir des articles de cette semaine, identifie 5-8 opportunités concrètes. Pour chaque opportunité, fais une analyse business.
+
+Format JSON :
+[
+  {{
+    "usecase_title": "Nom court et concret du use case (ex: 'Agent IA de suivi de sinistres')",
+    "usecase_description": "Ce que c'est concrètement en 2-3 phrases. Basé sur ce que les articles décrivent.",
+    "source_articles": ["URL exacte de l'article source"],
+    "category": "money ou life",
+    "sector": "assurance|energie|finance|tech|saas|transverse",
+    "who_pays": "Qui paierait pour ça ? Sois spécifique (ex: 'DSI de mutuelles moyennes', 'courtiers indépendants')",
+    "market_size": "niche|medium|large",
+    "effort_to_build": "weekend_project|1_month|3_months|6_months+",
+    "competition": "none|few|crowded",
+    "timing": "too_early|right_time|getting_late",
+    "relevance_score": 0-100,
+    "relevance_why": "Pourquoi c'est pertinent pour TOI spécifiquement (ton profil RTE, tes compétences, ton secteur)",
+    "next_step": "L'action concrète à faire cette semaine pour explorer cette opportunité (en 1 phrase)",
+    "confidence": "low|medium|high"
+  }}
+]
+
+RÈGLES :
+- category "money" = ça pourrait devenir un produit/service payant
+- category "life" = ça te simplifie la vie dans ta mission actuelle
+- Mets au moins 2 "life" et 2 "money"
+- Chaque opportunité DOIT être liée à un article concret de la semaine (pas d'invention)
+- Sois honnête sur le niveau de confiance : "high" seulement si l'article montre un vrai signal de marché
+- Le relevance_score tient compte de ses compétences actuelles ET de ses lacunes"""
+
+    result = call_claude(system, prompt, max_tokens=4096)
+    parsed = parse_json_response(result)
+    if not parsed:
+        return 0
+
+    count = 0
+    for opp in parsed:
+        opp["week_start"] = week_start
+        if sb_post("weekly_opportunities", opp):
+            count += 1
+    return count
+
+
+# ─── STEP 7 : LOGGER LES RÉSULTATS ───────────────────────────────────────────
 
 def save_weekly_analysis(signals_summary, concepts_enriched, concepts_updated, 
-                         recommendations_count, challenge_title, rte_count):
+                         recommendations_count, challenge_title, rte_count, opps_count):
     today = datetime.now()
     week_start = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
 
@@ -419,7 +519,7 @@ def save_weekly_analysis(signals_summary, concepts_enriched, concepts_updated,
         "recommendations_generated": recommendations_count,
         "challenge_generated": challenge_title,
         "tokens_used": json.dumps(tracker.summary()),
-        "raw_analysis": f"Enriched {len(concepts_enriched)} wiki concepts, {recommendations_count} recos, RTE: {rte_count}",
+        "raw_analysis": f"Wiki: {len(concepts_enriched)}, Recos: {recommendations_count}, RTE: {rte_count}, Opportunités: {opps_count}",
     })
 
 
@@ -432,33 +532,38 @@ def main():
     print("=" * 60)
 
     # Step 1: Enrichir le wiki
-    print("\n📖 Step 1/5 — Enrichissement wiki...")
+    print("\n📖 Step 1/6 — Enrichissement wiki...")
     concepts_enriched = enrich_wiki() if tracker.can_continue else []
     print(f"   → {len(concepts_enriched)} concepts enrichis")
 
     # Step 2: Analyser les signaux
-    print("\n📡 Step 2/5 — Analyse des signaux...")
+    print("\n📡 Step 2/6 — Analyse des signaux...")
     signals_summary = analyze_signals() if tracker.can_continue else ""
     print(f"   → Analyse {'générée' if signals_summary else 'skippée'}")
 
     # Step 3: Recommandations
-    print("\n🎯 Step 3/5 — Recommandations d'apprentissage...")
+    print("\n🎯 Step 3/6 — Recommandations d'apprentissage...")
     reco_count = generate_recommendations() if tracker.can_continue else 0
     print(f"   → {reco_count} recommandations générées")
 
     # Step 4: Challenge
-    print("\n🏆 Step 4/5 — Challenge hebdo...")
+    print("\n🏆 Step 4/6 — Challenge hebdo...")
     challenge_title = generate_challenge() if tracker.can_continue else None
     print(f"   → Challenge: {challenge_title or 'skippé'}")
 
     # Step 5: Enrichir RTE
-    print("\n🚂 Step 5/5 — Enrichissement RTE...")
+    print("\n🚂 Step 5/6 — Enrichissement RTE...")
     rte_count = enrich_rte() if tracker.can_continue else 0
     print(f"   → {rte_count} use cases RTE enrichis")
 
+    # Step 6: Radar d'opportunités
+    print("\n💰 Step 6/6 — Radar d'opportunités...")
+    opps_count = analyze_opportunities() if tracker.can_continue else 0
+    print(f"   → {opps_count} opportunités identifiées")
+
     # Save results
     print("\n💾 Sauvegarde des résultats...")
-    save_weekly_analysis(signals_summary, concepts_enriched, [], reco_count, challenge_title, rte_count)
+    save_weekly_analysis(signals_summary, concepts_enriched, [], reco_count, challenge_title, rte_count, opps_count)
 
     # Final report
     summary = tracker.summary()
