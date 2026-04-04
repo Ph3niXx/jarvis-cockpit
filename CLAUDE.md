@@ -26,16 +26,21 @@ Cockpit IA personnel pour un manager en transformation digitale qui veut :
   - Gemini 2.5 Flash-Lite (gratuit) pour RSS + web search + brief
 - **Pipeline hebdomadaire** : `weekly_analysis.py` via GitHub Actions (dimanche 22h UTC)
   - Claude Haiku 4.5 (~0.03$/run) pour wiki, signaux, recommandations, challenges, opportunités, RTE
+- **Pipeline TFT** : `tft_pipeline.py` via GitHub Actions (toutes les 2h)
+  - API Riot TFT → Supabase (matchs, compos, lobby, rank)
 - **Email** : Gmail SMTP notification quotidienne
 
 ### Repo structure
 ```
 main.py                              # Pipeline quotidien Gemini
 weekly_analysis.py                   # Pipeline hebdomadaire Claude
+tft_pipeline.py                      # Pipeline TFT (Riot API → Supabase)
 index.html                           # Site cockpit complet (vanilla JS)
 requirements.txt                     # feedparser, google-generativeai, requests
+sql/tft_migration.sql                # Migration Supabase pour les tables TFT
 .github/workflows/daily_digest.yml   # Cron quotidien
 .github/workflows/weekly_analysis.yml # Cron hebdomadaire
+.github/workflows/tft-sync.yml      # Cron TFT toutes les 2h
 CLAUDE.md                            # Ce fichier
 ```
 
@@ -47,7 +52,11 @@ GMAIL_APP_PASSWORD  # Mot de passe d'app Gmail
 RECIPIENT_EMAIL     # Email destinataire
 SUPABASE_URL        # https://mrmgptqpflzyavdfqwwv.supabase.co
 SUPABASE_KEY        # Publishable key (sb_publishable_...)
+SUPABASE_SERVICE_KEY # Service role key (pour bypass RLS en écriture, utilisé par tft_pipeline)
+SUPABASE_USER_ID    # UUID de l'utilisateur Supabase auth
 ANTHROPIC_API_KEY   # Claude API
+RIOT_API_KEY        # Riot Games Developer API key (https://developer.riotgames.com)
+RIOT_PUUID          # PUUID du joueur TFT à tracker
 ```
 
 ### Base de données Supabase
@@ -67,7 +76,15 @@ Tables existantes :
 - `user_profile` — profil personnel key/value (identité, ambitions, intérêts, notes)
 - `usecase_maturity` — ancienne table de scoring statique (dépréciée, remplacée par weekly_opportunities)
 
-RLS : toutes les tables ont SELECT + INSERT + UPDATE public via publishable key.
+**Tables TFT :**
+- `tft_matches` — une ligne par match joué (placement, level, gold, durée, raw_payload JSONB, champs user_* éditables)
+- `tft_match_units` — champions de la compo finale (character_id brut + champion_name nettoyé, tier/étoiles, cost, items)
+- `tft_match_traits` — traits de la compo finale (trait_id brut + trait_name nettoyé, style, tier, is_active)
+- `tft_match_lobby` — 7 adversaires par match (placement, main_traits, main_carry, dénormalisé)
+- `tft_rank_history` — snapshot quotidien du rang ranked (tier, rank, LP, wins, losses)
+
+RLS : tables AI cockpit → SELECT + INSERT + UPDATE public via publishable key.
+RLS : tables TFT → SELECT/INSERT/UPDATE restreints à `auth.uid()`, écriture via service_role key dans le pipeline.
 
 ### Sections du cockpit (sidebar)
 
@@ -85,6 +102,7 @@ RLS : toutes les tables ont SELECT + INSERT + UPDATE public via publishable key.
 | Carnet d'idées | business_ideas | Manuel (depuis le front) |
 | RTE Toolbox | rte_usecases | Hebdomadaire (enrichissement Claude) |
 | Mon profil | user_profile | Manuel (depuis le front) |
+| TFT Matches | tft_matches + tft_match_units + tft_match_traits + tft_match_lobby | Toutes les 2h (Riot API) |
 | Coûts API | weekly_analysis.tokens_used | Hebdomadaire (auto-loggé) |
 | Recherche | articles (full-text ilike) | Temps réel |
 | Historique | articles (groupé par fetch_date) | Quotidien |
@@ -106,6 +124,13 @@ RLS : toutes les tables ont SELECT + INSERT + UPDATE public via publishable key.
 - **Opportunités vs Maturité** — on a remplacé la grille statique de maturité par un radar d'opportunités dynamique alimenté par l'actualité
 - **Profil qualitatif** — le radar stocke des forces/lacunes textuelles en plus des scores numériques
 - **Signaux groupés par tendance** — rising/new en haut (à surveiller), stable au milieu, declining en bas
+
+### TFT Tracker
+- **Pas d'augments** — retirés de l'API par Riot, on ne les stocke pas
+- **Lobby dénormalisé** — une table plate `tft_match_lobby` avec main_traits/main_carry pré-calculés, pas de sous-tables units/traits pour les adversaires (trop de données, peu de valeur analytique)
+- **Noms nettoyés + IDs bruts conservés** — `champion_name` = "Vayne" (strip `TFT{N}_`), `character_id` = "TFT16_Vayne" (brut). Idem pour traits et items. Permet l'affichage propre tout en gardant la traçabilité API
+- **raw_payload = participant uniquement** — le JSONB dans `tft_matches` ne contient que le JSON du participant du joueur, pas le lobby complet (économie de stockage, le lobby est dans sa propre table)
+- **Service role key pour l'écriture** — le pipeline TFT utilise la service_role key pour bypasser RLS (le pipeline n'a pas de session auth.uid()). La publishable key est utilisée côté front pour la lecture
 
 ## Bugs connus / Améliorations possibles
 
