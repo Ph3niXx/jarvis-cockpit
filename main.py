@@ -1,4 +1,5 @@
 import os
+import time
 import smtplib
 import feedparser
 import requests
@@ -118,6 +119,18 @@ def fetch_recent_articles():
     return articles
 
 def save_to_supabase(articles):
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    # Récupère les URLs déjà insérées aujourd'hui pour éviter les conflits 409
+    # (resolution=ignore-duplicates ne fonctionne pas sur les contraintes composites)
+    existing_resp = requests.get(
+        f"{SUPABASE_URL}/rest/v1/articles?select=url&fetch_date=eq.{today}&limit=1000",
+        headers=HEADERS,
+    )
+    existing_urls = set()
+    if existing_resp.status_code == 200:
+        existing_urls = {r["url"] for r in existing_resp.json()}
+
     rows = [{
         "source":         a["source"],
         "title":          a["title"],
@@ -126,17 +139,20 @@ def save_to_supabase(articles):
         "date_published": a["date_iso"],
         "section":        a["section"],
         "tags":           [a["section"]],
-        "fetch_date":     datetime.now().strftime("%Y-%m-%d"),
-    } for a in articles]
+        "fetch_date":     today,
+    } for a in articles if a["link"] not in existing_urls]
+
     if not rows:
+        print(f"   → Tous les articles déjà en DB pour aujourd'hui")
         return
+
     resp = requests.post(
         f"{SUPABASE_URL}/rest/v1/articles",
         headers=HEADERS,
         json=rows,
     )
     if resp.status_code in (200, 201):
-        print(f"   → {len(rows)} articles sauvegardés en DB")
+        print(f"   → {len(rows)} nouveaux articles sauvegardés en DB ({len(existing_urls)} déjà présents)")
     else:
         print(f"   [WARN] Supabase insert: {resp.status_code} {resp.text[:200]}")
         
@@ -169,6 +185,7 @@ def web_search_ai_news():
 
     web_results = []
     for query in queries:
+        time.sleep(4)  # évite le rate limit free tier (20 req/min)
         try:
             response = model.generate_content(
                 f"Recherche les dernières actualités sur : {query}. "
@@ -184,6 +201,7 @@ def web_search_ai_news():
         except Exception as e:
             # Fallback sans grounding
             try:
+                time.sleep(4)
                 fallback = genai.GenerativeModel("gemini-2.5-flash-lite")
                 response = fallback.generate_content(
                     f"Donne les dernières infos que tu connais sur : {query}. "
