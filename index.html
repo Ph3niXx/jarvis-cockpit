@@ -402,8 +402,27 @@ const TAG_LABELS = {
   reg:"Régulation", papers:"Recherche"
 };
 
+function stripHtml(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html || "";
+  let text = tmp.textContent || tmp.innerText || "";
+  // Remove duplicate title patterns (often RSS summaries start with the title)
+  return text.replace(/^\s+/, "").trim();
+}
+
+function cleanSummary(summary, title) {
+  let text = stripHtml(summary);
+  // Remove if summary starts with the title (common in Simon Willison, HuggingFace etc)
+  if (title && text.toLowerCase().startsWith(title.toLowerCase().substring(0, 30))) {
+    text = text.substring(title.length).trim().replace(/^[:\-–—.\s]+/, "");
+  }
+  // Remove leading punctuation artifacts
+  text = text.replace(/^[\s\n\r]+/, "").trim();
+  return text.substring(0, 260) + (text.length > 260 ? "…" : "");
+}
+
 function makeCard(a) {
-  const s = (a.summary || "").substring(0, 260);
+  const desc = cleanSummary(a.summary, a.title);
   const sec = (a.section || "").toLowerCase();
   const tagLabel = TAG_LABELS[sec] || a.section || "";
   return `<div class="news-card">
@@ -412,7 +431,7 @@ function makeCard(a) {
       <span class="card-date">${fmtDate(a.date_published || a.date_fetched)}</span>
     </div>
     <a href="${a.url}" class="card-title" target="_blank" rel="noopener">${a.title}</a>
-    <p class="card-desc">${s}${s.length >= 260 ? "…" : ""}</p>
+    ${desc ? `<p class="card-desc">${desc}</p>` : ""}
     <div class="card-footer">
       <span class="tag ${sec}">${tagLabel}</span>
       <a href="${a.url}" class="card-link" target="_blank" rel="noopener">Lire →</a>
