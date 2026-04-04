@@ -1,5 +1,4 @@
 import os
-import time
 import smtplib
 import feedparser
 import requests
@@ -32,11 +31,13 @@ RSS_FEEDS = [
     ("Ahead of AI",          "https://magazine.sebastianraschka.com/feed",                 "llm"),
     ("Import AI",            "https://importai.substack.com/feed",                         "llm"),
 
-    # ── Nouveautés IA Grand Public ───────────────────────────────────────────
+    # ── Nouveautés IA Grand Public (usage, features, impacts) ───────────────
     ("The Algorithmic Bridge","https://thealgorithmicbridge.substack.com/feed",            "updates"),
     ("One Useful Thing",     "https://www.oneusefulthing.org/feed",                        "updates"),
     ("Simon Willison",       "https://simonwillison.net/atom/everything/",                 "updates"),
     ("Stratechery",          "https://stratechery.com/feed/",                              "updates"),
+    ("Ben's Bites",          "https://bensbites.beehiiv.com/feed",                         "updates"),
+    ("Lenny's Newsletter AI","https://www.lennysnewsletter.com/feed",                      "updates"),
 
     # ── Agents & Automatisation ──────────────────────────────────────────────
     ("LangChain",            "https://blog.langchain.dev/rss/",                            "agents"),
@@ -119,18 +120,6 @@ def fetch_recent_articles():
     return articles
 
 def save_to_supabase(articles):
-    today = datetime.now().strftime("%Y-%m-%d")
-
-    # Récupère les URLs déjà insérées aujourd'hui pour éviter les conflits 409
-    # (resolution=ignore-duplicates ne fonctionne pas sur les contraintes composites)
-    existing_resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/articles?select=url&fetch_date=eq.{today}&limit=1000",
-        headers=HEADERS,
-    )
-    existing_urls = set()
-    if existing_resp.status_code == 200:
-        existing_urls = {r["url"] for r in existing_resp.json()}
-
     rows = [{
         "source":         a["source"],
         "title":          a["title"],
@@ -139,23 +128,19 @@ def save_to_supabase(articles):
         "date_published": a["date_iso"],
         "section":        a["section"],
         "tags":           [a["section"]],
-        "fetch_date":     today,
-    } for a in articles if a["link"] not in existing_urls]
-
+    } for a in articles]
     if not rows:
-        print(f"   → Tous les articles déjà en DB pour aujourd'hui")
         return
-
     resp = requests.post(
         f"{SUPABASE_URL}/rest/v1/articles",
         headers=HEADERS,
         json=rows,
     )
     if resp.status_code in (200, 201):
-        print(f"   → {len(rows)} nouveaux articles sauvegardés en DB ({len(existing_urls)} déjà présents)")
+        print(f"   → {len(rows)} articles sauvegardés en DB")
     else:
         print(f"   [WARN] Supabase insert: {resp.status_code} {resp.text[:200]}")
-        
+
 def ping_supabase():
     try:
         requests.get(f"{SUPABASE_URL}/rest/v1/articles?limit=1", headers=HEADERS, timeout=10)
@@ -185,7 +170,6 @@ def web_search_ai_news():
 
     web_results = []
     for query in queries:
-        time.sleep(4)  # évite le rate limit free tier (20 req/min)
         try:
             response = model.generate_content(
                 f"Recherche les dernières actualités sur : {query}. "
@@ -199,7 +183,21 @@ def web_search_ai_news():
                 })
                 print(f"   → Web search OK: {query[:50]}...")
         except Exception as e:
-            print(f"   [WARN] Web search failed for '{query[:40]}': {e}")
+            # Fallback sans grounding
+            try:
+                fallback = genai.GenerativeModel("gemini-2.5-flash-lite")
+                response = fallback.generate_content(
+                    f"Donne les dernières infos que tu connais sur : {query}. "
+                    f"3-4 points max, très concis."
+                )
+                if response.text:
+                    web_results.append({
+                        "query": query,
+                        "result": response.text[:800],
+                    })
+                    print(f"   → Fallback OK: {query[:50]}...")
+            except Exception as e2:
+                print(f"   [WARN] Web search failed for '{query[:40]}': {e2}")
 
     return web_results
 
@@ -261,11 +259,13 @@ Structure exacte :
 </div>
 [Répète 4 fois de plus pour 5 cards au total]
 
-Règles :
-- Liens = URLs exactes des articles
+Règles STRICTES :
+- Traduis TOUS les titres d'articles en français
+- Les liens = URLs exactes des articles source
+- Chaque top-card DOIT contenir <p class="top-desc"> avec 2-3 phrases d'analyse concrète
+- Tags en minuscules : llm | agent | rag | fintech | mlops | reg | funding | productivité | claude | chatgpt | gemini
 - Omets les bullets sans info concrète du jour
 - Intègre les infos des recherches web dans les bullets et le top 5
-- Tags : LLM | Agent | RAG | FinTech | InsurTech | MLOps | Régulation | Funding | Productivité | ChatGPT | Claude | Gemini
 """
     response = model.generate_content(prompt)
     return response.text
@@ -324,22 +324,17 @@ def main():
     print(f"   → {len(web_results)} recherches web complétées")
 
     print("🧠 Génération du brief avec Gemini...")
-    brief_html = None
-    try:
-        brief_html = generate_brief(articles, web_results)
-        print("   → Brief généré ✓")
-    except Exception as e:
-        print(f"   [WARN] Brief generation failed (quota?): {e}")
+    brief_html = generate_brief(articles, web_results)
+    print("   → Brief généré ✓")
 
     today_key = datetime.now().strftime("%Y-%m-%d")
-    if brief_html:
-        resp = requests.post(
-            f"{SUPABASE_URL}/rest/v1/daily_briefs",
-            headers={**HEADERS, "Prefer": "resolution=merge-duplicates"},
-            json={"date": today_key, "brief_html": brief_html, "article_count": len(articles)},
-        )
-        if resp.status_code not in (200, 201):
-            print(f"   [WARN] Brief save: {resp.status_code}")
+    resp = requests.post(
+        f"{SUPABASE_URL}/rest/v1/daily_briefs",
+        headers={**HEADERS, "Prefer": "resolution=merge-duplicates"},
+        json={"date": today_key, "brief_html": brief_html, "article_count": len(articles)},
+    )
+    if resp.status_code not in (200, 201):
+        print(f"   [WARN] Brief save: {resp.status_code}")
 
     print("📧 Envoi email...")
     send_notification_email(len(articles))
