@@ -126,6 +126,7 @@ def save_to_supabase(articles):
         "date_published": a["date_iso"],
         "section":        a["section"],
         "tags":           [a["section"]],
+        "fetch_date":     datetime.now().strftime("%Y-%m-%d"),
     } for a in articles]
     if not rows:
         return
@@ -138,7 +139,7 @@ def save_to_supabase(articles):
         print(f"   → {len(rows)} articles sauvegardés en DB")
     else:
         print(f"   [WARN] Supabase insert: {resp.status_code} {resp.text[:200]}")
-
+        
 def ping_supabase():
     try:
         requests.get(f"{SUPABASE_URL}/rest/v1/articles?limit=1", headers=HEADERS, timeout=10)
