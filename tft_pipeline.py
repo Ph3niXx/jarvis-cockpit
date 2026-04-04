@@ -287,38 +287,9 @@ def parse_and_insert_lobby(match_id, info):
 
 def fetch_and_insert_rank():
     """Fetch le rang actuel et insère un snapshot si pas déjà fait aujourd'hui."""
-    # Step 1: Fetch summoner ID from PUUID
-    try:
-        summoner_url = (
-            f"https://{RIOT_PLATFORM}.api.riotgames.com"
-            f"/lol/summoner/v4/summoners/by-puuid/{RIOT_PUUID}"
-        )
-        summoner = riot_get(summoner_url)
-        summoner_id = summoner.get("id")
-    except Exception:
-        summoner_id = None
-
-    if not summoner_id:
-        # Fallback: try TFT summoner endpoint
-        try:
-            summoner_url = (
-                f"https://{RIOT_PLATFORM}.api.riotgames.com"
-                f"/tft/summoner/v1/summoners/by-puuid/{RIOT_PUUID}"
-            )
-            summoner = riot_get(summoner_url)
-            summoner_id = summoner.get("id")
-        except Exception as e:
-            print(f"   ⚠️  Impossible de récupérer le summoner ID: {e}")
-            return
-
-    if not summoner_id:
-        print("   ⚠️  Summoner ID vide")
-        return
-
-    # Step 2: Fetch ranked entries by summoner ID
     url = (
         f"https://{RIOT_PLATFORM}.api.riotgames.com"
-        f"/tft/league/v1/entries/by-summoner/{summoner_id}"
+        f"/tft/league/v1/by-puuid/{RIOT_PUUID}"
     )
     entries = riot_get(url)
 
