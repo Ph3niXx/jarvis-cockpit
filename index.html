@@ -473,7 +473,7 @@ a:hover{text-decoration:underline}
 <script>
 // ── CONFIG ─────────────────────────────────────────────────
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
-const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
+const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e"; 
 const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg","papers"];
 
 let currentDate = null;
@@ -659,14 +659,86 @@ async function loadSignals(){
     const signals=await fetchJSON(`${SUPABASE_URL}/rest/v1/signal_tracking?order=mention_count.desc&limit=50`);
     const el=document.getElementById('signal-list');
     if(!signals.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📡</div>Les signaux se construisent au fil des jours</div>`;return;}
+
+    // Fetch weekly analysis for the summary
+    const analyses=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_analysis?order=week_start.desc&limit=1&select=signals_summary`);
+    const summary=analyses.length?analyses[0].signals_summary:'';
+
     const trendIcons={rising:'📈',new:'🆕',stable:'➡️',declining:'📉'};
-    el.innerHTML=signals.map(s=>`
-      <div class="signal-item">
-        <span class="signal-trend">${trendIcons[s.trend]||'➡️'}</span>
-        <span class="signal-name">${esc(s.term)}</span>
-        <span class="signal-count">${s.mention_count}x</span>
-        <span class="signal-badge ${s.trend}">${s.trend}</span>
-      </div>`).join('');
+    const trendExplain={
+      rising:'En forte hausse cette semaine — tendance à surveiller de près',
+      new:'Apparu pour la première fois — potentiel signal émergent',
+      stable:'Revient régulièrement — sujet établi dans l\'écosystème',
+      declining:'Moins mentionné — le hype retombe ou le sujet est devenu mainstream'
+    };
+
+    // Separate by trend
+    const risingNew=signals.filter(s=>s.trend==='rising'||s.trend==='new');
+    const stable=signals.filter(s=>s.trend==='stable');
+    const declining=signals.filter(s=>s.trend==='declining');
+
+    let html='';
+
+    // Guide
+    html+=`<div style="background:var(--bg2);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">Comment lire les signaux</div>
+      <div style="font-size:12px;color:var(--tx2);line-height:1.6">
+        📈 <strong>Rising</strong> : mentions en hausse de +50% vs semaine dernière — le signal le plus important<br>
+        🆕 <strong>New</strong> : première apparition cette semaine — peut être du bruit ou un vrai signal émergent<br>
+        ➡️ <strong>Stable</strong> : sujet récurrent, établi dans l'écosystème<br>
+        📉 <strong>Declining</strong> : en baisse — le hype retombe ou c'est devenu mainstream
+      </div>
+    </div>`;
+
+    // Weekly analysis summary from Claude
+    if(summary){
+      html+=`<div style="border-left:3px solid var(--accent);padding:12px 20px;margin-bottom:20px;background:var(--accent-bg);border-radius:0 var(--radius) var(--radius) 0">
+        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:6px">Analyse hebdo Claude</div>
+        <div style="font-size:14px;color:var(--tx);line-height:1.6">${esc(summary)}</div>
+      </div>`;
+    }
+
+    // Rising & New — highlighted
+    if(risingNew.length){
+      html+=`<div class="section-label" style="color:var(--green)">Signaux à surveiller</div>`;
+      html+=risingNew.map(s=>`
+        <div class="signal-item" style="border-left:3px solid ${s.trend==='rising'?'var(--green)':'var(--blue)'}">
+          <span class="signal-trend">${trendIcons[s.trend]}</span>
+          <div style="flex:1">
+            <span class="signal-name">${esc(s.term)}</span>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">${trendExplain[s.trend]}</div>
+            ${(s.sources||[]).length?`<div style="font-size:11px;margin-top:4px">${s.sources.slice(0,2).map(u=>`<a href="${esc(u)}" target="_blank" style="color:var(--blue);margin-right:8px">source</a>`).join('')}</div>`:''}
+          </div>
+          <span class="signal-count">${s.mention_count}x</span>
+          <span class="signal-badge ${s.trend}">${s.trend}</span>
+        </div>`).join('');
+    }
+
+    // Stable
+    if(stable.length){
+      html+=`<div class="section-label" style="margin-top:20px">Sujets établis</div>`;
+      html+=stable.map(s=>`
+        <div class="signal-item">
+          <span class="signal-trend">${trendIcons[s.trend]}</span>
+          <span class="signal-name">${esc(s.term)}</span>
+          <span class="signal-count">${s.mention_count}x</span>
+          <span class="signal-badge ${s.trend}">${s.trend}</span>
+        </div>`).join('');
+    }
+
+    // Declining
+    if(declining.length){
+      html+=`<div class="section-label" style="margin-top:20px">En déclin</div>`;
+      html+=declining.map(s=>`
+        <div class="signal-item" style="opacity:.7">
+          <span class="signal-trend">${trendIcons[s.trend]}</span>
+          <span class="signal-name">${esc(s.term)}</span>
+          <span class="signal-count">${s.mention_count}x</span>
+          <span class="signal-badge ${s.trend}">${s.trend}</span>
+        </div>`).join('');
+    }
+
+    el.innerHTML=html;
     signalsLoaded=true;
   }catch(e){console.error('loadSignals',e)}
 }
