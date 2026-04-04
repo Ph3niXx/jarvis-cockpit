@@ -240,40 +240,61 @@ Sois direct et factuel."""
 # ─── STEP 3 : RECOMMANDATIONS D'APPRENTISSAGE ────────────────────────────────
 
 def generate_recommendations():
-    """Génère des recommandations ciblées basées sur le radar."""
-    radar = sb_get("skill_radar", "order=score.asc&limit=3")  # 3 axes les plus faibles
+    """Génère des recommandations ciblées basées sur le profil complet du radar."""
+    radar = sb_get("skill_radar", "order=score.asc&limit=8&select=axis,axis_label,score,strengths,gaps,goals")
     if not radar:
         print("   Radar non initialisé")
         return 0
 
+    # Séparer les 3 plus faibles pour le focus
+    weak_axes = [a for a in radar if float(a.get('score', 0)) < 3][:3]
+    if not weak_axes:
+        weak_axes = radar[:3]
+
     # Récupérer quelques articles récents
     articles = sb_get("articles", "order=date_fetched.desc&limit=30&select=title,url,section,source")
 
-    axes_info = "\n".join([f"- {a['axis_label']}: {a['score']}/5" for a in radar])
+    # Construire le profil complet
+    profile = "\n".join([
+        f"- {a['axis_label']}: {a['score']}/5 | Forces: {a.get('strengths','?')} | Lacunes: {a.get('gaps','?')} | Objectifs: {a.get('goals','non défini')}"
+        for a in radar
+    ])
+    focus = "\n".join([f"  → PRIORITÉ: {a['axis_label']} ({a['score']}/5) — Lacunes: {a.get('gaps','?')}" for a in weak_axes])
     articles_info = "\n".join([f"- [{a['source']}] {a['title']} ({a['url']})" for a in articles[:20]])
 
-    system = """Tu es un coach IA personnalisé. Tu recommandes du contenu ciblé pour combler les lacunes.
+    system = """Tu es un coach IA personnalisé. Tu connais le profil exact de l'apprenant — ses forces, ses lacunes, et ses objectifs.
+Tu recommandes du contenu CIBLÉ sur ses lacunes spécifiques, pas du contenu générique.
+Adapte la difficulté à son niveau réel sur chaque axe.
 Réponds UNIQUEMENT en JSON valide."""
 
-    prompt = f"""Voici les 3 axes de compétence IA les plus faibles de l'utilisateur :
-{axes_info}
+    prompt = f"""PROFIL COMPLET DE L'APPRENANT :
+{profile}
 
-Voici des articles récents de sa veille :
+AXES PRIORITAIRES (les plus faibles) :
+{focus}
+
+ARTICLES RÉCENTS DANS SA VEILLE :
 {articles_info}
 
-Génère 3-5 recommandations ciblées. Format JSON :
+CONTEXTE : L'apprenant est un manager en transformation digitale (RTE SAFe chez Malakoff Humanis), il veut monter en compétence IA pour potentiellement créer sa boîte.
+
+Génère 3-5 recommandations ULTRA-CIBLÉES sur ses lacunes spécifiques. Format JSON :
 [
   {{
-    "target_axis": "slug_de_l_axe (ex: rag_data, mlops, agents)",
-    "title": "Titre de la recommandation",
-    "description": "Pourquoi cette recommandation est pertinente (1-2 phrases)",
-    "resource_url": "URL exacte d'un article ci-dessus, ou URL externe connue",
+    "target_axis": "slug_de_l_axe",
+    "title": "Titre concret et motivant",
+    "description": "Pourquoi CETTE ressource comble CETTE lacune spécifique (2-3 phrases). Réfère-toi explicitement à son niveau actuel.",
+    "resource_url": "URL d'un article de sa veille OU URL externe fiable",
     "resource_type": "article|tutorial|video|paper|course",
     "difficulty": "beginner|intermediate|advanced"
   }}
 ]
 
-Priorise les articles du flux de veille quand ils sont pertinents. Sinon, recommande des ressources externes connues (docs officielles, cours réputés)."""
+RÈGLES :
+- Si son score est 0-1 sur un axe → difficulté beginner, contenus d'introduction
+- Si son score est 1.5-3 → difficulté intermediate, contenus pratiques
+- Si son score est 3.5-5 → difficulté advanced, contenus de pointe
+- Mentionne dans la description POURQUOI c'est pertinent vu ses lacunes spécifiques"""
 
     today = datetime.now()
     week_start = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
@@ -294,27 +315,31 @@ Priorise les articles du flux de veille quand ils sont pertinents. Sinon, recomm
 # ─── STEP 4 : CHALLENGE HEBDO ────────────────────────────────────────────────
 
 def generate_challenge():
-    """Génère un mini-challenge calibré sur l'axe le plus faible."""
-    radar = sb_get("skill_radar", "order=score.asc&limit=1")
+    """Génère un mini-challenge calibré sur le profil qualitatif."""
+    radar = sb_get("skill_radar", "order=score.asc&limit=3&select=axis,axis_label,score,strengths,gaps")
     if not radar:
         return None
 
     weakest = radar[0]
-    system = """Tu es un formateur IA. Tu crées des mini-défis pratiques et réalisables en 30 min max.
+    system = """Tu es un formateur IA. Tu crées des mini-défis PRATIQUES, réalisables en 30 min, 
+calibrés sur les lacunes SPÉCIFIQUES de l'apprenant. Pas de challenge générique.
 Réponds UNIQUEMENT en JSON valide."""
 
-    prompt = f"""L'utilisateur est le plus faible sur l'axe : {weakest['axis_label']} (score: {weakest['score']}/5).
+    prompt = f"""PROFIL DE L'APPRENANT sur son axe le plus faible :
+- Axe : {weakest['axis_label']} (score: {weakest['score']}/5)
+- Ce qu'il sait : {weakest.get('strengths', 'non évalué')}
+- Ce qui lui manque : {weakest.get('gaps', 'non évalué')}
 
-Génère UN challenge pratique. Format JSON :
+CONTEXTE : Manager transformation digitale, RTE SAFe, veut devenir expert IA.
+
+Génère UN challenge qui cible PRÉCISÉMENT une de ses lacunes. Format JSON :
 {{
   "title": "Titre court et motivant",
-  "description": "Consigne claire en 2-3 phrases. Le challenge doit être réalisable en 30 min, concret, et mesurable.",
+  "description": "Consigne claire en 3-4 phrases. DOIT cibler une lacune spécifique listée ci-dessus. Réalisable en 30 min. Résultat concret et mesurable (un livrable, un output, une démo).",
   "target_axis": "{weakest['axis']}",
-  "difficulty": "beginner|intermediate|advanced",
+  "difficulty": "{'beginner' if float(weakest.get('score',0)) < 1.5 else 'intermediate' if float(weakest.get('score',0)) < 3.5 else 'advanced'}",
   "score_reward": 0.5
-}}
-
-Adapte la difficulté au score actuel. Score 0-1 = beginner, 1-3 = intermediate, 3-5 = advanced."""
+}}"""
 
     today = datetime.now()
     week_start = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
