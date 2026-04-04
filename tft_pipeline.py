@@ -171,7 +171,7 @@ def parse_and_insert_match(match_data):
         "last_round": participant.get("last_round"),
         "players_eliminated": participant.get("players_eliminated"),
         "total_damage": participant.get("total_damage_to_players"),
-        "time_eliminated": participant.get("time_eliminated"),
+        "time_eliminated_s": participant.get("time_eliminated"),
         "player_score": (participant.get("missions") or {}).get("PlayerScore2"),
         "is_win": participant["placement"] <= 4,
         "num_units": len(participant.get("units", [])),
@@ -288,14 +288,31 @@ def parse_and_insert_lobby(match_id, info):
 def fetch_and_insert_rank():
     """Fetch le rang actuel et insère un snapshot si pas déjà fait aujourd'hui."""
     # Step 1: Fetch summoner ID from PUUID
-    summoner_url = (
-        f"https://{RIOT_PLATFORM}.api.riotgames.com"
-        f"/tft/summoner/v1/summoners/by-puuid/{RIOT_PUUID}"
-    )
-    summoner = riot_get(summoner_url)
-    summoner_id = summoner.get("id")
+    try:
+        summoner_url = (
+            f"https://{RIOT_PLATFORM}.api.riotgames.com"
+            f"/lol/summoner/v4/summoners/by-puuid/{RIOT_PUUID}"
+        )
+        summoner = riot_get(summoner_url)
+        summoner_id = summoner.get("id")
+    except Exception:
+        summoner_id = None
+
     if not summoner_id:
-        print("   ⚠️  Impossible de récupérer le summoner ID")
+        # Fallback: try TFT summoner endpoint
+        try:
+            summoner_url = (
+                f"https://{RIOT_PLATFORM}.api.riotgames.com"
+                f"/tft/summoner/v1/summoners/by-puuid/{RIOT_PUUID}"
+            )
+            summoner = riot_get(summoner_url)
+            summoner_id = summoner.get("id")
+        except Exception as e:
+            print(f"   ⚠️  Impossible de récupérer le summoner ID: {e}")
+            return
+
+    if not summoner_id:
+        print("   ⚠️  Summoner ID vide")
         return
 
     # Step 2: Fetch ranked entries by summoner ID
