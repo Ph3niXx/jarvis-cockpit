@@ -172,6 +172,12 @@ def sb_patch(table, filters, data):
     r = requests.patch(f"{SUPABASE_URL}/rest/v1/{table}?{filters}", headers=HEADERS_SUPABASE, json=data)
     return r.status_code in (200, 204)
 
+def sb_delete(table, filters):
+    r = requests.delete(f"{SUPABASE_URL}/rest/v1/{table}?{filters}", headers=HEADERS_SUPABASE)
+    if r.status_code not in (200, 204):
+        print(f"   [ERROR] sb_delete {table} failed ({r.status_code}): {r.text[:200]}")
+    return r.status_code in (200, 204)
+
 
 # ─── USER CONTEXT ─────────────────────────────────────────────────────────────
 
@@ -187,8 +193,8 @@ def get_user_context(mission_specific=False):
     radar = sb_get("skill_radar", "select=axis_label,score,strengths,gaps,goals&order=axis")
 
     # Clés liées à la mission actuelle — exclues du contexte général
-    mission_keys = {"employeur", "employer", "mission", "poste", "role_actuel", "role",
-                    "entreprise", "company", "train", "equipe", "team", "programme"}
+    # Clés réelles de user_profile qui concernent la mission actuelle
+    mission_keys = {"current_role", "company_context", "current_projects"}
 
     if mission_specific:
         profile_entries = [p for p in profile if p.get('value')]
@@ -481,6 +487,10 @@ def analyze_opportunities():
     """Analyse les articles de la semaine pour identifier des use cases concrets et des opportunités business."""
     today = datetime.now()
     week_start = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
+
+    # Reset : purger toutes les anciennes opportunités (biaisées pré-refacto)
+    # puis ne régénérer que la semaine courante à chaque run
+    sb_delete("weekly_opportunities", f"week_start=lte.{week_start}")
 
     # Récupérer les articles de la semaine
     articles = sb_get("articles", f"fetch_date=gte.{week_start}&order=date_fetched.desc&limit=60&select=title,summary,url,section,source")
