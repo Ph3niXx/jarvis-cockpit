@@ -252,6 +252,156 @@ def web_search_ai_news():
     return web_results
 
 
+# ─── STEP 3b : RECHERCHE ARTICLES RTE ───────────────────────────────────────
+
+# Requêtes RTE groupées par jour (rotation lun-ven)
+RTE_SEARCH_QUERIES = {
+    0: [  # Lundi
+        ("Jira", "AI Jira automation agile project management 2025 2026"),
+        ("Jira", "Jira AI assistant plugin sprint backlog management"),
+    ],
+    1: [  # Mardi
+        ("Confluence", "AI Confluence documentation automation knowledge base"),
+        ("Slack", "AI Slack bot workflow standup automation enterprise"),
+    ],
+    2: [  # Mercredi
+        ("Excel", "AI Excel reporting automation agile metrics dashboard"),
+        ("Excel", "AI spreadsheet automation PI planning velocity tracking"),
+    ],
+    3: [  # Jeudi
+        ("SAFe", "AI SAFe Release Train Engineer tools best practices 2025"),
+        ("SAFe", "AI program increment planning agile at scale automation"),
+    ],
+    4: [  # Vendredi
+        ("Agile", "AI agile coaching retrospective analysis tools 2025"),
+        ("Agile", "AI risk management agile portfolio dependency tracking"),
+    ],
+}
+
+
+def search_rte_articles():
+    """Recherche web d'articles RTE concrets via Gemini grounding (2 queries/jour, rotation)."""
+    genai.configure(api_key=GEMINI_API_KEY)
+    today = datetime.now()
+    weekday = today.weekday()
+
+    if weekday > 4:  # Pas le weekend
+        print("   Weekend — skip RTE search")
+        return 0
+
+    queries = RTE_SEARCH_QUERIES.get(weekday, RTE_SEARCH_QUERIES[0])
+
+    try:
+        model = genai.GenerativeModel(
+            model_name="gemini-2.5-flash-lite",
+            tools="google_search_retrieval",
+        )
+        use_grounding = True
+    except Exception:
+        model = genai.GenerativeModel("gemini-2.5-flash-lite")
+        use_grounding = False
+
+    articles = []
+    for tool_label, query in queries:
+        try:
+            prompt = (
+                f"Find 3-5 recent articles about: {query}. "
+                f"For each article, give the exact title, the full URL, and a 1-2 sentence summary. "
+                f"Format each article as:\n"
+                f"TITLE: ...\nURL: ...\nSUMMARY: ...\n\n"
+                f"Only include real articles with real URLs. Be factual."
+            )
+            response = model.generate_content(prompt)
+            text = response.text or ""
+
+            # Parser les articles du texte Gemini
+            parsed = _parse_rte_articles(text, tool_label, query)
+            articles.extend(parsed)
+        except Exception as e:
+            print(f"   [WARN] RTE search '{tool_label}': {e}")
+
+    if not articles:
+        print("   Aucun article RTE trouvé")
+        return 0
+
+    # Purger les articles > 30 jours
+    cutoff = (today - timedelta(days=30)).strftime("%Y-%m-%d")
+    requests.delete(
+        f"{SUPABASE_URL}/rest/v1/rte_articles?fetch_date=lt.{cutoff}",
+        headers=HEADERS,
+    )
+
+    # Sauvegarder les nouveaux articles (ignore duplicates sur url)
+    rows = [{
+        "topic": a["tool_label"],
+        "tool_label": a["tool_label"],
+        "title": a["title"],
+        "url": a["url"],
+        "snippet": a.get("snippet", ""),
+        "source_name": a.get("source_name", ""),
+        "fetch_date": today.strftime("%Y-%m-%d"),
+        "search_query": a["query"],
+    } for a in articles]
+
+    resp = requests.post(
+        f"{SUPABASE_URL}/rest/v1/rte_articles",
+        headers=HEADERS,
+        json=rows,
+    )
+    saved = len(rows) if resp.status_code in (200, 201) else 0
+    if resp.status_code not in (200, 201):
+        print(f"   [WARN] RTE articles save: {resp.status_code} {resp.text[:200]}")
+
+    print(f"   → {saved} articles RTE sauvegardés ({', '.join(q[0] for q in queries)})")
+    return saved
+
+
+def _parse_rte_articles(text, tool_label, query):
+    """Parse le texte Gemini pour extraire titre/URL/snippet."""
+    articles = []
+    # Regex pour extraire les URLs du texte
+    url_pattern = re.compile(r'https?://[^\s\)\]\"\'<>]+')
+
+    # Essayer le format structuré TITLE/URL/SUMMARY
+    blocks = re.split(r'\n(?=TITLE:|(?:\d+[\.\)]?\s))', text)
+    for block in blocks:
+        title_m = re.search(r'TITLE:\s*(.+)', block)
+        url_m = re.search(r'URL:\s*(https?://[^\s\)\]\"\'<>]+)', block)
+        summary_m = re.search(r'SUMMARY:\s*(.+)', block, re.DOTALL)
+
+        if title_m and url_m:
+            title = title_m.group(1).strip().strip('*[]')
+            url = url_m.group(1).strip().rstrip('.,;)')
+            snippet = summary_m.group(1).strip()[:300] if summary_m else ""
+            # Extraire le nom de domaine comme source
+            domain_m = re.search(r'https?://(?:www\.)?([^/]+)', url)
+            source = domain_m.group(1) if domain_m else ""
+            articles.append({
+                "tool_label": tool_label,
+                "title": title[:200],
+                "url": url,
+                "snippet": snippet,
+                "source_name": source,
+                "query": query,
+            })
+
+    # Fallback : extraire les URLs brutes si le format structuré n'a rien donné
+    if not articles:
+        urls = url_pattern.findall(text)
+        for url in urls[:5]:
+            url = url.rstrip('.,;)')
+            articles.append({
+                "tool_label": tool_label,
+                "title": f"Article: {tool_label} AI",
+                "url": url,
+                "snippet": "",
+                "source_name": "",
+                "query": query,
+            })
+
+    return articles
+
+
 # ─── STEP 4 : EXTRACTION DE CONCEPTS POUR LE WIKI ────────────────────────────
 
 # Concepts IA connus à détecter dans les articles
@@ -699,36 +849,39 @@ def main():
     print("🧠 AI COCKPIT — Daily Pipeline")
     print("=" * 60)
 
-    print("\n🏓 Step 1/8 — Ping Supabase (anti-pause)...")
+    print("\n🏓 Step 1/9 — Ping Supabase (anti-pause)...")
     ping_supabase()
 
-    print("\n📡 Step 2/8 — Fetching RSS feeds...")
+    print("\n📡 Step 2/9 — Fetching RSS feeds...")
     articles = fetch_recent_articles()
     if not articles:
         print("[WARN] Aucun article RSS. Abandon.")
         return
 
-    print("\n🌐 Step 3/8 — Recherches web temps réel...")
+    print("\n🌐 Step 3/9 — Recherches web temps réel...")
     web_results = web_search_ai_news()
 
-    print("\n🔍 Step 4/8 — Extraction de concepts...")
+    print("\n🚂 Step 4/9 — Recherche articles RTE...")
+    rte_count = search_rte_articles()
+
+    print("\n🔍 Step 5/9 — Extraction de concepts...")
     concept_mentions = extract_concepts(articles)
     concept_count = save_concepts_to_wiki(concept_mentions)
     print(f"   → {concept_count} concepts traités ({len(concept_mentions)} détectés)")
 
-    print("\n📊 Step 5/8 — Tracking signaux faibles...")
+    print("\n📊 Step 6/9 — Tracking signaux faibles...")
     signal_count = track_signals(concept_mentions)
     update_signal_trends()
     print(f"   → {signal_count} signaux trackés")
 
-    print("\n💾 Step 6/8 — Sauvegarde articles en base...")
+    print("\n💾 Step 7/9 — Sauvegarde articles en base...")
     save_to_supabase(articles)
 
-    print("\n🧠 Step 7/8 — Génération du brief...")
+    print("\n🧠 Step 8/9 — Génération du brief...")
     brief_html = generate_brief(articles, web_results)
     save_brief(brief_html, len(articles))
 
-    print("\n📧 Step 8/8 — Envoi email...")
+    print("\n📧 Step 9/9 — Envoi email...")
     send_notification_email(len(articles), concept_count, signal_count)
 
     print("\n" + "=" * 60)

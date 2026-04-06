@@ -430,55 +430,9 @@ Génère UN challenge qui cible PRÉCISÉMENT une de ses lacunes. Format JSON :
 # ─── STEP 5 : ENRICHIR RTE USECASES ──────────────────────────────────────────
 
 def enrich_rte():
-    """Ajoute des sources et how-to aux use cases RTE sans contenu."""
-    usecases = sb_get("rte_usecases", "how_to=is.null&limit=4")
-    if not usecases:
-        print("   Tous les use cases RTE ont déjà un how-to")
-        return 0
-
-    uc_text = "\n".join([f"- [{u['tool_label']}] {u['usecase']}: {u['description']}" for u in usecases])
-
-    # RTE Toolbox = spécifique à la mission actuelle → profil complet
-    user_ctx = get_user_context(mission_specific=True)
-
-    system = """Tu es un consultant en transformation digitale spécialisé SAFe et IA.
-Tu connais Jira, Confluence, Slack, Excel et les outils agile.
-Réponds UNIQUEMENT en JSON valide."""
-
-    prompt = f"""{user_ctx}
-
-Voici des use cases IA pour un Release Train Engineer (contexte : train Vente avec CRM, outils d'aide à la vente, portail d'accès) :
-
-{uc_text}
-
-Pour chaque use case, génère un guide d'implémentation pratique. Format JSON :
-[
-  {{
-    "usecase": "nom exact du use case",
-    "tool": "nom exact de l'outil",
-    "how_to": "Guide étape par étape en 4-5 points. Concret, avec les APIs/plugins/scripts à utiliser. Max 300 mots.",
-    "sources": ["url1", "url2"]
-  }}
-]
-
-Sois très concret : mentionne les plugins Jira, les API endpoints, les scripts Python possibles, les automatisations Slack."""
-
-    result = call_claude(system, prompt)
-    parsed = parse_json_response(result)
-    if not parsed:
-        return 0
-
-    count = 0
-    for item in parsed:
-        matching = [u for u in usecases if u["usecase"] == item.get("usecase")]
-        if matching:
-            sb_patch("rte_usecases", f"id=eq.{matching[0]['id']}", {
-                "how_to": item.get("how_to"),
-                "sources": item.get("sources", []),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            })
-            count += 1
-    return count
+    """Désactivé — les articles RTE sont maintenant collectés quotidiennement par main.py via Gemini grounding."""
+    print("   Skip — articles RTE collectés par le pipeline quotidien")
+    return 0
 
 
 # ─── STEP 6 : RADAR D'OPPORTUNITÉS ───────────────────────────────────────────

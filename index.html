@@ -248,21 +248,24 @@ a:hover{text-decoration:underline}
 .btn-primary:hover{background:var(--accent2)}
 
 /* ── RTE TOOLBOX ──────────────────────────────────────────── */
-.rte-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(max-width:600px){.rte-grid{grid-template-columns:1fr}}
-.rte-card{border:1px solid var(--bd);border-radius:var(--radius);padding:14px 18px}
-.rte-card-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.rte-card-tool{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--amber-bg);color:var(--amber)}
-.rte-card-title{font-size:14px;font-weight:600}
-.rte-card-desc{font-size:12px;color:var(--tx2);line-height:1.5}
-.rte-card-footer{display:flex;gap:8px;margin-top:8px}
-.rte-badge{font-size:10px;padding:2px 6px;border-radius:4px}
-.rte-effort{background:var(--bg2);color:var(--tx3)}
-.rte-impact{background:var(--green-bg);color:var(--green)}
-.rte-status{font-size:10px;padding:2px 6px;border-radius:4px}
-.rte-status.idea{background:var(--blue-bg);color:var(--blue)}
-.rte-status.testing{background:var(--amber-bg);color:var(--amber)}
-.rte-status.deployed{background:var(--green-bg);color:var(--green)}
+.rte-grid{display:flex;flex-direction:column;gap:12px}
+.rte-topic{border:1px solid var(--bd);border-radius:var(--radius);overflow:hidden}
+.rte-topic-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;background:var(--bg2);transition:background .15s}
+.rte-topic-header:hover{background:var(--bg3)}
+.rte-topic-tool{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--amber-bg);color:var(--amber)}
+.rte-topic-title{font-size:14px;font-weight:600;flex:1}
+.rte-topic-count{font-size:11px;color:var(--tx3);padding:2px 8px;border-radius:10px;background:var(--bg3)}
+.rte-topic-chevron{font-size:12px;color:var(--tx3);transition:transform .2s}
+.rte-topic.open .rte-topic-chevron{transform:rotate(90deg)}
+.rte-topic-articles{display:none;padding:0 16px 12px}
+.rte-topic.open .rte-topic-articles{display:block}
+.rte-article{display:block;padding:10px 0;border-bottom:1px solid var(--bd);text-decoration:none;color:inherit;transition:background .1s}
+.rte-article:last-child{border-bottom:none}
+.rte-article:hover{opacity:.85}
+.rte-article-title{font-size:13px;font-weight:600;color:var(--blue);margin-bottom:3px}
+.rte-article-snippet{font-size:12px;color:var(--tx2);line-height:1.4;margin-bottom:4px}
+.rte-article-meta{font-size:10px;color:var(--tx3);display:flex;gap:12px}
+.rte-no-articles{font-size:12px;color:var(--tx3);padding:12px 0;font-style:italic}
 
 /* ── SEARCH ───────────────────────────────────────────────── */
 .search-box{position:relative;margin-bottom:20px}
@@ -981,23 +984,57 @@ let rteLoaded=false;
 async function loadRTE(){
   if(rteLoaded)return;
   try{
-    const data=await fetchJSON(`${SUPABASE_URL}/rest/v1/rte_usecases?order=tool,usecase&limit=50`);
+    const [usecases, articles]=await Promise.all([
+      fetchJSON(`${SUPABASE_URL}/rest/v1/rte_usecases?order=tool,usecase&limit=50`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/rte_articles?order=fetch_date.desc&limit=100`)
+    ]);
     const el=document.getElementById('rte-grid');
-    if(!data.length){el.innerHTML=`<div class="empty">Aucun use case RTE</div>`;return;}
-    el.innerHTML=data.map(d=>`
-      <div class="rte-card">
-        <div class="rte-card-header">
-          <span class="rte-card-tool">${esc(d.tool_label)}</span>
-          <span class="rte-status ${d.implementation_status}">${d.implementation_status}</span>
+
+    // Grouper les articles par topic (tool_label)
+    const byTopic={};
+    articles.forEach(a=>{
+      const key=a.topic||a.tool_label||'Autre';
+      if(!byTopic[key])byTopic[key]=[];
+      byTopic[key].push(a);
+    });
+
+    // Grouper les use cases par tool_label
+    const ucByTool={};
+    usecases.forEach(uc=>{
+      if(!ucByTool[uc.tool_label])ucByTool[uc.tool_label]=[];
+      ucByTool[uc.tool_label].push(uc);
+    });
+
+    // Construire la liste des topics (use cases + articles orphelins)
+    const allTopics=new Set([...Object.keys(ucByTool),...Object.keys(byTopic)]);
+
+    if(!allTopics.size){el.innerHTML=`<div class="empty">Aucun contenu RTE — le pipeline collecte des articles chaque jour</div>`;return;}
+
+    el.innerHTML=[...allTopics].map(topic=>{
+      const topicArticles=byTopic[topic]||[];
+      const topicUCs=ucByTool[topic]||[];
+      const desc=topicUCs.map(uc=>uc.usecase).join(', ');
+      return `
+      <div class="rte-topic${topicArticles.length?' open':''}">
+        <div class="rte-topic-header" onclick="this.parentElement.classList.toggle('open')">
+          <span class="rte-topic-tool">${esc(topic)}</span>
+          <span class="rte-topic-title">${esc(desc||topic)}</span>
+          <span class="rte-topic-count">${topicArticles.length} article${topicArticles.length!==1?'s':''}</span>
+          <span class="rte-topic-chevron">&#9654;</span>
         </div>
-        <div class="rte-card-title">${esc(d.usecase)}</div>
-        <div class="rte-card-desc">${esc(d.description||'')}</div>
-        <div class="rte-card-footer">
-          <span class="rte-badge rte-effort">Effort: ${d.effort}</span>
-          <span class="rte-badge rte-impact">Impact: ${d.impact}</span>
-          <a href="https://www.google.com/search?q=AI+${encodeURIComponent(d.usecase)}+${encodeURIComponent(d.tool_label)}" target="_blank" style="margin-left:auto;font-size:11px;color:var(--blue)">Explorer →</a>
+        <div class="rte-topic-articles">
+          ${topicArticles.length?topicArticles.map(a=>`
+            <a href="${esc(a.url)}" target="_blank" class="rte-article">
+              <div class="rte-article-title">${esc(a.title)}</div>
+              ${a.snippet?`<div class="rte-article-snippet">${esc(a.snippet)}</div>`:''}
+              <div class="rte-article-meta">
+                ${a.source_name?`<span>${esc(a.source_name)}</span>`:''}
+                <span>${a.fetch_date||''}</span>
+              </div>
+            </a>`).join(''):`<div class="rte-no-articles">Articles en cours de collecte...</div>`}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     rteLoaded=true;
   }catch(e){console.error('loadRTE',e)}
 }
