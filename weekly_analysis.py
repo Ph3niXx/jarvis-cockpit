@@ -175,22 +175,43 @@ def sb_patch(table, filters, data):
 
 # ─── USER CONTEXT ─────────────────────────────────────────────────────────────
 
-def get_user_context():
-    """Charge le profil utilisateur complet pour l'injecter dans les prompts Claude."""
+def get_user_context(mission_specific=False):
+    """Charge le profil utilisateur pour l'injecter dans les prompts Claude.
+
+    mission_specific=False (défaut) : profil général (compétences, ambitions, intérêts)
+                                      sans les détails de la mission actuelle, pour des analyses
+                                      sectoriellement neutres.
+    mission_specific=True : profil complet incluant la mission actuelle (pour RTE Toolbox).
+    """
     profile = sb_get("user_profile", "order=key")
     radar = sb_get("skill_radar", "select=axis_label,score,strengths,gaps,goals&order=axis")
-    
-    profile_text = "\n".join([f"- {p['key']}: {p['value']}" for p in profile if p.get('value')])
+
+    # Clés liées à la mission actuelle — exclues du contexte général
+    mission_keys = {"employeur", "employer", "mission", "poste", "role_actuel", "role",
+                    "entreprise", "company", "train", "equipe", "team", "programme"}
+
+    if mission_specific:
+        profile_entries = [p for p in profile if p.get('value')]
+    else:
+        profile_entries = [p for p in profile if p.get('value')
+                          and p.get('key', '').lower() not in mission_keys]
+
+    profile_text = "\n".join([f"- {p['key']}: {p['value']}" for p in profile_entries])
     radar_text = "\n".join([
         f"- {a['axis_label']}: {a['score']}/5 | Forces: {a.get('strengths','?')} | Lacunes: {a.get('gaps','?')}"
         for a in radar
     ])
-    
-    return f"""PROFIL DE L'UTILISATEUR :
+
+    ctx = f"""PROFIL DE L'UTILISATEUR :
 {profile_text}
 
 RADAR DE COMPÉTENCES :
 {radar_text}"""
+
+    if not mission_specific:
+        ctx += "\n\nINSTRUCTION : Ce profil est utilisé pour une analyse GÉNÉRALISTE. Ne biaise PAS tes réponses vers un secteur spécifique. Couvre tous les secteurs d'application de l'IA."
+
+    return ctx
 
 
 # ─── STEP 1 : ENRICHIR LE WIKI ───────────────────────────────────────────────
@@ -275,7 +296,7 @@ Voici les termes IA les plus mentionnés cette semaine dans mon flux de veille :
 Génère une analyse en 4-5 phrases :
 1. Quels termes montrent une vraie tendance de fond vs du bruit ?
 2. Y a-t-il un signal faible important que la plupart des gens ignorent encore ?
-3. Quelles implications concrètes pour MOI vu mon profil, ma mission actuelle et mes ambitions ?
+3. Quelles implications concrètes pour quelqu'un qui veut monter en compétence IA et entreprendre ?
 
 Sois direct et factuel. Parle-moi en "tu"."""
 
@@ -321,7 +342,7 @@ AXES PRIORITAIRES (les plus faibles) :
 ARTICLES RÉCENTS DANS SA VEILLE :
 {articles_info}
 
-CONTEXTE : L'apprenant est un manager en transformation digitale (RTE SAFe chez Malakoff Humanis), il veut monter en compétence IA pour potentiellement créer sa boîte.
+CONTEXTE : L'apprenant est un manager en transformation digitale, il veut monter en compétence IA pour potentiellement créer sa boîte. Ses intérêts couvrent tous les secteurs d'application de l'IA, pas uniquement son secteur actuel.
 
 Génère 3-5 recommandations ULTRA-CIBLÉES sur ses lacunes spécifiques. Format JSON :
 [
@@ -375,7 +396,7 @@ Réponds UNIQUEMENT en JSON valide."""
 - Ce qu'il sait : {weakest.get('strengths', 'non évalué')}
 - Ce qui lui manque : {weakest.get('gaps', 'non évalué')}
 
-CONTEXTE : Manager transformation digitale, RTE SAFe, veut devenir expert IA.
+CONTEXTE : Manager en transformation digitale, veut devenir expert IA et potentiellement créer sa boîte.
 
 Génère UN challenge qui cible PRÉCISÉMENT une de ses lacunes. Format JSON :
 {{
@@ -411,11 +432,16 @@ def enrich_rte():
 
     uc_text = "\n".join([f"- [{u['tool_label']}] {u['usecase']}: {u['description']}" for u in usecases])
 
-    system = """Tu es un consultant en transformation digitale spécialisé SAFe et IA. 
+    # RTE Toolbox = spécifique à la mission actuelle → profil complet
+    user_ctx = get_user_context(mission_specific=True)
+
+    system = """Tu es un consultant en transformation digitale spécialisé SAFe et IA.
 Tu connais Jira, Confluence, Slack, Excel et les outils agile.
 Réponds UNIQUEMENT en JSON valide."""
 
-    prompt = f"""Voici des use cases IA pour un Release Train Engineer chez Malakoff Humanis (train Vente : CRM, outils d'aide à la vente, portail d'accès) :
+    prompt = f"""{user_ctx}
+
+Voici des use cases IA pour un Release Train Engineer (contexte : train Vente avec CRM, outils d'aide à la vente, portail d'accès) :
 
 {uc_text}
 
@@ -487,18 +513,18 @@ Réponds UNIQUEMENT en JSON valide."""
 Format JSON :
 [
   {{
-    "usecase_title": "Nom court et concret du use case (ex: 'Agent IA de suivi de sinistres')",
+    "usecase_title": "Nom court et concret du use case (ex: 'Agent IA de qualification de leads', 'Copilot RH pour onboarding')",
     "usecase_description": "Ce que c'est concrètement en 2-3 phrases. Basé sur ce que les articles décrivent.",
     "source_articles": ["URL exacte de l'article source"],
     "category": "money ou life",
-    "sector": "assurance|energie|finance|tech|saas|transverse",
-    "who_pays": "Qui paierait pour ça ? Sois spécifique (ex: 'DSI de mutuelles moyennes', 'courtiers indépendants')",
+    "sector": "tech|sante|energie|industrie|finance|retail|saas|services|transverse",
+    "who_pays": "Qui paierait pour ça ? Sois spécifique (ex: 'DSI de PME industrielles', 'cabinets de conseil', 'startups SaaS B2B')",
     "market_size": "niche|medium|large",
     "effort_to_build": "weekend_project|1_month|3_months|6_months+",
     "competition": "none|few|crowded",
     "timing": "too_early|right_time|getting_late",
     "relevance_score": 0-100,
-    "relevance_why": "Pourquoi c'est pertinent pour TOI spécifiquement (ton profil RTE, tes compétences, ton secteur)",
+    "relevance_why": "Pourquoi c'est pertinent pour TOI spécifiquement (tes compétences IA, ton ambition entrepreneuriale, ton expérience en transformation digitale)",
     "next_step": "L'action concrète à faire cette semaine pour explorer cette opportunité (en 1 phrase)",
     "confidence": "low|medium|high"
   }}
@@ -506,8 +532,9 @@ Format JSON :
 
 RÈGLES :
 - category "money" = ça pourrait devenir un produit/service payant
-- category "life" = ça te simplifie la vie dans ta mission actuelle
+- category "life" = ça simplifie la vie d'un professionnel (productivité, automatisation, workflow)
 - Mets au moins 2 "life" et 2 "money"
+- IMPORTANT : Couvre des secteurs VARIÉS. Ne te limite pas à un seul secteur. Chaque batch doit toucher au moins 3 secteurs différents.
 - Chaque opportunité DOIT être liée à un article concret de la semaine (pas d'invention)
 - Sois honnête sur le niveau de confiance : "high" seulement si l'article montre un vrai signal de marché
 - Le relevance_score tient compte de ses compétences actuelles ET de ses lacunes"""

@@ -63,7 +63,7 @@ RSS_FEEDS = [
     # ── IA Finance & Assurance ───────────────────────────────────────────────
     ("Finextra AI",          "https://www.finextra.com/rss/channel.aspx?channel=ai",        "finserv"),
     ("Insurance Journal",    "https://www.insurancejournal.com/feed/",                       "finserv"),
-    ("Towards Data Science", "https://towardsdatascience.com/feed",                          "finserv"),
+    ("Towards Data Science", "https://towardsdatascience.com/feed",                          "papers"),
 
     # ── Outils Dev ───────────────────────────────────────────────────────────
     ("Langfuse Blog",        "https://langfuse.com/blog/feed.xml",                          "tools"),
@@ -586,7 +586,7 @@ def generate_brief(articles, web_results):
 
     today = datetime.now().strftime("%A %d %B %Y")
 
-    prompt = f"""Tu es un expert senior en intelligence artificielle. Tu génères le "Brief du jour" d'un cockpit IA personnel pour un manager en transformation digitale, Release Train Engineer chez Malakoff Humanis, utilisateur intensif d'IA générative.
+    prompt = f"""Tu es un expert senior en intelligence artificielle. Tu génères le "Brief du jour" d'un cockpit IA personnel pour un manager en transformation digitale, utilisateur intensif d'IA générative, qui s'intéresse à tous les secteurs d'application de l'IA (tech, santé, énergie, industrie, finance, SaaS, services, etc.).
 
 Date : {today} | {len(articles)} articles analysés + {len(web_results)} recherches web.
 
@@ -601,7 +601,7 @@ Génère UNIQUEMENT du HTML valide (pas de balises html/head/body, pas de markdo
 Structure exacte :
 
 <div class="macro-block">
-<p class="macro-text">ANALYSE MACRO 4-5 phrases : tendances de fond du jour, signal faible important, ce que ça dit du marché IA. Mentionne si quelque chose concerne l'énergie/utilities ou l'assurance/mutuelle.</p>
+<p class="macro-text">ANALYSE MACRO 4-5 phrases : tendances de fond du jour, signal faible important, ce que ça dit du marché IA. Mentionne les secteurs d'application concrets quand pertinent (santé, énergie, industrie, finance, retail, etc.).</p>
 </div>
 
 <div class="user-block">
@@ -610,7 +610,7 @@ Structure exacte :
 <li>Item concret sur un nouveau modèle/outil/capability</li>
 <li>Item sur productivité et workflow IA avancé</li>
 <li>Item prompt engineering tip ou agent insight</li>
-<li>Item sur ce que le RTE ou manager FS doit surveiller</li>
+<li>Item sur ce qu'un manager en transformation digitale doit surveiller</li>
 </ul>
 </div>
 
