@@ -130,13 +130,15 @@ def chat(req: ChatRequest):
     messages.append({"role": "user", "content": req.question})
 
     # 3. Call LLM
+    is_quick = req.mode == "quick"
     try:
         client = _get_llm()
         response = client.chat.completions.create(
             model=LLM_MODEL,
             messages=messages,
-            max_tokens=LLM_MAX_TOKENS,
+            max_tokens=512 if is_quick else LLM_MAX_TOKENS,
             temperature=0.3,
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}} if is_quick else {},
         )
     except (APIConnectionError, ConnectionError):
         raise HTTPException(status_code=503, detail="LM Studio is not running")
