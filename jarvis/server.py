@@ -63,6 +63,7 @@ def _get_llm():
 class ChatRequest(BaseModel):
     question: str
     history: list[dict] = Field(default_factory=list, max_length=10)
+    mode: str = "quick"  # "quick" = direct LLM, "deep" = RAG + LLM
 
 
 class SearchRequest(BaseModel):
@@ -102,12 +103,15 @@ def chat(req: ChatRequest):
     """RAG-augmented chat with Jarvis."""
     t0 = time.perf_counter()
 
-    # 1. Retrieve context
-    try:
-        raw_results = search(req.question, k=5, threshold=0.3)
-        context = search_and_format(req.question, k=5)
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"RAG search failed: {e}")
+    # 1. Retrieve context (deep mode only)
+    raw_results = []
+    context = ""
+    if req.mode == "deep":
+        try:
+            raw_results = search(req.question, k=5, threshold=0.3)
+            context = search_and_format(req.question, k=5)
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"RAG search failed: {e}")
 
     # 2. Build messages
     system = SYSTEM_PROMPT

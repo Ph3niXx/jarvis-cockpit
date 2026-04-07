@@ -323,7 +323,16 @@ a:hover{text-decoration:underline}
 }
 .jarvis-send:hover{background:var(--accent2)}
 .jarvis-send:disabled{opacity:.5;cursor:default}
-.jarvis-actions{display:flex;gap:8px;padding:0 20px 4px;justify-content:flex-end}
+.jarvis-toolbar{display:flex;align-items:center;gap:12px;padding:8px 20px;justify-content:space-between}
+.jarvis-mode{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
+.jarvis-mode-label{font-weight:600}
+.jarvis-mode-label.active{color:var(--accent)}
+.jarvis-toggle{position:relative;width:40px;height:22px;cursor:pointer}
+.jarvis-toggle input{opacity:0;width:0;height:0}
+.jarvis-toggle .slider{position:absolute;inset:0;background:var(--bd2);border-radius:11px;transition:.2s}
+.jarvis-toggle .slider::before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.jarvis-toggle input:checked+.slider{background:var(--accent)}
+.jarvis-toggle input:checked+.slider::before{transform:translateX(18px)}
 .jarvis-actions button{font-size:11px;color:var(--tx3);background:none;border:none;cursor:pointer;font-family:inherit}
 .jarvis-actions button:hover{color:var(--accent)}
 .jarvis-meta{font-size:11px;color:var(--tx3);margin-top:4px}
@@ -572,8 +581,13 @@ a:hover{text-decoration:underline}
         <span class="jarvis-dot offline" id="jarvis-dot"></span>
         <span id="jarvis-status-text">Vérification...</span>
       </div>
-      <div class="jarvis-actions">
-        <button onclick="jarvisReset()">Réinitialiser la conversation</button>
+      <div class="jarvis-toolbar">
+        <div class="jarvis-mode">
+          <span class="jarvis-mode-label active" id="jarvis-label-quick">⚡ Rapide</span>
+          <label class="jarvis-toggle"><input type="checkbox" id="jarvis-mode-toggle" onchange="updateModeLabel()"><span class="slider"></span></label>
+          <span class="jarvis-mode-label" id="jarvis-label-deep">🔍 Deep Search</span>
+        </div>
+        <div class="jarvis-actions"><button onclick="jarvisReset()">Réinitialiser</button></div>
       </div>
       <div class="jarvis-chat-area" id="jarvis-chat"></div>
       <div class="jarvis-input-area">
@@ -2000,10 +2014,11 @@ async function jarvisSend(){
   jarvisShowTyping();
 
   try{
+    const deep = document.getElementById('jarvis-mode-toggle').checked;
     const r = await fetch(`${jarvisUrl}/chat`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({question, history: jarvisHistory.slice(-10)})
+      body: JSON.stringify({question, history: jarvisHistory.slice(-10), mode: deep ? 'deep' : 'quick'})
     });
 
     jarvisHideTyping();
@@ -2027,6 +2042,12 @@ async function jarvisSend(){
 
   btn.disabled = false;
   input.focus();
+}
+
+function updateModeLabel(){
+  const deep = document.getElementById('jarvis-mode-toggle').checked;
+  document.getElementById('jarvis-label-quick').classList.toggle('active', !deep);
+  document.getElementById('jarvis-label-deep').classList.toggle('active', deep);
 }
 
 function jarvisReset(){
