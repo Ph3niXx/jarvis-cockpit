@@ -36,8 +36,10 @@ main.py                              # Pipeline quotidien Gemini
 weekly_analysis.py                   # Pipeline hebdomadaire Claude
 tft_pipeline.py                      # Pipeline TFT (Riot API → Supabase)
 index.html                           # Site cockpit complet (vanilla JS)
-requirements.txt                     # feedparser, google-generativeai, requests
+requirements.txt                     # feedparser, google-generativeai, openai, requests
 sql/tft_migration.sql                # Migration Supabase pour les tables TFT
+jarvis/                              # Module Jarvis (assistant local LM Studio)
+jarvis_data/                         # Données perso Jarvis (non versionné)
 .github/workflows/daily_digest.yml   # Cron quotidien
 .github/workflows/weekly_analysis.yml # Cron hebdomadaire
 .github/workflows/tft-sync.yml      # Cron TFT toutes les 2h
@@ -131,6 +133,88 @@ RLS : tables TFT → SELECT/INSERT/UPDATE restreints à `auth.uid()`, écriture 
 - **Noms nettoyés + IDs bruts conservés** — `champion_name` = "Vayne" (strip `TFT{N}_`), `character_id` = "TFT16_Vayne" (brut). Idem pour traits et items. Permet l'affichage propre tout en gardant la traçabilité API
 - **raw_payload = participant uniquement** — le JSONB dans `tft_matches` ne contient que le JSON du participant du joueur, pas le lobby complet (économie de stockage, le lobby est dans sa propre table)
 - **Service role key pour l'écriture** — le pipeline TFT utilise la service_role key pour bypasser RLS (le pipeline n'a pas de session auth.uid()). La publishable key est utilisée côté front pour la lecture
+
+## Module Jarvis (assistant local)
+
+### Vision
+
+Assistant IA personnel local ("Jarvis") qui :
+1. **Connaît la base de connaissances** via RAG sur Supabase pgvector (articles, wiki, opportunités, idées, RTE, profil)
+2. **Apprend de lui-même** : extraction nocturne des faits, entités et préférences depuis les conversations
+3. **Observe l'activité** (étape future : Teams, emails, fichiers) pour produire des briefs quotidiens
+4. **Route intelligemment** entre LLM local (90% des tâches) et API cloud Claude/Gemini (tâches complexes) pour rester sous 3€/mois
+
+### Stack technique Jarvis
+
+- **LM Studio** en serveur local sur `http://localhost:1234/v1` (compatible OpenAI API)
+- **LLM principal** : Qwen3.5 9B Q4_K_M (6.55 Go VRAM)
+- **Embeddings** : Qwen3-Embedding-0.6B Q8_0 (~640 Mo)
+- **Vector store** : Supabase pgvector (1024-dim, table `memories_vectors`)
+- **Hardware** : RTX 5070 12 Go VRAM, 32 Go RAM, Windows
+- **Mode thinking** de Qwen3.5 désactivé par défaut (utiliser `/no_think`)
+
+### Structure du module
+
+```
+jarvis/
+├── __init__.py
+├── config.py              # Config centralisée
+├── supabase_client.py     # Client REST Supabase (sb_get, sb_post, sb_rpc)
+├── embeddings.py          # Génération de vecteurs via Qwen3-Embedding-0.6B
+├── indexer.py             # CLI d'indexation des tables → memories_vectors
+├── retriever.py           # Recherche sémantique (search, search_and_format)
+├── server.py              # FastAPI server (localhost:8765) — gateway cockpit→LLM+RAG
+├── check_index_freshness.py # Vérifie si l'indexation est nécessaire (compare COUNTs)
+├── start_jarvis.bat       # Script de démarrage Windows (check LM Studio, index, serve)
+├── test_jarvis.py         # Test du LLM local
+├── test_rag.py            # Test end-to-end du RAG
+├── migrations/
+│   └── 001_enable_pgvector.sql
+├── (à venir) orchestrator.py
+├── (à venir) nightly_learner.py
+└── (à venir) observers/
+
+jarvis_data/               # Données perso, non versionné
+```
+
+### Phasage
+
+- **Phase 1** : LM Studio + premier test Python *(done)*
+- **Phase 2** : RAG Supabase (pgvector + indexation) *(done)*
+- **Phase 2.5** : Intégration cockpit web (server.py + onglet Jarvis dans index.html) *(done)*
+- **Phase 3** : Mémoire structurée
+- **Phase 4** : Orchestrateur (routeur LLM local/cloud)
+- **Phase 5** : Boucle nocturne d'apprentissage
+- **Phase 6** : Capteurs d'observation
+
+### Conventions Jarvis
+
+- Toujours désactiver thinking mode (`/no_think`) sauf pour raisonnement complexe explicite
+- LLM local pour : tagging, classification, résumés, RAG, conversation
+- Claude API / Gemini pour : analyses stratégiques complexes, tâches au-delà du local
+- Logger les coûts API cloud dans la table `weekly_analysis` existante
+- Données d'observation perso dans `jarvis_data/` (jamais commit)
+- Port 8765 réservé pour le serveur Jarvis (FastAPI)
+- Aucune clé Supabase dans index.html pour Jarvis — tout passe par server.py côté Python
+- `start_jarvis.bat` est le point d'entrée unique (check LM Studio → check fraîcheur index → tunnel Cloudflare → lance serveur)
+- Architecture cockpit : `index.html → POST /chat → server.py → retriever + LM Studio → réponse JSON`
+- **Cloudflare Tunnel** : `cloudflared tunnel --url http://localhost:8765` expose le serveur sur internet (HTTPS)
+- L'URL du tunnel est sauvegardée dans `user_profile.jarvis_tunnel_url` par `start_jarvis.bat`
+- `index.html` découvre l'URL automatiquement : essaie localhost d'abord, puis lit le tunnel depuis Supabase
+- Accessible depuis GitHub Pages et depuis mobile via le tunnel
+
+### Tables Supabase Jarvis
+
+**Créées (Phase 2) :**
+- `memories_vectors` — RAG vectoriel unifié (source_table, source_id, chunk_text, embedding vector(1024), metadata JSONB)
+  - Fonction RPC `match_memories(query_embedding, match_threshold, match_count, filter_source_table)` pour recherche sémantique
+  - Index IVFFlat cosine, RLS public
+  - Tables sources indexées : articles, wiki_concepts, weekly_opportunities, business_ideas, rte_usecases, user_profile
+
+**À créer (Phase 3) :**
+- `profile_facts` — faits structurés sur l'utilisateur
+- `entities` — personnes, projets, outils mentionnés
+- `conversation_summaries` — résumés des échanges Jarvis
 
 ## Bugs connus / Améliorations possibles
 

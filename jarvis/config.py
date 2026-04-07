@@ -1,0 +1,29 @@
+"""Jarvis — Configuration centralisée."""
+
+import os
+
+# LM Studio local server
+LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
+LM_STUDIO_API_KEY = os.getenv("LM_STUDIO_API_KEY", "lm-studio")
+
+# Models
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-9b")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen/qwen3-embedding-0.6b")
+
+# Generation parameters
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "2048"))
+
+# Thinking mode: disabled by default (Qwen3.5 thinking slows simple tasks)
+THINKING_MODE_DEFAULT = os.getenv("THINKING_MODE_DEFAULT", "false").lower() == "true"
+
+# Embedding parameters
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "1024"))
+
+# RAG parameters
+RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
+RAG_SIMILARITY_THRESHOLD = float(os.getenv("RAG_SIMILARITY_THRESHOLD", "0.3"))
+
+# Supabase (reuse existing env vars)
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
