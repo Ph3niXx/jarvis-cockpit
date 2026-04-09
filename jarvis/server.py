@@ -21,7 +21,7 @@ from config import (
     SUPABASE_URL,
 )
 from retriever import search, search_and_format
-from supabase_client import sb_get
+from supabase_client import sb_get, sb_post
 
 # ── App ────────────────────────────────────────────────────────────
 
@@ -64,6 +64,7 @@ class ChatRequest(BaseModel):
     question: str
     history: list[dict] = Field(default_factory=list, max_length=10)
     mode: str = "quick"  # "quick" = direct LLM, "deep" = RAG + LLM
+    session_id: str = ""  # browser session UUID for conversation persistence
 
 
 class SearchRequest(BaseModel):
@@ -98,6 +99,37 @@ def health():
     return result
 
 
+def _get_profile_facts() -> str:
+    """Fetch active profile facts for system prompt injection."""
+    try:
+        rows = sb_get(
+            "profile_facts",
+            "superseded_by=is.null&order=created_at.desc&limit=15&select=fact_type,fact_text",
+        )
+        if not rows:
+            return ""
+        lines = [f"- {r['fact_type']}: {r['fact_text']}" for r in rows]
+        return "[Ce que tu sais sur Jean]\n" + "\n".join(lines)
+    except Exception:
+        return ""
+
+
+def _save_conversation(session_id: str, role: str, content: str, mode: str, tokens: int = 0):
+    """Save a message to jarvis_conversations (fire-and-forget)."""
+    if not session_id:
+        return
+    try:
+        sb_post("jarvis_conversations", {
+            "session_id": session_id,
+            "role": role,
+            "content": content,
+            "mode": mode,
+            "tokens_used": tokens,
+        })
+    except Exception as e:
+        print(f"  [WARN] save_conversation: {e}")
+
+
 @app.post("/chat")
 def chat(req: ChatRequest):
     """RAG-augmented chat with Jarvis."""
@@ -113,8 +145,11 @@ def chat(req: ChatRequest):
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"RAG search failed: {e}")
 
-    # 2. Build messages
+    # 2. Build messages with profile facts injection
     system = SYSTEM_PROMPT
+    profile_context = _get_profile_facts()
+    if profile_context:
+        system += "\n\n" + profile_context
     if context:
         system += "\n\n" + context
 
@@ -152,7 +187,11 @@ def chat(req: ChatRequest):
     answer = response.choices[0].message.content or ""
     tokens = response.usage.total_tokens if response.usage else 0
 
-    # 4. Build sources summary
+    # 4. Save conversation to Supabase
+    _save_conversation(req.session_id, "user", req.question, req.mode)
+    _save_conversation(req.session_id, "assistant", answer, req.mode, tokens)
+
+    # 5. Build sources summary
     sources = []
     for r in (raw_results or []):
         sources.append({

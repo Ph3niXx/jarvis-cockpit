@@ -211,10 +211,12 @@ jarvis_data/               # Données perso, non versionné
   - Index IVFFlat cosine, RLS public
   - Tables sources indexées : articles, wiki_concepts, weekly_opportunities, business_ideas, rte_usecases, user_profile
 
-**À créer (Phase 3) :**
-- `profile_facts` — faits structurés sur l'utilisateur
-- `entities` — personnes, projets, outils mentionnés
-- `conversation_summaries` — résumés des échanges Jarvis
+**Créées (Phase 3) :**
+- `jarvis_conversations` — messages bruts sauvegardés en temps réel (session_id, role, content, mode, tokens_used). Chaque échange user/assistant est écrit immédiatement via le endpoint /chat.
+- `profile_facts` — faits structurés sur l'utilisateur (fact_type, fact_text, confidence, superseded_by). Extraits par `nightly_learner.py`, injectés dans le system prompt de chaque conversation.
+- `entities` — personnes, projets, outils, entreprises mentionnés (entity_type, name, description, mentions_count). Extraits par `nightly_learner.py`.
+- Migration : `jarvis/migrations/003_structured_memory.sql`
+- **`jarvis/nightly_learner.py`** — Script d'extraction nocturne : lit les conversations du jour, envoie chaque session à Qwen3.5 pour extraction JSON (faits + entités), upsert dans les tables, reindex via indexer.py. À lancer manuellement ou via Task Scheduler Windows.
 
 ### Cockpit — Section Projet Jarvis
 

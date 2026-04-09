@@ -1910,6 +1910,7 @@ async function saveTftDetail(matchId){
 const JARVIS_LOCAL = 'http://localhost:8765';
 let jarvisUrl = JARVIS_LOCAL;
 let jarvisHistory = [];
+let jarvisSessionId = crypto.randomUUID();
 let jarvisReady = false;
 let jarvisInitDone = false;
 let jarvisHealthInterval = null;
@@ -2083,7 +2084,7 @@ async function jarvisSend(){
     const r = await fetch(`${jarvisUrl}/chat`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({question, history: jarvisHistory.slice(-10), mode: deep ? 'deep' : 'quick'})
+      body: JSON.stringify({question, history: jarvisHistory.slice(-10), mode: deep ? 'deep' : 'quick', session_id: jarvisSessionId})
     });
 
     jarvisHideTyping();
@@ -2117,6 +2118,7 @@ function updateModeLabel(){
 
 function jarvisReset(){
   jarvisHistory = [];
+  jarvisSessionId = crypto.randomUUID();
   document.getElementById('jarvis-chat').innerHTML = '';
 }
 

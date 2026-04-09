@@ -77,6 +77,26 @@ TABLE_DEFS = {
         "build": None,  # special handling: concat all rows
         "meta": lambda row: {"type": "profile_aggregate"},
     },
+    "profile_facts": {
+        "pk": "id",
+        "date_col": "created_at",
+        "build": lambda row: _build_profile_facts(row),
+        "meta": lambda row: {
+            "fact_type": row.get("fact_type", ""),
+            "confidence": row.get("confidence", 0),
+            "source": row.get("source", ""),
+        },
+    },
+    "entities": {
+        "pk": "id",
+        "date_col": "created_at",
+        "build": lambda row: _build_entities(row),
+        "meta": lambda row: {
+            "entity_type": row.get("entity_type", ""),
+            "name": row.get("name", ""),
+            "mentions_count": row.get("mentions_count", 0),
+        },
+    },
 }
 
 
@@ -126,6 +146,17 @@ def _build_ideas(row):
 def _build_rte(row):
     return _join(
         f"{row.get('tool_label', '')}: {row.get('usecase', '')}",
+        row.get("description", ""),
+    )
+
+
+def _build_profile_facts(row):
+    return f"{row.get('fact_type', '')}: {row.get('fact_text', '')}"
+
+
+def _build_entities(row):
+    return _join(
+        f"{row.get('entity_type', '')} — {row.get('name', '')}",
         row.get("description", ""),
     )
 
