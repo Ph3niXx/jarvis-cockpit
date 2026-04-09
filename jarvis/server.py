@@ -192,6 +192,40 @@ def search_endpoint(req: SearchRequest):
     }
 
 
+@app.post("/generate-status")
+def generate_status():
+    """Run the status generator and return the snapshot."""
+    try:
+        from status_generator import load_yaml, get_chunks_count, get_api_cost_month, \
+            get_git_stats, get_yaml_freshness, generate_prose, sb_upsert_service
+        from datetime import datetime, timezone
+
+        yaml_data = load_yaml()
+        metrics = {
+            "chunks_indexed": get_chunks_count(),
+            "commits_this_month": get_git_stats()["commits_this_month"],
+            "last_commit_relative": get_git_stats()["last_commit_relative"],
+            "last_commit_iso": get_git_stats()["last_commit_iso"],
+            "api_cost_eur_month": get_api_cost_month(),
+        }
+        prose = generate_prose(yaml_data, metrics)
+        freshness = get_yaml_freshness()
+        now_iso = datetime.now(tz=timezone.utc).isoformat()
+
+        snapshot = {
+            "current_phase": yaml_data["current_phase"],
+            "phases": yaml_data["phases"],
+            "next_step": yaml_data.get("next_step", ""),
+            "prose": prose,
+            "metrics": metrics,
+            "freshness": {"snapshot_generated_at": now_iso, **freshness},
+        }
+        ok = sb_upsert_service("jarvis_status_snapshot", {"id": 1, "snapshot_data": snapshot, "generated_at": now_iso})
+        return {"status": "ok" if ok else "upsert_failed", "prose_length": len(prose), "snapshot": snapshot}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Status generation failed: {e}")
+
+
 # ── Startup banner ─────────────────────────────────────────────────
 
 def _startup_checks():

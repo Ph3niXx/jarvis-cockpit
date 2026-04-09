@@ -1,0 +1,59 @@
+current_phase: 3
+
+phases:
+  - id: 1
+    title: LM Studio
+    status: done
+    completion_date: 2026-04-04
+    bullets:
+      - LM Studio installe en mode developpeur sur la RTX 5070
+      - Qwen3.5 9B et Qwen3-Embedding-0.6B telecharges, premier test Python OK
+      - Structure jarvis/ creee dans le repo, isolee du cockpit existant
+
+  - id: 2
+    title: RAG Supabase
+    status: done
+    completion_date: 2026-04-07
+    bullets:
+      - pgvector active, table memories_vectors creee
+      - indexer.py et retriever.py operationnels
+      - 5/6 tests passes, latence moyenne 0,12 s
+      - "Learning : les seuils de similarite ne sont pas universels, a regler par type de query"
+
+  - id: 3
+    title: Memoire structuree
+    status: in_progress
+    success_criterion: Jarvis se souvient de moi entre les sessions
+    bullets:
+      - Creer les tables profile_facts et entities dans Supabase
+      - Script d'extraction nocturne depuis les conversations Claude
+      - Validation du critere de reussite
+
+  - id: 4
+    title: Orchestrateur
+    status: planned
+    success_criterion: Une seule API locale qui route entre LLM local et cloud
+    bullets:
+      - Routeur intelligent LLM local versus cloud (Claude / Gemini)
+      - Builder de contexte RAG automatique selon la requete
+      - Exposition en API locale unifiee pour le cockpit
+
+  - id: 5
+    title: Boucle nocturne
+    status: planned
+    success_criterion: Jarvis devient mesurablement plus pertinent semaine apres semaine
+    bullets:
+      - Cron qui rejoue les conversations du jour
+      - Extraction des faits, entites et preferences vers la memoire structuree
+      - Auto-amelioration progressive sans intervention manuelle
+
+  - id: 6
+    title: Capteurs d'observation
+    status: planned
+    success_criterion: Brief quotidien automatique genere sans que je le demande
+    bullets:
+      - Observation des fichiers locaux et fenetres actives d'abord
+      - Puis integration Teams et Outlook
+      - Brief quotidien automatique en fin de journee
+
+next_step: Creer les tables profile_facts et entities, puis ecrire le script d'extraction nocturne depuis les conversations Claude

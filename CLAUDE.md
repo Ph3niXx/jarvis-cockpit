@@ -216,6 +216,15 @@ jarvis_data/               # Données perso, non versionné
 - `entities` — personnes, projets, outils mentionnés
 - `conversation_summaries` — résumés des échanges Jarvis
 
+### Cockpit — Section Projet Jarvis
+
+La section "Projet Jarvis" dans le cockpit affiche l'avancement du projet en temps quasi-réel :
+
+- **`jarvis/project_status.yaml`** — Source de vérité déclarative des 6 phases. Éditée à la main quand une phase évolue (typiquement ~1x/semaine). Contient les bullets, statuts, critères de réussite et le `next_step`.
+- **`jarvis/status_generator.py`** — Script qui charge le YAML, enrichit avec des données live (chunks Supabase, stats Git, coût API), génère un paragraphe en prose via Jarvis local (LM Studio), et upsert le snapshot dans Supabase. Lancé automatiquement par `start_jarvis.bat` en arrière-plan, ou manuellement via `python jarvis/status_generator.py`. Nécessite `SUPABASE_SERVICE_KEY` en env var.
+- **`jarvis_status_snapshot`** — Table Supabase à une seule ligne (id=1, contrainte CHECK). Le frontend la lit en anon, le générateur l'écrit en service_role. Migration : `jarvis/migrations/002_jarvis_status_snapshot.sql`.
+- **Sections 2 (Veille ciblée) et 3 (Miroir gênant)** — Stubs HTML en place (`display:none`), à implémenter plus tard.
+
 ## Bugs connus / Améliorations possibles
 
 - Certains RSS ne publient pas quotidiennement (LLMs, Énergie souvent à 0)

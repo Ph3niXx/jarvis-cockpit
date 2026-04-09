@@ -15,6 +15,10 @@ if "%SUPABASE_URL%"=="" (
 if "%SUPABASE_KEY%"=="" (
   set SUPABASE_KEY=sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e
 )
+if "%SUPABASE_SERVICE_KEY%"=="" (
+  echo   [!] SUPABASE_SERVICE_KEY non defini. Le snapshot ne sera pas upsert dans Supabase.
+  echo       Definis-la avec: set SUPABASE_SERVICE_KEY=ta_cle_service_role
+)
 
 REM 1. Verify LM Studio is running
 echo [1/4] Verification de LM Studio...
@@ -54,6 +58,13 @@ if %FRESHNESS% EQU 0 (
   echo.
   echo   [OK] Tout est deja indexe, rien a faire.
 )
+
+REM 2b. Generate project status snapshot
+echo.
+echo   [...] Generation du snapshot de statut en arriere-plan...
+if not exist jarvis_data mkdir jarvis_data
+start /B "" python jarvis\status_generator.py > jarvis_data\last_status_gen.log 2>&1
+echo         Logs : jarvis_data\last_status_gen.log
 
 :start_tunnel
 echo.

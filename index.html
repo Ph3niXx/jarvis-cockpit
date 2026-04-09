@@ -346,6 +346,49 @@ a:hover{text-decoration:underline}
 
 /* ── SECTION LABEL ────────────────────────────────────────── */
 .section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);margin-bottom:16px}
+
+/* ── JARVIS PROJECT TIMELINE ─────────────────────────────── */
+.jp-container{position:relative}
+.jp-freshness{position:absolute;top:0;right:0;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx3)}
+.jp-freshness-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.jp-freshness-dot.fresh{background:var(--green)}
+.jp-freshness-dot.stale{background:var(--amber)}
+
+.jp-timeline{display:flex;flex-direction:column;gap:0;margin:8px 0 28px;position:relative}
+.jp-phase{display:flex;align-items:flex-start;position:relative;min-height:48px}
+.jp-phase-track{width:40px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;position:relative;z-index:2}
+.jp-phase-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;position:relative;z-index:2}
+.jp-phase-dot.done{background:var(--green)}
+.jp-phase-dot.current{width:20px;height:20px;background:var(--green);box-shadow:inset 0 0 0 4px var(--bg3)}
+.jp-phase-dot.planned{width:14px;height:14px;background:transparent;border:2px solid var(--tx3)}
+.jp-phase-line{width:2px;flex:1;min-height:16px}
+.jp-phase-line.done{background:var(--green)}
+.jp-phase-line.future{background:var(--tx3);border-left:2px dashed var(--tx3);width:0}
+.jp-phase:last-child .jp-phase-line{display:none}
+
+.jp-phase-content{flex:1;padding:0 0 8px 4px;cursor:default;border-radius:var(--radius-sm);transition:background .15s}
+.jp-phase-content:hover,.jp-phase-content:focus-within{background:var(--bg2)}
+.jp-phase-header{display:flex;align-items:center;gap:10px;padding:4px 8px;min-height:32px}
+.jp-phase-num{font-size:11px;color:var(--tx3);white-space:nowrap}
+.jp-phase-title{font-size:14px;font-weight:600;flex:1}
+.jp-phase-status{font-size:11px;color:var(--tx2);white-space:nowrap}
+
+.jp-phase-detail{max-height:0;opacity:0;overflow:hidden;transition:max-height .3s ease,opacity .25s ease;padding:0 8px}
+.jp-phase-content:hover .jp-phase-detail,
+.jp-phase-content:focus-within .jp-phase-detail{max-height:260px;opacity:1}
+.jp-phase-bullets{list-style:none;padding:4px 0 8px}
+.jp-phase-bullets li{font-size:13px;color:var(--tx2);line-height:1.5;padding:2px 0 2px 16px;position:relative}
+.jp-phase-bullets li::before{content:"";position:absolute;left:0;top:11px;width:8px;height:2px;background:var(--tx3);border-radius:1px}
+.jp-phase-criterion{font-size:12px;color:var(--accent);font-weight:500;padding:0 0 8px 16px;font-style:italic}
+
+.jp-prose{font-size:15px;line-height:1.7;color:var(--tx);margin-bottom:20px}
+.jp-prose code{font-family:var(--mono);font-size:13px;background:var(--bg2);padding:1px 5px;border-radius:3px}
+
+.jp-metrics{border-top:1px solid var(--bd);padding-top:14px;font-size:13px;color:var(--tx2);display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.jp-metrics .val{font-weight:500;color:var(--tx)}
+.jp-metrics .sep{color:var(--bd2);margin:0 6px}
+
+.jp-stub{padding:40px;text-align:center;color:var(--tx3);font-size:14px;border:1px dashed var(--bd2);border-radius:var(--radius);margin-top:20px}
 </style>
 </head>
 <body>
@@ -404,6 +447,7 @@ a:hover{text-decoration:underline}
 
   <div class="sb-section">
     <div class="sb-section-label">Assistant</div>
+    <button class="sb-link" data-panel="jarvis-project"><span class="icon">🚀</span><span class="label">Projet Jarvis</span></button>
     <button class="sb-link" data-panel="jarvis"><span class="icon">🤖</span><span class="label">Jarvis</span></button>
   </div>
 
@@ -608,6 +652,26 @@ a:hover{text-decoration:underline}
     </div>
   </div>
 
+  <!-- JARVIS PROJECT -->
+  <div class="panel" id="panel-jarvis-project">
+    <div class="page-header"><div class="page-title">Projet Jarvis</div><div class="page-subtitle">Timeline, avancement et metriques du projet</div></div>
+    <div class="content">
+      <section id="jarvis-project-section">
+        <div id="jarvis-section-1-status">
+          <div class="jp-container" id="jp-container">
+            <div class="loading">Chargement du snapshot...</div>
+          </div>
+        </div>
+        <div id="jarvis-section-2-veille" style="display:none;">
+          <div class="jp-stub">Section 2 — Veille ciblee. A venir.</div>
+        </div>
+        <div id="jarvis-section-3-mirror" style="display:none;">
+          <div class="jp-stub">Section 3 — Miroir genant. A venir.</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
 </div><!-- /main -->
 </div><!-- /app -->
 
@@ -658,6 +722,7 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='costs') loadCosts();
     if(panel==='profile') loadProfile();
     if(panel==='jarvis') initJarvis();
+    if(panel==='jarvis-project') loadJarvisProject();
     // Close mobile sidebar
     if(window.innerWidth<=768) toggleSidebar();
   });
@@ -2074,6 +2139,170 @@ async function init(){
 }
 
 init();
+
+// ── JARVIS PROJECT ────────────────────────────────────────
+let jpLoaded=false;
+let jpGeneratedAt=null;
+let jpFreshnessTimer=null;
+
+async function loadJarvisProject(){
+  if(jpLoaded) return;
+  const ctr=document.getElementById('jp-container');
+  try{
+    const rows=await fetchJSON(`${SUPABASE_URL}/rest/v1/jarvis_status_snapshot?id=eq.1&select=snapshot_data,generated_at`);
+    if(!rows||!rows.length){
+      ctr.innerHTML='<div class="empty"><div class="empty-icon">📦</div>Snapshot indisponible. Lance <code>python jarvis/status_generator.py</code> pour le generer.</div>';
+      return;
+    }
+    const snap=rows[0].snapshot_data;
+    jpGeneratedAt=new Date(rows[0].generated_at);
+    renderJarvisProject(snap,ctr);
+    jpLoaded=true;
+    if(jpFreshnessTimer) clearInterval(jpFreshnessTimer);
+    jpFreshnessTimer=setInterval(()=>updateJpFreshness(snap),30000);
+  }catch(e){
+    console.error('jarvis-project',e);
+    ctr.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div>Erreur de chargement du snapshot Jarvis.</div>';
+  }
+}
+
+function renderJarvisProject(snap,ctr){
+  const phases=snap.phases||[];
+  const current=snap.current_phase||1;
+  const m=snap.metrics||{};
+  const f=snap.freshness||{};
+
+  // Freshness indicator
+  const yamlAge=f.yaml_age_days||0;
+  const freshClass=yamlAge>14?'stale':'fresh';
+  const freshLabel=yamlAge>14?`declare il y a ${Math.round(yamlAge)} jours · a reconfirmer ?`:'';
+
+  let html='';
+  // Freshness badge
+  html+=`<div class="jp-freshness"><span class="jp-freshness-dot ${freshClass}"></span><span id="jp-freshness-text">${freshLabel||jpRelativeTime()}</span><button class="btn" id="jp-refresh-btn" onclick="refreshJarvisStatus()" style="font-size:11px;padding:2px 10px;margin-left:8px">Rafraichir</button></div>`;
+
+  // Timeline
+  html+='<div class="jp-timeline">';
+  phases.forEach((p,i)=>{
+    const isDone=p.status==='done';
+    const isCurrent=p.id===current;
+    const isPlanned=p.status==='planned';
+    const dotClass=isDone?'done':isCurrent?'current':'planned';
+
+    // Line below: solid green if this phase and next are done/current, dashed otherwise
+    const nextPhase=phases[i+1];
+    const lineIsFuture=isCurrent||isPlanned;
+    const lineClass=lineIsFuture?'future':'done';
+
+    // Status text
+    let statusText='a venir';
+    if(isDone){
+      statusText='terminee';
+      if(p.completion_date) statusText+=` · ${formatShortDate(p.completion_date)}`;
+    }else if(isCurrent){
+      statusText='en cours';
+    }
+
+    html+=`<div class="jp-phase">`;
+    html+=`<div class="jp-phase-track"><div class="jp-phase-dot ${dotClass}"></div><div class="jp-phase-line ${lineClass}"></div></div>`;
+    html+=`<div class="jp-phase-content" tabindex="0">`;
+    html+=`<div class="jp-phase-header"><span class="jp-phase-num">Phase ${p.id}</span><span class="jp-phase-title">${esc(p.title)}</span><span class="jp-phase-status">${statusText}</span></div>`;
+    html+=`<div class="jp-phase-detail">`;
+    if(p.success_criterion) html+=`<div class="jp-phase-criterion">Objectif : ${esc(p.success_criterion)}</div>`;
+    if(p.bullets&&p.bullets.length){
+      html+='<ul class="jp-phase-bullets">';
+      p.bullets.forEach(b=>{ html+=`<li>${esc(b)}</li>`; });
+      html+='</ul>';
+    }
+    html+=`</div></div></div>`;
+  });
+  html+='</div>';
+
+  // Prose
+  if(snap.prose){
+    html+=`<div class="jp-prose">${escProse(snap.prose)}</div>`;
+  }
+
+  // Metrics line
+  html+=`<div class="jp-metrics">`;
+  html+=`<span class="val">${fmtNum(m.chunks_indexed||0)}</span> chunks`;
+  html+=`<span class="sep">·</span>`;
+  html+=`<span class="val">${m.commits_this_month||0}</span> commits ce mois`;
+  html+=`<span class="sep">·</span>`;
+  html+=`dernier commit <span class="val">${esc(m.last_commit_relative||'inconnu')}</span>`;
+  html+=`<span class="sep">·</span>`;
+  html+=`<span class="val">${m.api_cost_eur_month||0}</span> EUR API ce mois`;
+  html+=`</div>`;
+
+  ctr.innerHTML=html;
+}
+
+function jpRelativeTime(){
+  if(!jpGeneratedAt) return '';
+  const diff=Math.floor((Date.now()-jpGeneratedAt.getTime())/1000);
+  if(diff<60) return `a jour · il y a ${diff} s`;
+  if(diff<3600) return `a jour · il y a ${Math.floor(diff/60)} min`;
+  if(diff<86400) return `il y a ${Math.floor(diff/3600)} h`;
+  return `il y a ${Math.floor(diff/86400)} j`;
+}
+
+function updateJpFreshness(snap){
+  const el=document.getElementById('jp-freshness-text');
+  if(!el) return;
+  const yamlAge=(snap.freshness||{}).yaml_age_days||0;
+  if(yamlAge>14){
+    el.textContent=`declare il y a ${Math.round(yamlAge)} jours · a reconfirmer ?`;
+  }else{
+    el.textContent=jpRelativeTime();
+  }
+}
+
+async function refreshJarvisStatus(){
+  const btn=document.getElementById('jp-refresh-btn');
+  if(!btn) return;
+  btn.disabled=true;
+  btn.textContent='Generation...';
+  try{
+    const r=await fetch(`${jarvisUrl}/generate-status`,{method:'POST',headers:{'Content-Type':'application/json'}});
+    if(!r.ok) throw new Error(`${r.status}`);
+    const data=await r.json();
+    // Reload from Supabase to get the fresh snapshot
+    jpLoaded=false;
+    await loadJarvisProject();
+    btn.textContent='Rafraichir';
+  }catch(e){
+    console.error('refresh-status',e);
+    btn.textContent='Erreur';
+    setTimeout(()=>{btn.textContent='Rafraichir';},3000);
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+function formatShortDate(d){
+  try{
+    const dt=new Date(d);
+    return dt.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  }catch(e){ return d; }
+}
+
+function fmtNum(n){
+  return Number(n).toLocaleString('fr-FR');
+}
+
+function esc(s){
+  if(!s) return '';
+  const d=document.createElement('div');
+  d.textContent=String(s);
+  return d.innerHTML;
+}
+
+function escProse(s){
+  // Escape HTML then wrap backtick-code in <code>
+  let t=esc(s);
+  t=t.replace(/`([^`]+)`/g,'<code>$1</code>');
+  return t;
+}
 </script>
 </body>
 </html>
