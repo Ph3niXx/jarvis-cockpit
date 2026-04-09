@@ -409,6 +409,90 @@ a:hover{text-decoration:underline}
 .jp-metrics .sep{color:var(--bd2);margin:0 6px}
 
 .jp-stub{padding:40px;text-align:center;color:var(--tx3);font-size:14px;border:1px dashed var(--bd2);border-radius:var(--radius);margin-top:20px}
+
+/* ── SHARED COMPONENTS ───────────────────────────────────── */
+.stat-card{background:var(--bg2);border-radius:var(--radius);padding:16px 20px}
+.stat-label{font-size:12px;color:var(--tx3)}
+.stat-value{font-size:24px;font-weight:700;margin:2px 0}
+.stat-sub{font-size:11px;color:var(--tx3)}
+.badge{font-size:11px;padding:2px 8px;border-radius:10px}
+.badge--neutral{background:var(--bg2);color:var(--tx3)}
+.badge--free{background:#EAF3DE;color:#3B6D11;display:inline-block;margin-top:6px}
+.text-muted{color:var(--tx3)}
+.text-desc{font-size:13px;color:var(--tx2);line-height:1.5}
+.text-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.text-sm-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.text-icon{font-size:16px}
+.flex-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.flex-header-sm{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{text-align:left;padding:8px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)}
+.data-table th.right{text-align:right}
+.data-table td{padding:8px;border-bottom:1px solid var(--bd)}
+.data-table td.right{text-align:right}
+.data-table td.mono{font-family:var(--mono)}
+.data-table td.muted{font-size:12px;color:var(--tx2)}
+.service-card{border:1px solid var(--bd);border-radius:var(--radius);padding:14px 18px}
+.service-card-title{font-size:13px;font-weight:600}
+.service-card-desc{font-size:12px;color:var(--tx2);margin-top:4px}
+.opp-score{margin-left:auto;font-size:14px;font-weight:700;color:var(--accent)}
+.opp-why{font-size:13px;color:var(--accent);margin-bottom:8px}
+.opp-nextstep{font-size:13px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm)}
+.opp-sources{margin-top:8px;font-size:11px}
+.opp-sources a{margin-right:8px}
+.opp-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:10px}
+.opp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opp-grid+.section-label{margin-top:24px}
+.recos-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.signal-guide{background:var(--bg2);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px}
+.signal-guide-title{font-size:13px;font-weight:600;margin-bottom:8px}
+.signal-guide-text{font-size:12px;color:var(--tx2);line-height:1.6}
+.signal-analysis{border-left:3px solid var(--accent);padding:12px 20px;margin-bottom:20px;background:var(--accent-bg);border-radius:0 var(--radius) var(--radius) 0}
+.signal-analysis-title{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:6px}
+.signal-analysis-text{font-size:14px;color:var(--tx);line-height:1.6}
+.signal-explain{font-size:11px;color:var(--tx3);margin-top:2px}
+.signal-sources{font-size:11px;margin-top:4px}
+.signal-sources a{color:var(--blue);margin-right:8px}
+.signal-declining{opacity:.7}
+.profile-field{margin-bottom:16px}
+.profile-label{font-size:13px;font-weight:600;display:block;margin-bottom:4px}
+.profile-input{width:100%;padding:8px 14px;border:1px solid var(--bd);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;background:var(--bg3)}
+.profile-textarea{width:100%;padding:10px 14px;border:1px solid var(--bd);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;min-height:80px;resize:vertical;background:var(--bg3)}
+.profile-status{margin-left:12px;font-size:13px;color:var(--green)}
+.tft-detail-header{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.tft-detail-title{font-weight:600}
+.tft-detail-sub{font-size:12px;color:var(--tx3)}
+.tft-info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px}
+.tft-info-cell{background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px}
+.tft-section-title{font-size:13px;font-weight:600;margin-bottom:8px}
+.tft-unit-list{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.tft-unit-row{display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px}
+.tft-unit-name{font-weight:600;min-width:100px}
+.tft-unit-stars{color:var(--amber);font-size:11px}
+.tft-unit-cost{font-size:11px;color:var(--tx3)}
+.tft-unit-items{font-size:11px;flex:1}
+.tft-traits-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+.tft-trait-badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.tft-lobby-list{display:flex;flex-direction:column;gap:4px;margin-bottom:24px}
+.tft-lobby-row{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:var(--radius-sm);font-size:12px}
+.tft-lobby-rank{font-weight:700;min-width:20px}
+.tft-lobby-name{flex:1;font-weight:500}
+.tft-lobby-carry{font-size:11px;color:var(--tx3)}
+.tft-lobby-traits{font-size:10px;color:var(--tx3)}
+.tft-edit-section{border-top:1px solid var(--bd);padding-top:20px}
+.tft-edit-label{font-size:11px;color:var(--tx3);display:block;margin-bottom:4px}
+.tft-edit-input{width:100%;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px}
+.tft-edit-textarea{width:100%;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:13px;font-family:var(--font);resize:vertical}
+.tft-save-btn{width:100%;padding:10px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;cursor:pointer;transition:opacity .15s}
+.tft-save-btn:hover{opacity:.85}
+.tft-save-status{text-align:center;margin-top:8px;font-size:12px}
+.progress-bar{width:100%;height:8px;background:var(--bd);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .3s}
+.diag-success{border:2px solid var(--green);border-radius:var(--radius);padding:20px 24px;background:var(--green-bg);text-align:center}
+@media(max-width:768px){
+  .tft-info-grid{grid-template-columns:1fr!important}
+  .opp-detail-grid{grid-template-columns:1fr!important}
+}
 </style>
 </head>
 <body>
@@ -911,9 +995,9 @@ async function loadSignals(){
     let html='';
 
     // Guide
-    html+=`<div style="background:var(--bg2);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:8px">Comment lire les signaux</div>
-      <div style="font-size:12px;color:var(--tx2);line-height:1.6">
+    html+=`<div class="signal-guide">
+      <div class="signal-guide-title">Comment lire les signaux</div>
+      <div class="signal-guide-text">
         📈 <strong>Rising</strong> : mentions en hausse de +50% vs semaine dernière — le signal le plus important<br>
         🆕 <strong>New</strong> : première apparition cette semaine — peut être du bruit ou un vrai signal émergent<br>
         ➡️ <strong>Stable</strong> : sujet récurrent, établi dans l'écosystème<br>
@@ -923,9 +1007,9 @@ async function loadSignals(){
 
     // Weekly analysis summary from Claude
     if(summary){
-      html+=`<div style="border-left:3px solid var(--accent);padding:12px 20px;margin-bottom:20px;background:var(--accent-bg);border-radius:0 var(--radius) var(--radius) 0">
-        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:6px">Analyse hebdo Claude</div>
-        <div style="font-size:14px;color:var(--tx);line-height:1.6">${mdToHtml(summary)}</div>
+      html+=`<div class="signal-analysis">
+        <div class="signal-analysis-title">Analyse hebdo Claude</div>
+        <div class="signal-analysis-text">${mdToHtml(summary)}</div>
       </div>`;
     }
 
@@ -937,8 +1021,8 @@ async function loadSignals(){
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1">
             <span class="signal-name">${esc(s.term)}</span>
-            <div style="font-size:11px;color:var(--tx3);margin-top:2px">${trendExplain[s.trend]}</div>
-            ${(s.sources||[]).length?`<div style="font-size:11px;margin-top:4px">${s.sources.slice(0,2).map(u=>`<a href="${esc(u)}" target="_blank" style="color:var(--blue);margin-right:8px">source</a>`).join('')}</div>`:''}
+            <div class="signal-explain">${trendExplain[s.trend]}</div>
+            ${(s.sources||[]).length?`<div class="signal-sources">${s.sources.slice(0,2).map(u=>`<a href="${esc(u)}" target="_blank">source</a>`).join('')}</div>`:''}
           </div>
           <span class="signal-count">${s.mention_count}x</span>
           <span class="signal-badge ${s.trend}">${s.trend}</span>
@@ -961,7 +1045,7 @@ async function loadSignals(){
     if(declining.length){
       html+=`<div class="section-label" style="margin-top:20px">En déclin</div>`;
       html+=declining.map(s=>`
-        <div class="signal-item" style="opacity:.7">
+        <div class="signal-item signal-declining">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <span class="signal-name">${esc(s.term)}</span>
           <span class="signal-count">${s.mention_count}x</span>
@@ -1069,38 +1153,38 @@ async function loadOpportunities(){
 
     function renderOpp(o){
       return `<div class="card" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'}">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-          <span style="font-size:16px">${catIcons[o.category]||'💡'}</span>
-          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg2);color:var(--tx3)">${esc(o.sector||'')}</span>
-          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${o.timing==='right_time'?'var(--green-bg)':o.timing==='too_early'?'var(--blue-bg)':'var(--amber-bg)'};color:${timingColors[o.timing]||'var(--tx3)'}">${o.timing==='right_time'?'Bon timing':o.timing==='too_early'?'Trop tôt':'Se dépêcher'}</span>
-          <span style="font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid ${confidenceColors[o.confidence]||'var(--bd)'};color:${confidenceColors[o.confidence]||'var(--tx3)'}">Confiance: ${o.confidence}</span>
-          <span style="margin-left:auto;font-size:14px;font-weight:700;color:var(--accent)">${o.relevance_score}%</span>
+        <div class="flex-header">
+          <span class="text-icon">${catIcons[o.category]||'💡'}</span>
+          <span class="badge badge--neutral">${esc(o.sector||'')}</span>
+          <span class="badge" style="background:${o.timing==='right_time'?'var(--green-bg)':o.timing==='too_early'?'var(--blue-bg)':'var(--amber-bg)'};color:${timingColors[o.timing]||'var(--tx3)'}">${o.timing==='right_time'?'Bon timing':o.timing==='too_early'?'Trop tôt':'Se dépêcher'}</span>
+          <span class="badge" style="border:1px solid ${confidenceColors[o.confidence]||'var(--bd)'};color:${confidenceColors[o.confidence]||'var(--tx3)'}">Confiance: ${o.confidence}</span>
+          <span class="opp-score">${o.relevance_score}%</span>
         </div>
-        <div style="font-size:15px;font-weight:600;margin-bottom:6px">${esc(o.usecase_title)}</div>
-        <div style="font-size:13px;color:var(--tx2);margin-bottom:10px;line-height:1.5">${esc(o.usecase_description||'')}</div>
-        <div class="opp-detail-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:10px">
-          <div><span style="color:var(--tx3)">Qui paie :</span> ${esc(o.who_pays||'')}</div>
-          <div><span style="color:var(--tx3)">Marché :</span> ${o.market_size}</div>
-          <div><span style="color:var(--tx3)">Effort :</span> ${effortLabels[o.effort_to_build]||o.effort_to_build}</div>
-          <div><span style="color:var(--tx3)">Concurrence :</span> ${o.competition}</div>
+        <div class="text-title">${esc(o.usecase_title)}</div>
+        <div class="text-desc" style="margin-bottom:10px">${esc(o.usecase_description||'')}</div>
+        <div class="opp-detail-grid">
+          <div><span class="text-muted">Qui paie :</span> ${esc(o.who_pays||'')}</div>
+          <div><span class="text-muted">Marché :</span> ${o.market_size}</div>
+          <div><span class="text-muted">Effort :</span> ${effortLabels[o.effort_to_build]||o.effort_to_build}</div>
+          <div><span class="text-muted">Concurrence :</span> ${o.competition}</div>
         </div>
-        <div style="font-size:13px;color:var(--accent);margin-bottom:8px"><strong>Pourquoi toi :</strong> ${esc(o.relevance_why||'')}</div>
-        <div style="font-size:13px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm)">
+        <div class="opp-why"><strong>Pourquoi toi :</strong> ${esc(o.relevance_why||'')}</div>
+        <div class="opp-nextstep">
           <strong>Next step :</strong> ${esc(o.next_step||'')}
         </div>
-        ${(o.source_articles||[]).length?`<div style="margin-top:8px;font-size:11px">${o.source_articles.map(u=>`<a href="${esc(u)}" target="_blank" style="margin-right:8px">Article source →</a>`).join('')}</div>`:''}
+        ${(o.source_articles||[]).length?`<div class="opp-sources">${o.source_articles.map(u=>`<a href="${esc(u)}" target="_blank">Article source →</a>`).join('')}</div>`:''}
       </div>`;
     }
 
     let html='';
     if(money.length){
       html+=`<div class="section-label" style="color:var(--green)">💰 Opportunités business — rapporter de l'argent</div>`;
-      html+=`<div class="opp-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+      html+=`<div class="opp-grid">
         ${money.map(renderOpp).join('')}</div>`;
     }
     if(life.length){
       html+=`<div class="section-label" style="color:var(--blue)">⚡ Simplifier ta vie — mission actuelle</div>`;
-      html+=`<div class="opp-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      html+=`<div class="opp-grid">
         ${life.map(renderOpp).join('')}</div>`;
     }
 
@@ -1308,15 +1392,15 @@ async function loadProfile(){
       const label=PROFILE_LABELS[key]||key;
       const val=byKey[key]||'';
       const isLong=key==='weekly_notes'||key==='what_excites_me'||key==='what_frustrates_me'||key==='ambitions';
-      return `<div style="margin-bottom:16px">
-        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">${label}</label>
+      return `<div class="profile-field">
+        <label class="profile-label">${label}</label>
         ${isLong
-          ?`<textarea id="pf-${key}" style="width:100%;padding:10px 14px;border:1px solid var(--bd);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;min-height:80px;resize:vertical;background:var(--bg3)">${esc(val)}</textarea>`
-          :`<input type="text" id="pf-${key}" value="${esc(val)}" style="width:100%;padding:8px 14px;border:1px solid var(--bd);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;background:var(--bg3)">`
+          ?`<textarea id="pf-${key}" class="profile-textarea">${esc(val)}</textarea>`
+          :`<input type="text" id="pf-${key}" value="${esc(val)}" class="profile-input">`
         }
       </div>`;
     }).join('')+`<button class="btn btn-primary" onclick="saveProfile()">Sauvegarder le profil</button>
-    <span id="profile-status" style="margin-left:12px;font-size:13px;color:var(--green)"></span>`;
+    <span id="profile-status" class="profile-status"></span>`;
     profileLoaded=true;
   }catch(e){console.error('loadProfile',e);showError('profile-fields','Erreur de chargement du profil',()=>{profileLoaded=false;loadProfile()})}
 }
@@ -1352,16 +1436,16 @@ async function loadRecos(){
     const axisColors={llm_fundamentals:'var(--blue)',prompt_engineering:'var(--accent)',agents:'var(--green)',rag_data:'var(--coral)',mlops:'var(--amber)',ethics:'var(--red)',business:'var(--pink)',code_integration:'var(--tx2)'};
     const typeIcons={article:'📄',tutorial:'🛠',video:'🎬',paper:'📑',course:'🎓'};
 
-    el.innerHTML=`<div class="recos-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${recos.map(r=>`
+    el.innerHTML=`<div class="recos-grid">${recos.map(r=>`
       <div class="card" style="border-left:3px solid ${axisColors[r.target_axis]||'var(--bd)'}">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="font-size:16px">${typeIcons[r.resource_type]||'📄'}</span>
-          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg2);color:var(--tx3)">${r.target_axis}</span>
-          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${r.difficulty==='beginner'?'var(--green-bg)':r.difficulty==='advanced'?'var(--red-bg)':'var(--amber-bg)'};color:${r.difficulty==='beginner'?'var(--green)':r.difficulty==='advanced'?'var(--red)':'var(--amber)'}">${r.difficulty}</span>
-          ${r.completed?'<span style="font-size:14px">✅</span>':''}
+        <div class="flex-header-sm">
+          <span class="text-icon">${typeIcons[r.resource_type]||'📄'}</span>
+          <span class="badge badge--neutral">${r.target_axis}</span>
+          <span class="badge" style="background:${r.difficulty==='beginner'?'var(--green-bg)':r.difficulty==='advanced'?'var(--red-bg)':'var(--amber-bg)'};color:${r.difficulty==='beginner'?'var(--green)':r.difficulty==='advanced'?'var(--red)':'var(--amber)'}">${r.difficulty}</span>
+          ${r.completed?'<span class="text-icon">✅</span>':''}
         </div>
-        <div style="font-size:14px;font-weight:600;margin-bottom:4px">${esc(r.title)}</div>
-        <div style="font-size:13px;color:var(--tx2);margin-bottom:8px">${esc(r.description||'')}</div>
+        <div class="text-sm-title">${esc(r.title)}</div>
+        <div class="text-desc" style="margin-bottom:8px">${esc(r.description||'')}</div>
         ${r.resource_url?`<a href="${esc(r.resource_url)}" target="_blank" style="font-size:12px">Voir la ressource →</a>`:''}
       </div>`).join('')}</div>`;
     recosLoaded=true;
@@ -1497,10 +1581,10 @@ async function saveDiagnostic(){
   }
 
   container.innerHTML=`
-    <div style="border:2px solid var(--green);border-radius:var(--radius);padding:20px 24px;background:var(--green-bg);text-align:center">
+    <div class="diag-success">
       <div style="font-size:24px;margin-bottom:8px">✅</div>
       <div style="font-size:16px;font-weight:700;color:var(--green)">Profil calibré !</div>
-      <div style="font-size:14px;color:var(--tx2);margin-top:4px">Ton radar + profil qualitatif sont sauvegardés. Les recommandations et challenges seront adaptés à tes forces et lacunes.</div>
+      <div class="text-desc" style="margin-top:4px">Ton radar + profil qualitatif sont sauvegardés. Les recommandations et challenges seront adaptés à tes forces et lacunes.</div>
     </div>`;
 
   radarLoaded=false;
@@ -1530,29 +1614,29 @@ async function loadCosts(){
 
     const summaryEl=document.getElementById('costs-summary');
     summaryEl.innerHTML=`
-      <div style="background:var(--bg2);border-radius:var(--radius);padding:16px 20px">
-        <div style="font-size:12px;color:var(--tx3)">Coût total</div>
-        <div style="font-size:24px;font-weight:700;color:${totalCost>4?'var(--red)':'var(--green)'}">${totalCost.toFixed(2)}$</div>
-        <div style="font-size:11px;color:var(--tx3)">${totalRuns} runs</div>
+      <div class="stat-card">
+        <div class="stat-label">Coût total</div>
+        <div class="stat-value" style="color:${totalCost>4?'var(--red)':'var(--green)'}">${totalCost.toFixed(2)}$</div>
+        <div class="stat-sub">${totalRuns} runs</div>
       </div>
-      <div style="background:var(--bg2);border-radius:var(--radius);padding:16px 20px">
-        <div style="font-size:12px;color:var(--tx3)">Coût moyen / run</div>
-        <div style="font-size:24px;font-weight:700">${avgCost.toFixed(3)}$</div>
-        <div style="font-size:11px;color:var(--tx3)">Budget: 1$/run max</div>
+      <div class="stat-card">
+        <div class="stat-label">Coût moyen / run</div>
+        <div class="stat-value">${avgCost.toFixed(3)}$</div>
+        <div class="stat-sub">Budget: 1$/run max</div>
       </div>
-      <div style="background:var(--bg2);border-radius:var(--radius);padding:16px 20px">
-        <div style="font-size:12px;color:var(--tx3)">Tokens consommés</div>
-        <div style="font-size:24px;font-weight:700">${(totalTokens/1000).toFixed(0)}K</div>
-        <div style="font-size:11px;color:var(--tx3)">${totalCalls} appels API</div>
+      <div class="stat-card">
+        <div class="stat-label">Tokens consommés</div>
+        <div class="stat-value">${(totalTokens/1000).toFixed(0)}K</div>
+        <div class="stat-sub">${totalCalls} appels API</div>
       </div>
-      <div style="background:var(--bg2);border-radius:var(--radius);padding:16px 20px">
-        <div style="font-size:12px;color:var(--tx3)">Budget mensuel (5$)</div>
+      <div class="stat-card">
+        <div class="stat-label">Budget mensuel (5$)</div>
         <div style="margin:8px 0">
-          <div style="width:100%;height:8px;background:var(--bd);border-radius:4px;overflow:hidden">
-            <div style="width:${pct}%;height:100%;background:${pct>80?'var(--red)':pct>50?'var(--amber)':'var(--green)'};border-radius:4px;transition:width .3s"></div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${pct}%;background:${pct>80?'var(--red)':pct>50?'var(--amber)':'var(--green)'}"></div>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--tx3)">${(budget-totalCost).toFixed(2)}$ restants</div>
+        <div class="stat-sub">${(budget-totalCost).toFixed(2)}$ restants</div>
       </div>`;
 
     // Runs table — one row per week
@@ -1560,22 +1644,22 @@ async function loadCosts(){
     if(!parsedRuns.length){
       tableEl.innerHTML=`<div class="empty"><div class="empty-icon">💲</div>Aucun run hebdomadaire pour l'instant.<br>Le premier run Claude se fera dimanche soir.</div>`;
     }else{
-      tableEl.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:13px">
-        <tr><th style="text-align:left;padding:8px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Semaine</th>
-            <th style="text-align:right;padding:8px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Runs</th>
-            <th style="text-align:right;padding:8px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Input</th>
-            <th style="text-align:right;padding:8px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Output</th>
-            <th style="text-align:right;padding:8px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Coût</th>
-            <th style="text-align:right;padding:8px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Appels</th>
-            <th style="padding:8px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Résultats</th></tr>
+      tableEl.innerHTML=`<table class="data-table">
+        <tr><th>Semaine</th>
+            <th class="right">Runs</th>
+            <th class="right">Input</th>
+            <th class="right">Output</th>
+            <th class="right">Coût</th>
+            <th class="right">Appels</th>
+            <th>Résultats</th></tr>
         ${parsedRuns.map(r=>`<tr>
-          <td style="padding:8px;border-bottom:1px solid var(--bd)">${r.week_start}</td>
-          <td style="text-align:right;padding:8px;border-bottom:1px solid var(--bd)">${r.t.runs||1}</td>
-          <td style="text-align:right;padding:8px;border-bottom:1px solid var(--bd);font-family:var(--mono)">${(r.t.input_tokens/1000).toFixed(0)}K</td>
-          <td style="text-align:right;padding:8px;border-bottom:1px solid var(--bd);font-family:var(--mono)">${(r.t.output_tokens/1000).toFixed(0)}K</td>
-          <td style="text-align:right;padding:8px;border-bottom:1px solid var(--bd);font-weight:600;color:${r.t.cost_usd>0.8?'var(--red)':'var(--green)'}">${r.t.cost_usd.toFixed(4)}$</td>
-          <td style="text-align:right;padding:8px;border-bottom:1px solid var(--bd)">${r.t.calls}</td>
-          <td style="padding:8px;border-bottom:1px solid var(--bd);font-size:12px;color:var(--tx2)">
+          <td>${r.week_start}</td>
+          <td class="right">${r.t.runs||1}</td>
+          <td class="right mono">${(r.t.input_tokens/1000).toFixed(0)}K</td>
+          <td class="right mono">${(r.t.output_tokens/1000).toFixed(0)}K</td>
+          <td class="right" style="font-weight:600;color:${r.t.cost_usd>0.8?'var(--red)':'var(--green)'}">${r.t.cost_usd.toFixed(4)}$</td>
+          <td class="right">${r.t.calls}</td>
+          <td class="muted">
             ${(r.concepts_added||[]).length?r.concepts_added.length+' wiki':''}
             ${r.recommendations_generated?', '+r.recommendations_generated+' recos':''}
             ${r.challenge_generated?', challenge':''}
@@ -1586,20 +1670,20 @@ async function loadCosts(){
 
     // Free services
     document.getElementById('costs-free').innerHTML=`
-      <div style="border:1px solid var(--bd);border-radius:var(--radius);padding:14px 18px">
-        <div style="font-size:13px;font-weight:600">GitHub Actions</div>
-        <div style="font-size:12px;color:var(--tx2);margin-top:4px">~50 min/mois utilisées<br>2000 min gratuites</div>
-        <div style="font-size:11px;padding:2px 8px;border-radius:10px;background:#EAF3DE;color:#3B6D11;display:inline-block;margin-top:6px">Gratuit</div>
+      <div class="service-card">
+        <div class="service-card-title">GitHub Actions</div>
+        <div class="service-card-desc">~50 min/mois utilisées<br>2000 min gratuites</div>
+        <div class="badge badge--free">Gratuit</div>
       </div>
-      <div style="border:1px solid var(--bd);border-radius:var(--radius);padding:14px 18px">
-        <div style="font-size:13px;font-weight:600">Supabase</div>
-        <div style="font-size:12px;color:var(--tx2);margin-top:4px">~10 tables, &lt;10MB<br>500 MB gratuits</div>
-        <div style="font-size:11px;padding:2px 8px;border-radius:10px;background:#EAF3DE;color:#3B6D11;display:inline-block;margin-top:6px">Gratuit</div>
+      <div class="service-card">
+        <div class="service-card-title">Supabase</div>
+        <div class="service-card-desc">~10 tables, &lt;10MB<br>500 MB gratuits</div>
+        <div class="badge badge--free">Gratuit</div>
       </div>
-      <div style="border:1px solid var(--bd);border-radius:var(--radius);padding:14px 18px">
-        <div style="font-size:13px;font-weight:600">Gemini API</div>
-        <div style="font-size:12px;color:var(--tx2);margin-top:4px">~10 appels/jour<br>1000/jour gratuits</div>
-        <div style="font-size:11px;padding:2px 8px;border-radius:10px;background:#EAF3DE;color:#3B6D11;display:inline-block;margin-top:6px">Gratuit</div>
+      <div class="service-card">
+        <div class="service-card-title">Gemini API</div>
+        <div class="service-card-desc">~10 appels/jour<br>1000/jour gratuits</div>
+        <div class="badge badge--free">Gratuit</div>
       </div>`;
 
   }catch(e){console.error('loadCosts',e);showError('costs-table','Erreur de chargement des coûts',()=>loadCosts())}
@@ -1686,10 +1770,10 @@ function renderTftStats(){
   });
   const topCarry=Object.entries(carryCount).sort((a,b)=>b[1]-a[1])[0];
 
-  const card=(label,value,sub)=>`<div style="background:var(--bg2);border-radius:var(--radius);padding:14px 18px">
-    <div style="font-size:11px;color:var(--tx3)">${label}</div>
-    <div style="font-size:22px;font-weight:700;margin:2px 0">${value}</div>
-    ${sub?`<div style="font-size:11px;color:var(--tx3)">${sub}</div>`:''}
+  const card=(label,value,sub)=>`<div class="stat-card">
+    <div class="stat-sub">${label}</div>
+    <div class="stat-value" style="font-size:22px">${value}</div>
+    ${sub?`<div class="stat-sub">${sub}</div>`:''}
   </div>`;
 
   document.getElementById('tft-stats').innerHTML=
@@ -1755,20 +1839,17 @@ function renderTftTable(){
 
   const formatDuration=(s)=>s?Math.floor(s/60)+'m'+String(Math.floor(s%60)).padStart(2,'0'):'—';
 
-  const th='style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)"';
-  const thr='style="text-align:right;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)"';
-
-  tableEl.innerHTML=`<table class="tft-table" style="width:100%;border-collapse:collapse;font-size:13px">
-    <tr><th ${th}>Date</th><th style="text-align:center;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Place</th><th ${th}>Compo</th><th ${th}>Carry</th><th ${thr}>Lvl</th><th ${thr} class="tft-col-dmg">DMG</th><th ${thr} class="tft-col-dur">Durée</th><th ${th}>Note</th></tr>
-    ${filtered.map(m=>`<tr class="tft-row" data-matchid="${m.match_id}" style="cursor:pointer;transition:background .1s" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''" onclick="openTftDetail('${m.match_id}')">
-      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);white-space:nowrap">${formatDate(m.played_at)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:center">${placeBadge(m.placement)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12px;color:var(--tx2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${getCompo(m.match_id)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12px;font-weight:600">${getCarry(m.match_id)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right">${m.level||'—'}</td>
-      <td class="tft-col-dmg" style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right;font-family:var(--mono);font-size:12px">${m.total_damage||'—'}</td>
-      <td class="tft-col-dur" style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right;font-size:12px">${formatDuration(m.game_length_s)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12px;color:var(--tx3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.user_note||''}</td>
+  tableEl.innerHTML=`<table class="tft-table data-table">
+    <tr><th>Date</th><th style="text-align:center">Place</th><th>Compo</th><th>Carry</th><th class="right">Lvl</th><th class="right tft-col-dmg">DMG</th><th class="right tft-col-dur">Durée</th><th>Note</th></tr>
+    ${filtered.map(m=>`<tr class="tft-row" data-matchid="${m.match_id}" style="cursor:pointer" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''" onclick="openTftDetail('${m.match_id}')">
+      <td style="white-space:nowrap">${formatDate(m.played_at)}</td>
+      <td style="text-align:center">${placeBadge(m.placement)}</td>
+      <td class="muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${getCompo(m.match_id)}</td>
+      <td style="font-size:12px;font-weight:600">${getCarry(m.match_id)}</td>
+      <td class="right">${m.level||'—'}</td>
+      <td class="right mono tft-col-dmg">${m.total_damage||'—'}</td>
+      <td class="right tft-col-dur" style="font-size:12px">${formatDuration(m.game_length_s)}</td>
+      <td style="font-size:12px;color:var(--tx3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.user_note||''}</td>
     </tr>`).join('')}
   </table>`;
 }
@@ -1795,69 +1876,63 @@ async function openTftDetail(matchId){
   const styleColor=(s)=>s>=4?'var(--accent)':s>=3?'var(--amber)':s>=2?'var(--tx)':'var(--tx3)';
 
   let html=`
-    <!-- Match header -->
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+    <div class="tft-detail-header">
       ${placeBadge(m.placement)}
       <div>
-        <div style="font-weight:600">${m.is_win?'Victoire (Top 4)':'Défaite (Bot 4)'} — #${m.placement}</div>
-        <div style="font-size:12px;color:var(--tx3)">${formatDate(m.played_at)} · ${formatDuration(m.game_length_s)} · Lvl ${m.level||'?'}</div>
+        <div class="tft-detail-title">${m.is_win?'Victoire (Top 4)':'Défaite (Bot 4)'} — #${m.placement}</div>
+        <div class="tft-detail-sub">${formatDate(m.played_at)} · ${formatDuration(m.game_length_s)} · Lvl ${m.level||'?'}</div>
       </div>
     </div>
 
-    <!-- Match info -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
-      <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px">
-        <div style="color:var(--tx3)">Mode</div>
+    <div class="tft-info-grid">
+      <div class="tft-info-cell">
+        <div class="text-muted">Mode</div>
         <div style="font-weight:600">${m.queue_id===1100?'Ranked':m.queue_id===1090?'Normal':'Autre'}</div>
       </div>
-      <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px">
-        <div style="color:var(--tx3)">Dommages</div>
+      <div class="tft-info-cell">
+        <div class="text-muted">Dommages</div>
         <div style="font-weight:600">${m.total_damage||'—'}</div>
       </div>
-      <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px">
-        <div style="color:var(--tx3)">Gold restant</div>
+      <div class="tft-info-cell">
+        <div class="text-muted">Gold restant</div>
         <div style="font-weight:600">${m.gold_left??'—'}</div>
       </div>
     </div>
 
-    <!-- Champions -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:8px">🛡️ Champions (${units.length})</div>
-    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
-      ${units.map(u=>`<div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:var(--radius-sm);padding:8px 12px">
-        <div style="font-weight:600;min-width:100px">${u.champion_name} <span style="color:var(--amber);font-size:11px">${stars(u.tier)}</span></div>
-        <div style="font-size:11px;color:var(--tx3)">${u.cost}g</div>
-        <div style="font-size:11px;flex:1">${(u.items||[]).length?u.items.join(', '):'<span style="color:var(--tx3)">pas d\'items</span>'}</div>
+    <div class="tft-section-title">🛡️ Champions (${units.length})</div>
+    <div class="tft-unit-list">
+      ${units.map(u=>`<div class="tft-unit-row">
+        <div class="tft-unit-name">${u.champion_name} <span class="tft-unit-stars">${stars(u.tier)}</span></div>
+        <div class="tft-unit-cost">${u.cost}g</div>
+        <div class="tft-unit-items">${(u.items||[]).length?u.items.join(', '):'<span class="text-muted">pas d\'items</span>'}</div>
       </div>`).join('')}
     </div>
 
-    <!-- Traits -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:8px">⚔️ Traits</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
-      ${traits.map(t=>`<span style="display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${t.is_active?styleBg(t.style):'var(--bg2)'};color:${t.is_active?styleColor(t.style):'var(--tx3)'}">${t.trait_name} ${t.is_active?t.num_units:'off'}</span>`).join('')}
+    <div class="tft-section-title">⚔️ Traits</div>
+    <div class="tft-traits-wrap">
+      ${traits.map(t=>`<span class="tft-trait-badge" style="background:${t.is_active?styleBg(t.style):'var(--bg2)'};color:${t.is_active?styleColor(t.style):'var(--tx3)'}">${t.trait_name} ${t.is_active?t.num_units:'off'}</span>`).join('')}
     </div>
 
-    <!-- Lobby -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:8px">👥 Lobby (${lobby.length} adversaires)</div>
-    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:24px">
-      ${lobby.map(l=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:var(--radius-sm);font-size:12px;background:${l.placement<=4?'var(--green-bg)':'var(--bg2)'}">
-        <span style="font-weight:700;min-width:20px">#${l.placement}</span>
-        <span style="flex:1;font-weight:500">${l.game_name||'???'}${l.tag_line?'#'+l.tag_line:''}</span>
-        <span style="font-size:11px;color:var(--tx3)">${l.main_carry||''}</span>
-        <span style="font-size:10px;color:var(--tx3)">${(l.main_traits||[]).join(', ')}</span>
+    <div class="tft-section-title">👥 Lobby (${lobby.length} adversaires)</div>
+    <div class="tft-lobby-list">
+      ${lobby.map(l=>`<div class="tft-lobby-row" style="background:${l.placement<=4?'var(--green-bg)':'var(--bg2)'}">
+        <span class="tft-lobby-rank">#${l.placement}</span>
+        <span class="tft-lobby-name">${l.game_name||'???'}${l.tag_line?'#'+l.tag_line:''}</span>
+        <span class="tft-lobby-carry">${l.main_carry||''}</span>
+        <span class="tft-lobby-traits">${(l.main_traits||[]).join(', ')}</span>
       </div>`).join('')}
     </div>
 
-    <!-- Édition -->
-    <div style="border-top:1px solid var(--bd);padding-top:20px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px">📝 Notes personnelles</div>
+    <div class="tft-edit-section">
+      <div class="tft-section-title">📝 Notes personnelles</div>
       <div style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:4px">Note</label>
-        <textarea id="tft-edit-note" rows="2" style="width:100%;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:13px;font-family:var(--font);resize:vertical">${m.user_note||''}</textarea>
+        <label class="tft-edit-label">Note</label>
+        <textarea id="tft-edit-note" rows="2" class="tft-edit-textarea">${m.user_note||''}</textarea>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="opp-detail-grid" style="margin-bottom:10px">
         <div>
-          <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:4px">Mood</label>
-          <select id="tft-edit-mood" style="width:100%;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px">
+          <label class="tft-edit-label">Mood</label>
+          <select id="tft-edit-mood" class="tft-edit-input">
             <option value="">—</option>
             <option value="focused" ${m.user_mood==='focused'?'selected':''}>🎯 Focused</option>
             <option value="tilted" ${m.user_mood==='tilted'?'selected':''}>😤 Tilted</option>
@@ -1867,8 +1942,8 @@ async function openTftDetail(matchId){
           </select>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:4px">Rating</label>
-          <select id="tft-edit-rating" style="width:100%;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px">
+          <label class="tft-edit-label">Rating</label>
+          <select id="tft-edit-rating" class="tft-edit-input">
             <option value="">—</option>
             <option value="1" ${m.user_rating===1?'selected':''}>1 ⭐</option>
             <option value="2" ${m.user_rating===2?'selected':''}>2 ⭐</option>
@@ -1879,11 +1954,11 @@ async function openTftDetail(matchId){
         </div>
       </div>
       <div style="margin-bottom:14px">
-        <label style="font-size:11px;color:var(--tx3);display:block;margin-bottom:4px">Tags (séparés par des virgules)</label>
-        <input id="tft-edit-tags" type="text" value="${(m.user_tags||[]).join(', ')}" style="width:100%;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px">
+        <label class="tft-edit-label">Tags (séparés par des virgules)</label>
+        <input id="tft-edit-tags" type="text" value="${(m.user_tags||[]).join(', ')}" class="tft-edit-input">
       </div>
-      <button onclick="saveTftDetail('${matchId}')" style="width:100%;padding:10px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'">Sauvegarder</button>
-      <div id="tft-save-status" style="text-align:center;margin-top:8px;font-size:12px"></div>
+      <button onclick="saveTftDetail('${matchId}')" class="tft-save-btn">Sauvegarder</button>
+      <div id="tft-save-status" class="tft-save-status"></div>
     </div>
   `;
 
