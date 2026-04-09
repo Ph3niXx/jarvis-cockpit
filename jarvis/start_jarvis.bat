@@ -19,6 +19,10 @@ if "%SUPABASE_SERVICE_KEY%"=="" (
   echo   [!] SUPABASE_SERVICE_KEY non defini. Le snapshot ne sera pas upsert dans Supabase.
   echo       Definis-la avec: set SUPABASE_SERVICE_KEY=ta_cle_service_role
 )
+if "%ANTHROPIC_API_KEY%"=="" (
+  echo   [!] ANTHROPIC_API_KEY non defini. Le mode Cloud ne sera pas disponible.
+  echo       Definis-la avec: set ANTHROPIC_API_KEY=ta_cle_anthropic
+)
 
 REM 1. Verify LM Studio is running
 echo [1/4] Verification de LM Studio...
