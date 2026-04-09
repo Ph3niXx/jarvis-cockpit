@@ -324,15 +324,11 @@ a:hover{text-decoration:underline}
 .jarvis-send:hover{background:var(--accent2)}
 .jarvis-send:disabled{opacity:.5;cursor:default}
 .jarvis-toolbar{display:flex;align-items:center;gap:12px;padding:8px 20px;justify-content:space-between}
-.jarvis-mode{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
-.jarvis-mode-label{font-weight:600}
-.jarvis-mode-label.active{color:var(--accent)}
-.jarvis-toggle{position:relative;width:40px;height:22px;cursor:pointer}
-.jarvis-toggle input{opacity:0;width:0;height:0}
-.jarvis-toggle .slider{position:absolute;inset:0;background:var(--bd2);border-radius:11px;transition:.2s}
-.jarvis-toggle .slider::before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
-.jarvis-toggle input:checked+.slider{background:var(--accent)}
-.jarvis-toggle input:checked+.slider::before{transform:translateX(18px)}
+.jarvis-mode{display:flex;align-items:center;gap:4px;font-size:12px}
+.jarvis-mode-btn{padding:4px 12px;border-radius:14px;border:1px solid var(--bd);background:var(--bg3);color:var(--tx2);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all .12s;white-space:nowrap}
+.jarvis-mode-btn:hover{background:var(--bg2);color:var(--tx)}
+.jarvis-mode-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.jarvis-mode-cost{font-size:10px;color:var(--tx3);margin-left:2px}
 .jarvis-actions button{font-size:11px;color:var(--tx3);background:none;border:none;cursor:pointer;font-family:inherit}
 .jarvis-actions button:hover{color:var(--accent)}
 .jarvis-meta{font-size:11px;color:var(--tx3);margin-top:4px}
@@ -627,9 +623,9 @@ a:hover{text-decoration:underline}
       </div>
       <div class="jarvis-toolbar">
         <div class="jarvis-mode">
-          <span class="jarvis-mode-label active" id="jarvis-label-quick">⚡ Rapide</span>
-          <label class="jarvis-toggle"><input type="checkbox" id="jarvis-mode-toggle" onchange="updateModeLabel()"><span class="slider"></span></label>
-          <span class="jarvis-mode-label" id="jarvis-label-deep">🔍 Deep Search</span>
+          <button class="jarvis-mode-btn active" data-mode="quick" onclick="setJarvisMode('quick')">Rapide</button>
+          <button class="jarvis-mode-btn" data-mode="deep" onclick="setJarvisMode('deep')">Deep</button>
+          <button class="jarvis-mode-btn" data-mode="cloud" onclick="setJarvisMode('cloud')">Cloud<span class="jarvis-mode-cost">~0.01$</span></button>
         </div>
         <div class="jarvis-actions"><button onclick="jarvisReset()">Réinitialiser</button></div>
       </div>
@@ -2036,6 +2032,7 @@ function jarvisAddMsg(role, content, sources, meta){
       const metaDiv = document.createElement('div');
       metaDiv.className = 'jarvis-meta';
       const parts = [];
+      if(meta.backend) parts.push(meta.backend === 'claude' ? 'Claude' : 'local');
       if(meta.latency_ms) parts.push(`${(meta.latency_ms/1000).toFixed(1)}s`);
       if(meta.tokens_used) parts.push(`${meta.tokens_used} tokens`);
       metaDiv.textContent = parts.join(' · ');
@@ -2080,11 +2077,11 @@ async function jarvisSend(){
   jarvisShowTyping();
 
   try{
-    const deep = document.getElementById('jarvis-mode-toggle').checked;
+    const deep = jarvisMode === 'deep' || jarvisMode === 'cloud';
     const r = await fetch(`${jarvisUrl}/chat`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({question, history: jarvisHistory.slice(-10), mode: deep ? 'deep' : 'quick', session_id: jarvisSessionId})
+      body: JSON.stringify({question, history: jarvisHistory.slice(-10), mode: jarvisMode, session_id: jarvisSessionId})
     });
 
     jarvisHideTyping();
@@ -2094,7 +2091,7 @@ async function jarvisSend(){
       jarvisAddMsg('assistant', `Erreur: ${detail.detail || r.statusText}`);
     } else {
       const data = await r.json();
-      jarvisAddMsg('assistant', data.answer, data.sources, {latency_ms: data.latency_ms, tokens_used: data.tokens_used});
+      jarvisAddMsg('assistant', data.answer, data.sources, {latency_ms: data.latency_ms, tokens_used: data.tokens_used, backend: data.backend});
       jarvisHistory.push({role:'assistant', content: data.answer});
     }
   }catch(e){
@@ -2110,10 +2107,12 @@ async function jarvisSend(){
   input.focus();
 }
 
-function updateModeLabel(){
-  const deep = document.getElementById('jarvis-mode-toggle').checked;
-  document.getElementById('jarvis-label-quick').classList.toggle('active', !deep);
-  document.getElementById('jarvis-label-deep').classList.toggle('active', deep);
+let jarvisMode = 'quick';
+function setJarvisMode(mode){
+  jarvisMode = mode;
+  document.querySelectorAll('.jarvis-mode-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
 }
 
 function jarvisReset(){

@@ -13,12 +13,17 @@ from pydantic import BaseModel, Field
 import uvicorn
 from openai import OpenAI, APIConnectionError, APITimeoutError
 
+import requests as http_requests
+
 from config import (
     LM_STUDIO_BASE_URL,
     LM_STUDIO_API_KEY,
     LLM_MODEL,
     LLM_MAX_TOKENS,
     SUPABASE_URL,
+    ANTHROPIC_API_KEY,
+    CLAUDE_MODEL,
+    CLAUDE_API_URL,
 )
 from retriever import search, search_and_format
 from supabase_client import sb_get, sb_post
@@ -130,15 +135,72 @@ def _save_conversation(session_id: str, role: str, content: str, mode: str, toke
         print(f"  [WARN] save_conversation: {e}")
 
 
+def _call_local_llm(messages: list, mode: str) -> tuple[str, int]:
+    """Call LM Studio local LLM. Returns (answer, tokens)."""
+    is_quick = mode == "quick"
+    client = _get_llm()
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=messages,
+        max_tokens=512 if is_quick else LLM_MAX_TOKENS,
+        temperature=0.3,
+        extra_body={"chat_template_kwargs": {"enable_thinking": False}} if is_quick else {},
+    )
+    answer = response.choices[0].message.content or ""
+    tokens = response.usage.total_tokens if response.usage else 0
+    return answer, tokens
+
+
+def _call_claude(system: str, messages: list) -> tuple[str, int]:
+    """Call Claude Haiku API. Returns (answer, tokens)."""
+    if not ANTHROPIC_API_KEY:
+        raise ValueError("ANTHROPIC_API_KEY not set")
+
+    # Convert OpenAI-style messages to Claude format (no system in messages)
+    claude_messages = []
+    for msg in messages:
+        if msg["role"] in ("user", "assistant"):
+            claude_messages.append({"role": msg["role"], "content": msg["content"]})
+
+    r = http_requests.post(
+        CLAUDE_API_URL,
+        headers={
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        },
+        json={
+            "model": CLAUDE_MODEL,
+            "max_tokens": 4096,
+            "system": system,
+            "messages": claude_messages,
+        },
+        timeout=120,
+    )
+    if r.status_code != 200:
+        raise ValueError(f"Claude API {r.status_code}: {r.text[:200]}")
+
+    data = r.json()
+    answer = ""
+    for block in data.get("content", []):
+        if block.get("type") == "text":
+            answer += block.get("text", "")
+
+    usage = data.get("usage", {})
+    tokens = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+    return answer, tokens
+
+
 @app.post("/chat")
 def chat(req: ChatRequest):
-    """RAG-augmented chat with Jarvis."""
+    """RAG-augmented chat with Jarvis. Routes to local LLM or Claude cloud."""
     t0 = time.perf_counter()
+    use_rag = req.mode in ("deep", "cloud")
 
-    # 1. Retrieve context (deep mode only)
+    # 1. Retrieve RAG context (deep + cloud modes)
     raw_results = []
     context = ""
-    if req.mode == "deep":
+    if use_rag:
         try:
             raw_results = search(req.question, k=5, threshold=0.3)
             context = search_and_format(req.question, k=5)
@@ -155,7 +217,6 @@ def chat(req: ChatRequest):
 
     messages = [{"role": "system", "content": system}]
 
-    # Add conversation history (last 10)
     for msg in req.history[-10:]:
         role = msg.get("role", "user")
         content = msg.get("content", "")
@@ -164,17 +225,19 @@ def chat(req: ChatRequest):
 
     messages.append({"role": "user", "content": req.question})
 
-    # 3. Call LLM
-    is_quick = req.mode == "quick"
+    # 3. Route to the right LLM backend
+    backend = "local"
     try:
-        client = _get_llm()
-        response = client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=messages,
-            max_tokens=512 if is_quick else LLM_MAX_TOKENS,
-            temperature=0.3,
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}} if is_quick else {},
-        )
+        if req.mode == "cloud":
+            try:
+                answer, tokens = _call_claude(system, messages)
+                backend = "claude"
+            except ValueError as e:
+                # Fallback to local if API key missing or API error
+                print(f"  [WARN] Cloud fallback to local: {e}")
+                answer, tokens = _call_local_llm(messages, "deep")
+        else:
+            answer, tokens = _call_local_llm(messages, req.mode)
     except (APIConnectionError, ConnectionError):
         raise HTTPException(status_code=503, detail="LM Studio is not running")
     except APITimeoutError:
@@ -183,9 +246,6 @@ def chat(req: ChatRequest):
         raise HTTPException(status_code=500, detail=f"LLM error: {e}")
 
     elapsed_ms = int((time.perf_counter() - t0) * 1000)
-
-    answer = response.choices[0].message.content or ""
-    tokens = response.usage.total_tokens if response.usage else 0
 
     # 4. Save conversation to Supabase
     _save_conversation(req.session_id, "user", req.question, req.mode)
@@ -206,6 +266,7 @@ def chat(req: ChatRequest):
         "sources": sources,
         "tokens_used": tokens,
         "latency_ms": elapsed_ms,
+        "backend": backend,
     }
 
 

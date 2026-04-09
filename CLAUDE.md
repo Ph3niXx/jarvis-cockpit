@@ -197,7 +197,9 @@ jarvis_data/               # Données perso, non versionné
 - Port 8765 réservé pour le serveur Jarvis (FastAPI)
 - Aucune clé Supabase dans index.html pour Jarvis — tout passe par server.py côté Python
 - `start_jarvis.bat` est le point d'entrée unique (check LM Studio → check fraîcheur index → tunnel Cloudflare → lance serveur)
-- Architecture cockpit : `index.html → POST /chat → server.py → retriever + LM Studio → réponse JSON`
+- Architecture cockpit : `index.html → POST /chat → server.py → routeur (local LM Studio OU Claude Haiku cloud) → réponse JSON`
+- **3 modes chat** : Rapide (local, pas de RAG, 512 tokens), Deep (local + RAG, 2048 tokens), Cloud (Claude Haiku + RAG, 4096 tokens, ~0.01$/requête)
+- Le mode Cloud nécessite `ANTHROPIC_API_KEY` en variable d'environnement. Sans la clé, fallback automatique sur le LLM local
 - **Cloudflare Tunnel** : `cloudflared tunnel --url http://localhost:8765` expose le serveur sur internet (HTTPS)
 - L'URL du tunnel est sauvegardée dans `user_profile.jarvis_tunnel_url` par `start_jarvis.bat`
 - `index.html` découvre l'URL automatiquement : essaie localhost d'abord, puis lit le tunnel depuis Supabase
