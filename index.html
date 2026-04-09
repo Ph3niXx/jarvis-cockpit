@@ -97,6 +97,18 @@ a:hover{text-decoration:underline}
   .content{padding:1rem 1rem 3rem}
   .sb-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:99;display:none}
   .sb-overlay.show{display:block}
+  #tft-stats{grid-template-columns:repeat(2,1fr)!important}
+  #costs-summary{grid-template-columns:repeat(2,1fr)!important}
+  #costs-free{grid-template-columns:1fr!important}
+  .opp-grid{grid-template-columns:1fr!important}
+  .recos-grid{grid-template-columns:1fr!important}
+  .opp-detail-grid{grid-template-columns:1fr!important}
+  .tft-col-dmg,.tft-col-dur{display:none}
+  .tft-table td,.tft-table th{padding:6px 6px!important;font-size:12px!important}
+}
+@media(max-width:480px){
+  #tft-stats{grid-template-columns:1fr!important}
+  #costs-summary{grid-template-columns:1fr!important}
 }
 
 /* ── PANELS ───────────────────────────────────────────────── */
@@ -1054,7 +1066,7 @@ async function loadOpportunities(){
         </div>
         <div style="font-size:15px;font-weight:600;margin-bottom:6px">${esc(o.usecase_title)}</div>
         <div style="font-size:13px;color:var(--tx2);margin-bottom:10px;line-height:1.5">${esc(o.usecase_description||'')}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:10px">
+        <div class="opp-detail-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:10px">
           <div><span style="color:var(--tx3)">Qui paie :</span> ${esc(o.who_pays||'')}</div>
           <div><span style="color:var(--tx3)">Marché :</span> ${o.market_size}</div>
           <div><span style="color:var(--tx3)">Effort :</span> ${effortLabels[o.effort_to_build]||o.effort_to_build}</div>
@@ -1071,12 +1083,12 @@ async function loadOpportunities(){
     let html='';
     if(money.length){
       html+=`<div class="section-label" style="color:var(--green)">💰 Opportunités business — rapporter de l'argent</div>`;
-      html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+      html+=`<div class="opp-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
         ${money.map(renderOpp).join('')}</div>`;
     }
     if(life.length){
       html+=`<div class="section-label" style="color:var(--blue)">⚡ Simplifier ta vie — mission actuelle</div>`;
-      html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      html+=`<div class="opp-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         ${life.map(renderOpp).join('')}</div>`;
     }
 
@@ -1322,7 +1334,7 @@ async function loadRecos(){
     const axisColors={llm_fundamentals:'var(--blue)',prompt_engineering:'var(--accent)',agents:'var(--green)',rag_data:'var(--coral)',mlops:'var(--amber)',ethics:'var(--red)',business:'var(--pink)',code_integration:'var(--tx2)'};
     const typeIcons={article:'📄',tutorial:'🛠',video:'🎬',paper:'📑',course:'🎓'};
 
-    el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${recos.map(r=>`
+    el.innerHTML=`<div class="recos-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${recos.map(r=>`
       <div class="card" style="border-left:3px solid ${axisColors[r.target_axis]||'var(--bd)'}">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
           <span style="font-size:16px">${typeIcons[r.resource_type]||'📄'}</span>
@@ -1728,16 +1740,16 @@ function renderTftTable(){
   const th='style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)"';
   const thr='style="text-align:right;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)"';
 
-  tableEl.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:13px">
-    <tr><th ${th}>Date</th><th style="text-align:center;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Place</th><th ${th}>Compo</th><th ${th}>Carry</th><th ${thr}>Lvl</th><th ${thr}>DMG</th><th ${thr}>Durée</th><th ${th}>Note</th></tr>
+  tableEl.innerHTML=`<table class="tft-table" style="width:100%;border-collapse:collapse;font-size:13px">
+    <tr><th ${th}>Date</th><th style="text-align:center;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--tx3)">Place</th><th ${th}>Compo</th><th ${th}>Carry</th><th ${thr}>Lvl</th><th ${thr} class="tft-col-dmg">DMG</th><th ${thr} class="tft-col-dur">Durée</th><th ${th}>Note</th></tr>
     ${filtered.map(m=>`<tr class="tft-row" data-matchid="${m.match_id}" style="cursor:pointer;transition:background .1s" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''" onclick="openTftDetail('${m.match_id}')">
       <td style="padding:8px 10px;border-bottom:1px solid var(--bd);white-space:nowrap">${formatDate(m.played_at)}</td>
       <td style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:center">${placeBadge(m.placement)}</td>
       <td style="padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12px;color:var(--tx2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${getCompo(m.match_id)}</td>
       <td style="padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12px;font-weight:600">${getCarry(m.match_id)}</td>
       <td style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right">${m.level||'—'}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right;font-family:var(--mono);font-size:12px">${m.total_damage||'—'}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right;font-size:12px">${formatDuration(m.game_length_s)}</td>
+      <td class="tft-col-dmg" style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right;font-family:var(--mono);font-size:12px">${m.total_damage||'—'}</td>
+      <td class="tft-col-dur" style="padding:8px 10px;border-bottom:1px solid var(--bd);text-align:right;font-size:12px">${formatDuration(m.game_length_s)}</td>
       <td style="padding:8px 10px;border-bottom:1px solid var(--bd);font-size:12px;color:var(--tx3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.user_note||''}</td>
     </tr>`).join('')}
   </table>`;
