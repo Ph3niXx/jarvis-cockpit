@@ -28,10 +28,6 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "https://mrmgptqpflzyavdfqwwv.supabase.
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
-# ── LM Studio config ─────────────────────────────────────────
-LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-9b")
-
 
 def load_yaml() -> dict:
     """Load project_status.yaml, converting date objects to strings."""
@@ -199,129 +195,50 @@ def get_git_stats() -> dict:
     return result
 
 
+
 # ── Prose generation ──────────────────────────────────────────
 
-SYSTEM_PROMPT = (
-    "Tu es Jarvis, l'assistant personnel de Jean. Tu ecris un paragraphe de 3 a 5 phrases "
-    "en francais qui resume ou en est le projet Jarvis, dans un ton naturel et informatif, "
-    "comme si tu parlais a Jean qui revient sur son projet apres quelques jours d'absence. "
-    "Tu mentionnes la phase actuelle, ce qui a ete recemment fait, le learning principal "
-    "s'il y en a un, et la prochaine etape concrete. Tu ne fais PAS de liste a puces, "
-    "tu ecris en prose fluide. Tu ne dis pas \"bonjour\" ni \"voici\". "
-    "Tu commences directement par \"Tu es en Phase X\"."
-)
-
-
-def _extract_prose_from_reasoning(reasoning: str) -> str:
-    """Extract the actual prose paragraph from Qwen's reasoning_content.
-
-    The model's reasoning typically contains deliberation followed by the
-    actual prose. We look for the paragraph starting with 'Tu es en Phase'
-    (as instructed in the prompt) and take everything from there.
-    """
-    import re
-    # Clean think tags if present
-    text = re.sub(r"<think>.*?</think>", "", reasoning, flags=re.DOTALL).strip()
-    if not text:
-        return ""
-
-    # Look for the prose starting marker we asked for
-    match = re.search(r"(Tu es en Phase .+)", text, flags=re.DOTALL)
-    if match:
-        prose = match.group(1).strip()
-        # Trim any trailing meta-commentary after the prose paragraph
-        # (empty line followed by deliberation)
-        parts = re.split(r"\n\s*\n", prose)
-        # Take the first coherent block (the prose paragraph)
-        if parts:
-            return parts[0].strip()
-        return prose
-
-    # Fallback: take the last substantial paragraph (model deliberates first, writes last)
-    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if len(p.strip()) > 50]
-    if paragraphs:
-        return paragraphs[-1]
-
-    return text
-
-
 def generate_prose(yaml_data: dict, metrics: dict) -> str:
-    """Call LM Studio to generate prose summary. Falls back to template if down."""
+    """Build a clean prose summary from YAML data."""
     current = yaml_data["current_phase"]
     phases = yaml_data["phases"]
     next_step = yaml_data.get("next_step", "")
-
-    # Build context for the LLM
     done_phases = [p for p in phases if p["status"] == "done"]
     current_phase = next((p for p in phases if p["id"] == current), None)
 
-    context = {
-        "phase_actuelle": current,
-        "titre_phase": current_phase["title"] if current_phase else "?",
-        "phases_terminees": [
-            {"id": p["id"], "title": p["title"], "bullets": p.get("bullets", [])}
-            for p in done_phases
-        ],
-        "phase_en_cours_bullets": current_phase.get("bullets", []) if current_phase else [],
-        "critere_reussite": current_phase.get("success_criterion", "") if current_phase else "",
-        "next_step": next_step,
-        "metrics": {
-            "chunks_indexes": metrics.get("chunks_indexed", 0),
-            "commits_ce_mois": metrics.get("commits_this_month", 0),
-            "dernier_commit": metrics.get("last_commit_relative", "inconnu"),
-        },
-    }
+    title = current_phase["title"] if current_phase else "?"
+    criterion = current_phase.get("success_criterion", "") if current_phase else ""
 
-    # Find learnings from done phases
+    # Build prose from data
+    parts = []
+
+    # Sentence 1: current phase
+    done_titles = ", ".join(p["title"] for p in done_phases)
+    parts.append(
+        f"Tu es en Phase {current} — {title}, "
+        f"apres avoir termine {done_titles}."
+    )
+
+    # Sentence 2: success criterion
+    if criterion:
+        parts.append(f"L'objectif de cette phase : {criterion}.")
+
+    # Sentence 3: learnings from done phases
     learnings = []
     for p in done_phases:
         for b in p.get("bullets", []):
-            if "learning" in b.lower() or "Learning" in b:
+            if "learning" in b.lower():
                 learnings.append(b)
     if learnings:
-        context["learnings"] = learnings
+        parts.append(learnings[-1].rstrip(".") + ".")
 
-    user_msg = "/no_think\n" + json.dumps(context, ensure_ascii=False, indent=2)
+    # Sentence 4: next step
+    if next_step:
+        parts.append(f"Prochaine etape concrete : {next_step}.")
 
-    import re
-    try:
-        from openai import OpenAI
-        client = OpenAI(base_url=LM_STUDIO_BASE_URL, api_key="lm-studio", timeout=60.0)
-        response = client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_msg},
-            ],
-            temperature=0.7,
-            max_tokens=512,
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
-        )
-        msg = response.choices[0].message
-        raw = msg.content or ""
-        # Strip any residual <think> tags
-        prose = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
-        if prose:
-            return prose
-        # Qwen3.5 via LM Studio API puts all output in reasoning_content
-        reasoning = getattr(msg, "reasoning_content", None) or ""
-        if not reasoning:
-            msg_dict = msg.model_dump() if hasattr(msg, "model_dump") else {}
-            reasoning = msg_dict.get("reasoning_content", "")
-        if reasoning:
-            prose = _extract_prose_from_reasoning(reasoning)
-            if prose:
-                print(f"  [OK] Prose extraite du reasoning ({len(prose)} chars)")
-                return prose
-        print(f"  [WARN] LLM returned empty content and no usable reasoning, using fallback.")
-    except ImportError:
-        print("  [WARN] openai package not installed, using fallback prose.")
-    except Exception as e:
-        print(f"  [WARN] LM Studio error ({e}), using fallback prose.")
-
-    # Fallback template
-    title = current_phase["title"] if current_phase else "?"
-    return f"Tu es en Phase {current} — {title}. Prochaine etape : {next_step}."
+    prose = " ".join(parts)
+    print(f"  [OK] Prose generee ({len(prose)} chars)")
+    return prose
 
 
 # ── Main ──────────────────────────────────────────────────────
