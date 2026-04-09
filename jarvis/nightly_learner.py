@@ -71,9 +71,11 @@ def sb_upsert(table, data, service=True):
 
 def fetch_conversations(since_iso: str) -> dict[str, list]:
     """Fetch conversations since a date, grouped by session_id."""
+    # Use Z suffix instead of +00:00 to avoid URL encoding issues
+    safe_since = since_iso.replace("+00:00", "Z")
     rows = sb_read(
         "jarvis_conversations",
-        f"created_at=gte.{since_iso}&order=created_at.asc&limit=500"
+        f"created_at=gte.{safe_since}&order=created_at.asc&limit=500"
     )
     sessions = {}
     for row in rows:
@@ -254,6 +256,9 @@ def main():
     # 4. Reindex
     print(f"\n[4/4] Reindexation des nouvelles donnees...")
     try:
+        # Ensure env vars are set for indexer's config module
+        os.environ.setdefault("SUPABASE_URL", SUPABASE_URL)
+        os.environ.setdefault("SUPABASE_KEY", SUPABASE_KEY)
         sys.path.insert(0, os.path.dirname(__file__))
         from indexer import index_table
         for table in ("profile_facts", "entities"):
