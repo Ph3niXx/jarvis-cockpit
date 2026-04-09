@@ -1230,7 +1230,7 @@ function navigateTo(dateStr){
 }
 
 // ── UTILS ──────────────────────────────────────────────────
-function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
 function stripHtml(s){if(!s)return'';const d=document.createElement('div');d.innerHTML=s;let t=d.textContent||d.innerText||'';t=t.replace(/The post .+ appeared first on .+/g,'').replace(/\s+/g,' ').trim();return t;}
 function mdToHtml(s){if(!s)return'';
   return esc(s)
@@ -2291,12 +2291,6 @@ function fmtNum(n){
   return Number(n).toLocaleString('fr-FR');
 }
 
-function esc(s){
-  if(!s) return '';
-  const d=document.createElement('div');
-  d.textContent=String(s);
-  return d.innerHTML;
-}
 
 function escProse(s){
   // Escape HTML then wrap backtick-code in <code>
