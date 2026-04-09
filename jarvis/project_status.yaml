@@ -1,4 +1,4 @@
-current_phase: 3
+current_phase: 4
 
 phases:
   - id: 1
@@ -22,12 +22,14 @@ phases:
 
   - id: 3
     title: Memoire structuree
-    status: in_progress
-    success_criterion: Jarvis se souvient de moi entre les sessions
+    status: done
+    completion_date: 2026-04-09
     bullets:
-      - Creer les tables profile_facts et entities dans Supabase
-      - Script d'extraction nocturne depuis les conversations Claude
-      - Validation du critere de reussite
+      - Tables jarvis_conversations, profile_facts et entities creees dans Supabase
+      - Chaque message sauvegarde en temps reel via server.py
+      - nightly_learner.py extrait faits et entites via Qwen3.5 local
+      - Faits injectes automatiquement dans toutes les conversations (quick + deep)
+      - "Learning : le thinking mode de LM Studio via API ne se desactive pas avec chat_template_kwargs, il faut le desactiver dans l'UI"
 
   - id: 4
     title: Orchestrateur
@@ -56,4 +58,4 @@ phases:
       - Puis integration Teams et Outlook
       - Brief quotidien automatique en fin de journee
 
-next_step: Creer les tables profile_facts et entities, puis ecrire le script d'extraction nocturne depuis les conversations Claude
+next_step: Construire le routeur intelligent qui decide quand utiliser le LLM local vs Claude/Gemini cloud, et unifier l'API
