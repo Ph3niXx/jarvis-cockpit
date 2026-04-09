@@ -355,6 +355,10 @@ a:hover{text-decoration:underline}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:40px;color:var(--tx3);font-size:14px}
 .empty-icon{font-size:32px;margin-bottom:8px}
+.error-state{text-align:center;padding:40px;background:var(--red-bg);border-radius:var(--radius);font-size:14px;color:var(--tx2)}
+.error-state .error-icon{font-size:32px;margin-bottom:8px}
+.error-state .error-msg{margin-bottom:14px}
+.error-state .btn{margin-top:4px}
 
 /* ── SECTION LABEL ────────────────────────────────────────── */
 .section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);margin-bottom:16px}
@@ -790,7 +794,7 @@ async function loadDay(dateStr){
           ${(a.summary||'').length>120?`<button class="card-expand" onclick="toggleSummary('${a.id}')">voir plus</button>`:''}
         </div>`).join('');
     });
-  }catch(e){console.error('loadDay',e)}
+  }catch(e){console.error('loadDay',e);SECTIONS.forEach(s=>showError(`cards-${s}`,'Erreur de chargement des articles',()=>loadDay(currentDate)))}
   // Load brief
   try{
     const briefs=await fetchJSON(`${SUPABASE_URL}/rest/v1/daily_briefs?date=eq.${dateStr}&limit=1`);
@@ -810,7 +814,7 @@ async function loadDay(dateStr){
     }else{
       el.innerHTML=`<div class="empty"><div class="empty-icon">📝</div>Brief non disponible pour cette date</div>`;
     }
-  }catch(e){console.error('loadBrief',e)}
+  }catch(e){console.error('loadBrief',e);showError('brief-content','Erreur de chargement du brief',()=>loadDay(currentDate))}
 }
 
 function toggleSummary(id){
@@ -837,7 +841,7 @@ async function loadWiki(){
         </div>
       </div>`).join('');
     wikiLoaded=true;
-  }catch(e){console.error('loadWiki',e)}
+  }catch(e){console.error('loadWiki',e);showError('wiki-grid','Erreur de chargement du wiki',()=>{wikiLoaded=false;loadWiki()})}
 }
 
 async function showWikiDetail(slug){
@@ -961,7 +965,7 @@ async function loadSignals(){
 
     el.innerHTML=html;
     signalsLoaded=true;
-  }catch(e){console.error('loadSignals',e)}
+  }catch(e){console.error('loadSignals',e);showError('signal-list','Erreur de chargement des signaux',()=>{signalsLoaded=false;loadSignals()})}
 }
 
 // ── RADAR ──────────────────────────────────────────────────
@@ -1013,7 +1017,7 @@ async function loadRadar(){
     // Show diagnostic if all scores are 0
     if(axes.every(a=>Number(a.score)===0)) showDiagnostic();
     radarLoaded=true;
-  }catch(e){console.error('loadRadar',e)}
+  }catch(e){console.error('loadRadar',e);showError('radar-container','Erreur de chargement du radar',()=>{radarLoaded=false;loadRadar()})}
 }
 
 // ── CHALLENGES ─────────────────────────────────────────────
@@ -1035,7 +1039,7 @@ async function loadChallenges(){
         </div>
       </div>`).join('');
     challengesLoaded=true;
-  }catch(e){console.error('loadChallenges',e)}
+  }catch(e){console.error('loadChallenges',e);showError('challenges-content','Erreur de chargement des challenges',()=>{challengesLoaded=false;loadChallenges()})}
 }
 
 // ── OPPORTUNITIES ──────────────────────────────────────────
@@ -1096,7 +1100,7 @@ async function loadOpportunities(){
 
     el.innerHTML=html;
     oppsLoaded=true;
-  }catch(e){console.error('loadOpportunities',e)}
+  }catch(e){console.error('loadOpportunities',e);showError('opportunities-content','Erreur de chargement des opportunités',()=>{oppsLoaded=false;loadOpportunities()})}
 }
 
 // ── IDEAS ──────────────────────────────────────────────────
@@ -1120,7 +1124,7 @@ async function loadIdeas(){
         </div>
       </div>`).join('');
     ideasLoaded=true;
-  }catch(e){console.error('loadIdeas',e)}
+  }catch(e){console.error('loadIdeas',e);showError('ideas-list','Erreur de chargement des idées',()=>{ideasLoaded=false;loadIdeas()})}
 }
 
 async function saveIdea(){
@@ -1195,7 +1199,7 @@ async function loadRTE(){
       </div>`;
     }).join('');
     rteLoaded=true;
-  }catch(e){console.error('loadRTE',e)}
+  }catch(e){console.error('loadRTE',e);showError('rte-grid','Erreur de chargement de la RTE Toolbox',()=>{rteLoaded=false;loadRTE()})}
 }
 
 // ── SEARCH ─────────────────────────────────────────────────
@@ -1233,7 +1237,7 @@ async function loadHistory(){
       </div>`;
     }).join('');
     historyLoaded=true;
-  }catch(e){console.error('loadHistory',e)}
+  }catch(e){console.error('loadHistory',e);showError('history-content','Erreur de chargement de l\'historique',()=>{historyLoaded=false;loadHistory()})}
 }
 
 function navigateTo(dateStr){
@@ -1246,6 +1250,12 @@ function navigateTo(dateStr){
 }
 
 // ── UTILS ──────────────────────────────────────────────────
+function showError(containerId,message,retryFn){
+  const el=document.getElementById(containerId);
+  if(!el)return;
+  el.innerHTML=`<div class="error-state"><div class="error-icon">⚠️</div><div class="error-msg">${message}</div><button class="btn btn-primary" id="_retry_${containerId}">Réessayer</button></div>`;
+  document.getElementById(`_retry_${containerId}`).addEventListener('click',retryFn);
+}
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
 function stripHtml(s){if(!s)return'';const d=document.createElement('div');d.innerHTML=s;let t=d.textContent||d.innerText||'';t=t.replace(/The post .+ appeared first on .+/g,'').replace(/\s+/g,' ').trim();return t;}
 function mdToHtml(s){if(!s)return'';
@@ -1302,7 +1312,7 @@ async function loadProfile(){
     }).join('')+`<button class="btn btn-primary" onclick="saveProfile()">Sauvegarder le profil</button>
     <span id="profile-status" style="margin-left:12px;font-size:13px;color:var(--green)"></span>`;
     profileLoaded=true;
-  }catch(e){console.error('loadProfile',e)}
+  }catch(e){console.error('loadProfile',e);showError('profile-fields','Erreur de chargement du profil',()=>{profileLoaded=false;loadProfile()})}
 }
 
 async function saveProfile(){
@@ -1349,7 +1359,7 @@ async function loadRecos(){
         ${r.resource_url?`<a href="${esc(r.resource_url)}" target="_blank" style="font-size:12px">Voir la ressource →</a>`:''}
       </div>`).join('')}</div>`;
     recosLoaded=true;
-  }catch(e){console.error('loadRecos',e)}
+  }catch(e){console.error('loadRecos',e);showError('recos-content','Erreur de chargement des recommandations',()=>{recosLoaded=false;loadRecos()})}
 }
 
 // ── DIAGNOSTIC QUIZ ────────────────────────────────────────
@@ -1586,7 +1596,7 @@ async function loadCosts(){
         <div style="font-size:11px;padding:2px 8px;border-radius:10px;background:#EAF3DE;color:#3B6D11;display:inline-block;margin-top:6px">Gratuit</div>
       </div>`;
 
-  }catch(e){console.error('loadCosts',e)}
+  }catch(e){console.error('loadCosts',e);showError('costs-table','Erreur de chargement des coûts',()=>loadCosts())}
 }
 
 // ── TFT MATCHES ───────────────────────────────────────────
@@ -1640,7 +1650,7 @@ async function loadTft(){
     renderTftTable();
   }catch(e){
     console.error('loadTft',e);
-    document.getElementById('tft-table').innerHTML=`<div class="empty"><div class="empty-icon">🎮</div>Erreur de chargement des matchs TFT.<br>Vérifiez que le pipeline a bien tourné.</div>`;
+    showError('tft-table','Erreur de chargement des matchs TFT',()=>{tftLoaded=false;loadTft()});
   }
 }
 
@@ -2151,7 +2161,7 @@ async function init(){
     }
   }catch(e){
     console.error('init',e);
-    document.getElementById('brief-content').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div>Erreur de connexion à Supabase</div>`;
+    showError('brief-content','Erreur de connexion à Supabase',()=>init());
   }
 }
 
@@ -2179,7 +2189,7 @@ async function loadJarvisProject(){
     jpFreshnessTimer=setInterval(()=>updateJpFreshness(snap),30000);
   }catch(e){
     console.error('jarvis-project',e);
-    ctr.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div>Erreur de chargement du snapshot Jarvis.</div>';
+    showError('jp-container','Erreur de chargement du snapshot Jarvis',()=>{jpLoaded=false;loadJarvisProject()});
   }
 }
 
