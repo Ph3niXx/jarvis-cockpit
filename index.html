@@ -64,6 +64,7 @@ a:hover{text-decoration:underline}
 }
 .sb-link:hover{background:var(--bg2);color:var(--tx)}
 .sb-link.active{background:var(--accent-bg);color:var(--accent);font-weight:600}
+.sb-link--empty{opacity:.4;pointer-events:none}
 .sb-link .icon{width:20px;text-align:center;font-size:14px;flex-shrink:0}
 .sb-link .label{flex:1}
 .sb-link .count{
@@ -784,6 +785,8 @@ async function loadDay(dateStr){
       const filtered=articles.filter(a=>a.section===s);
       const countEl=document.getElementById(`c-${s}`);
       if(countEl) countEl.textContent=filtered.length||'-';
+      const sbLink=document.querySelector(`.sb-link[data-panel="${s}"]`);
+      if(sbLink) sbLink.classList.toggle('sb-link--empty',!filtered.length);
       if(!el)return;
       if(!filtered.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📭</div>Aucun article dans cette section</div>`;return;}
       el.innerHTML=filtered.map(a=>`
