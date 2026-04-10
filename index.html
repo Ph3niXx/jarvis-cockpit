@@ -282,6 +282,16 @@ a:hover{text-decoration:underline}
 .card-related-link:hover{background:var(--accent);color:#fff}
 .card--highlight{animation:highlightPulse 2s ease-out}
 @keyframes highlightPulse{0%{box-shadow:0 0 0 4px var(--accent)}100%{box-shadow:none}}
+.focus-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s ease;padding:20px}
+.focus-overlay.active{opacity:1;pointer-events:auto}
+.focus-card{background:var(--bg);border-radius:16px;padding:32px;max-width:700px;width:100%;max-height:80vh;overflow-y:auto;position:relative;transform:scale(.95);transition:transform .2s ease;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.focus-overlay.active .focus-card{transform:scale(1)}
+.focus-close{position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.8rem;color:var(--tx2);cursor:pointer;line-height:1;padding:4px 8px;z-index:1}
+.focus-close:hover{color:var(--tx)}
+.focus-card h2{margin-top:0;font-size:1.3rem}
+.focus-card .card-summary{-webkit-line-clamp:unset!important;max-height:none!important}
+.focus-card .signal-item,.focus-card .card,.focus-card .wiki-card,.focus-card .challenge-card{box-shadow:none;border:none;padding:0}
+@media(max-width:600px){.focus-card{max-width:100%;padding:20px;border-radius:12px}}
 .card--new::after{content:'Nouveau';position:absolute;top:8px;right:8px;background:var(--accent);color:#fff;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:var(--radius-full);z-index:2;animation:badgePulse .3s ease-out}
 @keyframes badgePulse{0%{transform:scale(0);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 
@@ -1384,7 +1394,7 @@ async function loadWiki(){
     if(!concepts.length){grid.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('library')}</div>Le wiki se remplit automatiquement avec les articles quotidiens</div>`;return;}
     cockpitData.wiki=concepts;
     grid.innerHTML=concepts.map(c=>`
-      <div class="wiki-card${newCls(c.last_mentioned)}" data-item-id="${esc(c.slug)}" onclick="showWikiDetail('${esc(c.slug)}')">
+      <div class="wiki-card${newCls(c.last_mentioned)}" data-item-id="${esc(c.slug)}" onclick="showWikiDetail('${esc(c.slug)}')" style="cursor:pointer">
         <div class="wiki-card-name">${esc(c.name)}</div>
         <div class="wiki-card-cat">${esc(c.category)}</div>
         <div class="wiki-card-stats">
@@ -1403,21 +1413,21 @@ async function showWikiDetail(slug){
     const data=await fetchJSON(`${SUPABASE_URL}/rest/v1/wiki_concepts?slug=eq.${slug}&limit=1`);
     if(!data.length)return;
     const c=data[0];
-    const container=document.getElementById('wiki-detail-container');
-    container.innerHTML=`
-      <div class="wiki-detail show">
-        <h3>${esc(c.name)}</h3>
-        <div class="level-tabs">
-          <span class="level-tab active" onclick="setWikiLevel(this,'beginner')">Débutant</span>
-          <span class="level-tab" onclick="setWikiLevel(this,'intermediate')">Intermédiaire</span>
-          <span class="level-tab" onclick="setWikiLevel(this,'advanced')">Avancé</span>
-        </div>
-        <div class="level-content" id="wiki-level-content">${c.summary_beginner||'<em>Contenu généré lors du prochain run hebdomadaire Claude</em>'}</div>
-        <div class="wiki-sources">
-          ${(c.sources||[]).slice(0,5).map(s=>`<a href="${esc(s)}" target="_blank" style="font-size:12px;display:block;margin-top:4px">${esc(s.substring(0,80))}…</a>`).join('')}
-        </div>
+    const html=`
+      <h2>${esc(c.name)}</h2>
+      <div class="wiki-card-cat" style="margin-bottom:12px">${esc(c.category)} · ${c.mention_count} mentions</div>
+      <div class="level-tabs">
+        <span class="level-tab active" onclick="setWikiLevel(this,'beginner')">Débutant</span>
+        <span class="level-tab" onclick="setWikiLevel(this,'intermediate')">Intermédiaire</span>
+        <span class="level-tab" onclick="setWikiLevel(this,'advanced')">Avancé</span>
+      </div>
+      <div class="level-content" id="wiki-level-content">${c.summary_beginner||'<em>Contenu généré lors du prochain run hebdomadaire Claude</em>'}</div>
+      <div class="wiki-sources">
+        ${(c.sources||[]).slice(0,5).map(s=>`<a href="${esc(s)}" target="_blank" style="font-size:12px;display:block;margin-top:4px">${esc(s.substring(0,80))}…</a>`).join('')}
       </div>`;
-    // Store levels
+    openFocusOverlay(html);
+    // Store levels on the focus content container
+    const container=document.getElementById('focus-content');
     container._levels={beginner:c.summary_beginner,intermediate:c.summary_intermediate,advanced:c.summary_advanced};
   }catch(e){console.error('showWikiDetail',e)}
 }
@@ -1425,7 +1435,7 @@ async function showWikiDetail(slug){
 function setWikiLevel(btn,level){
   btn.parentElement.querySelectorAll('.level-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
-  const container=document.getElementById('wiki-detail-container');
+  const container=document.getElementById('focus-content')||document.getElementById('wiki-detail-container');
   const content=container._levels?.[level];
   document.getElementById('wiki-level-content').innerHTML=content||'<em>Contenu généré lors du prochain run hebdomadaire Claude</em>';
 }
@@ -1564,7 +1574,7 @@ async function loadSignals(){
     if(risingNew.length){
       html+=`<div class="section-label" style="color:var(--green)">Signaux à surveiller</div>`;
       html+=risingNew.map(s=>`
-        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" style="border-left:3px solid ${s.trend==='rising'?'var(--green)':'var(--blue)'}">
+        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" style="border-left:3px solid ${s.trend==='rising'?'var(--green)':'var(--blue)'};cursor:pointer" onclick="openCardFocus(this,event)">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1">
             <span class="signal-name">${esc(s.term)}</span>
@@ -1582,7 +1592,7 @@ async function loadSignals(){
     if(stable.length){
       html+=`<div class="section-label" style="margin-top:20px">Sujets établis</div>`;
       html+=stable.map(s=>`
-        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}">
+        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" style="cursor:pointer" onclick="openCardFocus(this,event)">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${renderRelatedLinks(s.term,'signals')}</div>
           <span class="signal-count">${s.mention_count}x</span>
@@ -1594,7 +1604,7 @@ async function loadSignals(){
     if(declining.length){
       html+=`<div class="section-label" style="margin-top:20px">En déclin</div>`;
       html+=declining.map(s=>`
-        <div class="signal-item signal-declining${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}">
+        <div class="signal-item signal-declining${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" style="cursor:pointer" onclick="openCardFocus(this,event)">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${renderRelatedLinks(s.term,'signals')}</div>
           <span class="signal-count">${s.mention_count}x</span>
@@ -1675,7 +1685,7 @@ async function loadChallenges(){
     if(!challenges.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trophy')}</div>Les challenges seront générés par le run hebdomadaire Claude</div>`;return;}
     cockpitData.challenges=challenges;
     el.innerHTML=challenges.map(c=>`
-      <div class="challenge-card${newCls(c.created_at||c.week_start)}" data-item-id="${c.id}" style="${c.status==='completed'?'opacity:.6;border-color:var(--green)':''}">
+      <div class="challenge-card${newCls(c.created_at||c.week_start)}" data-item-id="${c.id}" style="${c.status==='completed'?'opacity:.6;border-color:var(--green)':''};cursor:pointer" onclick="openCardFocus(this,event)">
         <div class="challenge-title">${c.status==='completed'?'✅ ':''} ${esc(c.title)}</div>
         <div class="challenge-desc">${esc(c.description||'')}</div>
         <div class="challenge-meta">
@@ -1713,7 +1723,7 @@ async function loadOpportunities(){
     const life=opps.filter(o=>o.category==='life');
 
     function renderOpp(o){
-      return `<div class="card${newCls(o.created_at||o.week_start)}" data-item-id="${o.id}" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'}">
+      return `<div class="card${newCls(o.created_at||o.week_start)}" data-item-id="${o.id}" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'};cursor:pointer" onclick="openCardFocus(this,event)">
         <div class="flex-header">
           <span class="text-icon">${catIcons[o.category]||'💡'}</span>
           <span class="badge badge--neutral">${esc(o.sector||'')}</span>
@@ -2062,7 +2072,7 @@ async function loadRecos(){
     const typeIcons={article:'📄',tutorial:'🛠',video:'🎬',paper:'📑',course:'🎓'};
 
     el.innerHTML=`<div class="recos-grid">${recos.map(r=>`
-      <div class="card card--reco${r.completed?' completed':''}${newCls(r.created_at||r.week_start)}" data-item-id="${r.id}" style="border-left:3px solid ${axisColors[r.target_axis]||'var(--bd)'}">
+      <div class="card card--reco${r.completed?' completed':''}${newCls(r.created_at||r.week_start)}" data-item-id="${r.id}" style="border-left:3px solid ${axisColors[r.target_axis]||'var(--bd)'};cursor:pointer" onclick="openCardFocus(this,event)">
         <div class="flex-header-sm">
           <span class="text-icon">${typeIcons[r.resource_type]||'📄'}</span>
           <span class="badge badge--neutral">${r.target_axis}</span>
@@ -3047,7 +3057,29 @@ function focusSearch(){
   if(input) input.focus();
 }
 
+// ── FOCUS OVERLAY ────────────────────────────────────────────
+function openFocusOverlay(htmlContent){
+  const overlay=document.getElementById('card-focus-overlay');
+  document.getElementById('focus-content').innerHTML=htmlContent;
+  overlay.classList.add('active');
+  document.body.style.overflow='hidden';
+}
+function closeFocusOverlay(e){
+  if(e&&e.target!==e.currentTarget)return;
+  const overlay=document.getElementById('card-focus-overlay');
+  if(!overlay.classList.contains('active'))return;
+  overlay.classList.remove('active');
+  document.body.style.overflow='';
+}
+function openCardFocus(el,e){
+  if(e.target.closest('a,button,.card-action,.card-related-link'))return;
+  openFocusOverlay(el.innerHTML);
+}
+
 function closeAllOverlays(){
+  // Focus overlay
+  const focus=document.getElementById('card-focus-overlay');
+  if(focus.classList.contains('active')){closeFocusOverlay();return;}
   // Help panel
   const help=document.getElementById('kbd-help-backdrop');
   if(help.classList.contains('show')){help.classList.remove('show');return;}
@@ -3125,5 +3157,12 @@ function dismissInstall() {
   document.querySelector('.install-banner')?.remove();
 }
 </script>
+<!-- FOCUS OVERLAY (must be direct child of body for proper stacking) -->
+<div id="card-focus-overlay" class="focus-overlay" onclick="closeFocusOverlay(event)">
+  <div class="focus-card" onclick="event.stopPropagation()">
+    <button class="focus-close" onclick="closeFocusOverlay()" aria-label="Fermer">&times;</button>
+    <div id="focus-content"></div>
+  </div>
+</div>
 </body>
 </html>
