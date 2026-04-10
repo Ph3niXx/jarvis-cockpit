@@ -572,8 +572,15 @@ a:hover{text-decoration:underline}
 .signal-declining{opacity:.7}
 .profile-field{margin-bottom:var(--space-4)}
 .profile-label{font-size:var(--text-sm);font-weight:600;display:block;margin-bottom:var(--space-1)}
-.profile-input{width:100%;padding:var(--space-2) 14px;border:1px solid var(--bd);border-radius:var(--radius-sm);font-family:inherit;font-size:var(--text-sm);background:var(--bg3)}
-.profile-textarea{width:100%;padding:10px 14px;border:1px solid var(--bd);border-radius:var(--radius-sm);font-family:inherit;font-size:var(--text-sm);min-height:80px;resize:vertical;background:var(--bg3)}
+.profile-input,.profile-textarea{width:100%;padding:var(--space-2) 14px;border:1px solid var(--bd);border-radius:var(--radius-sm);font-family:inherit;font-size:var(--text-sm);background:var(--bg3);transition:border-color .2s}
+.profile-textarea{padding:10px 14px;min-height:80px;resize:vertical}
+.profile-input.dirty,.profile-textarea.dirty{border-color:var(--amber)}
+.profile-input.saving,.profile-textarea.saving{border-color:var(--tx3)}
+.profile-input.saved,.profile-textarea.saved{border-color:var(--green)}
+.profile-input.save-error,.profile-textarea.save-error{border-color:var(--red)}
+.profile-field-status{font-size:var(--text-xs);height:16px;margin-top:2px;color:var(--tx3)}
+.profile-field-status.status-saved{color:var(--green)}
+.profile-field-status.status-error{color:var(--red)}
 .profile-status{margin-left:var(--space-3);font-size:var(--text-sm);color:var(--green)}
 .tft-detail-header{display:flex;align-items:center;gap:14px;margin-bottom:var(--space-5)}
 .tft-detail-title{font-weight:600}
@@ -1751,6 +1758,8 @@ const PROFILE_LABELS={
 const PROFILE_ORDER=['identity','current_role','company_context','ambitions','interests','what_excites_me','what_frustrates_me','current_projects','sectors_of_interest','learning_style','weekly_notes'];
 
 let profileLoaded=false;
+const _pfTimers={};
+
 async function loadProfile(){
   if(profileLoaded)return;
   try{
@@ -1766,32 +1775,88 @@ async function loadProfile(){
       return `<div class="profile-field">
         <label class="profile-label">${label}</label>
         ${isLong
-          ?`<textarea id="pf-${key}" class="profile-textarea">${esc(val)}</textarea>`
-          :`<input type="text" id="pf-${key}" value="${esc(val)}" class="profile-input">`
+          ?`<textarea id="pf-${key}" data-pfkey="${key}" class="profile-textarea">${esc(val)}</textarea>`
+          :`<input type="text" id="pf-${key}" data-pfkey="${key}" value="${esc(val)}" class="profile-input">`
         }
+        <div class="profile-field-status" id="pfs-${key}"></div>
       </div>`;
-    }).join('')+`<button class="btn btn-primary" onclick="saveProfile()">Sauvegarder le profil</button>
+    }).join('')+`<button class="btn" onclick="saveAllProfile()" style="margin-top:var(--space-3)">Tout sauvegarder</button>
     <span id="profile-status" class="profile-status"></span>`;
+    // Attach auto-save listeners
+    el.querySelectorAll('[data-pfkey]').forEach(input=>{
+      input.addEventListener('input',()=>{
+        const key=input.dataset.pfkey;
+        input.classList.remove('saved','save-error');
+        input.classList.add('dirty');
+        setFieldStatus(key,'');
+        clearTimeout(_pfTimers[key]);
+        _pfTimers[key]=setTimeout(()=>saveField(key),2000);
+      });
+    });
     profileLoaded=true;
   }catch(e){console.error('loadProfile',e);showError('profile-fields','Erreur de chargement du profil',()=>{profileLoaded=false;loadProfile()})}
 }
 
-async function saveProfile(){
+function setFieldStatus(key,state,msg){
+  const st=document.getElementById(`pfs-${key}`);
+  if(!st)return;
+  st.className='profile-field-status';
+  if(state==='saved'){st.classList.add('status-saved');st.textContent=msg||'Sauvegardé';}
+  else if(state==='saving'){st.textContent='Sauvegarde…';}
+  else if(state==='error'){st.classList.add('status-error');st.textContent=msg||'Erreur, réessaie';}
+  else{st.textContent='';}
+}
+
+async function saveField(key){
+  const el=document.getElementById(`pf-${key}`);
+  if(!el)return;
+  el.classList.remove('dirty','saved','save-error');
+  el.classList.add('saving');
+  setFieldStatus(key,'saving');
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/user_profile?key=eq.${key}`,{
+      method:'PATCH',
+      headers:{...headers,'Content-Type':'application/json'},
+      body:JSON.stringify({value:el.value,updated_at:new Date().toISOString()})
+    });
+    if(!r.ok) throw new Error(r.status);
+    el.classList.remove('saving');
+    el.classList.add('saved');
+    setFieldStatus(key,'saved');
+    setTimeout(()=>{el.classList.remove('saved');setFieldStatus(key,'');},2000);
+  }catch(e){
+    el.classList.remove('saving');
+    el.classList.add('save-error');
+    setFieldStatus(key,'error');
+  }
+}
+
+async function saveAllProfile(){
   const status=document.getElementById('profile-status');
   status.textContent='Sauvegarde…';
   let saved=0;
   for(const key of PROFILE_ORDER){
+    clearTimeout(_pfTimers[key]);
     const el=document.getElementById(`pf-${key}`);
     if(!el)continue;
-    const val=el.value;
-    await fetch(`${SUPABASE_URL}/rest/v1/user_profile?key=eq.${key}`,{
-      method:'PATCH',
-      headers:{...headers,'Content-Type':'application/json'},
-      body:JSON.stringify({value:val,updated_at:new Date().toISOString()}),
-    });
-    saved++;
+    try{
+      await fetch(`${SUPABASE_URL}/rest/v1/user_profile?key=eq.${key}`,{
+        method:'PATCH',
+        headers:{...headers,'Content-Type':'application/json'},
+        body:JSON.stringify({value:el.value,updated_at:new Date().toISOString()})
+      });
+      el.classList.remove('dirty','save-error','saving');
+      el.classList.add('saved');
+      setFieldStatus(key,'saved');
+      setTimeout(()=>{el.classList.remove('saved');setFieldStatus(key,'');},2000);
+      saved++;
+    }catch(e){
+      el.classList.remove('dirty','saving');
+      el.classList.add('save-error');
+      setFieldStatus(key,'error');
+    }
   }
-  status.textContent=`✅ ${saved} champs sauvegardés`;
+  status.textContent=`${saved} champs sauvegardés`;
   setTimeout(()=>status.textContent='',3000);
 }
 
