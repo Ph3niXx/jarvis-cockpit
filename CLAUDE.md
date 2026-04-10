@@ -38,6 +38,8 @@ tft_pipeline.py                      # Pipeline TFT (Riot API → Supabase)
 index.html                           # Site cockpit complet (vanilla JS)
 requirements.txt                     # feedparser, google-generativeai, openai, requests
 sql/tft_migration.sql                # Migration Supabase pour les tables TFT
+sql/005_rls_lockdown.sql             # RLS: restriction anon (SELECT only, pas de DELETE)
+sql/006_rls_authenticated.sql        # RLS: migration anon → authenticated
 jarvis/                              # Module Jarvis (assistant local LM Studio)
 jarvis_data/                         # Données perso Jarvis (non versionné)
 .github/workflows/daily_digest.yml   # Cron quotidien
@@ -85,8 +87,7 @@ Tables existantes :
 - `tft_match_lobby` — 7 adversaires par match (placement, main_traits, main_carry, dénormalisé)
 - `tft_rank_history` — snapshot quotidien du rang ranked (tier, rank, LP, wins, losses)
 
-RLS : tables AI cockpit → SELECT + INSERT + UPDATE public via publishable key.
-RLS : tables TFT → SELECT/INSERT/UPDATE restreints à `auth.uid()`, écriture via service_role key dans le pipeline.
+**RLS (après migration 006)** : toutes les tables requièrent `authenticated` pour SELECT. 4 tables frontend (business_ideas, user_profile, skill_radar, tft_matches) ont aussi INSERT/UPDATE pour `authenticated`. Anon ne peut plus rien lire. Les pipelines backend (main.py, weekly_analysis.py, tft_pipeline.py, Jarvis) utilisent `service_role` key qui bypass RLS.
 
 ### Sections du cockpit (sidebar)
 
@@ -111,11 +112,19 @@ RLS : tables TFT → SELECT/INSERT/UPDATE restreints à `auth.uid()`, écriture 
 | Recherche | articles (full-text ilike) | Temps réel |
 | Historique | articles (groupé par fetch_date) | Quotidien |
 
+## Sécurité
+
+- **Authentification** : Google OAuth via Supabase Auth. Le cockpit affiche un login overlay au chargement, `checkAuth()` vérifie la session avant d'appeler `init()`. Le token JWT est injecté dans les headers REST pour chaque appel Supabase frontend.
+- **RLS** : Migration `sql/006_rls_authenticated.sql` — toutes les tables exigent `authenticated`. Les pipelines backend utilisent `SUPABASE_SERVICE_KEY` (obligatoire, `start_jarvis.bat` refuse de démarrer sans).
+- **XSS** : DOMPurify sanitize tout le HTML injecté dynamiquement via `safe()` helper.
+- **CSP** : Meta tag Content-Security-Policy restrictif (`frame-src: none`, `object-src: none`, whitelist explicite pour scripts/connect).
+- **Backend** : `jarvis/supabase_client.py` utilise toujours `service_role` key (jamais la publishable).
+
 ## Conventions
 
 - Le `index.html` est un fichier unique vanilla JS — pas de framework, pas de build
 - La publishable key Supabase est en dur dans `index.html` (c'est une clé publique)
-- Les appels Supabase côté front utilisent l'API REST directe (pas de SDK)
+- Les appels Supabase côté front utilisent le SDK `@supabase/supabase-js` (chargé via CDN) pour l'auth, et l'API REST directe pour les données
 - Le main.py utilise Gemini Flash-Lite (gratuit, 1000 req/jour)
 - Le weekly_analysis.py utilise Claude Haiku 4.5 avec un budget max de 1$/run
 - Le CostTracker dans weekly_analysis.py arrête le pipeline si le budget est dépassé
@@ -134,7 +143,7 @@ RLS : tables TFT → SELECT/INSERT/UPDATE restreints à `auth.uid()`, écriture 
 - **Lobby dénormalisé** — une table plate `tft_match_lobby` avec main_traits/main_carry pré-calculés, pas de sous-tables units/traits pour les adversaires (trop de données, peu de valeur analytique)
 - **Noms nettoyés + IDs bruts conservés** — `champion_name` = "Vayne" (strip `TFT{N}_`), `character_id` = "TFT16_Vayne" (brut). Idem pour traits et items. Permet l'affichage propre tout en gardant la traçabilité API
 - **raw_payload = participant uniquement** — le JSONB dans `tft_matches` ne contient que le JSON du participant du joueur, pas le lobby complet (économie de stockage, le lobby est dans sa propre table)
-- **Service role key pour l'écriture** — le pipeline TFT utilise la service_role key pour bypasser RLS (le pipeline n'a pas de session auth.uid()). La publishable key est utilisée côté front pour la lecture
+- **Service role key pour l'écriture** — tous les pipelines backend utilisent la service_role key pour bypasser RLS (pas de session auth.uid()). Le front utilise un JWT Google OAuth pour la lecture
 
 ## Module Jarvis (assistant local)
 
@@ -226,7 +235,7 @@ jarvis_data/               # Données perso, non versionné (activity_*.jsonl, o
 - `profile_facts` — faits structurés sur l'utilisateur (fact_type, fact_text, confidence, superseded_by). Extraits par `nightly_learner.py`, injectés dans le system prompt de chaque conversation.
 - `entities` — personnes, projets, outils, entreprises mentionnés (entity_type, name, description, mentions_count). Extraits par `nightly_learner.py`.
 - Migration : `jarvis/migrations/003_structured_memory.sql`
-- **`jarvis/nightly_learner.py`** — Script d'extraction nocturne idempotent : lit les conversations depuis le dernier checkpoint (`jarvis_data/nightly_learner_state.json`), envoie chaque session à Qwen3.5 pour extraction JSON (faits + entités), upsert dans les tables, reindex via indexer.py. Déclenché automatiquement à minuit par le scheduler asyncio dans server.py, au démarrage via start_jarvis.bat, ou manuellement via `POST /nightly-learner` ou `python jarvis/nightly_learner.py --days=N`.
+- **`jarvis/nightly_learner.py`** — Script d'extraction nocturne multi-source idempotent. Sources : conversations Jarvis, activité fenêtre (JSONL), Outlook (JSON). Extensible pour Strava, etc. Checkpoint par source dans `jarvis_data/nightly_learner_state.json`. Envoie chaque bloc à Qwen3.5 pour extraction JSON (faits + entités), upsert dans les tables, reindex via indexer.py. Déclenché automatiquement à minuit par le scheduler asyncio dans server.py, au démarrage via start_jarvis.bat, ou manuellement via `POST /nightly-learner` ou `python jarvis/nightly_learner.py --days=N`.
 
 **Créées (Phase 6) :**
 - `activity_briefs` — briefs d'activité quotidiens (date unique, brief_html, stats JSONB). Seul le résumé y est stocké, pas les données brutes.

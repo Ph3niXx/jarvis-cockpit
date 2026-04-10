@@ -16,8 +16,13 @@ if "%SUPABASE_KEY%"=="" (
   set SUPABASE_KEY=sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e
 )
 if "%SUPABASE_SERVICE_KEY%"=="" (
-  echo   [!] SUPABASE_SERVICE_KEY non defini. Le snapshot ne sera pas upsert dans Supabase.
-  echo       Definis-la avec: set SUPABASE_SERVICE_KEY=ta_cle_service_role
+  echo.
+  echo   [X] SUPABASE_SERVICE_KEY non defini.
+  echo       Obligatoire depuis la migration 006 (RLS authenticated).
+  echo       Definis-la dans les variables d'environnement Windows.
+  echo.
+  pause
+  exit /b 1
 )
 if "%ANTHROPIC_API_KEY%"=="" (
   echo   [!] ANTHROPIC_API_KEY non defini. Le mode Cloud ne sera pas disponible.
