@@ -127,6 +127,8 @@ a:hover{text-decoration:underline}
   background:var(--bg2);color:var(--tx3);min-width:22px;text-align:center;
 }
 .sb-link.active .count{background:var(--accent);color:#fff}
+.sb-new{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:var(--accent);color:#fff;font-size:0.65rem;font-weight:700;border-radius:9px;line-height:1}
+.sb-new:empty{display:none}
 
 .sb-bottom{margin-top:auto;padding:var(--space-3);border-top:1px solid var(--bd)}
 .sb-theme-toggle{background:none;border:1px solid var(--bd);border-radius:var(--radius-sm);width:var(--space-10);height:var(--space-10);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--tx2);transition:background .12s}
@@ -1010,6 +1012,14 @@ function getLastVisit(){try{return localStorage.getItem(LAST_VISIT_KEY);}catch{r
 function updateLastVisit(){try{localStorage.setItem(LAST_VISIT_KEY,new Date().toISOString());}catch{}}
 function isNewSince(dateStr){if(!dateStr||!lastVisit)return false;return new Date(dateStr).getTime()>new Date(lastVisit).getTime();}
 function newCls(dateStr){return isNewSince(dateStr)?' card--new':'';}
+function updateSidebarBadge(panelId,items,dateField){
+  const n=items.filter(i=>{const d=i[dateField]||i.created_at||i.updated_at;return d&&isNewSince(d);}).length;
+  const link=document.querySelector(`.sb-link[data-panel="${panelId}"]`);
+  if(!link)return;
+  let badge=link.querySelector('.sb-new');
+  if(!badge){badge=document.createElement('span');badge.className='sb-new';link.appendChild(badge);}
+  badge.textContent=n>0?n:'';
+}
 
 // ── THEME ─────────────────────────────────────────────────
 const THEME_KEY='ai-cockpit-theme';
@@ -1202,6 +1212,8 @@ async function loadDay(dateStr){
     // Aggregate counter for Veille section label
     const scVeille=document.getElementById('sc-veille');
     if(scVeille){const total=dayArticles.length;scVeille.textContent=total?`(${total})`:'';}
+    // New badges per article section
+    SECTIONS.forEach(s=>{const items=dayArticles.filter(a=>a.section===s);updateSidebarBadge(s,items,'date_published');});
   }catch(e){console.error('loadDay',e);SECTIONS.forEach(s=>showError(`cards-${s}`,'Erreur de chargement des articles',()=>loadDay(currentDate)))}
   // Since last visit dashboard
   renderSinceLastVisit(dayArticles);
@@ -1339,6 +1351,7 @@ async function loadWiki(){
           <span>Vu le ${fmtDateShort(c.last_mentioned)}</span>
         </div>
       </div>`).join('');
+    updateSidebarBadge('wiki',concepts,'last_mentioned');
     wikiLoaded=true;
   }catch(e){console.error('loadWiki',e);showError('wiki-grid','Erreur de chargement du wiki',()=>{wikiLoaded=false;loadWiki()})}
 }
@@ -1505,6 +1518,7 @@ async function loadSignals(){
     }
 
     el.innerHTML=html;
+    updateSidebarBadge('signals',signals,'updated_at');
     signalsLoaded=true;
   }catch(e){console.error('loadSignals',e);showError('signal-list','Erreur de chargement des signaux',()=>{signalsLoaded=false;loadSignals()})}
 }
@@ -1585,6 +1599,7 @@ async function loadChallenges(){
         </div>
         ${actionBtn('done',c.id)}
       </div>`).join('');
+    updateSidebarBadge('challenges',challenges,'created_at');
     challengesLoaded=true;
   }catch(e){console.error('loadChallenges',e);showError('challenges-content','Erreur de chargement des challenges',()=>{challengesLoaded=false;loadChallenges()})}
 }
@@ -1648,6 +1663,7 @@ async function loadOpportunities(){
     }
 
     el.innerHTML=html;
+    updateSidebarBadge('opportunities',opps,'created_at');
     oppsLoaded=true;
   }catch(e){console.error('loadOpportunities',e);showError('opportunities-content','Erreur de chargement des opportunités',()=>{oppsLoaded=false;loadOpportunities()})}
 }
@@ -1967,6 +1983,7 @@ async function loadRecos(){
         <div class="text-desc" style="margin-bottom:8px">${esc(r.description||'')}</div>
         ${r.resource_url?`<a href="${esc(r.resource_url)}" target="_blank" style="font-size:12px">Voir la ressource →</a>`:''}
       </div>`).join('')}</div>`;
+    updateSidebarBadge('recos',recos,'created_at');
     recosLoaded=true;
   }catch(e){console.error('loadRecos',e);showError('recos-content','Erreur de chargement des recommandations',()=>{recosLoaded=false;loadRecos()})}
 }
