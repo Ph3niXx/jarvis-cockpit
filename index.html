@@ -277,6 +277,8 @@ a:hover{text-decoration:underline}
 .card-action--active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .card-action--active:hover{opacity:.9;background:var(--accent);color:#fff}
 .card-action svg{flex-shrink:0}
+.card-action--jarvis{font-size:.7rem;padding:4px 10px;opacity:.6;transition:opacity .2s,background .2s}
+.card-action--jarvis:hover{opacity:1}
 .card-related{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd)}
 .card-related-link{font-size:var(--text-xs);color:var(--accent);text-decoration:none;padding:3px 10px;border:1px solid var(--accent);border-radius:var(--radius-full);transition:all .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;display:inline-block}
 .card-related-link:hover{background:var(--accent);color:#fff}
@@ -1235,6 +1237,7 @@ async function loadDay(dateStr){
           <div class="card-title"><a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></div>
           <div class="card-summary" id="sum-${a.id}">${esc(stripHtml(a.summary||''))}</div>
           ${(a.summary||'').length>120?`<button class="card-expand" onclick="toggleSummary('${a.id}')">voir plus</button>`:''}
+          ${jarvisBtn(a.title,'article')}
         </div>`;
       }).join('');
       // Click handler: mark as read when clicking article link
@@ -1401,6 +1404,7 @@ async function loadWiki(){
           <span>${c.mention_count} mentions</span>
           <span>Vu le ${fmtDateShort(c.last_mentioned)}</span>
         </div>
+        ${jarvisBtn(c.name,'wiki')}
         ${renderRelatedLinks(c.name,'wiki')}
       </div>`).join('');
     updateSidebarBadge('wiki',concepts,'last_mentioned');
@@ -1523,6 +1527,31 @@ function actionBtn(type,id){
 }
 function toggleAction(btn,type){_toggleAction(btn,type);}
 
+const _JARVIS_SVG='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+const _JARVIS_PROMPTS={
+  signal:'Analyse ce signal faible et dis-moi son impact potentiel',
+  article:'Résume cet article et dis-moi ce que je dois en retenir',
+  opportunite:'Évalue cette opportunité et suggère les prochaines actions',
+  reco:'Développe cette recommandation avec des exemples concrets',
+  challenge:'Aide-moi à avancer sur ce challenge',
+  wiki:'Explique-moi ce concept en détail avec des exemples pratiques'
+};
+function jarvisBtn(title,type){
+  return `<button class="card-action card-action--jarvis" onclick="event.stopPropagation();sendToJarvis(this)" data-title="${esc(title)}" data-type="${type}">${_JARVIS_SVG} Jarvis</button>`;
+}
+function sendToJarvis(btn){
+  const title=btn.dataset.title;
+  const type=btn.dataset.type;
+  const prompt=_JARVIS_PROMPTS[type]||'Parle-moi de';
+  const message=`${prompt} : "${title}"`;
+  const link=document.querySelector('.sb-link[data-panel="jarvis"]');
+  if(link) link.click();
+  setTimeout(()=>{
+    const input=document.getElementById('jarvis-input');
+    if(input){input.value=message;input.focus();input.dispatchEvent(new Event('input',{bubbles:true}));}
+  },300);
+}
+
 async function loadSignals(){
   if(signalsLoaded)return;
   showSkeleton('signal-list','signals');
@@ -1580,7 +1609,7 @@ async function loadSignals(){
             <span class="signal-name">${esc(s.term)}</span>
             <div class="signal-explain">${trendExplain[s.trend]}</div>
             ${(s.sources||[]).length?`<div class="signal-sources">${s.sources.slice(0,2).map(u=>`<a href="${esc(u)}" target="_blank">source</a>`).join('')}</div>`:''}
-            ${actionBtn('dig',s.id||s.term)}
+            ${actionBtn('dig',s.id||s.term)}${jarvisBtn(s.term,'signal')}
             ${renderRelatedLinks(s.term,'signals')}
           </div>
           <span class="signal-count">${s.mention_count}x</span>
@@ -1594,7 +1623,7 @@ async function loadSignals(){
       html+=stable.map(s=>`
         <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" style="cursor:pointer" onclick="openCardFocus(this,event)">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
-          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${renderRelatedLinks(s.term,'signals')}</div>
+          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${jarvisBtn(s.term,'signal')}${renderRelatedLinks(s.term,'signals')}</div>
           <span class="signal-count">${s.mention_count}x</span>
           <span class="signal-badge ${s.trend}">${s.trend}</span>
         </div>`).join('');
@@ -1606,7 +1635,7 @@ async function loadSignals(){
       html+=declining.map(s=>`
         <div class="signal-item signal-declining${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" style="cursor:pointer" onclick="openCardFocus(this,event)">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
-          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${renderRelatedLinks(s.term,'signals')}</div>
+          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${jarvisBtn(s.term,'signal')}${renderRelatedLinks(s.term,'signals')}</div>
           <span class="signal-count">${s.mention_count}x</span>
           <span class="signal-badge ${s.trend}">${s.trend}</span>
         </div>`).join('');
@@ -1693,7 +1722,7 @@ async function loadChallenges(){
           <span>+${c.score_reward} pts</span>
           <span>${c.difficulty}</span>
         </div>
-        ${actionBtn('done',c.id)}
+        ${actionBtn('done',c.id)}${jarvisBtn(c.title,'challenge')}
         ${renderRelatedLinks(c.title,'challenges')}
       </div>`).join('');
     updateSidebarBadge('challenges',challenges,'created_at');
@@ -1744,7 +1773,7 @@ async function loadOpportunities(){
           <strong>Next step :</strong> ${esc(o.next_step||'')}
         </div>
         ${(o.source_articles||[]).length?`<div class="opp-sources">${o.source_articles.map(u=>`<a href="${esc(u)}" target="_blank">Article source →</a>`).join('')}</div>`:''}
-        ${actionBtn('follow',o.id)}
+        ${actionBtn('follow',o.id)}${jarvisBtn(o.usecase_title,'opportunite')}
         ${renderRelatedLinks(o.usecase_title,'opportunities')}
       </div>`;
     }
@@ -2082,6 +2111,7 @@ async function loadRecos(){
         <div class="text-sm-title">${esc(r.title)}</div>
         <div class="text-desc" style="margin-bottom:8px">${esc(r.description||'')}</div>
         ${r.resource_url?`<a href="${esc(r.resource_url)}" target="_blank" style="font-size:12px">Voir la ressource →</a>`:''}
+        ${jarvisBtn(r.title,'reco')}
         ${renderRelatedLinks(r.title,'recos')}
       </div>`).join('')}</div>`;
     updateSidebarBadge('recos',recos,'created_at');
