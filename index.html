@@ -274,6 +274,11 @@ a:hover{text-decoration:underline}
 .card-action--active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .card-action--active:hover{opacity:.9;background:var(--accent);color:#fff}
 .card-action svg{flex-shrink:0}
+.card-related{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd)}
+.card-related-link{font-size:var(--text-xs);color:var(--accent);text-decoration:none;padding:3px 10px;border:1px solid var(--accent);border-radius:var(--radius-full);transition:all .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;display:inline-block}
+.card-related-link:hover{background:var(--accent);color:#fff}
+.card--highlight{animation:highlightPulse 2s ease-out}
+@keyframes highlightPulse{0%{box-shadow:0 0 0 4px var(--accent)}100%{box-shadow:none}}
 .card--new::after{content:'Nouveau';position:absolute;top:8px;right:8px;background:var(--accent);color:#fff;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:var(--radius-full);z-index:2;animation:badgePulse .3s ease-out}
 @keyframes badgePulse{0%{transform:scale(0);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 
@@ -1342,14 +1347,16 @@ async function loadWiki(){
     const concepts=await fetchJSON(`${SUPABASE_URL}/rest/v1/wiki_concepts?order=mention_count.desc&limit=100`);
     const grid=document.getElementById('wiki-grid');
     if(!concepts.length){grid.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('library')}</div>Le wiki se remplit automatiquement avec les articles quotidiens</div>`;return;}
+    cockpitData.wiki=concepts;
     grid.innerHTML=concepts.map(c=>`
-      <div class="wiki-card${newCls(c.last_mentioned)}" onclick="showWikiDetail('${esc(c.slug)}')">
+      <div class="wiki-card${newCls(c.last_mentioned)}" data-item-id="${esc(c.slug)}" onclick="showWikiDetail('${esc(c.slug)}')">
         <div class="wiki-card-name">${esc(c.name)}</div>
         <div class="wiki-card-cat">${esc(c.category)}</div>
         <div class="wiki-card-stats">
           <span>${c.mention_count} mentions</span>
           <span>Vu le ${fmtDateShort(c.last_mentioned)}</span>
         </div>
+        ${renderRelatedLinks(c.name,'wiki')}
       </div>`).join('');
     updateSidebarBadge('wiki',concepts,'last_mentioned');
     wikiLoaded=true;
@@ -1390,6 +1397,47 @@ function setWikiLevel(btn,level){
 
 // ── SIGNALS ────────────────────────────────────────────────
 let signalsLoaded=false;
+// ── CROSS-LINKS BETWEEN SECTIONS ──────────────────────────
+const cockpitData={signals:[],wiki:[],opportunities:[],recos:[],challenges:[]};
+const _STOP_WORDS=new Set(['de','la','le','les','du','des','et','en','un','une','pour','dans','avec','sur','par','au','aux','ce','qui','que','est','sont','pas','plus','se','son','sa','ses','ou','ne','il','elle','nous','vous','ils','on','tout','cette','ces','leur','a','à','the','and','of','for','with','in','to','is','on','an','as','by','or','ai','ia']);
+function _keywords(text){
+  if(!text)return[];
+  return text.toLowerCase().replace(/['']/g,' ').split(/[\s\-_/,.:;!?()[\]{}]+/).filter(w=>w.length>2&&!_STOP_WORDS.has(w));
+}
+function findRelatedItems(title,currentSection){
+  const kw=_keywords(title);
+  if(!kw.length)return[];
+  const results=[];
+  const sections={signals:'term',wiki:'name',opportunities:'usecase_title',recos:'title',challenges:'title'};
+  for(const[section,field]of Object.entries(sections)){
+    if(section===currentSection)continue;
+    for(const item of cockpitData[section]){
+      const itemKw=_keywords(item[field]||'');
+      const matches=kw.filter(k=>itemKw.some(ik=>ik.includes(k)||k.includes(ik)));
+      if(matches.length>0){
+        results.push({section,label:item[field],id:item.id||item.slug||item.term,score:matches.length});
+      }
+    }
+  }
+  const seen=new Set();
+  return results.filter(r=>{const k=r.section+':'+r.label;if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>b.score-a.score).slice(0,4);
+}
+const _SECTION_LABELS={signals:'Signaux',wiki:'Wiki',opportunities:'Opportunités',recos:'Recommandations',challenges:'Challenges'};
+function navigateToItem(section,itemId){
+  const panelMap={signals:'signals',wiki:'wiki',opportunities:'opportunities',recos:'recos',challenges:'challenges'};
+  const btn=document.querySelector(`.sb-link[data-panel="${panelMap[section]}"]`);
+  if(btn)btn.click();
+  setTimeout(()=>{
+    const el=document.querySelector(`[data-item-id="${itemId}"]`);
+    if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('card--highlight');setTimeout(()=>el.classList.remove('card--highlight'),2000);}
+  },200);
+}
+function renderRelatedLinks(title,currentSection){
+  const related=findRelatedItems(title,currentSection);
+  if(!related.length)return'';
+  return `<div class="card-related">${related.map(r=>`<a class="card-related-link" href="#" onclick="event.preventDefault();navigateToItem('${r.section}','${esc(String(r.id))}')" title="${esc(r.label)}">${_SECTION_LABELS[r.section]}: ${esc(r.label)}</a>`).join('')}</div>`;
+}
+
 // ── CARD ACTION BUTTONS (localStorage persistence) ────────
 const _ACT_KEY='cockpit-actions';
 const _ACT_SVG={
@@ -1437,6 +1485,7 @@ async function loadSignals(){
     const signals=await fetchJSON(`${SUPABASE_URL}/rest/v1/signal_tracking?order=mention_count.desc&limit=50`);
     const el=document.getElementById('signal-list');
     if(!signals.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('radio')}</div>Les signaux se construisent au fil des jours</div>`;return;}
+    cockpitData.signals=signals;
 
     // Fetch weekly analysis for the summary
     const analyses=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_analysis?order=week_start.desc&limit=1&select=signals_summary`);
@@ -1480,13 +1529,14 @@ async function loadSignals(){
     if(risingNew.length){
       html+=`<div class="section-label" style="color:var(--green)">Signaux à surveiller</div>`;
       html+=risingNew.map(s=>`
-        <div class="signal-item${newCls(s.updated_at||s.week_start)}" style="border-left:3px solid ${s.trend==='rising'?'var(--green)':'var(--blue)'}">
+        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" style="border-left:3px solid ${s.trend==='rising'?'var(--green)':'var(--blue)'}">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1">
             <span class="signal-name">${esc(s.term)}</span>
             <div class="signal-explain">${trendExplain[s.trend]}</div>
             ${(s.sources||[]).length?`<div class="signal-sources">${s.sources.slice(0,2).map(u=>`<a href="${esc(u)}" target="_blank">source</a>`).join('')}</div>`:''}
             ${actionBtn('dig',s.id||s.term)}
+            ${renderRelatedLinks(s.term,'signals')}
           </div>
           <span class="signal-count">${s.mention_count}x</span>
           <span class="signal-badge ${s.trend}">${s.trend}</span>
@@ -1497,9 +1547,9 @@ async function loadSignals(){
     if(stable.length){
       html+=`<div class="section-label" style="margin-top:20px">Sujets établis</div>`;
       html+=stable.map(s=>`
-        <div class="signal-item${newCls(s.updated_at||s.week_start)}">
+        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
-          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}</div>
+          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${renderRelatedLinks(s.term,'signals')}</div>
           <span class="signal-count">${s.mention_count}x</span>
           <span class="signal-badge ${s.trend}">${s.trend}</span>
         </div>`).join('');
@@ -1509,9 +1559,9 @@ async function loadSignals(){
     if(declining.length){
       html+=`<div class="section-label" style="margin-top:20px">En déclin</div>`;
       html+=declining.map(s=>`
-        <div class="signal-item signal-declining${newCls(s.updated_at||s.week_start)}">
+        <div class="signal-item signal-declining${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
-          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}</div>
+          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${renderRelatedLinks(s.term,'signals')}</div>
           <span class="signal-count">${s.mention_count}x</span>
           <span class="signal-badge ${s.trend}">${s.trend}</span>
         </div>`).join('');
@@ -1588,8 +1638,9 @@ async function loadChallenges(){
     const challenges=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_challenges?order=week_start.desc&limit=10`);
     const el=document.getElementById('challenges-content');
     if(!challenges.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trophy')}</div>Les challenges seront générés par le run hebdomadaire Claude</div>`;return;}
+    cockpitData.challenges=challenges;
     el.innerHTML=challenges.map(c=>`
-      <div class="challenge-card${newCls(c.created_at||c.week_start)}" style="${c.status==='completed'?'opacity:.6;border-color:var(--green)':''}">
+      <div class="challenge-card${newCls(c.created_at||c.week_start)}" data-item-id="${c.id}" style="${c.status==='completed'?'opacity:.6;border-color:var(--green)':''}">
         <div class="challenge-title">${c.status==='completed'?'✅ ':''} ${esc(c.title)}</div>
         <div class="challenge-desc">${esc(c.description||'')}</div>
         <div class="challenge-meta">
@@ -1598,6 +1649,7 @@ async function loadChallenges(){
           <span>${c.difficulty}</span>
         </div>
         ${actionBtn('done',c.id)}
+        ${renderRelatedLinks(c.title,'challenges')}
       </div>`).join('');
     updateSidebarBadge('challenges',challenges,'created_at');
     challengesLoaded=true;
@@ -1613,6 +1665,7 @@ async function loadOpportunities(){
     const opps=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_opportunities?order=week_start.desc,relevance_score.desc&limit=30`);
     const el=document.getElementById('opportunities-content');
     if(!opps.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trending-up')}</div>Les opportunités seront générées dimanche soir par le run hebdomadaire Claude.<br>Il analysera les articles de la semaine et identifiera des use cases concrets avec hypothèses business.</div>`;return;}
+    cockpitData.opportunities=opps;
 
     const catIcons={money:'💰',life:'⚡'};
     const catLabels={money:'Rapporter de l\'argent',life:'Simplifier ta vie'};
@@ -1625,7 +1678,7 @@ async function loadOpportunities(){
     const life=opps.filter(o=>o.category==='life');
 
     function renderOpp(o){
-      return `<div class="card${newCls(o.created_at||o.week_start)}" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'}">
+      return `<div class="card${newCls(o.created_at||o.week_start)}" data-item-id="${o.id}" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'}">
         <div class="flex-header">
           <span class="text-icon">${catIcons[o.category]||'💡'}</span>
           <span class="badge badge--neutral">${esc(o.sector||'')}</span>
@@ -1647,6 +1700,7 @@ async function loadOpportunities(){
         </div>
         ${(o.source_articles||[]).length?`<div class="opp-sources">${o.source_articles.map(u=>`<a href="${esc(u)}" target="_blank">Article source →</a>`).join('')}</div>`:''}
         ${actionBtn('follow',o.id)}
+        ${renderRelatedLinks(o.usecase_title,'opportunities')}
       </div>`;
     }
 
@@ -1967,12 +2021,13 @@ async function loadRecos(){
     const recos=await fetchJSON(`${SUPABASE_URL}/rest/v1/learning_recommendations?order=week_start.desc,target_axis&limit=20`);
     const el=document.getElementById('recos-content');
     if(!recos.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('book-open')}</div>Les recommandations seront générées par le run hebdomadaire Claude</div>`;return;}
+    cockpitData.recos=recos;
 
     const axisColors={llm_fundamentals:'var(--blue)',prompt_engineering:'var(--accent)',agents:'var(--green)',rag_data:'var(--coral)',mlops:'var(--amber)',ethics:'var(--red)',business:'var(--pink)',code_integration:'var(--tx2)'};
     const typeIcons={article:'📄',tutorial:'🛠',video:'🎬',paper:'📑',course:'🎓'};
 
     el.innerHTML=`<div class="recos-grid">${recos.map(r=>`
-      <div class="card card--reco${r.completed?' completed':''}${newCls(r.created_at||r.week_start)}" style="border-left:3px solid ${axisColors[r.target_axis]||'var(--bd)'}">
+      <div class="card card--reco${r.completed?' completed':''}${newCls(r.created_at||r.week_start)}" data-item-id="${r.id}" style="border-left:3px solid ${axisColors[r.target_axis]||'var(--bd)'}">
         <div class="flex-header-sm">
           <span class="text-icon">${typeIcons[r.resource_type]||'📄'}</span>
           <span class="badge badge--neutral">${r.target_axis}</span>
@@ -1982,6 +2037,7 @@ async function loadRecos(){
         <div class="text-sm-title">${esc(r.title)}</div>
         <div class="text-desc" style="margin-bottom:8px">${esc(r.description||'')}</div>
         ${r.resource_url?`<a href="${esc(r.resource_url)}" target="_blank" style="font-size:12px">Voir la ressource →</a>`:''}
+        ${renderRelatedLinks(r.title,'recos')}
       </div>`).join('')}</div>`;
     updateSidebarBadge('recos',recos,'created_at');
     recosLoaded=true;
