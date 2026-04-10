@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Cockpit</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236C5CE7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z'/><path d='M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z'/><path d='M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4'/></svg>">
 <style>
 /* ── RESET & BASE ─────────────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box}
@@ -87,7 +87,7 @@ a:hover{text-decoration:underline}
 }
 .sb-header{padding:var(--space-5) var(--space-5) var(--space-4);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-lg);font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:var(--space-2)}
-.sb-logo span{font-size:var(--text-xl)}
+.sb-logo svg{width:22px;height:22px;flex-shrink:0}
 .sb-date{font-size:var(--text-xs);color:var(--tx2);margin-top:var(--space-1)}
 
 .sb-section{padding:var(--space-3) var(--space-3) var(--space-1)}
@@ -114,7 +114,8 @@ a:hover{text-decoration:underline}
 .sb-link:hover{background:var(--bg2);color:var(--tx)}
 .sb-link.active{background:var(--accent-bg);color:var(--accent);font-weight:600}
 .sb-link--empty{opacity:.4;pointer-events:none}
-.sb-link .icon{width:var(--space-5);text-align:center;font-size:var(--text-sm);flex-shrink:0}
+.sb-link .icon{width:18px;height:18px;flex-shrink:0}
+.empty-icon svg{width:32px;height:32px}
 .sb-link .label{flex:1}
 .sb-link .count{
   font-size:var(--text-xs);font-weight:600;padding:1px 7px;border-radius:var(--radius);
@@ -592,8 +593,38 @@ a:hover{text-decoration:underline}
 </head>
 <body>
 
+<!-- ── SVG ICON SPRITE (Lucide) ──────────────────────────────── -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="icon-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+  <symbol id="icon-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></symbol>
+  <symbol id="icon-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+  <symbol id="icon-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="icon-building-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></symbol>
+  <symbol id="icon-wrench" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+  <symbol id="icon-trending-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
+  <symbol id="icon-scale" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></symbol>
+  <symbol id="icon-book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="icon-library" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></symbol>
+  <symbol id="icon-radio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></symbol>
+  <symbol id="icon-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="icon-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></symbol>
+  <symbol id="icon-lightbulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol>
+  <symbol id="icon-train-front" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.1V7a4 4 0 0 0 8 0V3.1"/><path d="m9 15-1-1"/><path d="m15 15 1-1"/><path d="M9 19c-2.8 0-5-2.2-5-5v-4a8 8 0 0 1 16 0v4c0 2.8-2.2 5-5 5Z"/><path d="m8 19-2 3"/><path d="m16 19 2 3"/></symbol>
+  <symbol id="icon-gamepad-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1.11 0 2.08-.402 2.592-1.147C8.168 16.974 9 16 10.5 16h3c1.5 0 2.332.974 2.908 1.853.512.745 1.482 1.147 2.592 1.147a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></symbol>
+  <symbol id="icon-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3"/></symbol>
+  <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="icon-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="icon-credit-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></symbol>
+  <symbol id="icon-brain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></symbol>
+  <symbol id="icon-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+  <symbol id="icon-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+  <symbol id="icon-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+  <symbol id="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></symbol>
+</svg>
+
 <!-- MOBILE TOGGLE -->
-<button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
+<button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg style="width:22px;height:22px" aria-hidden="true"><use href="#icon-menu"/></svg></button>
 <div class="sb-overlay" id="sb-overlay" onclick="toggleSidebar()"></div>
 
 <div class="app">
@@ -601,77 +632,77 @@ a:hover{text-decoration:underline}
 <!-- ── SIDEBAR ─────────────────────────────────────────────── -->
 <nav class="sidebar" id="sidebar" aria-label="Navigation principale">
   <div class="sb-header" role="banner">
-    <div class="sb-logo"><span aria-hidden="true">🧠</span> AI Cockpit</div>
+    <div class="sb-logo"><svg aria-hidden="true"><use href="#icon-brain"/></svg> AI Cockpit</div>
     <div class="sb-date" id="sb-date"></div>
   </div>
 
   <div class="sb-section" style="padding-bottom:0">
-    <button class="sb-link active" data-panel="brief" role="tab" aria-selected="true"><span class="icon" aria-hidden="true">⚡</span><span class="label">Brief du jour</span></button>
+    <button class="sb-link active" data-panel="brief" role="tab" aria-selected="true"><svg class="icon" aria-hidden="true"><use href="#icon-zap"/></svg><span class="label">Brief du jour</span></button>
   </div>
 
   <div class="sb-section" data-section="veille" role="tablist" aria-label="Veille">
     <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Veille<span class="sb-section-count" id="sc-veille"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="updates" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">✨</span><span class="label">Nouveautés IA</span><span class="count" id="c-updates">-</span></button>
-      <button class="sb-link" data-panel="llm" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">🤖</span><span class="label">LLMs</span><span class="count" id="c-llm">-</span></button>
-      <button class="sb-link" data-panel="agents" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">⚙️</span><span class="label">Agents</span><span class="count" id="c-agents">-</span></button>
-      <button class="sb-link" data-panel="energy" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">⚡</span><span class="label">IA x Énergie</span><span class="count" id="c-energy">-</span></button>
-      <button class="sb-link" data-panel="finserv" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">🏦</span><span class="label">FinServ</span><span class="count" id="c-finserv">-</span></button>
-      <button class="sb-link" data-panel="tools" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">🛠</span><span class="label">Outils</span><span class="count" id="c-tools">-</span></button>
-      <button class="sb-link" data-panel="biz" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">💰</span><span class="label">Business</span><span class="count" id="c-biz">-</span></button>
-      <button class="sb-link" data-panel="reg" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">⚖️</span><span class="label">Régulation</span><span class="count" id="c-reg">-</span></button>
-      <button class="sb-link" data-panel="papers" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">📚</span><span class="label">Arxiv</span><span class="count" id="c-papers">-</span></button>
+      <button class="sb-link" data-panel="updates" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-sparkles"/></svg><span class="label">Nouveautés IA</span><span class="count" id="c-updates">-</span></button>
+      <button class="sb-link" data-panel="llm" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-bot"/></svg><span class="label">LLMs</span><span class="count" id="c-llm">-</span></button>
+      <button class="sb-link" data-panel="agents" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-settings"/></svg><span class="label">Agents</span><span class="count" id="c-agents">-</span></button>
+      <button class="sb-link" data-panel="energy" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-zap"/></svg><span class="label">IA x Énergie</span><span class="count" id="c-energy">-</span></button>
+      <button class="sb-link" data-panel="finserv" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-building-2"/></svg><span class="label">FinServ</span><span class="count" id="c-finserv">-</span></button>
+      <button class="sb-link" data-panel="tools" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-wrench"/></svg><span class="label">Outils</span><span class="count" id="c-tools">-</span></button>
+      <button class="sb-link" data-panel="biz" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-trending-up"/></svg><span class="label">Business</span><span class="count" id="c-biz">-</span></button>
+      <button class="sb-link" data-panel="reg" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-scale"/></svg><span class="label">Régulation</span><span class="count" id="c-reg">-</span></button>
+      <button class="sb-link" data-panel="papers" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-book-open"/></svg><span class="label">Arxiv</span><span class="count" id="c-papers">-</span></button>
     </div>
   </div>
 
   <div class="sb-section" data-section="intelligence" role="tablist" aria-label="Intelligence">
     <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Intelligence<span class="sb-section-count" id="sc-intelligence"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="wiki" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">📖</span><span class="label">Wiki IA</span></button>
-      <button class="sb-link" data-panel="signals" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">📡</span><span class="label">Signaux faibles</span></button>
-      <button class="sb-link" data-panel="opportunities" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">💰</span><span class="label">Opportunités</span></button>
+      <button class="sb-link" data-panel="wiki" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-library"/></svg><span class="label">Wiki IA</span></button>
+      <button class="sb-link" data-panel="signals" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-radio"/></svg><span class="label">Signaux faibles</span></button>
+      <button class="sb-link" data-panel="opportunities" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-trending-up"/></svg><span class="label">Opportunités</span></button>
     </div>
   </div>
 
   <div class="sb-section" data-section="apprentissage" role="tablist" aria-label="Apprentissage">
     <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Apprentissage<span class="sb-section-count" id="sc-apprentissage"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="radar" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">🎯</span><span class="label">Radar compétences</span></button>
-      <button class="sb-link" data-panel="recos" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">📚</span><span class="label">Recommandations</span></button>
-      <button class="sb-link" data-panel="challenges" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">🏆</span><span class="label">Challenges</span></button>
+      <button class="sb-link" data-panel="radar" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-target"/></svg><span class="label">Radar compétences</span></button>
+      <button class="sb-link" data-panel="recos" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-book-open"/></svg><span class="label">Recommandations</span></button>
+      <button class="sb-link" data-panel="challenges" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg><span class="label">Challenges</span></button>
     </div>
   </div>
 
   <div class="sb-section" data-section="incubateur" role="tablist" aria-label="Incubateur">
     <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Incubateur<span class="sb-section-count" id="sc-incubateur"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="ideas" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">💡</span><span class="label">Carnet d'idées</span></button>
-      <button class="sb-link" data-panel="rte" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">🚂</span><span class="label">RTE Toolbox</span></button>
+      <button class="sb-link" data-panel="ideas" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-lightbulb"/></svg><span class="label">Carnet d'idées</span></button>
+      <button class="sb-link" data-panel="rte" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-train-front"/></svg><span class="label">RTE Toolbox</span></button>
     </div>
   </div>
 
   <div class="sb-section" data-section="gaming" role="tablist" aria-label="Gaming">
     <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Gaming<span class="sb-section-count" id="sc-gaming"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="tft" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">🎮</span><span class="label">TFT Matches</span></button>
+      <button class="sb-link" data-panel="tft" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-gamepad-2"/></svg><span class="label">TFT Matches</span></button>
     </div>
   </div>
 
   <div class="sb-section" data-section="assistant" role="tablist" aria-label="Assistant">
     <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Assistant<span class="sb-section-count" id="sc-assistant"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="jarvis-project" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">🚀</span><span class="label">Projet Jarvis</span></button>
-      <button class="sb-link" data-panel="jarvis" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">🤖</span><span class="label">Jarvis</span></button>
+      <button class="sb-link" data-panel="jarvis-project" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-rocket"/></svg><span class="label">Projet Jarvis</span></button>
+      <button class="sb-link" data-panel="jarvis" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-bot"/></svg><span class="label">Jarvis</span></button>
     </div>
   </div>
 
   <div class="sb-section" data-section="outils" role="tablist" aria-label="Outils">
     <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Outils<span class="sb-section-count" id="sc-outils"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="profile" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">👤</span><span class="label">Mon profil</span></button>
-      <button class="sb-link" data-panel="search" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">🔍</span><span class="label">Recherche</span></button>
-      <button class="sb-link" data-panel="history" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">📅</span><span class="label">Historique</span></button>
-      <button class="sb-link" data-panel="costs" role="tab" aria-selected="false"><span class="icon" aria-hidden="true">💲</span><span class="label">Coûts API</span></button>
+      <button class="sb-link" data-panel="profile" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-user"/></svg><span class="label">Mon profil</span></button>
+      <button class="sb-link" data-panel="search" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg><span class="label">Recherche</span></button>
+      <button class="sb-link" data-panel="history" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-calendar"/></svg><span class="label">Historique</span></button>
+      <button class="sb-link" data-panel="costs" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-credit-card"/></svg><span class="label">Coûts API</span></button>
     </div>
   </div>
 
@@ -771,7 +802,7 @@ a:hover{text-decoration:underline}
   <div class="panel" role="tabpanel" id="panel-search">
     <div class="page-header"><div class="page-title">Recherche</div><div class="page-subtitle">Cherche dans tous les articles</div></div>
     <div class="content">
-      <div class="search-box"><span class="search-icon">🔍</span><input class="search-input" id="search-input" type="text" placeholder="Rechercher un article, concept, source…" autofocus></div>
+      <div class="search-box"><svg class="search-icon" aria-hidden="true" style="width:16px;height:16px"><use href="#icon-search"/></svg><input class="search-input" id="search-input" type="text" placeholder="Rechercher un article, concept, source…" autofocus></div>
       <div class="cards-grid" id="search-results"></div>
     </div>
   </div>
@@ -1083,7 +1114,7 @@ async function loadDay(dateStr){
       const sbLink=document.querySelector(`.sb-link[data-panel="${s}"]`);
       if(sbLink) sbLink.classList.toggle('sb-link--empty',!filtered.length);
       if(!el)return;
-      if(!filtered.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📭</div>Aucun article dans cette section</div>`;return;}
+      if(!filtered.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('inbox')}</div>Aucun article dans cette section</div>`;return;}
       el.innerHTML=filtered.map(a=>{
         const read=!!readMap[a.id];
         return `
@@ -1134,12 +1165,14 @@ async function loadDay(dateStr){
         else el.appendChild(grid);
       }
     }else{
-      el.innerHTML=`<div class="empty"><div class="empty-icon">📝</div>Brief non disponible pour cette date</div>`;
+      el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('file-text')}</div>Brief non disponible pour cette date</div>`;
     }
   }catch(e){console.error('loadBrief',e);showError('brief-content','Erreur de chargement du brief',()=>loadDay(currentDate))}
 }
 
-const SECTION_ICONS={updates:'✨',llm:'🤖',agents:'⚙️',energy:'⚡',finserv:'🏦',tools:'🛠',biz:'💰',reg:'⚖️',papers:'📚'};
+const SECTION_ICONS={updates:'sparkles',llm:'bot',agents:'settings',energy:'zap',finserv:'building-2',tools:'wrench',biz:'trending-up',reg:'scale',papers:'book-open'};
+function sIcon(name){return `<svg class="icon" aria-hidden="true" style="width:16px;height:16px;vertical-align:-3px"><use href="#icon-${name}"/></svg>`;}
+function eIcon(name){return `<svg aria-hidden="true" style="width:32px;height:32px"><use href="#icon-${name}"/></svg>`;}
 
 function renderSinceLastVisit(articles){
   const ctr=document.getElementById('since-last-visit');
@@ -1176,7 +1209,7 @@ function renderSinceLastVisit(articles){
       <span class="slv-stat"><strong>${unread.length}</strong> non-lu${unread.length>1?'s':''} sur ${total}</span>
     </div>
     <div class="slv-highlights">
-      ${highlights.map(a=>`<div class="slv-item" data-article-id="${a.id}">${SECTION_ICONS[a.section]||'📄'} <a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a><span class="slv-section">${esc(a.section)}</span></div>`).join('')}
+      ${highlights.map(a=>`<div class="slv-item" data-article-id="${a.id}">${sIcon(SECTION_ICONS[a.section]||'file-text')} <a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a><span class="slv-section">${esc(a.section)}</span></div>`).join('')}
     </div>
   </div>`;
   // Click handlers: mark as read from SLV highlights
@@ -1214,7 +1247,7 @@ async function loadWiki(){
   try{
     const concepts=await fetchJSON(`${SUPABASE_URL}/rest/v1/wiki_concepts?order=mention_count.desc&limit=100`);
     const grid=document.getElementById('wiki-grid');
-    if(!concepts.length){grid.innerHTML=`<div class="empty"><div class="empty-icon">📖</div>Le wiki se remplit automatiquement avec les articles quotidiens</div>`;return;}
+    if(!concepts.length){grid.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('library')}</div>Le wiki se remplit automatiquement avec les articles quotidiens</div>`;return;}
     grid.innerHTML=concepts.map(c=>`
       <div class="wiki-card" onclick="showWikiDetail('${esc(c.slug)}')">
         <div class="wiki-card-name">${esc(c.name)}</div>
@@ -1268,7 +1301,7 @@ async function loadSignals(){
   try{
     const signals=await fetchJSON(`${SUPABASE_URL}/rest/v1/signal_tracking?order=mention_count.desc&limit=50`);
     const el=document.getElementById('signal-list');
-    if(!signals.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📡</div>Les signaux se construisent au fil des jours</div>`;return;}
+    if(!signals.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('radio')}</div>Les signaux se construisent au fil des jours</div>`;return;}
 
     // Fetch weekly analysis for the summary
     const analyses=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_analysis?order=week_start.desc&limit=1&select=signals_summary`);
@@ -1417,7 +1450,7 @@ async function loadChallenges(){
   try{
     const challenges=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_challenges?order=week_start.desc&limit=10`);
     const el=document.getElementById('challenges-content');
-    if(!challenges.length){el.innerHTML=`<div class="empty"><div class="empty-icon">🏆</div>Les challenges seront générés par le run hebdomadaire Claude</div>`;return;}
+    if(!challenges.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trophy')}</div>Les challenges seront générés par le run hebdomadaire Claude</div>`;return;}
     el.innerHTML=challenges.map(c=>`
       <div class="challenge-card" style="${c.status==='completed'?'opacity:.6;border-color:var(--green)':''}">
         <div class="challenge-title">${c.status==='completed'?'✅ ':''} ${esc(c.title)}</div>
@@ -1440,7 +1473,7 @@ async function loadOpportunities(){
   try{
     const opps=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_opportunities?order=week_start.desc,relevance_score.desc&limit=30`);
     const el=document.getElementById('opportunities-content');
-    if(!opps.length){el.innerHTML=`<div class="empty"><div class="empty-icon">💰</div>Les opportunités seront générées dimanche soir par le run hebdomadaire Claude.<br>Il analysera les articles de la semaine et identifiera des use cases concrets avec hypothèses business.</div>`;return;}
+    if(!opps.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trending-up')}</div>Les opportunités seront générées dimanche soir par le run hebdomadaire Claude.<br>Il analysera les articles de la semaine et identifiera des use cases concrets avec hypothèses business.</div>`;return;}
 
     const catIcons={money:'💰',life:'⚡'};
     const catLabels={money:'Rapporter de l\'argent',life:'Simplifier ta vie'};
@@ -1501,7 +1534,7 @@ async function loadIdeas(){
   try{
     const ideas=await fetchJSON(`${SUPABASE_URL}/rest/v1/business_ideas?order=created_at.desc&limit=50`);
     const el=document.getElementById('ideas-list');
-    if(!ideas.length){el.innerHTML=`<div class="empty"><div class="empty-icon">💡</div>Aucune idée pour l'instant — utilise le formulaire ci-dessus !</div>`;return;}
+    if(!ideas.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('lightbulb')}</div>Aucune idée pour l'instant — utilise le formulaire ci-dessus !</div>`;return;}
     el.innerHTML=ideas.map(i=>`
       <div class="idea-card">
         <div class="idea-header">
@@ -1734,7 +1767,7 @@ async function loadRecos(){
   try{
     const recos=await fetchJSON(`${SUPABASE_URL}/rest/v1/learning_recommendations?order=week_start.desc,target_axis&limit=20`);
     const el=document.getElementById('recos-content');
-    if(!recos.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📚</div>Les recommandations seront générées par le run hebdomadaire Claude</div>`;return;}
+    if(!recos.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('book-open')}</div>Les recommandations seront générées par le run hebdomadaire Claude</div>`;return;}
 
     const axisColors={llm_fundamentals:'var(--blue)',prompt_engineering:'var(--accent)',agents:'var(--green)',rag_data:'var(--coral)',mlops:'var(--amber)',ethics:'var(--red)',business:'var(--pink)',code_integration:'var(--tx2)'};
     const typeIcons={article:'📄',tutorial:'🛠',video:'🎬',paper:'📑',course:'🎓'};
@@ -1945,7 +1978,7 @@ async function loadCosts(){
     // Runs table — one row per week
     const tableEl=document.getElementById('costs-table');
     if(!parsedRuns.length){
-      tableEl.innerHTML=`<div class="empty"><div class="empty-icon">💲</div>Aucun run hebdomadaire pour l'instant.<br>Le premier run Claude se fera dimanche soir.</div>`;
+      tableEl.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('credit-card')}</div>Aucun run hebdomadaire pour l'instant.<br>Le premier run Claude se fera dimanche soir.</div>`;
     }else{
       tableEl.innerHTML=`<table class="data-table">
         <tr><th>Semaine</th>
@@ -2113,7 +2146,7 @@ function renderTftTable(){
   const tableEl=document.getElementById('tft-table');
 
   if(!filtered.length){
-    tableEl.innerHTML=`<div class="empty"><div class="empty-icon">🎮</div>Aucun match trouvé avec ces filtres.</div>`;
+    tableEl.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('gamepad-2')}</div>Aucun match trouvé avec ces filtres.</div>`;
     return;
   }
 
@@ -2542,7 +2575,7 @@ async function init(){
       currentDate=allDates[0];
       loadDay(currentDate);
     }else{
-      document.getElementById('brief-content').innerHTML=`<div class="empty"><div class="empty-icon">🚀</div>En attente du premier digest — lance le pipeline GitHub Actions !</div>`;
+      document.getElementById('brief-content').innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('rocket')}</div>En attente du premier digest — lance le pipeline GitHub Actions !</div>`;
       document.getElementById('sb-date').textContent='En attente…';
     }
   }catch(e){
@@ -2564,7 +2597,7 @@ async function loadJarvisProject(){
   try{
     const rows=await fetchJSON(`${SUPABASE_URL}/rest/v1/jarvis_status_snapshot?id=eq.1&select=snapshot_data,generated_at`);
     if(!rows||!rows.length){
-      ctr.innerHTML='<div class="empty"><div class="empty-icon">📦</div>Snapshot indisponible. Lance <code>python jarvis/status_generator.py</code> pour le generer.</div>';
+      ctr.innerHTML='<div class="empty"><div class="empty-icon">${eIcon('package')}</div>Snapshot indisponible. Lance <code>python jarvis/status_generator.py</code> pour le generer.</div>';
       return;
     }
     const snap=rows[0].snapshot_data;
