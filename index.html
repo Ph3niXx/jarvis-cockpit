@@ -127,6 +127,22 @@ a:hover{text-decoration:underline}
 .page-title{font-size:var(--text-xl);font-weight:700;letter-spacing:-.3px}
 .page-subtitle{font-size:var(--text-sm);color:var(--tx2);margin-top:2px}
 
+/* ── SINCE LAST VISIT ─────────────────────────────────────── */
+.since-last-visit{background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--radius);padding:var(--space-4) var(--space-5);margin-bottom:var(--space-5)}
+.slv-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2)}
+.slv-title{font-size:var(--text-base);font-weight:700;color:var(--accent)}
+.slv-date{font-size:var(--text-xs);color:var(--tx3)}
+.slv-close{background:none;border:none;font-size:var(--text-sm);color:var(--tx3);cursor:pointer;padding:var(--space-1);line-height:1}
+.slv-close:hover{color:var(--tx)}
+.slv-stats{display:flex;gap:var(--space-4);margin-bottom:var(--space-3);font-size:var(--text-sm);color:var(--tx2);flex-wrap:wrap}
+.slv-stat strong{color:var(--tx)}
+.slv-highlights{display:flex;flex-direction:column;gap:6px}
+.slv-item{font-size:var(--text-sm)}
+.slv-item a{color:var(--tx);font-weight:500}
+.slv-item a:hover{color:var(--accent)}
+.slv-section{font-size:var(--text-xs);color:var(--tx3);margin-left:var(--space-2)}
+.slv-allread{font-size:var(--text-sm);color:var(--green);font-weight:600}
+
 /* ── BRIEF LAYOUT ─────────────────────────────────────────── */
 .brief-content{line-height:1.7}
 .brief-content .macro-block{
@@ -583,7 +599,7 @@ a:hover{text-decoration:underline}
   <!-- BRIEF -->
   <div class="panel active" role="tabpanel" id="panel-brief">
     <div class="page-header"><div class="page-title">Brief du jour</div><div class="page-subtitle">Synthèse macro + top 5 incontournables</div></div>
-    <div class="content"><div class="brief-content" id="brief-content"><div class="loading">Chargement du brief…</div></div></div>
+    <div class="content"><div id="since-last-visit"></div><div class="brief-content" id="brief-content"><div class="loading">Chargement du brief…</div></div></div>
   </div>
 
   <!-- ARTICLE SECTIONS -->
@@ -892,12 +908,13 @@ async function loadDay(dateStr){
   currentDate=dateStr;
   updateNavLabel();
   // Load articles
+  let dayArticles=[];
   try{
-    const articles=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?fetch_date=eq.${dateStr}&order=date_fetched.desc&limit=200`);
+    dayArticles=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?fetch_date=eq.${dateStr}&order=date_fetched.desc&limit=200`);
     const readMap=getReadArticles();
     SECTIONS.forEach(s=>{
       const el=document.getElementById(`cards-${s}`);
-      const filtered=articles.filter(a=>a.section===s);
+      const filtered=dayArticles.filter(a=>a.section===s);
       const unreadCount=filtered.filter(a=>!readMap[a.id]).length;
       const countEl=document.getElementById(`c-${s}`);
       if(countEl) countEl.textContent=filtered.length?`${unreadCount||'✓'}`:'-';
@@ -933,6 +950,8 @@ async function loadDay(dateStr){
       });
     });
   }catch(e){console.error('loadDay',e);SECTIONS.forEach(s=>showError(`cards-${s}`,'Erreur de chargement des articles',()=>loadDay(currentDate)))}
+  // Since last visit dashboard
+  renderSinceLastVisit(dayArticles);
   // Load brief
   try{
     const briefs=await fetchJSON(`${SUPABASE_URL}/rest/v1/daily_briefs?date=eq.${dateStr}&limit=1`);
@@ -953,6 +972,48 @@ async function loadDay(dateStr){
       el.innerHTML=`<div class="empty"><div class="empty-icon">📝</div>Brief non disponible pour cette date</div>`;
     }
   }catch(e){console.error('loadBrief',e);showError('brief-content','Erreur de chargement du brief',()=>loadDay(currentDate))}
+}
+
+const SECTION_ICONS={updates:'✨',llm:'🤖',agents:'⚙️',energy:'⚡',finserv:'🏦',tools:'🛠',biz:'💰',reg:'⚖️',papers:'📚'};
+
+function renderSinceLastVisit(articles){
+  const ctr=document.getElementById('since-last-visit');
+  if(!ctr)return;
+  // First visit — welcome message
+  if(!lastVisit){
+    ctr.innerHTML=`<div class="since-last-visit"><div class="slv-header"><span class="slv-title">Bienvenue !</span><button class="slv-close" onclick="this.closest('.since-last-visit').remove()" aria-label="Fermer">&times;</button></div><div style="font-size:var(--text-sm);color:var(--tx2)">Voici ton brief du jour. Les articles que tu cliques seront marqués comme lus.</div></div>`;
+    return;
+  }
+  const readMap=getReadArticles();
+  const unread=articles.filter(a=>!readMap[a.id]);
+  const total=articles.length;
+  // All read — show congrats
+  if(!unread.length){
+    ctr.innerHTML=`<div class="since-last-visit"><div class="slv-header"><span class="slv-allread">Tout lu ! 🎉</span><button class="slv-close" onclick="this.closest('.since-last-visit').remove()" aria-label="Fermer">&times;</button></div></div>`;
+    return;
+  }
+  // Time ago
+  const diffMs=Date.now()-new Date(lastVisit).getTime();
+  const diffH=Math.floor(diffMs/3600000);
+  const diffD=Math.floor(diffH/24);
+  const ago=diffD>0?`il y a ${diffD}j`:diffH>0?`il y a ${diffH}h`:'il y a moins d\'1h';
+  const visitDate=new Date(lastVisit);
+  const dateStr=visitDate.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'long'});
+  // Highlights: top 5 unread
+  const highlights=unread.slice(0,5);
+  ctr.innerHTML=`<div class="since-last-visit">
+    <div class="slv-header">
+      <span class="slv-title">Depuis ta dernière visite</span>
+      <span class="slv-date">${esc(ago)} — ${esc(dateStr)}</span>
+      <button class="slv-close" onclick="this.closest('.since-last-visit').remove()" aria-label="Fermer">&times;</button>
+    </div>
+    <div class="slv-stats">
+      <span class="slv-stat"><strong>${unread.length}</strong> non-lu${unread.length>1?'s':''} sur ${total}</span>
+    </div>
+    <div class="slv-highlights">
+      ${highlights.map(a=>`<div class="slv-item">${SECTION_ICONS[a.section]||'📄'} <a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a><span class="slv-section">${esc(a.section)}</span></div>`).join('')}
+    </div>
+  </div>`;
 }
 
 function toggleSummary(id){
