@@ -299,8 +299,15 @@ a:hover{text-decoration:underline}
 @keyframes badgePulse{0%{transform:scale(0);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 
 /* ── WIKI ─────────────────────────────────────────────────── */
-.wiki-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(max-width:600px){.wiki-grid{grid-template-columns:1fr}}
+.wiki-grid{display:flex;flex-direction:column;gap:8px}
+.wiki-group-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg2);border-radius:10px;cursor:pointer;user-select:none;transition:background .2s}
+.wiki-group-header:hover{background:var(--bg3,var(--bd))}
+.wiki-group-title{font-weight:600;font-size:.9rem}
+.wiki-group-count{margin-left:auto;font-size:.75rem;color:var(--tx3);background:var(--bg);padding:2px 8px;border-radius:10px}
+.group-chevron{transition:transform .2s ease;flex-shrink:0}
+.wiki-group-content{overflow:hidden;transition:max-height .3s ease,opacity .2s ease}
+.wiki-group-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 0}
+@media(max-width:600px){.wiki-group-grid{grid-template-columns:1fr}}
 .wiki-card{
   position:relative;border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-3) var(--space-5);
   cursor:pointer;transition:all .12s;
@@ -1389,6 +1396,28 @@ function toggleSummary(id){
 
 // ── WIKI ───────────────────────────────────────────────────
 let wikiLoaded=false;
+const _WIKI_COLLAPSE_KEY='wiki-collapse';
+function _getWikiCollapse(){try{return JSON.parse(localStorage.getItem(_WIKI_COLLAPSE_KEY)||'{}');}catch{return{};}}
+function toggleWikiGroup(cat,headerEl){
+  const state=_getWikiCollapse();
+  state[cat]=!state[cat];
+  localStorage.setItem(_WIKI_COLLAPSE_KEY,JSON.stringify(state));
+  const content=headerEl.nextElementSibling;
+  const chevron=headerEl.querySelector('.group-chevron');
+  if(state[cat]){content.style.maxHeight='0';content.style.opacity='0';chevron.style.transform='rotate(-90deg)';}
+  else{content.style.maxHeight=content.scrollHeight+'px';content.style.opacity='1';chevron.style.transform='rotate(0)';}
+}
+function _renderWikiCard(c){
+  return `<div class="wiki-card${newCls(c.last_mentioned)}" data-item-id="${esc(c.slug)}" onclick="showWikiDetail('${esc(c.slug)}')" style="cursor:pointer">
+    <div class="wiki-card-name">${esc(c.name)}</div>
+    <div class="wiki-card-stats">
+      <span>${c.mention_count} mentions</span>
+      ${timeAgoTag(c.last_mentioned)}
+    </div>
+    ${jarvisBtn(c.name,'wiki')}
+    ${renderRelatedLinks(c.name,'wiki')}
+  </div>`;
+}
 async function loadWiki(){
   if(wikiLoaded)return;
   showSkeleton('wiki-grid','wiki');
@@ -1397,17 +1426,27 @@ async function loadWiki(){
     const grid=document.getElementById('wiki-grid');
     if(!concepts.length){grid.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('library')}</div>Le wiki se remplit automatiquement avec les articles quotidiens</div>`;return;}
     cockpitData.wiki=concepts;
-    grid.innerHTML=concepts.map(c=>`
-      <div class="wiki-card${newCls(c.last_mentioned)}" data-item-id="${esc(c.slug)}" onclick="showWikiDetail('${esc(c.slug)}')" style="cursor:pointer">
-        <div class="wiki-card-name">${esc(c.name)}</div>
-        <div class="wiki-card-cat">${esc(c.category)}</div>
-        <div class="wiki-card-stats">
-          <span>${c.mention_count} mentions</span>
-          ${timeAgoTag(c.last_mentioned)}
+    // Group by category
+    const groups={};
+    concepts.forEach(c=>{const cat=c.category||'Autres';if(!groups[cat])groups[cat]=[];groups[cat].push(c);});
+    const collapseState=_getWikiCollapse();
+    let html='',isFirst=true;
+    for(const[cat,items]of Object.entries(groups)){
+      const collapsed=collapseState[cat]??(isFirst?false:true);
+      const escapedCat=cat.replace(/'/g,"\\'");
+      html+=`<div class="wiki-group">
+        <div class="wiki-group-header" onclick="toggleWikiGroup('${escapedCat}',this)">
+          <svg class="group-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(${collapsed?'-90deg':'0'})"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="wiki-group-title">${esc(cat)}</span>
+          <span class="wiki-group-count">${items.length}</span>
         </div>
-        ${jarvisBtn(c.name,'wiki')}
-        ${renderRelatedLinks(c.name,'wiki')}
-      </div>`).join('');
+        <div class="wiki-group-content" style="max-height:${collapsed?'0':'none'};opacity:${collapsed?'0':'1'}">
+          <div class="wiki-group-grid">${items.map(_renderWikiCard).join('')}</div>
+        </div>
+      </div>`;
+      isFirst=false;
+    }
+    grid.innerHTML=html;
     updateSidebarBadge('wiki',concepts,'last_mentioned');
     wikiLoaded=true;
   }catch(e){console.error('loadWiki',e);showError('wiki-grid','Erreur de chargement du wiki',()=>{wikiLoaded=false;loadWiki()})}
