@@ -267,6 +267,11 @@ a:hover{text-decoration:underline}
 .card--reco{padding-left:var(--space-8);position:relative}
 .card--reco::before{content:'○';position:absolute;left:var(--space-3);top:var(--space-4);font-size:14px;color:var(--tx3);line-height:1}
 .card--reco.completed::before{content:'✓';color:var(--green)}
+.card-action{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;margin-top:10px;border:1px solid var(--bd);border-radius:var(--radius-sm);background:transparent;color:var(--tx2);font-size:var(--text-xs);cursor:pointer;transition:all .2s}
+.card-action:hover{background:var(--bg2);color:var(--tx)}
+.card-action--active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card-action--active:hover{opacity:.9;background:var(--accent);color:#fff}
+.card-action svg{flex-shrink:0}
 
 /* ── WIKI ─────────────────────────────────────────────────── */
 .wiki-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -1368,6 +1373,46 @@ function setWikiLevel(btn,level){
 
 // ── SIGNALS ────────────────────────────────────────────────
 let signalsLoaded=false;
+// ── CARD ACTION BUTTONS (localStorage persistence) ────────
+const _ACT_KEY='cockpit-actions';
+const _ACT_SVG={
+  dig:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',
+  follow:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  done:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+};
+const _ACT_LABELS={dig:['Creuser','Creusé ✓'],follow:['Suivre','Suivi ✓'],done:['Marquer fait','Fait ✓']};
+
+function getActionState(type,id){try{return JSON.parse(localStorage.getItem(_ACT_KEY)||'{}')[`${type}-${id}`]||false;}catch{return false;}}
+function setActionState(type,id,val){try{const s=JSON.parse(localStorage.getItem(_ACT_KEY)||'{}');s[`${type}-${id}`]=val;localStorage.setItem(_ACT_KEY,JSON.stringify(s));}catch{}}
+
+function _toggleAction(btn,type){
+  const id=btn.dataset.id;
+  const active=!getActionState(type,id);
+  setActionState(type,id,active);
+  btn.classList.toggle('card-action--active',active);
+  btn.innerHTML=`${_ACT_SVG[type]} ${_ACT_LABELS[type][active?1:0]}`;
+}
+function toggleDig(btn){_toggleAction(btn,'dig');}
+function toggleFollow(btn){_toggleAction(btn,'follow');}
+function toggleDone(btn){_toggleAction(btn,'done');}
+
+function restoreActionStates(containerId,type){
+  const ctr=document.getElementById(containerId);
+  if(!ctr)return;
+  ctr.querySelectorAll(`.card-action--${type==='dig'?'dig':type==='follow'?'follow':'done'}`).forEach(btn=>{
+    if(getActionState(type,btn.dataset.id)){
+      btn.classList.add('card-action--active');
+      btn.innerHTML=`${_ACT_SVG[type]} ${_ACT_LABELS[type][1]}`;
+    }
+  });
+}
+
+function actionBtn(type,id){
+  const active=getActionState(type,id);
+  return `<button class="card-action card-action--${type}${active?' card-action--active':''}" data-id="${id}" onclick="toggleAction(this,'${type}')">${_ACT_SVG[type]} ${_ACT_LABELS[type][active?1:0]}</button>`;
+}
+function toggleAction(btn,type){_toggleAction(btn,type);}
+
 async function loadSignals(){
   if(signalsLoaded)return;
   showSkeleton('signal-list','signals');
@@ -1424,6 +1469,7 @@ async function loadSignals(){
             <span class="signal-name">${esc(s.term)}</span>
             <div class="signal-explain">${trendExplain[s.trend]}</div>
             ${(s.sources||[]).length?`<div class="signal-sources">${s.sources.slice(0,2).map(u=>`<a href="${esc(u)}" target="_blank">source</a>`).join('')}</div>`:''}
+            ${actionBtn('dig',s.id||s.term)}
           </div>
           <span class="signal-count">${s.mention_count}x</span>
           <span class="signal-badge ${s.trend}">${s.trend}</span>
@@ -1436,7 +1482,7 @@ async function loadSignals(){
       html+=stable.map(s=>`
         <div class="signal-item">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
-          <span class="signal-name">${esc(s.term)}</span>
+          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}</div>
           <span class="signal-count">${s.mention_count}x</span>
           <span class="signal-badge ${s.trend}">${s.trend}</span>
         </div>`).join('');
@@ -1448,7 +1494,7 @@ async function loadSignals(){
       html+=declining.map(s=>`
         <div class="signal-item signal-declining">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
-          <span class="signal-name">${esc(s.term)}</span>
+          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}</div>
           <span class="signal-count">${s.mention_count}x</span>
           <span class="signal-badge ${s.trend}">${s.trend}</span>
         </div>`).join('');
@@ -1533,6 +1579,7 @@ async function loadChallenges(){
           <span>+${c.score_reward} pts</span>
           <span>${c.difficulty}</span>
         </div>
+        ${actionBtn('done',c.id)}
       </div>`).join('');
     challengesLoaded=true;
   }catch(e){console.error('loadChallenges',e);showError('challenges-content','Erreur de chargement des challenges',()=>{challengesLoaded=false;loadChallenges()})}
@@ -1580,6 +1627,7 @@ async function loadOpportunities(){
           <strong>Next step :</strong> ${esc(o.next_step||'')}
         </div>
         ${(o.source_articles||[]).length?`<div class="opp-sources">${o.source_articles.map(u=>`<a href="${esc(u)}" target="_blank">Article source →</a>`).join('')}</div>`:''}
+        ${actionBtn('follow',o.id)}
       </div>`;
     }
 
