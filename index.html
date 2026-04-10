@@ -2625,7 +2625,7 @@ async function loadJarvisProject(){
   try{
     const rows=await fetchJSON(`${SUPABASE_URL}/rest/v1/jarvis_status_snapshot?id=eq.1&select=snapshot_data,generated_at`);
     if(!rows||!rows.length){
-      ctr.innerHTML='<div class="empty"><div class="empty-icon">${eIcon('package')}</div>Snapshot indisponible. Lance <code>python jarvis/status_generator.py</code> pour le generer.</div>';
+      ctr.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('package')}</div>Snapshot indisponible. Lance <code>python jarvis/status_generator.py</code> pour le generer.</div>`;
       return;
     }
     const snap=rows[0].snapshot_data;
