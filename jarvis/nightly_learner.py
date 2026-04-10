@@ -102,7 +102,7 @@ def _save_state(state: dict):
 # ── Supabase helpers ──────────────────────────────────────────
 
 def _headers(service=False):
-    key = SUPABASE_SERVICE_KEY if service and SUPABASE_SERVICE_KEY else SUPABASE_KEY
+    key = SUPABASE_SERVICE_KEY or SUPABASE_KEY  # service_role required post-006 migration
     return {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"}
 
 

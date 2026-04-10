@@ -1,28 +1,26 @@
 """Jarvis — Supabase REST API client.
 
-Uses publishable key for reads, service_role key for writes.
-Service_role bypasses RLS — required after the 005_rls_lockdown migration.
+Uses service_role key for all operations (bypasses RLS).
+Required after 006_rls_authenticated migration — anon can no longer read.
 """
 
 import requests
 
 from config import SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY
 
-_READ_KEY = SUPABASE_KEY
-_WRITE_KEY = SUPABASE_SERVICE_KEY or SUPABASE_KEY  # fallback to anon if no service key
+_KEY = SUPABASE_SERVICE_KEY or SUPABASE_KEY  # service_role preferred, anon fallback
 
 
-def _headers(write: bool = False) -> dict:
-    key = _WRITE_KEY if write else _READ_KEY
+def _headers() -> dict:
     return {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
+        "apikey": _KEY,
+        "Authorization": f"Bearer {_KEY}",
         "Content-Type": "application/json",
     }
 
 
 def sb_get(table: str, params: str = "") -> list:
-    """GET rows from a Supabase table (uses anon key)."""
+    """GET rows from a Supabase table."""
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     if params:
         url += f"?{params}"
@@ -31,8 +29,8 @@ def sb_get(table: str, params: str = "") -> list:
 
 
 def sb_post(table: str, data, upsert: bool = False) -> bool:
-    """POST (insert) rows into a Supabase table (uses service_role key)."""
-    headers = {**_headers(write=True)}
+    """POST (insert) rows into a Supabase table."""
+    headers = {**_headers()}
     if upsert:
         headers["Prefer"] = "resolution=merge-duplicates"
     else:
@@ -47,7 +45,7 @@ def sb_rpc(function_name: str, params: dict) -> list:
     """Call a Supabase RPC function (e.g. match_memories)."""
     r = requests.post(
         f"{SUPABASE_URL}/rest/v1/rpc/{function_name}",
-        headers=_headers(write=True),
+        headers=_headers(),
         json=params,
         timeout=10,
     )
