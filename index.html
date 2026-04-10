@@ -1355,29 +1355,48 @@ function getStreak(){
 }
 
 // ── MORNING BRIEFING ──────────────────────────────────────
-function toggleBriefingAudio(){
-  // Stub — TTS logic in Prompt 17
-  if(!window.morningBriefText)return;
-  if(window.speechSynthesis&&speechSynthesis.speaking){
-    speechSynthesis.cancel();
-    document.getElementById('mb-play-btn')?.classList.remove('playing');
-    document.getElementById('mb-play-label').textContent='Écouter le brief';
-    document.getElementById('mb-play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';
-    return;
+let _briefingPlaying=false;
+
+function _setBriefingPlayState(playing){
+  _briefingPlaying=playing;
+  const btn=document.getElementById('mb-play-btn');
+  const icon=document.getElementById('mb-play-icon');
+  const label=document.getElementById('mb-play-label');
+  if(!btn)return;
+  if(playing){
+    btn.classList.add('playing');
+    icon.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+    label.textContent='Pause';
+  }else{
+    btn.classList.remove('playing');
+    icon.innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';
+    label.textContent='Écouter le brief';
   }
-  if(!window.speechSynthesis)return;
-  const u=new SpeechSynthesisUtterance(window.morningBriefText);
-  u.lang='fr-FR';u.rate=1.05;
-  u.onend=()=>{
-    document.getElementById('mb-play-btn')?.classList.remove('playing');
-    document.getElementById('mb-play-label').textContent='Écouter le brief';
-    document.getElementById('mb-play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';
-  };
-  document.getElementById('mb-play-btn')?.classList.add('playing');
-  document.getElementById('mb-play-label').textContent='Arrêter';
-  document.getElementById('mb-play-icon').innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
-  speechSynthesis.speak(u);
 }
+
+function toggleBriefingAudio(){
+  if(!('speechSynthesis' in window)){alert('La synthèse vocale n\'est pas supportée par ton navigateur.');return;}
+  if(_briefingPlaying){speechSynthesis.cancel();_setBriefingPlayState(false);return;}
+
+  const text=window.morningBriefText||'Bonjour Jean, bienvenue sur ton cockpit AI.';
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='fr-FR';u.rate=0.95;u.pitch=0.9;
+
+  // Best-effort French voice selection
+  const voices=speechSynthesis.getVoices();
+  const fr=voices.find(v=>v.lang.startsWith('fr')&&v.name.includes('Google'))
+    ||voices.find(v=>v.lang.startsWith('fr')&&!v.localService)
+    ||voices.find(v=>v.lang.startsWith('fr'));
+  if(fr)u.voice=fr;
+
+  u.onend=()=>_setBriefingPlayState(false);
+  u.onerror=()=>_setBriefingPlayState(false);
+  speechSynthesis.speak(u);
+  _setBriefingPlayState(true);
+}
+
+// Chrome loads voices asynchronously — trigger loading
+if('speechSynthesis' in window)speechSynthesis.onvoiceschanged=()=>{};
 
 function dismissBriefing(){
   const el=document.getElementById('morning-briefing');
