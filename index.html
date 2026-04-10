@@ -226,6 +226,16 @@ a:hover{text-decoration:underline}
 .topic-count{font-size:.8rem;color:var(--tx3)}
 .highlight-item{padding:10px 14px;background:var(--bg2);border-radius:10px;margin-bottom:8px;font-size:.85rem;color:var(--tx2);line-height:1.5}
 
+/* ── VEILLE SCORE WIDGET ──────────────────────────────────── */
+.veille-score{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg2);border-radius:12px;border:1px solid var(--bd);margin-bottom:16px}
+.veille-ring{position:relative;width:70px;height:70px;flex-shrink:0}
+.veille-ring-value{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:var(--tx)}
+.veille-meta{display:flex;flex-direction:column;gap:2px}
+.veille-label{font-size:.8rem;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.veille-streak{font-size:.85rem;color:var(--tx2)}
+.veille-breakdown{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.veille-breakdown span{font-size:.75rem;color:var(--tx3)}
+
 /* ── BRIEF LAYOUT ─────────────────────────────────────────── */
 .brief-content{line-height:1.7;color:var(--tx)}
 .brief-content *{color:inherit}
@@ -823,7 +833,7 @@ a:hover{text-decoration:underline}
   <!-- BRIEF -->
   <div class="panel active" role="tabpanel" id="panel-brief">
     <div class="page-header"><div class="page-title">Brief du jour<span class="brief-sparkline" id="brief-sparkline"></span></div><div class="page-subtitle">Synthèse macro + top 5 incontournables</div></div>
-    <div class="content"><div id="since-last-visit"></div><div class="brief-content" id="brief-content"></div></div>
+    <div class="content"><div id="veille-score-widget"></div><div id="since-last-visit"></div><div class="brief-content" id="brief-content"></div></div>
   </div>
 
   <!-- MY WEEK -->
@@ -1090,6 +1100,7 @@ function markAsRead(articleId){
     const cutoff=Date.now()-60*24*60*60*1000;
     for(const[id,ts]of Object.entries(read)){if(ts<cutoff)delete read[id];}
     localStorage.setItem(STORAGE_KEY,JSON.stringify(read));
+    renderVeilleScore();
   }catch{}
 }
 function isRead(articleId){return !!getReadArticles()[articleId];}
@@ -1294,6 +1305,65 @@ function getStreak(){
     while(visits[_isoDay(d)]){streak++;d.setDate(d.getDate()-1);}
     return streak;
   }catch{return 0;}
+}
+
+// ── VEILLE SCORE ──────────────────────────────────────────
+function calculateVeilleScore(){
+  const readMap=getReadArticles();
+  const actions=JSON.parse(localStorage.getItem(_ACT_KEY)||'{}');
+
+  const todayReads=Object.keys(readMap).length;
+  const readPts=Math.min(40,Math.round(todayReads*2));
+
+  const signalsDug=Object.entries(actions).filter(([k,v])=>k.startsWith('dig-')&&v).length;
+  const digPts=Math.min(30,signalsDug*6);
+
+  const oppsFollowed=Object.entries(actions).filter(([k,v])=>k.startsWith('follow-')&&v).length;
+  const followPts=Math.min(20,oppsFollowed*5);
+
+  const streak=getStreak();
+  const streakPts=Math.min(10,streak);
+
+  return{
+    total:Math.min(100,readPts+digPts+followPts+streakPts),
+    readPts,digPts,followPts,streakPts,streak,
+    breakdown:{articles:todayReads,signals:signalsDug,opps:oppsFollowed}
+  };
+}
+
+function renderVeilleScore(){
+  const ctr=document.getElementById('veille-score-widget');
+  if(!ctr)return;
+  const s=calculateVeilleScore();
+  const circ=2*Math.PI*28;
+  const offset=circ-(s.total/100)*circ;
+  const color=s.total>=75?'var(--green,#1D9E75)':s.total>=40?'var(--amber,#BA7517)':'var(--red,#E53E3E)';
+  ctr.innerHTML=`<div class="veille-score" title="Score de veille : ${s.total}/100">
+    <div class="veille-ring">
+      <svg width="70" height="70" viewBox="0 0 70 70">
+        <circle cx="35" cy="35" r="28" fill="none" stroke="var(--bd)" stroke-width="5"/>
+        <circle cx="35" cy="35" r="28" fill="none" stroke="${color}" stroke-width="5"
+          stroke-dasharray="${circ}" stroke-dashoffset="${circ}"
+          stroke-linecap="round" transform="rotate(-90 35 35)"
+          style="transition:stroke-dashoffset .8s ease"/>
+      </svg>
+      <span class="veille-ring-value">${s.total}</span>
+    </div>
+    <div class="veille-meta">
+      <span class="veille-label">Score veille</span>
+      ${s.streak>0?`<span class="veille-streak">\u{1F525} ${s.streak}j</span>`:''}
+      <div class="veille-breakdown">
+        <span>${s.breakdown.articles} lus (+${s.readPts})</span>
+        <span>${s.breakdown.signals} creusés (+${s.digPts})</span>
+        <span>${s.breakdown.opps} suivies (+${s.followPts})</span>
+      </div>
+    </div>
+  </div>`;
+  // Animate the ring after paint
+  requestAnimationFrame(()=>{requestAnimationFrame(()=>{
+    const ring=ctr.querySelector('circle:nth-child(2)');
+    if(ring)ring.setAttribute('stroke-dashoffset',offset);
+  });});
 }
 
 async function loadMyWeek(){
@@ -1544,6 +1614,8 @@ async function loadDay(dateStr){
     const el=document.getElementById('brief-sparkline');
     if(el&&counts.length) el.innerHTML=createSparkline(counts)+`<span class="sparkline-label">${counts.reduce((a,b)=>a+b,0)} articles / 7j</span>`;
   });
+  // Veille score widget
+  renderVeilleScore();
 }
 
 function renderPipelineStatus(dateStr,articleCount){
@@ -1789,6 +1861,7 @@ function _toggleAction(btn,type){
   setActionState(type,id,active);
   btn.classList.toggle('card-action--active',active);
   btn.innerHTML=`${_ACT_SVG[type]} ${_ACT_LABELS[type][active?1:0]}`;
+  renderVeilleScore();
 }
 function toggleDig(btn){_toggleAction(btn,'dig');}
 function toggleFollow(btn){_toggleAction(btn,'follow');}
