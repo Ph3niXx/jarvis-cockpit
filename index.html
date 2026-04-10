@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Cockpit</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236C5CE7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z'/><path d='M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z'/><path d='M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4'/></svg>">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6C5CE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AI Cockpit">
 <style>
 /* ── RESET & BASE ─────────────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box}
@@ -471,6 +476,9 @@ a:hover{text-decoration:underline}
 .error-state .error-icon{font-size:32px;margin-bottom:var(--space-2)}
 .error-state .error-msg{margin-bottom:14px}
 .error-state .btn{margin-top:var(--space-1)}
+.install-banner{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-5);background:var(--accent-bg);border-bottom:1px solid var(--accent);font-size:var(--text-sm);color:var(--tx);position:fixed;top:0;left:0;right:0;z-index:1000}
+.install-banner .btn{padding:var(--space-1) var(--space-3);font-size:var(--text-xs)}
+@media(max-width:768px){.install-banner{flex-wrap:wrap}}
 
 /* ── SECTION LABEL ────────────────────────────────────────── */
 .section-label{font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);margin-bottom:var(--space-4)}
@@ -2820,6 +2828,42 @@ document.addEventListener('keydown',e=>{
       }
   }
 });
+
+/* ── PWA INSTALL BANNER ──────────────────────────────────── */
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!localStorage.getItem('ai-cockpit-pwa-dismissed')) {
+    showInstallBanner();
+  }
+});
+
+function showInstallBanner() {
+  const banner = document.createElement('div');
+  banner.className = 'install-banner';
+  banner.innerHTML = `
+    <span>Installe AI Cockpit sur ton ecran d'accueil pour y acceder plus vite</span>
+    <button class="btn btn-primary" onclick="installApp()">Installer</button>
+    <button class="btn" onclick="dismissInstall()">Plus tard</button>
+  `;
+  document.body.prepend(banner);
+}
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.querySelector('.install-banner')?.remove();
+    });
+  }
+}
+
+function dismissInstall() {
+  localStorage.setItem('ai-cockpit-pwa-dismissed', '1');
+  document.querySelector('.install-banner')?.remove();
+}
 </script>
 </body>
 </html>
