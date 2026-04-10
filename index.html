@@ -599,6 +599,11 @@ a:hover{text-decoration:underline}
 .opp-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);font-size:12px;margin-bottom:10px}
 .opp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .opp-grid+.section-label{margin-top:var(--space-6)}
+[data-opp-id][draggable="true"]{cursor:grab}
+[data-opp-id][draggable="true"]:active{cursor:grabbing}
+[data-opp-id].dragging{opacity:.4;transform:scale(.98);transition:opacity .15s,transform .15s}
+.drag-handle{opacity:.3;transition:opacity .2s;padding:4px;flex-shrink:0;line-height:0}
+[data-opp-id]:hover .drag-handle{opacity:.7}
 .recos-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .signal-guide{background:var(--bg2);border-radius:var(--radius);padding:var(--space-4) var(--space-5);margin-bottom:var(--space-5)}
 .signal-guide-title{font-size:var(--text-sm);font-weight:600;margin-bottom:var(--space-2)}
@@ -1770,8 +1775,52 @@ async function loadChallenges(){
   }catch(e){console.error('loadChallenges',e);showError('challenges-content','Erreur de chargement des challenges',()=>{challengesLoaded=false;loadChallenges()})}
 }
 
-// ── OPPORTUNITIES ──────────────────────────────────────────
+// ── OPPORTUNITIES (with drag & drop) ──────────────────────
 let oppsLoaded=false;
+const _OPP_ORDER_KEY='opp-order';
+const _DRAG_HANDLE_SVG='<span class="drag-handle" aria-hidden="true"><svg width="12" height="16" viewBox="0 0 12 16" fill="var(--tx3)"><circle cx="3" cy="2" r="1.5"/><circle cx="9" cy="2" r="1.5"/><circle cx="3" cy="8" r="1.5"/><circle cx="9" cy="8" r="1.5"/><circle cx="3" cy="14" r="1.5"/><circle cx="9" cy="14" r="1.5"/></svg></span>';
+function _initOppDragDrop(container){
+  if(!container)return;
+  let draggedEl=null;
+  container.addEventListener('dragstart',e=>{
+    const card=e.target.closest('[data-opp-id]');
+    if(!card)return;
+    draggedEl=card;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain',card.dataset.oppId);
+  });
+  container.addEventListener('dragover',e=>{
+    e.preventDefault();
+    e.dataTransfer.dropEffect='move';
+    if(!draggedEl)return;
+    const cards=[...container.querySelectorAll('[data-opp-id]:not(.dragging)')];
+    const after=cards.reduce((closest,child)=>{
+      const box=child.getBoundingClientRect();
+      const offset=e.clientY-box.top-box.height/2;
+      if(offset<0&&offset>closest.offset)return{offset,element:child};
+      return closest;
+    },{offset:Number.NEGATIVE_INFINITY}).element;
+    if(after)container.insertBefore(draggedEl,after);
+    else container.appendChild(draggedEl);
+  });
+  container.addEventListener('dragend',()=>{
+    if(draggedEl)draggedEl.classList.remove('dragging');
+    draggedEl=null;
+    _saveOppOrder();
+  });
+}
+function _saveOppOrder(){
+  const ids=[...document.querySelectorAll('#opportunities-content [data-opp-id]')].map(el=>el.dataset.oppId);
+  localStorage.setItem(_OPP_ORDER_KEY,JSON.stringify(ids));
+}
+function _restoreOppOrder(){
+  const order=JSON.parse(localStorage.getItem(_OPP_ORDER_KEY)||'[]');
+  if(!order.length)return;
+  document.querySelectorAll('#opportunities-content .opp-grid').forEach(grid=>{
+    order.forEach(id=>{const el=grid.querySelector(`[data-opp-id="${id}"]`);if(el)grid.appendChild(el);});
+  });
+}
 async function loadOpportunities(){
   if(oppsLoaded)return;
   showSkeleton('opportunities-content','list');
@@ -1792,8 +1841,9 @@ async function loadOpportunities(){
     const life=opps.filter(o=>o.category==='life');
 
     function renderOpp(o){
-      return `<div class="card${newCls(o.created_at||o.week_start)}" data-item-id="${o.id}" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'};cursor:pointer" onclick="openCardFocus(this,event)">
+      return `<div class="card${newCls(o.created_at||o.week_start)}" data-item-id="${o.id}" data-opp-id="${o.id}" draggable="true" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'}" onclick="openCardFocus(this,event)">
         <div class="flex-header">
+          ${_DRAG_HANDLE_SVG}
           <span class="text-icon">${catIcons[o.category]||'💡'}</span>
           <span class="badge badge--neutral">${esc(o.sector||'')}</span>
           <span class="badge" style="background:${o.timing==='right_time'?'var(--green-bg)':o.timing==='too_early'?'var(--blue-bg)':'var(--amber-bg)'};color:${timingColors[o.timing]||'var(--tx3)'}">${o.timing==='right_time'?'Bon timing':o.timing==='too_early'?'Trop tôt':'Se dépêcher'}</span>
@@ -1831,6 +1881,8 @@ async function loadOpportunities(){
     }
 
     el.innerHTML=html;
+    _restoreOppOrder();
+    el.querySelectorAll('.opp-grid').forEach(_initOppDragDrop);
     updateSidebarBadge('opportunities',opps,'created_at');
     oppsLoaded=true;
   }catch(e){console.error('loadOpportunities',e);showError('opportunities-content','Erreur de chargement des opportunités',()=>{oppsLoaded=false;loadOpportunities()})}
