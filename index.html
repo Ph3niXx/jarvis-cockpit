@@ -1354,11 +1354,83 @@ function getStreak(){
   }catch{return 0;}
 }
 
-// ── MORNING BRIEFING (stubs — logic in Prompt 16) ────────
-function toggleBriefingAudio(){}
+// ── MORNING BRIEFING ──────────────────────────────────────
+function toggleBriefingAudio(){
+  // Stub — TTS logic in Prompt 17
+  if(!window.morningBriefText)return;
+  if(window.speechSynthesis&&speechSynthesis.speaking){
+    speechSynthesis.cancel();
+    document.getElementById('mb-play-btn')?.classList.remove('playing');
+    document.getElementById('mb-play-label').textContent='Écouter le brief';
+    document.getElementById('mb-play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';
+    return;
+  }
+  if(!window.speechSynthesis)return;
+  const u=new SpeechSynthesisUtterance(window.morningBriefText);
+  u.lang='fr-FR';u.rate=1.05;
+  u.onend=()=>{
+    document.getElementById('mb-play-btn')?.classList.remove('playing');
+    document.getElementById('mb-play-label').textContent='Écouter le brief';
+    document.getElementById('mb-play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';
+  };
+  document.getElementById('mb-play-btn')?.classList.add('playing');
+  document.getElementById('mb-play-label').textContent='Arrêter';
+  document.getElementById('mb-play-icon').innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+  speechSynthesis.speak(u);
+}
+
 function dismissBriefing(){
   const el=document.getElementById('morning-briefing');
-  if(el){el.style.transition='opacity .3s ease,transform .3s ease';el.style.opacity='0';el.style.transform='translateY(-10px)';setTimeout(()=>el.style.display='none',300);}
+  if(el){el.style.transition='opacity .3s,max-height .3s,padding .3s,margin .3s';el.style.opacity='0';el.style.maxHeight='0';el.style.overflow='hidden';el.style.padding='0';el.style.margin='0';el.style.border='none';setTimeout(()=>el.remove(),300);}
+  if(window.speechSynthesis)speechSynthesis.cancel();
+}
+
+function _getMorningGreeting(){
+  const h=new Date().getHours();
+  const name='Jean';
+  if(h<12)return`Bonjour ${name}`;
+  if(h<18)return`Bon après-midi ${name}`;
+  return`Bonsoir ${name}`;
+}
+
+function _getEcosystemWeather(articles){
+  const kws=['launch','release','annonce','nouveau','breakthrough','disruption','concurrent','rachat','acquisition','regulation','ban','open-source','surpass','major','record','first'];
+  let score=0;
+  articles.slice(0,30).forEach(a=>{
+    const t=((a.title||'')+' '+(a.summary||'')).toLowerCase();
+    kws.forEach(k=>{if(t.includes(k))score++;});
+  });
+  if(score>=8)return{emoji:'\u26C8\uFE0F',label:'Tempête',desc:'Disruptions majeures détectées',color:'var(--red,#E53E3E)'};
+  if(score>=5)return{emoji:'\u{1F327}\uFE0F',label:'Agité',desc:'Plusieurs actualités importantes',color:'var(--amber,#BA7517)'};
+  if(score>=2)return{emoji:'\u26C5',label:'Mouvementé',desc:'Quelques actualités notables',color:'var(--blue,#2B6CB0)'};
+  return{emoji:'\u2600\uFE0F',label:'Calme',desc:'Pas de disruption majeure',color:'var(--green,#1D9E75)'};
+}
+
+function fillMorningBriefing(dayArticles){
+  const el=document.getElementById('morning-briefing');
+  if(!el||el.style.display==='none')return;
+
+  // Greeting
+  document.getElementById('mb-greeting-text').textContent=_getMorningGreeting();
+
+  // Weather from articles
+  const weather=_getEcosystemWeather(dayArticles);
+  document.getElementById('mb-weather').innerHTML=`<span style="font-size:1.3rem">${weather.emoji}</span> <strong style="color:${weather.color}">Écosystème AI : ${weather.label}</strong> — ${weather.desc}`;
+
+  // Stats
+  const articleCount=dayArticles.length;
+  const signalCount=cockpitData.signals.length;
+  const recoCount=cockpitData.recos.length;
+  const score=calculateVeilleScore();
+
+  const stats=[`\u{1F4F0} ${articleCount} article${articleCount>1?'s':''}`];
+  if(signalCount>0)stats.push(`\u{1F50D} ${signalCount} signaux`);
+  if(recoCount>0)stats.push(`\u{1F4A1} ${recoCount} reco${recoCount>1?'s':''}`);
+  stats.push(`\u{1F3AF} Score veille : ${score.total}/100`);
+  document.getElementById('mb-stats').innerHTML=stats.map(s=>`<span class="mb-stat">${s}</span>`).join('');
+
+  // Store text for TTS
+  window.morningBriefText=`${_getMorningGreeting()}. Écosystème AI : ${weather.label}. ${weather.desc}. Aujourd'hui, ${articleCount} articles au programme${signalCount>0?`, ${signalCount} signaux faibles à surveiller`:''}${recoCount>0?`, et ${recoCount} recommandation${recoCount>1?'s':''} de la semaine`:''}. Ton score de veille est à ${score.total} sur 100. Bonne veille !`;
 }
 
 // ── VEILLE SCORE ──────────────────────────────────────────
@@ -1670,6 +1742,8 @@ async function loadDay(dateStr){
   });
   // Veille score widget
   renderVeilleScore();
+  // Morning briefing
+  fillMorningBriefing(dayArticles);
 }
 
 function renderPipelineStatus(dateStr,articleCount){
