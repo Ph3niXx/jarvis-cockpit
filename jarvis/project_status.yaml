@@ -1,4 +1,4 @@
-current_phase: 4
+current_phase: 5
 
 phases:
   - id: 1
@@ -33,21 +33,27 @@ phases:
 
   - id: 4
     title: Orchestrateur
-    status: planned
-    success_criterion: Une seule API locale qui route entre LLM local et cloud
+    status: done
+    completion_date: 2026-04-10
     bullets:
-      - Routeur intelligent LLM local versus cloud (Claude / Gemini)
-      - Builder de contexte RAG automatique selon la requete
-      - Exposition en API locale unifiee pour le cockpit
+      - 3 modes chat dans le cockpit (Rapide / Deep / Cloud)
+      - Mode Cloud route vers Claude Haiku 4.5 via API Anthropic
+      - Fallback automatique sur LLM local si ANTHROPIC_API_KEY absent
+      - RAG actif en mode Deep et Cloud
+      - "Learning : le pattern _call_local_llm / _call_claude est propre, pas besoin d'un orchestrateur complexe"
 
   - id: 5
     title: Boucle nocturne
-    status: planned
-    success_criterion: Jarvis devient mesurablement plus pertinent semaine apres semaine
+    status: done
+    completion_date: 2026-04-10
     bullets:
-      - Cron qui rejoue les conversations du jour
-      - Extraction des faits, entites et preferences vers la memoire structuree
-      - Auto-amelioration progressive sans intervention manuelle
+      - nightly_learner.py idempotent avec checkpoint local (jarvis_data/nightly_learner_state.json)
+      - Extraction de faits et entites via Qwen3.5 local par session de conversation
+      - Scheduler asyncio dans server.py (declenchement automatique a minuit)
+      - Endpoint POST /nightly-learner pour declenchement manuel
+      - Execution au demarrage via start_jarvis.bat (rattrapage)
+      - Reindexation incrementale apres extraction
+      - "Learning : un simple asyncio.sleep jusqu'a minuit est plus fiable et leger qu'APScheduler pour un seul cron"
 
   - id: 6
     title: Capteurs d'observation
@@ -58,4 +64,4 @@ phases:
       - Puis integration Teams et Outlook
       - Brief quotidien automatique en fin de journee
 
-next_step: Construire le routeur intelligent qui decide quand utiliser le LLM local vs Claude/Gemini cloud, et unifier l'API
+next_step: Construire les capteurs d'observation (fichiers locaux, fenetres actives) pour generer un brief quotidien automatique

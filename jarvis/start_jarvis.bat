@@ -21,7 +21,6 @@ if "%SUPABASE_SERVICE_KEY%"=="" (
 )
 if "%ANTHROPIC_API_KEY%"=="" (
   echo   [!] ANTHROPIC_API_KEY non defini. Le mode Cloud ne sera pas disponible.
-  echo       Definis-la avec: set ANTHROPIC_API_KEY=ta_cle_anthropic
 )
 
 REM 1. Verify LM Studio is running
@@ -63,7 +62,14 @@ if %FRESHNESS% EQU 0 (
   echo   [OK] Tout est deja indexe, rien a faire.
 )
 
-REM 2b. Generate project status snapshot
+REM 2b. Run nightly learner (catch up on unprocessed conversations)
+echo.
+echo   [...] Nightly learner en arriere-plan...
+if not exist jarvis_data mkdir jarvis_data
+start /B "" python jarvis\nightly_learner.py > jarvis_data\last_nightly_learner.log 2>&1
+echo         Logs : jarvis_data\last_nightly_learner.log
+
+REM 2c. Generate project status snapshot
 echo.
 echo   [...] Generation du snapshot de statut en arriere-plan...
 if not exist jarvis_data mkdir jarvis_data

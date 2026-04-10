@@ -170,8 +170,7 @@ jarvis/
 ├── test_rag.py            # Test end-to-end du RAG
 ├── migrations/
 │   └── 001_enable_pgvector.sql
-├── (à venir) orchestrator.py
-├── (à venir) nightly_learner.py
+├── nightly_learner.py         # Extraction nocturne faits+entités (idempotent, scheduler asyncio)
 └── (à venir) observers/
 
 jarvis_data/               # Données perso, non versionné
@@ -182,9 +181,9 @@ jarvis_data/               # Données perso, non versionné
 - **Phase 1** : LM Studio + premier test Python *(done)*
 - **Phase 2** : RAG Supabase (pgvector + indexation) *(done)*
 - **Phase 2.5** : Intégration cockpit web (server.py + onglet Jarvis dans index.html) *(done)*
-- **Phase 3** : Mémoire structurée
-- **Phase 4** : Orchestrateur (routeur LLM local/cloud)
-- **Phase 5** : Boucle nocturne d'apprentissage
+- **Phase 3** : Mémoire structurée *(done)*
+- **Phase 4** : Orchestrateur (routeur LLM local/cloud) *(done)*
+- **Phase 5** : Boucle nocturne d'apprentissage *(done)*
 - **Phase 6** : Capteurs d'observation
 
 ### Conventions Jarvis
@@ -218,7 +217,7 @@ jarvis_data/               # Données perso, non versionné
 - `profile_facts` — faits structurés sur l'utilisateur (fact_type, fact_text, confidence, superseded_by). Extraits par `nightly_learner.py`, injectés dans le system prompt de chaque conversation.
 - `entities` — personnes, projets, outils, entreprises mentionnés (entity_type, name, description, mentions_count). Extraits par `nightly_learner.py`.
 - Migration : `jarvis/migrations/003_structured_memory.sql`
-- **`jarvis/nightly_learner.py`** — Script d'extraction nocturne : lit les conversations du jour, envoie chaque session à Qwen3.5 pour extraction JSON (faits + entités), upsert dans les tables, reindex via indexer.py. À lancer manuellement ou via Task Scheduler Windows.
+- **`jarvis/nightly_learner.py`** — Script d'extraction nocturne idempotent : lit les conversations depuis le dernier checkpoint (`jarvis_data/nightly_learner_state.json`), envoie chaque session à Qwen3.5 pour extraction JSON (faits + entités), upsert dans les tables, reindex via indexer.py. Déclenché automatiquement à minuit par le scheduler asyncio dans server.py, au démarrage via start_jarvis.bat, ou manuellement via `POST /nightly-learner` ou `python jarvis/nightly_learner.py --days=N`.
 
 ### Cockpit — Section Projet Jarvis
 

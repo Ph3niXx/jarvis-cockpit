@@ -1,21 +1,23 @@
 """Jarvis — Nightly Learner: extract facts and entities from daily conversations.
 
-Reads jarvis_conversations from the past 24h, groups by session,
+Reads jarvis_conversations since last run (idempotent), groups by session,
 sends each to Qwen3.5 local for structured extraction, and upserts
 results into profile_facts and entities tables.
 
 Usage:
     python jarvis/nightly_learner.py
-    python jarvis/nightly_learner.py --days=3   # reprocess last 3 days
+    python jarvis/nightly_learner.py --days=3   # reprocess last 3 days (ignores checkpoint)
 """
 
 import argparse
 import json
+import logging
 import os
 import re
 import sys
 import time
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
 import requests
 
@@ -26,6 +28,10 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "sb_publishable_EvHJAk2BOwXN23stOddXQQ_
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-9b")
+
+STATE_DIR = Path(__file__).resolve().parent.parent / "jarvis_data"
+STATE_FILE = STATE_DIR / "nightly_learner_state.json"
+LOG_FILE = STATE_DIR / "nightly_learner.log"
 
 EXTRACTION_PROMPT = """Analyse cette conversation entre un utilisateur et son assistant IA.
 Extrais les informations suivantes en JSON strict :
@@ -41,6 +47,40 @@ Extrais les informations suivantes en JSON strict :
 Si la conversation est triviale (salutations, tests), retourne {"facts": [], "entities": []}.
 
 Reponds UNIQUEMENT avec le JSON, sans texte avant ou apres. /no_think"""
+
+
+# ── Logging ──────────────────────────────────────────────────
+
+def _setup_logging():
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    logger = logging.getLogger("nightly_learner")
+    logger.setLevel(logging.INFO)
+    # File handler
+    fh = logging.FileHandler(LOG_FILE, encoding="utf-8")
+    fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+    logger.addHandler(fh)
+    # Console handler
+    ch = logging.StreamHandler()
+    ch.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(ch)
+    return logger
+
+
+log = _setup_logging()
+
+
+# ── State (idempotency) ─────────────────────────────────────
+
+def _load_state() -> dict:
+    try:
+        return json.loads(STATE_FILE.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save_state(state: dict):
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
 # ── Supabase helpers ──────────────────────────────────────────
@@ -62,7 +102,7 @@ def sb_upsert(table, data, service=True):
     headers = {**_headers(service), "Prefer": "resolution=merge-duplicates"}
     r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=headers, json=data, timeout=10)
     if r.status_code not in (200, 201):
-        print(f"  [ERROR] upsert {table}: {r.status_code} {r.text[:200]}")
+        log.error("upsert %s: %s %s", table, r.status_code, r.text[:200])
         return False
     return True
 
@@ -71,7 +111,6 @@ def sb_upsert(table, data, service=True):
 
 def fetch_conversations(since_iso: str) -> dict[str, list]:
     """Fetch conversations since a date, grouped by session_id."""
-    # Use Z suffix instead of +00:00 to avoid URL encoding issues
     safe_since = since_iso.replace("+00:00", "Z")
     rows = sb_read(
         "jarvis_conversations",
@@ -88,7 +127,6 @@ def fetch_conversations(since_iso: str) -> dict[str, list]:
 
 def extract_from_session(messages: list) -> dict:
     """Send a conversation to Qwen3.5 and extract facts + entities."""
-    # Build conversation text
     conv_text = ""
     for msg in messages:
         role = "Jean" if msg["role"] == "user" else "Jarvis"
@@ -112,18 +150,16 @@ def extract_from_session(messages: list) -> dict:
             timeout=120,
         )
         if r.status_code != 200:
-            print(f"  [WARN] LLM returned {r.status_code}")
+            log.warning("LLM returned %s", r.status_code)
             return {"facts": [], "entities": []}
 
         data = r.json()
         raw = data["choices"][0]["message"]["content"] or ""
 
-        # Also check reasoning_content (Qwen thinking mode)
         if not raw.strip():
             msg_data = data["choices"][0]["message"]
             raw = msg_data.get("reasoning_content", "") or ""
 
-        # Extract JSON from the response (may have extra text around it)
         match = re.search(r'\{[\s\S]*\}', raw)
         if match:
             result = json.loads(match.group())
@@ -131,14 +167,14 @@ def extract_from_session(messages: list) -> dict:
                 "facts": result.get("facts", []),
                 "entities": result.get("entities", []),
             }
-        print(f"  [WARN] No JSON found in LLM response ({len(raw)} chars)")
+        log.warning("No JSON found in LLM response (%d chars)", len(raw))
         return {"facts": [], "entities": []}
 
     except json.JSONDecodeError as e:
-        print(f"  [WARN] JSON parse error: {e}")
+        log.warning("JSON parse error: %s", e)
         return {"facts": [], "entities": []}
     except Exception as e:
-        print(f"  [WARN] LLM extraction failed: {e}")
+        log.warning("LLM extraction failed: %s", e)
         return {"facts": [], "entities": []}
 
 
@@ -178,10 +214,8 @@ def save_entities(entities: list):
         etype = e.get("type", "concept")
         desc = e.get("description", "")
 
-        # Check if entity already exists
         existing = sb_read("entities", f"name=eq.{requests.utils.quote(name)}&limit=1")
         if existing:
-            # Update mentions count and last_mentioned
             eid = existing[0]["id"]
             new_count = existing[0].get("mentions_count", 1) + 1
             headers = {**_headers(service=True)}
@@ -204,46 +238,65 @@ def save_entities(entities: list):
 
 # ── Main ──────────────────────────────────────────────────────
 
-def main():
-    parser = argparse.ArgumentParser(description="Jarvis — Nightly Learner")
-    parser.add_argument("--days", type=int, default=1, help="Number of days to look back (default: 1)")
-    args = parser.parse_args()
+def run(days: int | None = None) -> dict:
+    """Run the nightly learner. Returns stats dict.
 
-    print("=" * 60)
-    print("JARVIS — Nightly Learner")
-    print("=" * 60)
-    print()
+    Args:
+        days: If set, reprocess last N days (ignores checkpoint).
+              If None, process since last successful run (idempotent).
+    """
+    start_time = time.time()
+    log.info("=" * 60)
+    log.info("JARVIS — Nightly Learner")
+    log.info("=" * 60)
 
     # 1. Check LM Studio
-    print("[1/4] Verification de LM Studio...")
+    log.info("[1/4] Verification de LM Studio...")
     try:
         r = requests.get(f"{LM_STUDIO_BASE_URL}/models", timeout=5)
         if r.status_code != 200:
             raise Exception("not reachable")
-        print("  [OK] LM Studio connecte")
+        log.info("  [OK] LM Studio connecte")
     except Exception:
-        print("  [X] LM Studio non disponible. Reporte a demain.")
-        return 1
+        log.error("  [X] LM Studio non disponible. Reporte a demain.")
+        return {"status": "error", "reason": "lm_studio_unavailable"}
 
-    # 2. Fetch conversations
-    since = (datetime.now(tz=timezone.utc) - timedelta(days=args.days)).isoformat()
-    print(f"\n[2/4] Recuperation des conversations depuis {args.days} jour(s)...")
+    # 2. Determine since when to fetch
+    state = _load_state()
+    if days is not None:
+        since = (datetime.now(tz=timezone.utc) - timedelta(days=days)).isoformat()
+        log.info("[2/4] Mode retraitement: derniers %d jour(s)", days)
+    else:
+        last_run = state.get("last_processed_at")
+        if last_run:
+            since = last_run
+            log.info("[2/4] Mode incremental: depuis %s", last_run[:19])
+        else:
+            since = (datetime.now(tz=timezone.utc) - timedelta(days=1)).isoformat()
+            log.info("[2/4] Premier run: dernières 24h")
+
+    # 3. Fetch conversations
     sessions = fetch_conversations(since)
     total_msgs = sum(len(msgs) for msgs in sessions.values())
-    print(f"  {len(sessions)} session(s), {total_msgs} message(s)")
+    log.info("  %d session(s), %d message(s)", len(sessions), total_msgs)
 
     if not sessions:
-        print("\n  Aucune conversation a traiter.")
-        print("=" * 60)
-        return 0
+        log.info("  Aucune conversation a traiter.")
+        # Still update checkpoint so we don't re-scan
+        state["last_processed_at"] = datetime.now(tz=timezone.utc).isoformat()
+        state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
+        state["last_result"] = "no_data"
+        _save_state(state)
+        return {"status": "ok", "sessions": 0, "facts": 0, "entities": 0}
 
-    # 3. Extract from each session
-    print(f"\n[3/4] Extraction des faits et entites...")
+    # 4. Extract from each session
+    log.info("[3/4] Extraction des faits et entites...")
     total_facts = 0
     total_entities = 0
+    latest_created_at = since
 
     for sid, msgs in sessions.items():
-        print(f"\n  Session {sid[:8]}... ({len(msgs)} msgs)")
+        log.info("  Session %s... (%d msgs)", sid[:8], len(msgs))
         result = extract_from_session(msgs)
 
         facts_count = save_facts(result["facts"], sid)
@@ -251,33 +304,53 @@ def main():
 
         total_facts += facts_count
         total_entities += entities_count
-        print(f"    -> {facts_count} faits, {entities_count} entites")
+        log.info("    -> %d faits, %d entites", facts_count, entities_count)
 
-    # 4. Reindex
-    print(f"\n[4/4] Reindexation des nouvelles donnees...")
+        # Track latest message timestamp for checkpoint
+        for m in msgs:
+            ca = m.get("created_at", "")
+            if ca > latest_created_at:
+                latest_created_at = ca
+
+    # 5. Reindex
+    log.info("[4/4] Reindexation des nouvelles donnees...")
     try:
-        # Ensure env vars are set for indexer's config module
         os.environ.setdefault("SUPABASE_URL", SUPABASE_URL)
         os.environ.setdefault("SUPABASE_KEY", SUPABASE_KEY)
         sys.path.insert(0, os.path.dirname(__file__))
         from indexer import index_table
         for table in ("profile_facts", "entities"):
             stats = index_table(table, incremental=True)
-            print(f"  {table}: {stats['chunks']} chunks indexes")
+            log.info("  %s: %d chunks indexes", table, stats["chunks"])
     except Exception as e:
-        print(f"  [WARN] Reindexation echouee: {e}")
-        print("  Lancer manuellement: python jarvis/indexer.py --table=profile_facts")
+        log.warning("Reindexation echouee: %s", e)
 
-    # Recap
-    print()
-    print("=" * 60)
-    print(f"Extraction terminee:")
-    print(f"  Sessions traitees: {len(sessions)}")
-    print(f"  Faits extraits: {total_facts}")
-    print(f"  Entites extraites: {total_entities}")
-    print("=" * 60)
+    # Save checkpoint
+    state["last_processed_at"] = latest_created_at
+    state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
+    state["last_result"] = "ok"
+    state["last_stats"] = {"sessions": len(sessions), "facts": total_facts, "entities": total_entities}
+    _save_state(state)
 
-    return 0
+    elapsed = round(time.time() - start_time, 1)
+    log.info("")
+    log.info("=" * 60)
+    log.info("Extraction terminee en %ss:", elapsed)
+    log.info("  Sessions traitees: %d", len(sessions))
+    log.info("  Faits extraits: %d", total_facts)
+    log.info("  Entites extraites: %d", total_entities)
+    log.info("=" * 60)
+
+    return {"status": "ok", "sessions": len(sessions), "facts": total_facts, "entities": total_entities, "elapsed": elapsed}
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Jarvis — Nightly Learner")
+    parser.add_argument("--days", type=int, default=None, help="Reprocess last N days (ignores checkpoint)")
+    args = parser.parse_args()
+
+    result = run(days=args.days)
+    return 0 if result.get("status") == "ok" else 1
 
 
 if __name__ == "__main__":

@@ -1,8 +1,10 @@
 """Jarvis — FastAPI server bridging the cockpit UI to LM Studio + Supabase RAG."""
 
+import asyncio
 import sys
 import os
 import time
+from datetime import datetime, timezone
 
 # Ensure jarvis/ is on the Python path
 sys.path.insert(0, os.path.dirname(__file__))
@@ -326,6 +328,44 @@ def generate_status():
         raise HTTPException(status_code=500, detail=f"Status generation failed: {e}")
 
 
+# ── Nightly Learner scheduler ─────────────────────────────────────
+
+async def _nightly_scheduler():
+    """Background task: run nightly_learner.run() every day at midnight local time."""
+    while True:
+        now = datetime.now()
+        tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if tomorrow <= now:
+            tomorrow = tomorrow.replace(day=now.day + 1)
+        wait_seconds = (tomorrow - now).total_seconds()
+        print(f"  [SCHEDULER] Prochain nightly_learner dans {wait_seconds/3600:.1f}h (minuit)")
+        await asyncio.sleep(wait_seconds)
+
+        print(f"  [SCHEDULER] Lancement nightly_learner...")
+        try:
+            from nightly_learner import run as nl_run
+            result = nl_run()
+            print(f"  [SCHEDULER] nightly_learner terminé: {result}")
+        except Exception as e:
+            print(f"  [SCHEDULER] nightly_learner erreur: {e}")
+
+
+@app.on_event("startup")
+async def _start_scheduler():
+    asyncio.create_task(_nightly_scheduler())
+
+
+@app.post("/nightly-learner")
+def trigger_nightly_learner(days: int = None):
+    """Manually trigger the nightly learner."""
+    try:
+        from nightly_learner import run as nl_run
+        result = nl_run(days=days)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Nightly learner failed: {e}")
+
+
 # ── Startup banner ─────────────────────────────────────────────────
 
 def _startup_checks():
@@ -354,7 +394,7 @@ def _startup_checks():
 
     print()
     print("  Ready on http://localhost:8765")
-    print("  Endpoints: GET /health | POST /chat | POST /search")
+    print("  Endpoints: GET /health | POST /chat | POST /search | POST /nightly-learner")
     print("  CORS: enabled for localhost + file://")
     print("  Stop with Ctrl+C")
     print("=" * 50 + "\n")
