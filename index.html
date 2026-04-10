@@ -1246,21 +1246,188 @@ function updateNavLabel(){
   document.getElementById('btn-next').disabled=idx<=0;
 }
 
-// ── MY WEEK (stub — logic in Prompt 12) ───────────────────
+// ── MY WEEK ───────────────────────────────────────────────
 let myWeekLoaded=false;
 let myWeekOffset=0;
-function loadMyWeek(){
-  if(myWeekLoaded&&myWeekOffset===0)return;
+const _VISITS_KEY='cockpit-daily-visits';
+
+// Daily visit tracker — runs once per page load
+(function(){
+  try{
+    const today=new Date().toISOString().split('T')[0];
+    const visits=JSON.parse(localStorage.getItem(_VISITS_KEY)||'{}');
+    visits[today]=(visits[today]||0)+1;
+    // Prune entries older than 90 days
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
+    const cutoffStr=cutoff.toISOString().split('T')[0];
+    for(const d of Object.keys(visits)){if(d<cutoffStr)delete visits[d];}
+    localStorage.setItem(_VISITS_KEY,JSON.stringify(visits));
+  }catch{}
+})();
+
+function _getWeekBounds(offset){
   const now=new Date();
-  const monday=new Date(now);monday.setDate(now.getDate()-now.getDay()+(now.getDay()===0?-6:1)+myWeekOffset*7);
-  const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
-  const fmt=d=>d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
-  document.getElementById('myweek-range').textContent=`${fmt(monday)} — ${fmt(sunday)}`;
+  const day=now.getDay();
+  const monday=new Date(now);
+  monday.setDate(now.getDate()-(day===0?6:day-1)+offset*7);
+  monday.setHours(0,0,0,0);
+  const sunday=new Date(monday);
+  sunday.setDate(monday.getDate()+6);
+  return{monday,sunday};
+}
+
+function _dateFmt(d){return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});}
+function _isoDay(d){return d.toISOString().split('T')[0];}
+function _weekDays(monday){
+  const days=[];
+  for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);days.push(_isoDay(d));}
+  return days;
+}
+
+function getStreak(){
+  try{
+    const visits=JSON.parse(localStorage.getItem(_VISITS_KEY)||'{}');
+    let streak=0;
+    const d=new Date();d.setHours(0,0,0,0);
+    // Check if today visited, if not start from yesterday
+    if(!visits[_isoDay(d)]){d.setDate(d.getDate()-1);}
+    while(visits[_isoDay(d)]){streak++;d.setDate(d.getDate()-1);}
+    return streak;
+  }catch{return 0;}
+}
+
+async function loadMyWeek(){
+  const{monday,sunday}=_getWeekBounds(myWeekOffset);
+  const days=_weekDays(monday);
+  const monStr=_dateFmt(monday),sunStr=_dateFmt(sunday);
+  document.getElementById('myweek-range').textContent=`${monStr} — ${sunStr}`;
+
+  // Disable next week if it would be in the future
+  const today=new Date();today.setHours(0,0,0,0);
+  const nextMonday=new Date(monday);nextMonday.setDate(monday.getDate()+7);
+  document.querySelector('.myweek-nav-btn:last-child').disabled=nextMonday>today;
+
+  // Show loading
   document.getElementById('myweek-kpis').innerHTML='<div class="empty" style="grid-column:1/-1">Chargement des données...</div>';
   document.getElementById('myweek-streak').textContent='';
   document.getElementById('myweek-activity').innerHTML='';
   document.getElementById('myweek-topics').innerHTML='';
   document.getElementById('myweek-highlights').innerHTML='';
+
+  try{
+    // Fetch articles for the week
+    const articles=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?select=id,title,fetch_date,section,source&fetch_date=gte.${days[0]}&fetch_date=lte.${days[6]}&order=fetch_date.asc&limit=500`);
+
+    // Group articles by day
+    const byDay={};
+    days.forEach(d=>byDay[d]=[]);
+    articles.forEach(a=>{if(byDay[a.fetch_date])byDay[a.fetch_date].push(a);});
+
+    // Read articles tracker
+    const readMap=getReadArticles();
+    const readThisWeek=articles.filter(a=>!!readMap[a.id]);
+
+    // Actions tracker
+    const actions=JSON.parse(localStorage.getItem(_ACT_KEY)||'{}');
+    const signalsDug=Object.keys(actions).filter(k=>k.startsWith('dig-')&&actions[k]).length;
+    const oppsFollowed=Object.keys(actions).filter(k=>k.startsWith('follow-')&&actions[k]).length;
+
+    // Veille score: % of articles read this week
+    const totalArticles=articles.length;
+    const readCount=readThisWeek.length;
+    const veilleScore=totalArticles>0?Math.round((readCount/totalArticles)*100):0;
+
+    // Daily sparkline data (articles per day)
+    const dailyCounts=days.map(d=>byDay[d].length);
+    const dailyRead=days.map(d=>byDay[d].filter(a=>!!readMap[a.id]).length);
+
+    // ── KPIs ──
+    const kpis=[
+      {label:'Articles lus',value:readCount,spark:dailyRead},
+      {label:'Signaux creusés',value:signalsDug,spark:null},
+      {label:'Opps suivies',value:oppsFollowed,spark:null},
+      {label:'Score veille',value:`${veilleScore}%`,spark:dailyCounts}
+    ];
+    document.getElementById('myweek-kpis').innerHTML=kpis.map(k=>`
+      <div class="kpi-card">
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-value">${k.value}</div>
+        ${k.spark?`<div class="kpi-sparkline">${createSparkline(k.spark,60,20)}</div>`:''}
+      </div>`).join('');
+
+    // ── Streak ──
+    const streak=getStreak();
+    const streakEl=document.getElementById('myweek-streak');
+    if(streak>0){
+      const fire=streak>=7?'🔥🔥🔥':streak>=3?'🔥🔥':'🔥';
+      streakEl.innerHTML=`${fire} <strong>${streak} jour${streak>1?'s':''}</strong> de suite sur le cockpit`;
+    }else{
+      streakEl.innerHTML='Reviens demain pour démarrer une série !';
+    }
+
+    // ── Activity bars (Mon-Sun) ──
+    const dayLabels=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+    const maxDay=Math.max(...dailyCounts,1);
+    document.getElementById('myweek-activity').innerHTML=days.map((d,i)=>{
+      const count=dailyCounts[i];
+      const read=dailyRead[i];
+      const pct=Math.round((count/maxDay)*100);
+      return `<div class="activity-bar">
+        <span class="activity-bar-label">${dayLabels[i]}</span>
+        <div class="activity-bar-track"><div class="activity-bar-fill" style="width:${pct}%"></div></div>
+        <span class="activity-bar-value">${count} article${count>1?'s':''} · ${read} lu${read>1?'s':''}</span>
+      </div>`;
+    }).join('');
+
+    // ── Top topics ──
+    const wordFreq={};
+    articles.forEach(a=>{
+      if(!a.title)return;
+      const words=a.title.toLowerCase().replace(/['']/g,' ').split(/[\s\-_/,.:;!?()[\]{}]+/).filter(w=>w.length>2&&!_STOP_WORDS.has(w));
+      words.forEach(w=>{wordFreq[w]=(wordFreq[w]||0)+1;});
+    });
+    const topTopics=Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    if(topTopics.length){
+      document.getElementById('myweek-topics').innerHTML=topTopics.map(([word,count],i)=>`
+        <div class="topic-item">
+          <span class="topic-rank">${i+1}</span>
+          <span class="topic-name">${word}</span>
+          <span class="topic-count">${count} mention${count>1?'s':''}</span>
+        </div>`).join('');
+    }else{
+      document.getElementById('myweek-topics').innerHTML='<div class="empty">Pas assez de données cette semaine</div>';
+    }
+
+    // ── Highlights ──
+    const highlights=[];
+    // Best day
+    const bestDayIdx=dailyCounts.indexOf(Math.max(...dailyCounts));
+    if(dailyCounts[bestDayIdx]>0){
+      highlights.push(`📰 Meilleur jour : <strong>${dayLabels[bestDayIdx]}</strong> avec ${dailyCounts[bestDayIdx]} articles`);
+    }
+    // Total articles
+    highlights.push(`📊 ${totalArticles} articles cette semaine, ${readCount} lus`);
+    // Most active section
+    const sectionCounts={};
+    articles.forEach(a=>{sectionCounts[a.section]=(sectionCounts[a.section]||0)+1;});
+    const topSection=Object.entries(sectionCounts).sort((a,b)=>b[1]-a[1])[0];
+    if(topSection){
+      highlights.push(`🏷️ Section la plus active : <strong>${topSection[0]}</strong> (${topSection[1]} articles)`);
+    }
+    // Streak achievement
+    if(streak>=7) highlights.push('🏆 Série de 7 jours+ — tu es en feu !');
+    else if(streak>=3) highlights.push('✨ Série de 3 jours+ — continue comme ça !');
+    // Veille score comment
+    if(veilleScore>=80) highlights.push('🎯 Score veille excellent ('+veilleScore+'%) — rien ne t\'échappe');
+    else if(veilleScore>=50) highlights.push('👀 Score veille correct ('+veilleScore+'%) — tu couvres l\'essentiel');
+    else if(totalArticles>0) highlights.push('💡 Score veille à '+veilleScore+'% — essaie de lire les briefs quotidiens');
+
+    document.getElementById('myweek-highlights').innerHTML=highlights.map(h=>`<div class="highlight-item">${h}</div>`).join('');
+
+  }catch(e){
+    console.error('loadMyWeek',e);
+    document.getElementById('myweek-kpis').innerHTML='<div class="empty" style="grid-column:1/-1">Erreur de chargement</div>';
+  }
   myWeekLoaded=true;
 }
 function changeWeek(dir){myWeekOffset+=dir;myWeekLoaded=false;loadMyWeek();}
