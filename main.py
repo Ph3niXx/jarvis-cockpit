@@ -33,7 +33,7 @@ GMAIL_ADDRESS    = os.environ["GMAIL_ADDRESS"]
 GMAIL_APP_PWD    = os.environ["GMAIL_APP_PASSWORD"]
 RECIPIENT_EMAIL  = os.environ["RECIPIENT_EMAIL"]
 SUPABASE_URL     = os.environ["SUPABASE_URL"]
-SUPABASE_KEY     = os.environ["SUPABASE_KEY"]
+SUPABASE_KEY     = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_KEY"]
 
 SITE_URL = "https://ph3nixx.github.io/-ai-daily-digest"
 

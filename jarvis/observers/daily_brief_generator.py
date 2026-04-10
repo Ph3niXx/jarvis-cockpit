@@ -20,11 +20,9 @@ import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from config import LM_STUDIO_BASE_URL, LLM_MODEL, SUPABASE_URL, SUPABASE_KEY
+from config import LM_STUDIO_BASE_URL, LLM_MODEL, SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY
 
 log = logging.getLogger("daily_brief_generator")
-
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
 BRIEF_PROMPT = """Tu es Jarvis, assistant personnel de Jean.
 Résume cette journée de travail en 2-3 phrases en français. Sois factuel et concis.
@@ -33,8 +31,9 @@ Ne donne pas de conseils, juste un résumé.
 /no_think"""
 
 
-def _sb_headers(service: bool = False) -> dict:
-    key = SUPABASE_SERVICE_KEY if service and SUPABASE_SERVICE_KEY else SUPABASE_KEY
+def _sb_headers() -> dict:
+    """Use service_role key for writes, fall back to anon."""
+    key = SUPABASE_SERVICE_KEY or SUPABASE_KEY
     return {
         "apikey": key,
         "Authorization": f"Bearer {key}",

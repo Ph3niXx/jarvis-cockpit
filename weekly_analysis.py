@@ -22,7 +22,7 @@ from datetime import datetime, timedelta, timezone
 
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 SUPABASE_URL      = os.environ["SUPABASE_URL"]
-SUPABASE_KEY      = os.environ["SUPABASE_KEY"]
+SUPABASE_KEY      = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_KEY"]
 
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"

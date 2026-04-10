@@ -36,4 +36,5 @@ DAILY_BRIEF_HOUR = int(os.getenv("DAILY_BRIEF_HOUR", "18"))
 
 # Supabase (reuse existing env vars)
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")  # publishable/anon key (reads)
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")  # service_role key (writes)
