@@ -234,7 +234,7 @@ a:hover{text-decoration:underline}
 .cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:900px){.cards-grid{grid-template-columns:1fr}}
 .card{
-  border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4) var(--space-5);
+  position:relative;border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4) var(--space-5);
   transition:border-color .12s;cursor:default;
 }
 .card:hover{border-color:var(--bd2)}
@@ -272,12 +272,14 @@ a:hover{text-decoration:underline}
 .card-action--active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .card-action--active:hover{opacity:.9;background:var(--accent);color:#fff}
 .card-action svg{flex-shrink:0}
+.card--new::after{content:'Nouveau';position:absolute;top:8px;right:8px;background:var(--accent);color:#fff;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:var(--radius-full);z-index:2;animation:badgePulse .3s ease-out}
+@keyframes badgePulse{0%{transform:scale(0);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 
 /* ── WIKI ─────────────────────────────────────────────────── */
 .wiki-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:600px){.wiki-grid{grid-template-columns:1fr}}
 .wiki-card{
-  border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-3) var(--space-5);
+  position:relative;border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-3) var(--space-5);
   cursor:pointer;transition:all .12s;
 }
 .wiki-card:hover{border-color:var(--accent);background:var(--accent-bg)}
@@ -296,7 +298,7 @@ a:hover{text-decoration:underline}
 /* ── SIGNALS ──────────────────────────────────────────────── */
 .signal-list{display:flex;flex-direction:column;gap:var(--space-2)}
 .signal-item{
-  display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);
+  position:relative;display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);
   border:1px solid var(--bd);border-radius:var(--radius-sm);
 }
 .signal-trend{font-size:var(--text-base);width:var(--space-6);text-align:center}
@@ -392,7 +394,7 @@ a:hover{text-decoration:underline}
 
 /* ── CHALLENGES ───────────────────────────────────────────── */
 .challenge-card{
-  border:2px solid var(--accent);border-radius:var(--radius);padding:var(--space-5) var(--space-6);
+  position:relative;border:2px solid var(--accent);border-radius:var(--radius);padding:var(--space-5) var(--space-6);
   background:var(--accent-bg);margin-bottom:var(--space-4);
 }
 .challenge-title{font-size:16px;font-weight:700;color:var(--accent);margin-bottom:6px}
@@ -1006,6 +1008,8 @@ function markAsRead(articleId){
 function isRead(articleId){return !!getReadArticles()[articleId];}
 function getLastVisit(){try{return localStorage.getItem(LAST_VISIT_KEY);}catch{return null;}}
 function updateLastVisit(){try{localStorage.setItem(LAST_VISIT_KEY,new Date().toISOString());}catch{}}
+function isNewSince(dateStr){if(!dateStr||!lastVisit)return false;return new Date(dateStr).getTime()>new Date(lastVisit).getTime();}
+function newCls(dateStr){return isNewSince(dateStr)?' card--new':'';}
 
 // ── THEME ─────────────────────────────────────────────────
 const THEME_KEY='ai-cockpit-theme';
@@ -1171,7 +1175,7 @@ async function loadDay(dateStr){
       el.innerHTML=filtered.map(a=>{
         const read=!!readMap[a.id];
         return `
-        <div class="card ${read?'card--read':'card--unread'}${s==='papers'?' card--paper':''}" data-article-id="${a.id}" data-section="${s}">
+        <div class="card ${read?'card--read':'card--unread'}${s==='papers'?' card--paper':''}${newCls(a.date_published||dateStr)}" data-article-id="${a.id}" data-section="${s}">
           <div class="card-meta"><span class="card-source">${esc(a.source)}</span><span class="card-date">${fmtDate(a.date_published)}</span></div>
           <div class="card-title"><a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></div>
           <div class="card-summary" id="sum-${a.id}">${esc(stripHtml(a.summary||''))}</div>
@@ -1327,7 +1331,7 @@ async function loadWiki(){
     const grid=document.getElementById('wiki-grid');
     if(!concepts.length){grid.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('library')}</div>Le wiki se remplit automatiquement avec les articles quotidiens</div>`;return;}
     grid.innerHTML=concepts.map(c=>`
-      <div class="wiki-card" onclick="showWikiDetail('${esc(c.slug)}')">
+      <div class="wiki-card${newCls(c.last_mentioned)}" onclick="showWikiDetail('${esc(c.slug)}')">
         <div class="wiki-card-name">${esc(c.name)}</div>
         <div class="wiki-card-cat">${esc(c.category)}</div>
         <div class="wiki-card-stats">
@@ -1463,7 +1467,7 @@ async function loadSignals(){
     if(risingNew.length){
       html+=`<div class="section-label" style="color:var(--green)">Signaux à surveiller</div>`;
       html+=risingNew.map(s=>`
-        <div class="signal-item" style="border-left:3px solid ${s.trend==='rising'?'var(--green)':'var(--blue)'}">
+        <div class="signal-item${newCls(s.updated_at||s.week_start)}" style="border-left:3px solid ${s.trend==='rising'?'var(--green)':'var(--blue)'}">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1">
             <span class="signal-name">${esc(s.term)}</span>
@@ -1480,7 +1484,7 @@ async function loadSignals(){
     if(stable.length){
       html+=`<div class="section-label" style="margin-top:20px">Sujets établis</div>`;
       html+=stable.map(s=>`
-        <div class="signal-item">
+        <div class="signal-item${newCls(s.updated_at||s.week_start)}">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}</div>
           <span class="signal-count">${s.mention_count}x</span>
@@ -1492,7 +1496,7 @@ async function loadSignals(){
     if(declining.length){
       html+=`<div class="section-label" style="margin-top:20px">En déclin</div>`;
       html+=declining.map(s=>`
-        <div class="signal-item signal-declining">
+        <div class="signal-item signal-declining${newCls(s.updated_at||s.week_start)}">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}</div>
           <span class="signal-count">${s.mention_count}x</span>
@@ -1571,7 +1575,7 @@ async function loadChallenges(){
     const el=document.getElementById('challenges-content');
     if(!challenges.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trophy')}</div>Les challenges seront générés par le run hebdomadaire Claude</div>`;return;}
     el.innerHTML=challenges.map(c=>`
-      <div class="challenge-card" style="${c.status==='completed'?'opacity:.6;border-color:var(--green)':''}">
+      <div class="challenge-card${newCls(c.created_at||c.week_start)}" style="${c.status==='completed'?'opacity:.6;border-color:var(--green)':''}">
         <div class="challenge-title">${c.status==='completed'?'✅ ':''} ${esc(c.title)}</div>
         <div class="challenge-desc">${esc(c.description||'')}</div>
         <div class="challenge-meta">
@@ -1606,7 +1610,7 @@ async function loadOpportunities(){
     const life=opps.filter(o=>o.category==='life');
 
     function renderOpp(o){
-      return `<div class="card" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'}">
+      return `<div class="card${newCls(o.created_at||o.week_start)}" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'}">
         <div class="flex-header">
           <span class="text-icon">${catIcons[o.category]||'💡'}</span>
           <span class="badge badge--neutral">${esc(o.sector||'')}</span>
@@ -1952,7 +1956,7 @@ async function loadRecos(){
     const typeIcons={article:'📄',tutorial:'🛠',video:'🎬',paper:'📑',course:'🎓'};
 
     el.innerHTML=`<div class="recos-grid">${recos.map(r=>`
-      <div class="card card--reco${r.completed?' completed':''}" style="border-left:3px solid ${axisColors[r.target_axis]||'var(--bd)'}">
+      <div class="card card--reco${r.completed?' completed':''}${newCls(r.created_at||r.week_start)}" style="border-left:3px solid ${axisColors[r.target_axis]||'var(--bd)'}">
         <div class="flex-header-sm">
           <span class="text-icon">${typeIcons[r.resource_type]||'📄'}</span>
           <span class="badge badge--neutral">${r.target_axis}</span>
@@ -2746,7 +2750,7 @@ function jarvisReset(){
 // ── INIT ───────────────────────────────────────────────────
 async function init(){
   lastVisit=getLastVisit();
-  updateLastVisit();
+  setTimeout(updateLastVisit,3000);
   try{
     const data=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?select=fetch_date&order=fetch_date.desc&limit=500`);
     allDates=[...new Set(data.map(a=>a.fetch_date).filter(Boolean))].sort().reverse();
