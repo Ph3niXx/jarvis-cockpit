@@ -260,6 +260,8 @@ body.deep-work .count{display:none!important}
 .voice-transcript{color:#fff;font-size:1.4rem;text-align:center;max-width:500px;min-height:2em}
 .voice-cancel{padding:10px 24px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:.9rem;cursor:pointer}
 .voice-cancel:hover{background:rgba(255,255,255,.1)}
+.voice-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent,#6C5CE7);color:#fff;padding:10px 24px;border-radius:10px;font-size:.9rem;z-index:1003;opacity:0;transition:all .3s ease;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.voice-toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ── MORNING BRIEFING ─────────────────────────────────────── */
 .morning-briefing{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:20px 24px;margin-bottom:20px;animation:mbFadeIn .6s ease;position:relative;overflow:hidden}
@@ -3762,18 +3764,90 @@ function _stopVoiceUI(){
   document.getElementById('voice-overlay').style.display='none';
 }
 
-// Stub — command handling in Prompt 19
 function handleVoiceCommand(transcript){
-  // Route transcript to Jarvis chat
-  const input=document.getElementById('jarvis-input');
-  if(input){
-    input.value=transcript;
-    // Navigate to Jarvis panel
-    const link=document.querySelector('.sb-link[data-panel="jarvis"]');
-    if(link)link.click();
-    // Auto-send after a short delay
-    setTimeout(()=>{if(typeof jarvisSend==='function')jarvisSend();},300);
+  const cmd=transcript.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  // Navigation patterns — mapped to real panel IDs
+  const navs=[
+    {p:['brief','accueil','resume'],panel:'brief',label:'Brief du jour'},
+    {p:['semaine','week','recapitulatif'],panel:'myweek',label:'Ma semaine'},
+    {p:['nouveaute','update','mise a jour'],panel:'updates',label:'Nouveautés'},
+    {p:['llm','modele','model'],panel:'llm',label:'LLMs'},
+    {p:['agent','automatisation'],panel:'agents',label:'Agents'},
+    {p:['energie','energy','grid'],panel:'energy',label:'Énergie'},
+    {p:['finserv','assurance','banque','finance'],panel:'finserv',label:'FinServ'},
+    {p:['outil','outils','dev'],panel:'tools',label:'Outils Dev'},
+    {p:['business','funding','levee'],panel:'biz',label:'Business'},
+    {p:['regulation','ethique','rgpd'],panel:'reg',label:'Régulation'},
+    {p:['arxiv','paper','recherche academique'],panel:'papers',label:'Arxiv'},
+    {p:['wiki','glossaire','concept'],panel:'wiki',label:'Wiki IA'},
+    {p:['signaux','signal','faible'],panel:'signals',label:'Signaux faibles'},
+    {p:['opportunite','opportunites','opp'],panel:'opportunities',label:'Opportunités'},
+    {p:['radar','competence','skill'],panel:'radar',label:'Radar compétences'},
+    {p:['reco','recommandation'],panel:'recos',label:'Recommandations'},
+    {p:['challenge','defi'],panel:'challenges',label:'Challenges'},
+    {p:['idee','carnet','incubateur'],panel:'ideas',label:'Carnet d\'idées'},
+    {p:['rte','toolbox','train'],panel:'rte',label:'RTE Toolbox'},
+    {p:['tft','teamfight','match'],panel:'tft',label:'TFT Matches'},
+    {p:['jarvis','assistant','chat'],panel:'jarvis',label:'Jarvis'},
+    {p:['profil','profile','compte'],panel:'profile',label:'Mon profil'},
+    {p:['recherche','cherche','search'],panel:'search',label:'Recherche'},
+    {p:['historique','history'],panel:'history',label:'Historique'},
+    {p:['cout','couts','budget','api'],panel:'costs',label:'Coûts API'},
+  ];
+
+  // Check navigation
+  for(const nav of navs){
+    if(nav.p.some(p=>cmd.includes(p))){
+      navigateToPanel(nav.panel);
+      _showVoiceFeedback(`Navigation vers ${nav.label}`);
+      return;
+    }
   }
+
+  // Mode commands
+  if(cmd.includes('focus')||cmd.includes('concentration')||cmd.includes('deep work')){
+    toggleDeepWork();
+    _showVoiceFeedback(deepWorkActive?'Mode concentration activé':'Mode concentration désactivé');
+    return;
+  }
+  if(cmd.includes('sombre')||cmd.includes('dark')||cmd.includes('nuit')){
+    applyTheme('dark');try{localStorage.setItem(THEME_KEY,'dark');}catch{}
+    _showVoiceFeedback('Mode sombre activé');
+    return;
+  }
+  if((cmd.includes('clair')||cmd.includes('light'))&&(cmd.includes('mode')||cmd.includes('theme'))){
+    applyTheme('light');try{localStorage.setItem(THEME_KEY,'light');}catch{}
+    _showVoiceFeedback('Mode clair activé');
+    return;
+  }
+
+  // Fallback — send everything to Jarvis
+  _sendVoiceToJarvis(transcript);
+}
+
+function _sendVoiceToJarvis(transcript){
+  navigateToPanel('jarvis');
+  setTimeout(()=>{
+    const input=document.getElementById('jarvis-input');
+    if(input){
+      input.value=transcript;
+      input.focus();
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+      setTimeout(()=>{if(typeof jarvisSend==='function')jarvisSend();},200);
+    }
+    _showVoiceFeedback('Question envoyée à Jarvis');
+  },400);
+}
+
+function _showVoiceFeedback(message){
+  let t=document.getElementById('voice-toast');
+  if(!t){t=document.createElement('div');t.id='voice-toast';t.className='voice-toast';document.body.appendChild(t);}
+  t.textContent='\u{1F399}\uFE0F '+message;
+  t.classList.remove('visible');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('visible')));
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>t.classList.remove('visible'),2500);
 }
 
 // ── DEEP WORK MODE ────────────────────────────────────────
