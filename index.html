@@ -1011,9 +1011,28 @@ function renderSinceLastVisit(articles){
       <span class="slv-stat"><strong>${unread.length}</strong> non-lu${unread.length>1?'s':''} sur ${total}</span>
     </div>
     <div class="slv-highlights">
-      ${highlights.map(a=>`<div class="slv-item">${SECTION_ICONS[a.section]||'📄'} <a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a><span class="slv-section">${esc(a.section)}</span></div>`).join('')}
+      ${highlights.map(a=>`<div class="slv-item" data-article-id="${a.id}">${SECTION_ICONS[a.section]||'📄'} <a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a><span class="slv-section">${esc(a.section)}</span></div>`).join('')}
     </div>
   </div>`;
+  // Click handlers: mark as read from SLV highlights
+  ctr.querySelectorAll('.slv-item a').forEach(link=>{
+    link.addEventListener('click',()=>{
+      const item=link.closest('.slv-item');
+      const id=item.dataset.articleId;
+      markAsRead(id);
+      item.style.opacity='.5';
+      // Also update the matching card in the section if rendered
+      const card=document.querySelector(`.card[data-article-id="${id}"]`);
+      if(card){card.classList.remove('card--unread');card.classList.add('card--read');}
+      // Update sidebar counter for that section
+      const art=articles.find(a=>String(a.id)===String(id));
+      if(art){
+        const cEl=document.getElementById(`c-${art.section}`);
+        const grid=document.getElementById(`cards-${art.section}`);
+        if(cEl&&grid){cEl.textContent=grid.querySelectorAll('.card--unread').length||'✓';}
+      }
+    });
+  });
 }
 
 function toggleSummary(id){
