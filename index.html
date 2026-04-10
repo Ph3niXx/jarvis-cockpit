@@ -181,6 +181,9 @@ a:hover{text-decoration:underline}
 /* ── SIDEBAR ──────────────────────────────────────────────── */
 .page-title{font-size:var(--text-xl);font-weight:700;letter-spacing:-.3px}
 .page-subtitle{font-size:var(--text-sm);color:var(--tx2);margin-top:2px}
+.brief-sparkline{display:inline-flex;align-items:center;gap:6px;margin-left:12px;vertical-align:middle}
+.brief-sparkline .sparkline-label{font-size:var(--text-xs);color:var(--tx3)}
+.sparkline{display:inline-block}
 
 /* ── SINCE LAST VISIT ─────────────────────────────────────── */
 .since-last-visit{background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--radius);padding:var(--space-4) var(--space-5);margin-bottom:var(--space-5)}
@@ -768,7 +771,7 @@ a:hover{text-decoration:underline}
 
   <!-- BRIEF -->
   <div class="panel active" role="tabpanel" id="panel-brief">
-    <div class="page-header"><div class="page-title">Brief du jour</div><div class="page-subtitle">Synthèse macro + top 5 incontournables</div></div>
+    <div class="page-header"><div class="page-title">Brief du jour<span class="brief-sparkline" id="brief-sparkline"></span></div><div class="page-subtitle">Synthèse macro + top 5 incontournables</div></div>
     <div class="content"><div id="since-last-visit"></div><div class="brief-content" id="brief-content"></div></div>
   </div>
 
@@ -1165,6 +1168,33 @@ function updateNavLabel(){
   document.getElementById('btn-next').disabled=idx<=0;
 }
 
+// ── SPARKLINE ─────────────────────────────────────────────
+async function getWeeklyArticleCounts(){
+  const today=new Date();
+  const sevenDaysAgo=new Date(today);
+  sevenDaysAgo.setDate(today.getDate()-6);
+  const fromDate=sevenDaysAgo.toISOString().split('T')[0];
+  try{
+    const articles=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?select=fetch_date&fetch_date=gte.${fromDate}&order=fetch_date.asc`);
+    const counts={};
+    for(let i=0;i<7;i++){const d=new Date(sevenDaysAgo);d.setDate(sevenDaysAgo.getDate()+i);counts[d.toISOString().split('T')[0]]=0;}
+    articles.forEach(a=>{const day=a.fetch_date;if(day&&counts[day]!==undefined)counts[day]++;});
+    return Object.values(counts);
+  }catch(e){console.error('getWeeklyArticleCounts',e);return[];}
+}
+function createSparkline(values,width=60,height=20){
+  if(!values.length)return'';
+  const max=Math.max(...values,1);
+  const step=width/(values.length-1||1);
+  const points=values.map((v,i)=>`${i*step},${height-(v/max)*height}`).join(' ');
+  const lastX=(values.length-1)*step;
+  const lastY=height-(values[values.length-1]/max)*height;
+  return `<svg class="sparkline" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+    <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lastX}" cy="${lastY}" r="2" fill="var(--accent)"/>
+  </svg>`;
+}
+
 // ── LOAD DAY DATA ──────────────────────────────────────────
 async function loadDay(dateStr){
   currentDate=dateStr;
@@ -1244,6 +1274,11 @@ async function loadDay(dateStr){
   }catch(e){console.error('loadBrief',e);showError('brief-content','Erreur de chargement du brief',()=>loadDay(currentDate))}
   // Pipeline / email notification status
   renderPipelineStatus(dateStr,dayArticles.length);
+  // Sparkline — 7-day article trend (non-blocking)
+  getWeeklyArticleCounts().then(counts=>{
+    const el=document.getElementById('brief-sparkline');
+    if(el&&counts.length) el.innerHTML=createSparkline(counts)+`<span class="sparkline-label">${counts.reduce((a,b)=>a+b,0)} articles / 7j</span>`;
+  });
 }
 
 function renderPipelineStatus(dateStr,articleCount){
