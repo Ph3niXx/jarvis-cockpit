@@ -248,6 +248,19 @@ body.deep-work .main{margin-left:0!important;transition:margin-left .3s ease}
 body.deep-work .card--new::before{display:none!important}
 body.deep-work .count{display:none!important}
 
+/* ── VOICE RECOGNITION ────────────────────────────────────── */
+.voice-btn{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--bd);background:var(--bg2);color:var(--tx2);cursor:pointer;transition:all .2s}
+.voice-btn:hover{background:var(--bg3,var(--bd));color:var(--tx)}
+.voice-btn.listening{background:var(--red,#E53E3E);color:#fff;border-color:var(--red,#E53E3E);animation:voicePulse 1.5s infinite}
+@keyframes voicePulse{0%,100%{box-shadow:0 0 0 0 rgba(229,62,62,.4)}50%{box-shadow:0 0 0 10px rgba(229,62,62,0)}}
+.voice-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:1002}
+.voice-visualizer{position:relative;width:100px;height:100px;display:flex;align-items:center;justify-content:center}
+.voice-pulse{position:absolute;inset:0;border-radius:50%;background:var(--accent,#6C5CE7);opacity:.3;animation:vpulse 1.5s ease infinite}
+@keyframes vpulse{0%,100%{transform:scale(.8);opacity:.3}50%{transform:scale(1.2);opacity:.1}}
+.voice-transcript{color:#fff;font-size:1.4rem;text-align:center;max-width:500px;min-height:2em}
+.voice-cancel{padding:10px 24px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:.9rem;cursor:pointer}
+.voice-cancel:hover{background:rgba(255,255,255,.1)}
+
 /* ── MORNING BRIEFING ─────────────────────────────────────── */
 .morning-briefing{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:20px 24px;margin-bottom:20px;animation:mbFadeIn .6s ease;position:relative;overflow:hidden}
 .morning-briefing::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent,#6C5CE7),#a78bfa,var(--accent,#6C5CE7));background-size:200% 100%;animation:mbGradient 3s ease infinite}
@@ -855,6 +868,7 @@ body.deep-work .count{display:none!important}
       <button class="sb-theme-toggle" onclick="toggleTheme()" aria-label="Changer le thème" title="Thème"><span id="theme-icon">🌙</span></button>
     </div>
     <button id="deep-work-toggle" class="deep-work-btn" onclick="toggleDeepWork()" title="Mode Deep Work (Ctrl+Shift+F)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Focus</button>
+    <button id="voice-btn" class="voice-btn" onclick="toggleVoiceRecognition()" title="Commande vocale" aria-label="Activer la reconnaissance vocale"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
     <div class="sb-kbd-hint" onclick="toggleShortcutsHelp()" title="Raccourcis clavier"><kbd>?</kbd> raccourcis</div>
   </div>
 </nav>
@@ -3676,6 +3690,8 @@ function openCardFocus(el,e){
 }
 
 function closeAllOverlays(){
+  // Voice overlay
+  if(_isListening){cancelVoiceRecognition();return;}
   // Focus overlay
   const focus=document.getElementById('card-focus-overlay');
   if(focus.classList.contains('active')){closeFocusOverlay();return;}
@@ -3695,6 +3711,69 @@ function closeAllOverlays(){
 
 function toggleShortcutsHelp(){
   document.getElementById('kbd-help-backdrop').classList.toggle('show');
+}
+
+// ── VOICE RECOGNITION ─────────────────────────────────────
+let _voiceRecognition=null;
+let _isListening=false;
+
+function _initVoiceRecognition(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return null;
+  const r=new SR();
+  r.lang='fr-FR';r.interimResults=true;r.maxAlternatives=1;r.continuous=false;
+  r.onresult=e=>{
+    let t='';
+    for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;
+    document.getElementById('voice-transcript').textContent=t;
+    if(e.results[e.results.length-1].isFinal){
+      _stopVoiceUI();
+      handleVoiceCommand(t.trim());
+    }
+  };
+  r.onerror=e=>{
+    console.warn('Voice recognition error:',e.error);
+    _stopVoiceUI();
+    if(e.error==='not-allowed')alert('Autorise l\'accès au micro pour utiliser les commandes vocales.');
+  };
+  r.onend=()=>{if(_isListening)_stopVoiceUI();};
+  return r;
+}
+
+function toggleVoiceRecognition(){
+  if(_isListening){cancelVoiceRecognition();return;}
+  if(!_voiceRecognition)_voiceRecognition=_initVoiceRecognition();
+  if(!_voiceRecognition){alert('La reconnaissance vocale n\'est pas supportée par ton navigateur.');return;}
+  _isListening=true;
+  document.getElementById('voice-btn').classList.add('listening');
+  document.getElementById('voice-overlay').style.display='flex';
+  document.getElementById('voice-transcript').textContent='En écoute...';
+  _voiceRecognition.start();
+}
+
+function cancelVoiceRecognition(){
+  if(_voiceRecognition)_voiceRecognition.abort();
+  _stopVoiceUI();
+}
+
+function _stopVoiceUI(){
+  _isListening=false;
+  document.getElementById('voice-btn')?.classList.remove('listening');
+  document.getElementById('voice-overlay').style.display='none';
+}
+
+// Stub — command handling in Prompt 19
+function handleVoiceCommand(transcript){
+  // Route transcript to Jarvis chat
+  const input=document.getElementById('jarvis-input');
+  if(input){
+    input.value=transcript;
+    // Navigate to Jarvis panel
+    const link=document.querySelector('.sb-link[data-panel="jarvis"]');
+    if(link)link.click();
+    // Auto-send after a short delay
+    setTimeout(()=>{if(typeof jarvisSend==='function')jarvisSend();},300);
+  }
 }
 
 // ── DEEP WORK MODE ────────────────────────────────────────
@@ -3805,6 +3884,12 @@ function dismissInstall() {
     <button class="focus-close" onclick="closeFocusOverlay()" aria-label="Fermer">&times;</button>
     <div id="focus-content"></div>
   </div>
+</div>
+<!-- VOICE RECOGNITION OVERLAY -->
+<div id="voice-overlay" class="voice-overlay" style="display:none">
+  <div class="voice-visualizer"><div class="voice-pulse"></div><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
+  <div id="voice-transcript" class="voice-transcript">En écoute...</div>
+  <button class="voice-cancel" onclick="cancelVoiceRecognition()">Annuler</button>
 </div>
 </body>
 </html>
