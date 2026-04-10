@@ -27,6 +27,39 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;
   --text-xs:0.6875rem;--text-sm:0.8125rem;--text-base:0.9375rem;--text-lg:1.125rem;--text-xl:1.375rem;--text-2xl:1.75rem;
   --sidebar-w:240px;
+  --energy:#639922;
+  --rising-bg:#EAF3DE;--rising-tx:#3B6D11;
+}
+/* ── DARK PALETTE ────────────────────────────────────────── */
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1A1A1E;--bg2:#242428;--bg3:#2C2C30;
+    --tx:#E8E8E6;--tx2:#A0A09C;--tx3:#767572;
+    --bd:#3A3A3E;--bd2:#4A4A4E;
+    --accent:#8B7CF7;--accent2:#A397FF;--accent-bg:#2D2850;--accent-text:#B3A5FF;
+    --blue:#5B9FE0;--blue-bg:#1E2D3F;
+    --green:#3DBE94;--green-bg:#1A3028;
+    --amber:#D4952F;--amber-bg:#3A2D1A;
+    --coral:#E87D5A;--coral-bg:#3A251E;
+    --red:#D45555;--red-bg:#3A1E1E;
+    --pink:#E075A0;--pink-bg:#3A1E2D;
+    --energy:#7DBB44;
+    --rising-bg:#1E2E14;--rising-tx:#7DBB44;
+  }
+}
+[data-theme="dark"]{
+  --bg:#1A1A1E;--bg2:#242428;--bg3:#2C2C30;
+  --tx:#E8E8E6;--tx2:#A0A09C;--tx3:#767572;
+  --bd:#3A3A3E;--bd2:#4A4A4E;
+  --accent:#8B7CF7;--accent2:#A397FF;--accent-bg:#2D2850;--accent-text:#B3A5FF;
+  --blue:#5B9FE0;--blue-bg:#1E2D3F;
+  --green:#3DBE94;--green-bg:#1A3028;
+  --amber:#D4952F;--amber-bg:#3A2D1A;
+  --coral:#E87D5A;--coral-bg:#3A251E;
+  --red:#D45555;--red-bg:#3A1E1E;
+  --pink:#E075A0;--pink-bg:#3A1E2D;
+  --energy:#7DBB44;
+  --rising-bg:#1E2E14;--rising-tx:#7DBB44;
 }
 html{font-size:15px;scroll-behavior:smooth}
 body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.6;min-height:100vh}
@@ -90,6 +123,8 @@ a:hover{text-decoration:underline}
 .sb-link.active .count{background:var(--accent);color:#fff}
 
 .sb-bottom{margin-top:auto;padding:var(--space-3);border-top:1px solid var(--bd)}
+.sb-theme-toggle{background:none;border:1px solid var(--bd);border-radius:var(--radius-sm);width:var(--space-10);height:var(--space-10);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--tx2);transition:background .12s}
+.sb-theme-toggle:hover{background:var(--bg2)}
 .sb-nav-date{display:flex;align-items:center;gap:var(--space-2);justify-content:center}
 .sb-nav-btn{
   background:none;border:1px solid var(--bd);border-radius:var(--radius-sm);
@@ -156,7 +191,13 @@ a:hover{text-decoration:underline}
 .slv-allread{font-size:var(--text-sm);color:var(--green);font-weight:600}
 
 /* ── BRIEF LAYOUT ─────────────────────────────────────────── */
-.brief-content{line-height:1.7}
+.brief-content{line-height:1.7;color:var(--tx)}
+.brief-content *{color:inherit}
+.brief-content a{color:var(--blue)}
+.brief-content .user-title{color:var(--accent)}
+.brief-content .top-link{color:var(--tx)}
+.brief-content .top-desc{color:var(--tx2)}
+.brief-content .top-date,.brief-content .top-section,.brief-content .src-badge{color:var(--tx3)}
 .brief-content .macro-block{
   background:var(--bg2);border-radius:var(--radius);padding:var(--space-5) var(--space-6);margin-bottom:var(--space-6);
 }
@@ -210,7 +251,7 @@ a:hover{text-decoration:underline}
 .section-bar.biz{background:var(--pink)}
 .section-bar.reg{background:var(--red)}
 .section-bar.papers{background:var(--tx3)}
-.section-bar.energy{background:#639922}
+.section-bar.energy{background:var(--energy)}
 
 /* ── WIKI ─────────────────────────────────────────────────── */
 .wiki-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -242,7 +283,7 @@ a:hover{text-decoration:underline}
 .signal-name{flex:1;font-size:var(--text-sm);font-weight:500}
 .signal-count{font-size:var(--text-sm);color:var(--tx2);font-family:var(--mono)}
 .signal-badge{font-size:var(--text-xs);padding:2px var(--space-2);border-radius:var(--radius);font-weight:600}
-.signal-badge.rising{background:#EAF3DE;color:#3B6D11}
+.signal-badge.rising{background:var(--rising-bg);color:var(--rising-tx)}
 .signal-badge.new{background:var(--blue-bg);color:var(--blue)}
 .signal-badge.stable{background:var(--bg2);color:var(--tx3)}
 .signal-badge.declining{background:var(--red-bg);color:var(--red)}
@@ -465,7 +506,7 @@ a:hover{text-decoration:underline}
 .stat-sub{font-size:var(--text-xs);color:var(--tx3)}
 .badge{font-size:var(--text-xs);padding:2px var(--space-2);border-radius:var(--radius)}
 .badge--neutral{background:var(--bg2);color:var(--tx3)}
-.badge--free{background:#EAF3DE;color:#3B6D11;display:inline-block;margin-top:6px}
+.badge--free{background:var(--rising-bg);color:var(--rising-tx);display:inline-block;margin-top:6px}
 .text-muted{color:var(--tx3)}
 .text-desc{font-size:var(--text-sm);color:var(--tx2);line-height:1.5}
 .text-title{font-size:var(--text-base);font-weight:600;margin-bottom:6px}
@@ -633,6 +674,7 @@ a:hover{text-decoration:underline}
       <button class="sb-nav-btn" id="btn-prev" title="Jour précédent">←</button>
       <span class="sb-nav-label" id="nav-label">-</span>
       <button class="sb-nav-btn" id="btn-next" title="Jour suivant">→</button>
+      <button class="sb-theme-toggle" onclick="toggleTheme()" aria-label="Changer le thème" title="Thème"><span id="theme-icon">🌙</span></button>
     </div>
   </div>
 </nav>
@@ -874,6 +916,24 @@ function markAsRead(articleId){
 function isRead(articleId){return !!getReadArticles()[articleId];}
 function getLastVisit(){try{return localStorage.getItem(LAST_VISIT_KEY);}catch{return null;}}
 function updateLastVisit(){try{localStorage.setItem(LAST_VISIT_KEY,new Date().toISOString());}catch{}}
+
+// ── THEME ─────────────────────────────────────────────────
+const THEME_KEY='ai-cockpit-theme';
+function applyTheme(theme){
+  document.documentElement.removeAttribute('data-theme');
+  if(theme==='dark') document.documentElement.setAttribute('data-theme','dark');
+  if(theme==='light') document.documentElement.setAttribute('data-theme','light');
+  const icon=document.getElementById('theme-icon');
+  if(icon) icon.textContent=theme==='dark'?'☀️':theme==='light'?'🌙':'🔄';
+}
+function toggleTheme(){
+  let current;
+  try{current=localStorage.getItem(THEME_KEY)||'auto';}catch{current='auto';}
+  const next=current==='auto'?'dark':current==='dark'?'light':'auto';
+  try{localStorage.setItem(THEME_KEY,next);}catch{}
+  applyTheme(next);
+}
+(function(){let t;try{t=localStorage.getItem(THEME_KEY)||'auto';}catch{t='auto';}applyTheme(t);})();
 
 // ── SIDEBAR COLLAPSE ──────────────────────────────────────
 const SIDEBAR_STATE_KEY='ai-cockpit-sidebar-state';
@@ -1309,14 +1369,18 @@ async function loadRadar(){
     const polyPoints=points.map(p=>`${p.x},${p.y}`).join(' ');
     const outerPoints=points.map(p=>`${p.ox},${p.oy}`).join(' ');
 
+    const cs=getComputedStyle(document.documentElement);
+    const cBd=cs.getPropertyValue('--bd').trim();
+    const cAcc=cs.getPropertyValue('--accent').trim();
+    const cTx2=cs.getPropertyValue('--tx2').trim();
     const svg=`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="radar-chart">
-      <polygon points="${outerPoints}" fill="none" stroke="#E5E4DF" stroke-width="1"/>
-      <polygon points="${points.map(p=>`${cx+(p.ox-cx)*.6},${cy+(p.oy-cy)*.6}`).join(' ')}" fill="none" stroke="#E5E4DF" stroke-width=".5" stroke-dasharray="3 3"/>
-      <polygon points="${points.map(p=>`${cx+(p.ox-cx)*.3},${cy+(p.oy-cy)*.3}`).join(' ')}" fill="none" stroke="#E5E4DF" stroke-width=".5" stroke-dasharray="3 3"/>
-      ${points.map(p=>`<line x1="${cx}" y1="${cy}" x2="${p.ox}" y2="${p.oy}" stroke="#E5E4DF" stroke-width=".5"/>`).join('')}
-      <polygon points="${polyPoints}" fill="rgba(108,92,231,.15)" stroke="#6C5CE7" stroke-width="2"/>
-      ${points.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="3" fill="#6C5CE7"/>`).join('')}
-      ${points.map(p=>`<text x="${p.lx}" y="${p.ly}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#6B6A65" font-family="var(--font)">${p.label.substring(0,12)}</text>`).join('')}
+      <polygon points="${outerPoints}" fill="none" stroke="${cBd}" stroke-width="1"/>
+      <polygon points="${points.map(p=>`${cx+(p.ox-cx)*.6},${cy+(p.oy-cy)*.6}`).join(' ')}" fill="none" stroke="${cBd}" stroke-width=".5" stroke-dasharray="3 3"/>
+      <polygon points="${points.map(p=>`${cx+(p.ox-cx)*.3},${cy+(p.oy-cy)*.3}`).join(' ')}" fill="none" stroke="${cBd}" stroke-width=".5" stroke-dasharray="3 3"/>
+      ${points.map(p=>`<line x1="${cx}" y1="${cy}" x2="${p.ox}" y2="${p.oy}" stroke="${cBd}" stroke-width=".5"/>`).join('')}
+      <polygon points="${polyPoints}" fill="${cAcc}26" stroke="${cAcc}" stroke-width="2"/>
+      ${points.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="3" fill="${cAcc}"/>`).join('')}
+      ${points.map(p=>`<text x="${p.lx}" y="${p.ly}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="${cTx2}" font-family="var(--font)">${p.label.substring(0,12)}</text>`).join('')}
     </svg>`;
 
     const details=axes.map(a=>`
