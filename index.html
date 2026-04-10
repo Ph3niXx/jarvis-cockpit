@@ -160,6 +160,9 @@ a:hover{text-decoration:underline}
   transition:border-color .12s;cursor:default;
 }
 .card:hover{border-color:var(--bd2)}
+.card--unread{border-left:3px solid var(--accent)}
+.card--unread .card-title::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:var(--space-2);vertical-align:middle}
+.card--read{opacity:.7}
 .card-meta{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)}
 .card-source{font-size:var(--text-xs);font-weight:600;background:var(--bg2);padding:2px var(--space-2);border-radius:var(--radius-xs);color:var(--tx2)}
 .card-date{font-size:var(--text-xs);color:var(--tx3)}
@@ -789,6 +792,28 @@ const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg
 
 let currentDate = null;
 let allDates = [];
+let lastVisit = null;
+
+// ── READ TRACKER (localStorage) ───────────────────────────
+const STORAGE_KEY = 'ai-cockpit-read';
+const LAST_VISIT_KEY = 'ai-cockpit-last-visit';
+
+function getReadArticles(){
+  try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');}
+  catch{return {};}
+}
+function markAsRead(articleId){
+  try{
+    const read=getReadArticles();
+    read[articleId]=Date.now();
+    const cutoff=Date.now()-60*24*60*60*1000;
+    for(const[id,ts]of Object.entries(read)){if(ts<cutoff)delete read[id];}
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(read));
+  }catch{}
+}
+function isRead(articleId){return !!getReadArticles()[articleId];}
+function getLastVisit(){try{return localStorage.getItem(LAST_VISIT_KEY);}catch{return null;}}
+function updateLastVisit(){try{localStorage.setItem(LAST_VISIT_KEY,new Date().toISOString());}catch{}}
 
 // ── SUPABASE HELPERS ───────────────────────────────────────
 const headers = {"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`};
@@ -869,22 +894,43 @@ async function loadDay(dateStr){
   // Load articles
   try{
     const articles=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?fetch_date=eq.${dateStr}&order=date_fetched.desc&limit=200`);
+    const readMap=getReadArticles();
     SECTIONS.forEach(s=>{
       const el=document.getElementById(`cards-${s}`);
       const filtered=articles.filter(a=>a.section===s);
+      const unreadCount=filtered.filter(a=>!readMap[a.id]).length;
       const countEl=document.getElementById(`c-${s}`);
-      if(countEl) countEl.textContent=filtered.length||'-';
+      if(countEl) countEl.textContent=filtered.length?`${unreadCount||'✓'}`:'-';
       const sbLink=document.querySelector(`.sb-link[data-panel="${s}"]`);
       if(sbLink) sbLink.classList.toggle('sb-link--empty',!filtered.length);
       if(!el)return;
       if(!filtered.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📭</div>Aucun article dans cette section</div>`;return;}
-      el.innerHTML=filtered.map(a=>`
-        <div class="card">
+      el.innerHTML=filtered.map(a=>{
+        const read=!!readMap[a.id];
+        return `
+        <div class="card ${read?'card--read':'card--unread'}" data-article-id="${a.id}">
           <div class="card-meta"><span class="card-source">${esc(a.source)}</span><span class="card-date">${fmtDate(a.date_published)}</span></div>
           <div class="card-title"><a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></div>
           <div class="card-summary" id="sum-${a.id}">${esc(stripHtml(a.summary||''))}</div>
           ${(a.summary||'').length>120?`<button class="card-expand" onclick="toggleSummary('${a.id}')">voir plus</button>`:''}
-        </div>`).join('');
+        </div>`;
+      }).join('');
+      // Click handler: mark as read when clicking article link
+      el.querySelectorAll('.card-title a').forEach(link=>{
+        link.addEventListener('click',()=>{
+          const card=link.closest('.card');
+          const id=card.dataset.articleId;
+          markAsRead(id);
+          card.classList.remove('card--unread');
+          card.classList.add('card--read');
+          // Update sidebar counter for this section
+          const cEl=document.getElementById(`c-${s}`);
+          if(cEl){
+            const remaining=el.querySelectorAll('.card--unread').length;
+            cEl.textContent=remaining||'✓';
+          }
+        });
+      });
     });
   }catch(e){console.error('loadDay',e);SECTIONS.forEach(s=>showError(`cards-${s}`,'Erreur de chargement des articles',()=>loadDay(currentDate)))}
   // Load brief
@@ -2232,6 +2278,8 @@ function jarvisReset(){
 
 // ── INIT ───────────────────────────────────────────────────
 async function init(){
+  lastVisit=getLastVisit();
+  updateLastVisit();
   try{
     const data=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?select=fetch_date&order=fetch_date.desc&limit=500`);
     allDates=[...new Set(data.map(a=>a.fetch_date).filter(Boolean))].sort().reverse();
