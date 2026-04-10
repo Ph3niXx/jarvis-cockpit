@@ -455,6 +455,18 @@ a:hover{text-decoration:underline}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:var(--space-10);color:var(--tx3);font-size:14px}
 .empty-icon{font-size:32px;margin-bottom:var(--space-2)}
+.kbd-help-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:none}
+.kbd-help-backdrop.show{display:flex;align-items:center;justify-content:center}
+.kbd-help{background:var(--bg);border:1px solid var(--bd);border-radius:var(--radius-lg);padding:var(--space-6) var(--space-8);max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.kbd-help h3{font-size:var(--text-lg);font-weight:700;margin-bottom:var(--space-4)}
+.kbd-help table{width:100%;border-collapse:collapse}
+.kbd-help td{padding:var(--space-2) 0;font-size:var(--text-sm);color:var(--tx2);vertical-align:top}
+.kbd-help td:first-child{font-family:var(--mono);color:var(--tx);white-space:nowrap;padding-right:var(--space-5)}
+.kbd-help kbd{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius-xs);padding:1px 6px;font-family:var(--mono);font-size:var(--text-xs)}
+.kbd-help-hint{font-size:var(--text-xs);color:var(--tx3);text-align:center;margin-top:var(--space-4)}
+.sb-kbd-hint{font-size:var(--text-xs);color:var(--tx3);text-align:center;margin-top:var(--space-2);cursor:pointer}
+.sb-kbd-hint:hover{color:var(--tx2)}
+@media(max-width:768px){.sb-kbd-hint{display:none}}
 .error-state{text-align:center;padding:var(--space-10);background:var(--red-bg);border-radius:var(--radius);font-size:14px;color:var(--tx2)}
 .error-state .error-icon{font-size:32px;margin-bottom:var(--space-2)}
 .error-state .error-msg{margin-bottom:14px}
@@ -713,6 +725,7 @@ a:hover{text-decoration:underline}
       <button class="sb-nav-btn" id="btn-next" title="Jour suivant">→</button>
       <button class="sb-theme-toggle" onclick="toggleTheme()" aria-label="Changer le thème" title="Thème"><span id="theme-icon">🌙</span></button>
     </div>
+    <div class="sb-kbd-hint" onclick="toggleShortcutsHelp()" title="Raccourcis clavier"><kbd>?</kbd> raccourcis</div>
   </div>
 </nav>
 
@@ -864,6 +877,21 @@ a:hover{text-decoration:underline}
     <div id="tft-detail-content"></div>
   </div>
   <div id="tft-detail-backdrop" onclick="closeTftDetail()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.15);z-index:199"></div>
+
+  <!-- KEYBOARD SHORTCUTS HELP -->
+  <div id="kbd-help-backdrop" class="kbd-help-backdrop" onclick="if(event.target===this)toggleShortcutsHelp()">
+    <div class="kbd-help">
+      <h3>Raccourcis clavier</h3>
+      <table>
+        <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Jour précédent / suivant</td></tr>
+        <tr><td><kbd>1</kbd> – <kbd>9</kbd></td><td>Accès direct aux sections</td></tr>
+        <tr><td><kbd>/</kbd></td><td>Recherche</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Cette aide</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Fermer les overlays</td></tr>
+      </table>
+      <div class="kbd-help-hint">1 Brief · 2 Nouveautés · 3 LLMs · 4 Agents · 5 Énergie · 6 FinServ · 7 Outils · 8 Business · 9 Régulation</div>
+    </div>
+  </div>
 
   <!-- JARVIS CHAT -->
   <div class="panel" role="tabpanel" id="panel-jarvis">
@@ -2743,6 +2771,55 @@ function escProse(s){
   t=t.replace(/`([^`]+)`/g,'<code>$1</code>');
   return t;
 }
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────
+function navigateToPanel(panelId){
+  const btn=document.querySelector(`.sb-link[data-panel="${panelId}"]`);
+  if(btn) btn.click();
+}
+
+function focusSearch(){
+  navigateToPanel('search');
+  const input=document.getElementById('search-input');
+  if(input) input.focus();
+}
+
+function closeAllOverlays(){
+  // Help panel
+  const help=document.getElementById('kbd-help-backdrop');
+  if(help.classList.contains('show')){help.classList.remove('show');return;}
+  // TFT detail
+  const tft=document.getElementById('tft-detail-overlay');
+  if(tft&&tft.style.display==='block'){closeTftDetail();return;}
+  // Wiki detail
+  const wd=document.querySelector('.wiki-detail.show');
+  if(wd) wd.classList.remove('show');
+  // Mobile sidebar
+  const sb=document.getElementById('sidebar');
+  if(sb.classList.contains('open')) toggleSidebar();
+}
+
+function toggleShortcutsHelp(){
+  document.getElementById('kbd-help-backdrop').classList.toggle('show');
+}
+
+document.addEventListener('keydown',e=>{
+  if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+  if(e.ctrlKey||e.altKey||e.metaKey) return;
+  switch(e.key){
+    case 'ArrowLeft': navigateDate(-1); break;
+    case 'ArrowRight': navigateDate(1); break;
+    case '/': e.preventDefault(); focusSearch(); break;
+    case 'Escape': closeAllOverlays(); break;
+    case '?': toggleShortcutsHelp(); break;
+    default:
+      if(e.key>='1'&&e.key<='9'){
+        const sections=['brief','updates','llm','agents','energy','finserv','tools','biz','reg'];
+        const idx=parseInt(e.key)-1;
+        if(idx<sections.length) navigateToPanel(sections[idx]);
+      }
+  }
+});
 </script>
 </body>
 </html>
