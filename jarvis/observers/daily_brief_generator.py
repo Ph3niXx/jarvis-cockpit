@@ -253,7 +253,7 @@ def generate_brief(date_str: str | None = None) -> dict:
         "brief_html": brief_html,
         "stats": merged_stats,
     }
-    headers = {**_sb_headers(service=True), "Prefer": "resolution=merge-duplicates"}
+    headers = {**_sb_headers(), "Prefer": "resolution=merge-duplicates"}
     try:
         r = requests.post(
             f"{SUPABASE_URL}/rest/v1/activity_briefs",

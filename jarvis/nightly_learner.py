@@ -33,7 +33,7 @@ STATE_DIR = Path(__file__).resolve().parent.parent / "jarvis_data"
 STATE_FILE = STATE_DIR / "nightly_learner_state.json"
 LOG_FILE = STATE_DIR / "nightly_learner.log"
 
-EXTRACTION_PROMPT = """Analyse cette conversation entre un utilisateur et son assistant IA.
+CONVERSATION_EXTRACTION_PROMPT = """Analyse cette conversation entre un utilisateur et son assistant IA.
 Extrais les informations suivantes en JSON strict :
 
 1. "facts" : liste de faits sur l'utilisateur (preferences, objectifs, contexte professionnel, competences, opinions).
@@ -45,6 +45,22 @@ Extrais les informations suivantes en JSON strict :
    un "name" (nom propre) et une "description" courte.
 
 Si la conversation est triviale (salutations, tests), retourne {"facts": [], "entities": []}.
+
+Reponds UNIQUEMENT avec le JSON, sans texte avant ou apres. /no_think"""
+
+ACTIVITY_EXTRACTION_PROMPT = """Analyse ces donnees d'activite quotidienne d'un utilisateur.
+Extrais les informations DURABLES en JSON strict :
+
+1. "facts" : liste de faits sur les habitudes et rythme de travail.
+   Chaque fait a un "type" parmi : habit, pattern, context, preference
+   et un "text" qui decrit le fait de maniere concise.
+   Concentre-toi sur les PATTERNS (outils principaux, horaires, repartition du temps), pas les details ephemeres.
+
+2. "entities" : liste d'outils, projets ou reunions recurrentes.
+   Chaque entite a un "type" parmi : tool, project, person, company, meeting
+   un "name" et une "description" courte.
+
+Ignore les donnees triviales (<5 min d'activite). Retourne {"facts": [], "entities": []} si rien de notable.
 
 Reponds UNIQUEMENT avec le JSON, sans texte avant ou apres. /no_think"""
 
@@ -125,14 +141,9 @@ def fetch_conversations(since_iso: str) -> dict[str, list]:
 
 # ── LLM extraction ───────────────────────────────────────────
 
-def extract_from_session(messages: list) -> dict:
-    """Send a conversation to Qwen3.5 and extract facts + entities."""
-    conv_text = ""
-    for msg in messages:
-        role = "Jean" if msg["role"] == "user" else "Jarvis"
-        conv_text += f"{role}: {msg['content']}\n\n"
-
-    if len(conv_text.strip()) < 20:
+def _llm_extract(prompt: str, text: str) -> dict:
+    """Send text to Qwen3.5 with a given prompt and extract JSON facts + entities."""
+    if len(text.strip()) < 20:
         return {"facts": [], "entities": []}
 
     try:
@@ -141,8 +152,8 @@ def extract_from_session(messages: list) -> dict:
             json={
                 "model": LLM_MODEL,
                 "messages": [
-                    {"role": "system", "content": EXTRACTION_PROMPT},
-                    {"role": "user", "content": conv_text},
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": text},
                 ],
                 "temperature": 0.1,
                 "max_tokens": 1024,
@@ -178,9 +189,89 @@ def extract_from_session(messages: list) -> dict:
         return {"facts": [], "entities": []}
 
 
+def extract_from_session(messages: list) -> dict:
+    """Extract facts + entities from a conversation session."""
+    conv_text = ""
+    for msg in messages:
+        role = "Jean" if msg["role"] == "user" else "Jarvis"
+        conv_text += f"{role}: {msg['content']}\n\n"
+    return _llm_extract(CONVERSATION_EXTRACTION_PROMPT, conv_text)
+
+
+# ── Activity data sources ────────────────────────────────────
+
+def _get_dates_in_range(since_iso: str) -> list:
+    """Return list of dates from since_iso to yesterday (inclusive)."""
+    from datetime import date as dt_date
+    since_dt = datetime.fromisoformat(since_iso.replace("Z", "+00:00"))
+    start = since_dt.date()
+    end = dt_date.today()  # include today
+    dates = []
+    d = start
+    while d <= end:
+        dates.append(d)
+        d += timedelta(days=1)
+    return dates
+
+
+def fetch_activity_data(dates: list) -> list[dict]:
+    """Read window activity JSONL files for given dates. Returns list of {date, stats_text}."""
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "observers"))
+    from observers.window_observer import read_day_entries, compute_stats
+    from observers.daily_brief_generator import _build_stats_text, _format_minutes
+
+    results = []
+    for d in dates:
+        entries = read_day_entries(d)
+        if not entries:
+            continue
+        stats = compute_stats(entries)
+        if stats.get("total_minutes", 0) < 5:
+            continue
+
+        # Build human-readable summary for LLM
+        text = f"Activite du {d.isoformat()} :\n"
+        text += _build_stats_text(stats)
+        results.append({"date": d, "text": text, "source": "window_activity"})
+
+    return results
+
+
+def fetch_outlook_data(dates: list) -> list[dict]:
+    """Read Outlook JSON snapshots for given dates. Returns list of {date, stats_text}."""
+    from observers.outlook_observer import read_outlook_data
+    from observers.daily_brief_generator import _build_stats_text, _format_minutes
+
+    results = []
+    for d in dates:
+        outlook = read_outlook_data(d)
+        if not outlook:
+            continue
+
+        ms = outlook.get("meetings_stats", {})
+        em = outlook.get("emails", {})
+        if not ms.get("count") and not em.get("received_today"):
+            continue
+
+        text = f"Donnees Outlook du {d.isoformat()} :\n"
+        text += _build_stats_text({}, outlook=outlook)
+
+        # Add meeting details (subjects help extract entities)
+        meetings = outlook.get("meetings", [])
+        if meetings:
+            text += "\nReunions :\n"
+            for m in meetings:
+                teams_tag = " (Teams)" if m.get("is_teams") else ""
+                text += f"  - {m['start']}-{m['end']} : {m['subject']}{teams_tag}, {m.get('attendees_count', 0)} participants\n"
+
+        results.append({"date": d, "text": text, "source": "outlook"})
+
+    return results
+
+
 # ── Upsert logic ─────────────────────────────────────────────
 
-def save_facts(facts: list, session_id: str):
+def save_facts(facts: list, session_id: str, source: str = "conversation"):
     """Insert new facts into profile_facts."""
     if not facts:
         return 0
@@ -193,7 +284,7 @@ def save_facts(facts: list, session_id: str):
         rows.append({
             "fact_type": ftype,
             "fact_text": ftext,
-            "source": "conversation",
+            "source": source,
             "confidence": 0.7,
             "session_id": session_id,
         })
@@ -239,7 +330,12 @@ def save_entities(entities: list):
 # ── Main ──────────────────────────────────────────────────────
 
 def run(days: int | None = None) -> dict:
-    """Run the nightly learner. Returns stats dict.
+    """Run the nightly learner on all sources. Returns stats dict.
+
+    Sources processed:
+    1. Conversations (from Supabase jarvis_conversations)
+    2. Window activity (from local JSONL files)
+    3. Outlook data (from local JSON snapshots)
 
     Args:
         days: If set, reprocess last N days (ignores checkpoint).
@@ -247,11 +343,11 @@ def run(days: int | None = None) -> dict:
     """
     start_time = time.time()
     log.info("=" * 60)
-    log.info("JARVIS — Nightly Learner")
+    log.info("JARVIS — Nightly Learner (multi-source)")
     log.info("=" * 60)
 
     # 1. Check LM Studio
-    log.info("[1/4] Verification de LM Studio...")
+    log.info("[1/5] Verification de LM Studio...")
     try:
         r = requests.get(f"{LM_STUDIO_BASE_URL}/models", timeout=5)
         if r.status_code != 200:
@@ -265,55 +361,77 @@ def run(days: int | None = None) -> dict:
     state = _load_state()
     if days is not None:
         since = (datetime.now(tz=timezone.utc) - timedelta(days=days)).isoformat()
-        log.info("[2/4] Mode retraitement: derniers %d jour(s)", days)
+        log.info("[2/5] Mode retraitement: derniers %d jour(s)", days)
     else:
         last_run = state.get("last_processed_at")
         if last_run:
             since = last_run
-            log.info("[2/4] Mode incremental: depuis %s", last_run[:19])
+            log.info("[2/5] Mode incremental: depuis %s", last_run[:19])
         else:
             since = (datetime.now(tz=timezone.utc) - timedelta(days=1)).isoformat()
-            log.info("[2/4] Premier run: dernières 24h")
+            log.info("[2/5] Premier run: dernieres 24h")
 
-    # 3. Fetch conversations
+    total_facts = 0
+    total_entities = 0
+    total_sessions = 0
+
+    # 3. Source 1: Conversations
+    log.info("[3/5] Source: Conversations...")
     sessions = fetch_conversations(since)
     total_msgs = sum(len(msgs) for msgs in sessions.values())
     log.info("  %d session(s), %d message(s)", len(sessions), total_msgs)
 
-    if not sessions:
-        log.info("  Aucune conversation a traiter.")
-        # Still update checkpoint so we don't re-scan
-        state["last_processed_at"] = datetime.now(tz=timezone.utc).isoformat()
-        state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
-        state["last_result"] = "no_data"
-        _save_state(state)
-        return {"status": "ok", "sessions": 0, "facts": 0, "entities": 0}
-
-    # 4. Extract from each session
-    log.info("[3/4] Extraction des faits et entites...")
-    total_facts = 0
-    total_entities = 0
     latest_created_at = since
 
     for sid, msgs in sessions.items():
         log.info("  Session %s... (%d msgs)", sid[:8], len(msgs))
         result = extract_from_session(msgs)
 
-        facts_count = save_facts(result["facts"], sid)
+        facts_count = save_facts(result["facts"], sid, source="conversation")
         entities_count = save_entities(result["entities"])
 
         total_facts += facts_count
         total_entities += entities_count
+        total_sessions += 1
         log.info("    -> %d faits, %d entites", facts_count, entities_count)
 
-        # Track latest message timestamp for checkpoint
         for m in msgs:
             ca = m.get("created_at", "")
             if ca > latest_created_at:
                 latest_created_at = ca
 
+    # 4. Source 2 & 3: Activity + Outlook
+    log.info("[4/5] Source: Activite + Outlook...")
+    dates = _get_dates_in_range(since)
+    log.info("  Dates a traiter: %s", ", ".join(d.isoformat() for d in dates))
+
+    activity_items = fetch_activity_data(dates)
+    outlook_items = fetch_outlook_data(dates)
+    observer_items = activity_items + outlook_items
+
+    if observer_items:
+        # Group by date and merge into a single text per date for efficiency
+        by_date = {}
+        for item in observer_items:
+            d = item["date"]
+            by_date.setdefault(d, []).append(item["text"])
+
+        for d, texts in by_date.items():
+            combined = "\n\n".join(texts)
+            log.info("  %s (%d sources, %d chars)...", d.isoformat(), len(texts), len(combined))
+            result = _llm_extract(ACTIVITY_EXTRACTION_PROMPT, combined)
+
+            facts_count = save_facts(result["facts"], f"activity_{d.isoformat()}", source="activity")
+            entities_count = save_entities(result["entities"])
+
+            total_facts += facts_count
+            total_entities += entities_count
+            log.info("    -> %d faits, %d entites", facts_count, entities_count)
+    else:
+        log.info("  Aucune donnee d'activite a traiter.")
+
     # 5. Reindex
-    log.info("[4/4] Reindexation des nouvelles donnees...")
+    log.info("[5/5] Reindexation des nouvelles donnees...")
     try:
         os.environ.setdefault("SUPABASE_URL", SUPABASE_URL)
         os.environ.setdefault("SUPABASE_KEY", SUPABASE_KEY)
@@ -325,23 +443,40 @@ def run(days: int | None = None) -> dict:
     except Exception as e:
         log.warning("Reindexation echouee: %s", e)
 
-    # Save checkpoint
+    # No data at all — still update checkpoint
+    if total_facts == 0 and total_entities == 0 and not sessions and not observer_items:
+        state["last_result"] = "no_data"
+    else:
+        state["last_result"] = "ok"
+
     state["last_processed_at"] = latest_created_at
     state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
-    state["last_result"] = "ok"
-    state["last_stats"] = {"sessions": len(sessions), "facts": total_facts, "entities": total_entities}
+    state["last_stats"] = {
+        "sessions": total_sessions,
+        "activity_days": len(observer_items),
+        "facts": total_facts,
+        "entities": total_entities,
+    }
     _save_state(state)
 
     elapsed = round(time.time() - start_time, 1)
     log.info("")
     log.info("=" * 60)
     log.info("Extraction terminee en %ss:", elapsed)
-    log.info("  Sessions traitees: %d", len(sessions))
+    log.info("  Conversations: %d sessions", total_sessions)
+    log.info("  Activite/Outlook: %d jours", len(observer_items))
     log.info("  Faits extraits: %d", total_facts)
     log.info("  Entites extraites: %d", total_entities)
     log.info("=" * 60)
 
-    return {"status": "ok", "sessions": len(sessions), "facts": total_facts, "entities": total_entities, "elapsed": elapsed}
+    return {
+        "status": "ok",
+        "sessions": total_sessions,
+        "activity_days": len(observer_items),
+        "facts": total_facts,
+        "entities": total_entities,
+        "elapsed": elapsed,
+    }
 
 
 def main():

@@ -227,11 +227,17 @@ class OutlookObserver:
                         emails.get("received_today", 0),
                         emails.get("sent_today", 0),
                     )
+                else:
+                    log.warning("Outlook poll returned empty data")
 
             except Exception as e:
                 log.warning("OutlookObserver poll error: %s", e)
 
-            await asyncio.sleep(self.interval_s)
+            try:
+                await asyncio.sleep(self.interval_s)
+            except asyncio.CancelledError:
+                log.info("OutlookObserver task cancelled")
+                break
 
     def stop(self):
         """Signal the observer to stop."""

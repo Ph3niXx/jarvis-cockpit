@@ -212,11 +212,42 @@ def chat(req: ChatRequest):
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"RAG search failed: {e}")
 
+    # 1b. Inject today's activity context if question is about activity
+    activity_context = ""
+    q_lower = req.question.lower()
+    activity_keywords = ["fait aujourd", "fait quoi", "journée", "activité", "réunion", "meeting", "email", "mail", "outlook", "agenda", "calendrier"]
+    if any(kw in q_lower for kw in activity_keywords):
+        try:
+            from observers.daily_brief_generator import _build_stats_text
+            from observers.window_observer import read_day_entries, compute_stats
+            from observers.outlook_observer import read_outlook_data
+            from datetime import date as dt_date
+
+            today = dt_date.today()
+            entries = read_day_entries(today)
+            outlook = read_outlook_data(today)
+            if entries or outlook:
+                stats = compute_stats(entries) if entries else {}
+                activity_context = (
+                    f"\n\n[Activité observée aujourd'hui ({today.isoformat()})]\n"
+                    + _build_stats_text(stats, outlook=outlook if outlook else None)
+                )
+                if outlook and outlook.get("meetings"):
+                    meetings_list = ", ".join(
+                        f"{m['start']}-{m['end']} {m['subject']}" + (" (Teams)" if m.get("is_teams") else "")
+                        for m in outlook["meetings"]
+                    )
+                    activity_context += f"\nRéunions détail : {meetings_list}"
+        except Exception as e:
+            print(f"  [WARN] Activity context injection failed: {e}")
+
     # 2. Build messages with profile facts injection
     system = SYSTEM_PROMPT
     profile_context = _get_profile_facts()
     if profile_context:
         system += "\n\n" + profile_context
+    if activity_context:
+        system += activity_context
     if context:
         system += "\n\n" + context
 
@@ -440,6 +471,23 @@ def get_outlook():
     if _outlook_observer is None:
         raise HTTPException(status_code=503, detail="Outlook observer not running")
     return _outlook_observer.get_today_data()
+
+
+@app.post("/poll-outlook")
+async def poll_outlook_now():
+    """Force an immediate Outlook poll."""
+    try:
+        from observers.outlook_observer import _poll_outlook, _save_snapshot, _executor
+        from datetime import date as dt_date
+        loop = asyncio.get_event_loop()
+        data = await loop.run_in_executor(_executor, _poll_outlook)
+        if data:
+            _save_snapshot(dt_date.today(), data)
+            if _outlook_observer:
+                _outlook_observer._last_data = data
+        return data if data else {"status": "no_data"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Outlook poll failed: {e}")
 
 
 @app.post("/generate-activity-brief")
