@@ -1,7 +1,7 @@
-"""Jarvis — Daily Brief Generator: summarize window activity into an HTML brief.
+"""Jarvis — Daily Brief Generator: summarize window + Outlook activity into an HTML brief.
 
-Reads local activity JSONL files, computes stats, generates a narrative
-via LLM, and upserts the brief into Supabase activity_briefs table.
+Reads local activity JSONL files and Outlook snapshots, computes stats,
+generates a narrative via LLM, and upserts the brief into Supabase.
 
 Usage:
     from observers.daily_brief_generator import generate_brief
@@ -51,7 +51,7 @@ def _format_minutes(minutes: int) -> str:
     return f"{h}h{m:02d}" if m else f"{h}h"
 
 
-def _build_stats_text(stats: dict) -> str:
+def _build_stats_text(stats: dict, outlook: dict | None = None) -> str:
     """Build a human-readable stats summary for the LLM prompt."""
     lines = []
 
@@ -83,6 +83,16 @@ def _build_stats_text(stats: dict) -> str:
     total = stats.get("total_minutes", 0)
     lines.append(f"Temps total observé : {_format_minutes(total)}")
 
+    # Outlook data
+    if outlook:
+        ms = outlook.get("meetings_stats", {})
+        em = outlook.get("emails", {})
+        if ms.get("count"):
+            teams_info = f" (dont {ms['teams_count']} Teams)" if ms.get("teams_count") else ""
+            lines.append(f"Réunions : {ms['count']}{teams_info}, {_format_minutes(ms['total_minutes'])} total")
+        if em.get("received_today") or em.get("sent_today"):
+            lines.append(f"Emails : {em.get('received_today', 0)} reçus, {em.get('sent_today', 0)} envoyés, {em.get('inbox_unread', 0)} non lus")
+
     return "\n".join(lines)
 
 
@@ -112,7 +122,7 @@ def _call_llm(stats_text: str) -> str:
         return ""
 
 
-def _build_brief_html(stats: dict, narrative: str) -> str:
+def _build_brief_html(stats: dict, narrative: str, outlook: dict | None = None) -> str:
     """Build HTML for the activity brief."""
     cats = stats.get("categories", {})
     total = max(stats.get("total_minutes", 1), 1)
@@ -151,16 +161,30 @@ def _build_brief_html(stats: dict, narrative: str) -> str:
             f'</div>'
         )
 
+    # Outlook: meetings + emails
+    outlook_html = ""
+    if outlook:
+        ms = outlook.get("meetings_stats", {})
+        em = outlook.get("emails", {})
+        parts = []
+        if ms.get("count"):
+            teams_tag = f" ({ms['teams_count']} Teams)" if ms.get("teams_count") else ""
+            parts.append(f'<span style="margin-right:14px">&#128197; {ms["count"]} réunion{"s" if ms["count"]>1 else ""}{teams_tag} · {_format_minutes(ms["total_minutes"])}</span>')
+        if em.get("received_today") or em.get("sent_today"):
+            parts.append(f'<span>&#128231; {em.get("received_today",0)} reçus · {em.get("sent_today",0)} envoyés · {em.get("inbox_unread",0)} non lus</span>')
+        if parts:
+            outlook_html = f'<div style="font-size:.82em;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">{"".join(parts)}</div>'
+
     # Top apps list
     apps_html = ""
     if top_apps[:4]:
-        apps = " · ".join(f"{a['name']} ({_format_minutes(a['minutes'])})" for a in top_apps[:4])
+        apps = " &middot; ".join(f"{a['name']} ({_format_minutes(a['minutes'])})" for a in top_apps[:4])
         apps_html = f'<div style="font-size:.78em;color:var(--muted);margin-top:6px">Top : {apps}</div>'
 
     # Time range
     time_html = ""
     if first and last:
-        time_html = f'<div style="font-size:.78em;color:var(--muted);margin-top:2px">{first} → {last} · {_format_minutes(total)} observé</div>'
+        time_html = f'<div style="font-size:.78em;color:var(--muted);margin-top:2px">{first} &rarr; {last} &middot; {_format_minutes(total)} observé</div>'
 
     # Narrative
     narr_html = ""
@@ -171,6 +195,7 @@ def _build_brief_html(stats: dict, narrative: str) -> str:
         f'<div style="margin-top:10px">'
         f'<div style="font-weight:600;font-size:.9em;margin-bottom:6px">Activité hier</div>'
         f'{bars_html}'
+        f'{outlook_html}'
         f'{apps_html}'
         f'{time_html}'
         f'{narr_html}'
@@ -184,8 +209,8 @@ def generate_brief(date_str: str | None = None) -> dict:
     Args:
         date_str: ISO date string (YYYY-MM-DD). Defaults to yesterday.
     """
-    # Import here to avoid circular imports
     from observers.window_observer import read_day_entries, compute_stats
+    from observers.outlook_observer import read_outlook_data
 
     if date_str:
         target = date.fromisoformat(date_str)
@@ -194,28 +219,39 @@ def generate_brief(date_str: str | None = None) -> dict:
 
     log.info("Generating activity brief for %s", target.isoformat())
 
+    # Window activity
     entries = read_day_entries(target)
-    if not entries:
+    # Outlook data
+    outlook = read_outlook_data(target)
+
+    if not entries and not outlook:
         log.info("No activity data for %s", target.isoformat())
         return {"status": "no_data", "brief_html": "", "stats": {}}
 
-    stats = compute_stats(entries)
-    if stats["total_minutes"] < 5:
-        log.info("Less than 5 minutes of activity for %s, skipping", target.isoformat())
+    stats = compute_stats(entries) if entries else {"total_minutes": 0, "categories": {}, "top_apps": [], "first_activity": "", "last_activity": "", "window_changes": 0}
+
+    if stats["total_minutes"] < 5 and not outlook:
+        log.info("Less than 5 minutes of activity for %s and no Outlook data, skipping", target.isoformat())
         return {"status": "insufficient_data", "brief_html": "", "stats": stats}
 
     # Generate narrative via LLM
-    stats_text = _build_stats_text(stats)
+    stats_text = _build_stats_text(stats, outlook=outlook if outlook else None)
     narrative = _call_llm(stats_text)
 
     # Build HTML
-    brief_html = _build_brief_html(stats, narrative)
+    brief_html = _build_brief_html(stats, narrative, outlook=outlook if outlook else None)
+
+    # Merge outlook stats into payload
+    merged_stats = {**stats}
+    if outlook:
+        merged_stats["meetings"] = outlook.get("meetings_stats", {})
+        merged_stats["emails"] = outlook.get("emails", {})
 
     # Upsert to Supabase
     payload = {
         "date": target.isoformat(),
         "brief_html": brief_html,
-        "stats": stats,
+        "stats": merged_stats,
     }
     headers = {**_sb_headers(service=True), "Prefer": "resolution=merge-duplicates"}
     try:
@@ -232,4 +268,4 @@ def generate_brief(date_str: str | None = None) -> dict:
     except Exception as e:
         log.warning("Supabase upsert failed: %s", e)
 
-    return {"status": "ok", "brief_html": brief_html, "stats": stats}
+    return {"status": "ok", "brief_html": brief_html, "stats": merged_stats}

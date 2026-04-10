@@ -27,6 +27,7 @@ from config import (
     CLAUDE_MODEL,
     CLAUDE_API_URL,
     OBSERVER_INTERVAL_S,
+    OUTLOOK_INTERVAL_S,
     DAILY_BRIEF_HOUR,
 )
 from retriever import search, search_and_format
@@ -330,9 +331,10 @@ def generate_status():
         raise HTTPException(status_code=500, detail=f"Status generation failed: {e}")
 
 
-# ── Window Observer ────────────────────────────────────────────────
+# ── Observers ─────────────────────────────────────────────────────
 
 _window_observer = None
+_outlook_observer = None
 
 
 # ── Schedulers ────────────────────────────────────────────────────
@@ -379,7 +381,7 @@ async def _daily_brief_scheduler():
 
 @app.on_event("startup")
 async def _start_background_tasks():
-    global _window_observer
+    global _window_observer, _outlook_observer
 
     # Start window observer
     try:
@@ -389,6 +391,17 @@ async def _start_background_tasks():
         print(f"  [OK] Window observer started (interval={OBSERVER_INTERVAL_S}s)")
     except Exception as e:
         print(f"  [!!] Window observer failed to start: {e}")
+
+    # Start Outlook observer
+    try:
+        from observers.outlook_observer import OutlookObserver
+        _outlook_observer = OutlookObserver(interval_s=OUTLOOK_INTERVAL_S)
+        asyncio.create_task(_outlook_observer.start())
+        print(f"  [OK] Outlook observer started (interval={OUTLOOK_INTERVAL_S}s)")
+    except ImportError:
+        print("  [!!] pywin32 not installed, Outlook observer disabled")
+    except Exception as e:
+        print(f"  [!!] Outlook observer failed to start: {e}")
 
     # Start schedulers
     asyncio.create_task(_nightly_scheduler())
@@ -410,10 +423,23 @@ def trigger_nightly_learner(days: int = None):
 
 @app.get("/activity")
 def get_activity():
-    """Return today's activity stats from the window observer."""
-    if _window_observer is None:
-        raise HTTPException(status_code=503, detail="Window observer not running")
-    return _window_observer.get_today_stats()
+    """Return today's activity stats (window + outlook merged)."""
+    result = {}
+    if _window_observer:
+        result["window"] = _window_observer.get_today_stats()
+    if _outlook_observer:
+        result["outlook"] = _outlook_observer.get_today_data()
+    if not result:
+        raise HTTPException(status_code=503, detail="No observers running")
+    return result
+
+
+@app.get("/outlook")
+def get_outlook():
+    """Return today's Outlook snapshot (meetings + emails)."""
+    if _outlook_observer is None:
+        raise HTTPException(status_code=503, detail="Outlook observer not running")
+    return _outlook_observer.get_today_data()
 
 
 @app.post("/generate-activity-brief")
@@ -456,7 +482,8 @@ def _startup_checks():
     print()
     print("  Ready on http://localhost:8765")
     print("  Endpoints: GET /health | POST /chat | POST /search")
-    print("             POST /nightly-learner | GET /activity | POST /generate-activity-brief")
+    print("             POST /nightly-learner | GET /activity | GET /outlook")
+    print("             POST /generate-activity-brief")
     print("  CORS: enabled for localhost + file://")
     print("  Stop with Ctrl+C")
     print("=" * 50 + "\n")

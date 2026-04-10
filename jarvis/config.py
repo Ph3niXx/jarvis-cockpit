@@ -31,6 +31,7 @@ CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"
 
 # Observer (Phase 6)
 OBSERVER_INTERVAL_S = int(os.getenv("OBSERVER_INTERVAL_S", "30"))
+OUTLOOK_INTERVAL_S = int(os.getenv("OUTLOOK_INTERVAL_S", "300"))  # 5 min
 DAILY_BRIEF_HOUR = int(os.getenv("DAILY_BRIEF_HOUR", "18"))
 
 # Supabase (reuse existing env vars)

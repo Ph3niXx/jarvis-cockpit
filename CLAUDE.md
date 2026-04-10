@@ -179,9 +179,10 @@ jarvis/
 ├── observers/
 │   ├── __init__.py
 │   ├── window_observer.py     # Capteur fenêtre active (ctypes, 30s, JSONL local)
+│   ├── outlook_observer.py    # Capteur Outlook COM (réunions, emails, 5min, JSON local)
 │   └── daily_brief_generator.py # Génère brief d'activité via LLM → Supabase
 
-jarvis_data/               # Données perso, non versionné (inclut activity_YYYY-MM-DD.jsonl)
+jarvis_data/               # Données perso, non versionné (activity_*.jsonl, outlook_*.json, state files)
 ```
 
 ### Phasage
@@ -231,7 +232,8 @@ jarvis_data/               # Données perso, non versionné (inclut activity_YYY
 - `activity_briefs` — briefs d'activité quotidiens (date unique, brief_html, stats JSONB). Seul le résumé y est stocké, pas les données brutes.
 - Migration : `jarvis/migrations/004_activity_briefs.sql`
 - **`jarvis/observers/window_observer.py`** — Capteur de fenêtre active via `ctypes.windll` (Windows). Capture toutes les 30s, déduplique par changement de titre, stocke en JSONL local (`jarvis_data/activity_YYYY-MM-DD.jsonl`). Catégorise automatiquement (dev/communication/browsing/documents/other). Démarré automatiquement avec le serveur.
-- **`jarvis/observers/daily_brief_generator.py`** — Génère un brief HTML à partir de l'activité du jour : stats par catégorie, top apps, timeline, résumé narratif via LLM local. Upsert dans `activity_briefs`. Déclenché à 18h par scheduler asyncio ou manuellement via `POST /generate-activity-brief`.
+- **`jarvis/observers/outlook_observer.py`** — Capteur Outlook via COM automation (`pywin32`). Connecté à l'instance Outlook desktop locale, pas besoin d'Azure AD. Poll toutes les 5 min. Collecte : réunions du jour (sujet, durée, Teams?, participants), emails (reçus/envoyés/non lus). Stocke un snapshot JSON local (`jarvis_data/outlook_YYYY-MM-DD.json`). Les sujets de réunions restent locaux. Nécessite `pywin32` et Outlook desktop ouvert.
+- **`jarvis/observers/daily_brief_generator.py`** — Génère un brief HTML à partir de l'activité du jour (window + Outlook fusionnés) : stats par catégorie, réunions, emails, top apps, timeline, résumé narratif via LLM local. Upsert dans `activity_briefs`. Déclenché à 18h par scheduler asyncio ou manuellement via `POST /generate-activity-brief`.
 - Les données brutes d'activité restent **locales** dans `jarvis_data/` (privacy-first). Seul le brief résumé va dans Supabase.
 
 ### Cockpit — Section Projet Jarvis
