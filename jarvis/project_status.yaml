@@ -1,4 +1,4 @@
-current_phase: 5
+current_phase: 6
 
 phases:
   - id: 1
@@ -57,11 +57,15 @@ phases:
 
   - id: 6
     title: Capteurs d'observation
-    status: planned
-    success_criterion: Brief quotidien automatique genere sans que je le demande
+    status: done
+    completion_date: 2026-04-10
     bullets:
-      - Observation des fichiers locaux et fenetres actives d'abord
-      - Puis integration Teams et Outlook
-      - Brief quotidien automatique en fin de journee
+      - Window Observer via ctypes (capture fenetre active toutes les 30s, zero dependance)
+      - Donnees brutes stockees localement dans jarvis_data/ (privacy-first)
+      - Brief quotidien genere a 18h via LLM local (stats + resume narratif)
+      - Seul le brief resume va dans Supabase (table activity_briefs)
+      - Affichage dans le morning briefing du cockpit (barres par categorie)
+      - Endpoints GET /activity, POST /generate-activity-brief
+      - "Learning : ctypes.windll est built-in sur Windows, pas besoin de pygetwindow ou pywinauto"
 
-next_step: Construire les capteurs d'observation (fichiers locaux, fenetres actives) pour generer un brief quotidien automatique
+next_step: Toutes les 6 phases sont terminees. Prochaines evolutions possibles — integration Teams/Outlook, capteur fichiers locaux, brief vocal automatique

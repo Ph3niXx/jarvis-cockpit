@@ -171,9 +171,12 @@ jarvis/
 ├── migrations/
 │   └── 001_enable_pgvector.sql
 ├── nightly_learner.py         # Extraction nocturne faits+entités (idempotent, scheduler asyncio)
-└── (à venir) observers/
+├── observers/
+│   ├── __init__.py
+│   ├── window_observer.py     # Capteur fenêtre active (ctypes, 30s, JSONL local)
+│   └── daily_brief_generator.py # Génère brief d'activité via LLM → Supabase
 
-jarvis_data/               # Données perso, non versionné
+jarvis_data/               # Données perso, non versionné (inclut activity_YYYY-MM-DD.jsonl)
 ```
 
 ### Phasage
@@ -184,7 +187,7 @@ jarvis_data/               # Données perso, non versionné
 - **Phase 3** : Mémoire structurée *(done)*
 - **Phase 4** : Orchestrateur (routeur LLM local/cloud) *(done)*
 - **Phase 5** : Boucle nocturne d'apprentissage *(done)*
-- **Phase 6** : Capteurs d'observation
+- **Phase 6** : Capteurs d'observation *(done)*
 
 ### Conventions Jarvis
 
@@ -218,6 +221,13 @@ jarvis_data/               # Données perso, non versionné
 - `entities` — personnes, projets, outils, entreprises mentionnés (entity_type, name, description, mentions_count). Extraits par `nightly_learner.py`.
 - Migration : `jarvis/migrations/003_structured_memory.sql`
 - **`jarvis/nightly_learner.py`** — Script d'extraction nocturne idempotent : lit les conversations depuis le dernier checkpoint (`jarvis_data/nightly_learner_state.json`), envoie chaque session à Qwen3.5 pour extraction JSON (faits + entités), upsert dans les tables, reindex via indexer.py. Déclenché automatiquement à minuit par le scheduler asyncio dans server.py, au démarrage via start_jarvis.bat, ou manuellement via `POST /nightly-learner` ou `python jarvis/nightly_learner.py --days=N`.
+
+**Créées (Phase 6) :**
+- `activity_briefs` — briefs d'activité quotidiens (date unique, brief_html, stats JSONB). Seul le résumé y est stocké, pas les données brutes.
+- Migration : `jarvis/migrations/004_activity_briefs.sql`
+- **`jarvis/observers/window_observer.py`** — Capteur de fenêtre active via `ctypes.windll` (Windows). Capture toutes les 30s, déduplique par changement de titre, stocke en JSONL local (`jarvis_data/activity_YYYY-MM-DD.jsonl`). Catégorise automatiquement (dev/communication/browsing/documents/other). Démarré automatiquement avec le serveur.
+- **`jarvis/observers/daily_brief_generator.py`** — Génère un brief HTML à partir de l'activité du jour : stats par catégorie, top apps, timeline, résumé narratif via LLM local. Upsert dans `activity_briefs`. Déclenché à 18h par scheduler asyncio ou manuellement via `POST /generate-activity-brief`.
+- Les données brutes d'activité restent **locales** dans `jarvis_data/` (privacy-first). Seul le brief résumé va dans Supabase.
 
 ### Cockpit — Section Projet Jarvis
 

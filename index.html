@@ -889,6 +889,7 @@ body.deep-work .count{display:none!important}
         </div>
         <div class="mb-weather" id="mb-weather"></div>
         <div class="mb-stats" id="mb-stats"></div>
+        <div id="mb-activity"></div>
         <div class="mb-controls">
           <button id="mb-play-btn" class="mb-btn mb-btn--play" onclick="toggleBriefingAudio()"><svg id="mb-play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg><span id="mb-play-label">Écouter le brief</span></button>
           <button class="mb-btn mb-btn--skip" onclick="dismissBriefing()">Passer</button>
@@ -1466,6 +1467,21 @@ function fillMorningBriefing(dayArticles){
 
   // Store text for TTS
   window.morningBriefText=`${_getMorningGreeting()}. Écosystème AI : ${weather.label}. ${weather.desc}. Aujourd'hui, ${articleCount} articles au programme${signalCount>0?`, ${signalCount} signaux faibles à surveiller`:''}${recoCount>0?`, et ${recoCount} recommandation${recoCount>1?'s':''} de la semaine`:''}. Ton score de veille est à ${score.total} sur 100. Bonne veille !`;
+
+  // Activity brief from yesterday
+  fillActivityBrief();
+}
+
+async function fillActivityBrief(){
+  const el=document.getElementById('mb-activity');
+  if(!el)return;
+  try{
+    const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+    const yStr=yesterday.toISOString().split('T')[0];
+    const rows=await fetchJSON(`${SUPABASE_URL}/rest/v1/activity_briefs?date=eq.${yStr}&limit=1`);
+    if(!rows.length||!rows[0].brief_html){el.innerHTML='';return;}
+    el.innerHTML=rows[0].brief_html;
+  }catch(e){el.innerHTML='';}
 }
 
 // ── VEILLE SCORE ──────────────────────────────────────────

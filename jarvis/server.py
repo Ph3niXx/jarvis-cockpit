@@ -26,6 +26,8 @@ from config import (
     ANTHROPIC_API_KEY,
     CLAUDE_MODEL,
     CLAUDE_API_URL,
+    OBSERVER_INTERVAL_S,
+    DAILY_BRIEF_HOUR,
 )
 from retriever import search, search_and_format
 from supabase_client import sb_get, sb_post
@@ -328,7 +330,12 @@ def generate_status():
         raise HTTPException(status_code=500, detail=f"Status generation failed: {e}")
 
 
-# ── Nightly Learner scheduler ─────────────────────────────────────
+# ── Window Observer ────────────────────────────────────────────────
+
+_window_observer = None
+
+
+# ── Schedulers ────────────────────────────────────────────────────
 
 async def _nightly_scheduler():
     """Background task: run nightly_learner.run() every day at midnight local time."""
@@ -350,10 +357,45 @@ async def _nightly_scheduler():
             print(f"  [SCHEDULER] nightly_learner erreur: {e}")
 
 
-@app.on_event("startup")
-async def _start_scheduler():
-    asyncio.create_task(_nightly_scheduler())
+async def _daily_brief_scheduler():
+    """Background task: generate activity brief every day at DAILY_BRIEF_HOUR."""
+    while True:
+        now = datetime.now()
+        target = now.replace(hour=DAILY_BRIEF_HOUR, minute=0, second=0, microsecond=0)
+        if target <= now:
+            target = target.replace(day=now.day + 1)
+        wait_seconds = (target - now).total_seconds()
+        print(f"  [SCHEDULER] Prochain activity brief dans {wait_seconds/3600:.1f}h ({DAILY_BRIEF_HOUR}h)")
+        await asyncio.sleep(wait_seconds)
 
+        print(f"  [SCHEDULER] Génération du brief d'activité...")
+        try:
+            from observers.daily_brief_generator import generate_brief
+            result = generate_brief()  # defaults to yesterday
+            print(f"  [SCHEDULER] Brief d'activité terminé: {result.get('status')}")
+        except Exception as e:
+            print(f"  [SCHEDULER] Brief d'activité erreur: {e}")
+
+
+@app.on_event("startup")
+async def _start_background_tasks():
+    global _window_observer
+
+    # Start window observer
+    try:
+        from observers.window_observer import WindowObserver
+        _window_observer = WindowObserver(interval_s=OBSERVER_INTERVAL_S)
+        asyncio.create_task(_window_observer.start())
+        print(f"  [OK] Window observer started (interval={OBSERVER_INTERVAL_S}s)")
+    except Exception as e:
+        print(f"  [!!] Window observer failed to start: {e}")
+
+    # Start schedulers
+    asyncio.create_task(_nightly_scheduler())
+    asyncio.create_task(_daily_brief_scheduler())
+
+
+# ── Manual trigger endpoints ──────────────────────────────────────
 
 @app.post("/nightly-learner")
 def trigger_nightly_learner(days: int = None):
@@ -364,6 +406,25 @@ def trigger_nightly_learner(days: int = None):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Nightly learner failed: {e}")
+
+
+@app.get("/activity")
+def get_activity():
+    """Return today's activity stats from the window observer."""
+    if _window_observer is None:
+        raise HTTPException(status_code=503, detail="Window observer not running")
+    return _window_observer.get_today_stats()
+
+
+@app.post("/generate-activity-brief")
+def trigger_activity_brief(date: str = None):
+    """Manually trigger activity brief generation for a specific date."""
+    try:
+        from observers.daily_brief_generator import generate_brief
+        result = generate_brief(date_str=date)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Brief generation failed: {e}")
 
 
 # ── Startup banner ─────────────────────────────────────────────────
@@ -394,7 +455,8 @@ def _startup_checks():
 
     print()
     print("  Ready on http://localhost:8765")
-    print("  Endpoints: GET /health | POST /chat | POST /search | POST /nightly-learner")
+    print("  Endpoints: GET /health | POST /chat | POST /search")
+    print("             POST /nightly-learner | GET /activity | POST /generate-activity-brief")
     print("  CORS: enabled for localhost + file://")
     print("  Stop with Ctrl+C")
     print("=" * 50 + "\n")

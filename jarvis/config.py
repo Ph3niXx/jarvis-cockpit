@@ -29,6 +29,10 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-haiku-4-5-20251001")
 CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"
 
+# Observer (Phase 6)
+OBSERVER_INTERVAL_S = int(os.getenv("OBSERVER_INTERVAL_S", "30"))
+DAILY_BRIEF_HOUR = int(os.getenv("DAILY_BRIEF_HOUR", "18"))
+
 # Supabase (reuse existing env vars)
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
