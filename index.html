@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://mrmgptqpflzyavdfqwwv.supabase.co http://localhost:8765 https://*.trycloudflare.com; img-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://mrmgptqpflzyavdfqwwv.supabase.co http://localhost:8765 https://*.trycloudflare.com; img-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self';">
 <title>AI Cockpit</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236C5CE7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z'/><path d='M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z'/><path d='M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4'/></svg>">
 <link rel="manifest" href="manifest.json">
@@ -745,8 +745,23 @@ body.deep-work .count{display:none!important}
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" integrity="sha512-wKnMJtjLC6bOBNKEWBMBnEEOD3B1wZ2hBMqm9w7GApE6LzMb8gpVY3Xrx/sHBjK2bYFzqoMNfBGAGNmENYdg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
+
+<!-- ── LOGIN OVERLAY ──────────────────────────────────────────── -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center">
+  <div style="text-align:center;max-width:360px;padding:40px">
+    <div style="font-size:2rem;margin-bottom:8px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 3 1.5 5.5 4 7v3h8v-3c2.5-1.5 4-4 4-7a8 8 0 0 0-8-8z"/><path d="M10 21h4"/></svg></div>
+    <h1 style="font-size:1.4rem;font-weight:700;color:var(--tx);margin-bottom:4px">AI Cockpit</h1>
+    <p style="color:var(--tx3);font-size:.85rem;margin-bottom:24px">Connecte-toi pour accéder au cockpit</p>
+    <div id="login-form">
+      <input type="email" id="login-email" placeholder="Email" style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--bg2);color:var(--tx);font-size:.9rem;margin-bottom:12px;outline:none" />
+      <button onclick="handleLogin()" id="login-btn" style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:600;font-size:.9rem;cursor:pointer">Envoyer le magic link</button>
+    </div>
+    <div id="login-msg" style="margin-top:16px;font-size:.85rem;color:var(--tx3)"></div>
+  </div>
+</div>
 
 <!-- ── SVG ICON SPRITE (Lucide) ──────────────────────────────── -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
@@ -790,7 +805,7 @@ body.deep-work .count{display:none!important}
 <nav class="sidebar" id="sidebar" aria-label="Navigation principale">
   <div class="sb-header" role="banner">
     <div class="sb-logo"><svg aria-hidden="true"><use href="#icon-brain"/></svg> AI Cockpit</div>
-    <div class="sb-date" id="sb-date"></div>
+    <div style="display:flex;align-items:center;gap:8px"><div class="sb-date" id="sb-date"></div><button id="logout-btn" onclick="handleLogout()" style="display:none;background:none;border:1px solid var(--bd);border-radius:6px;padding:2px 8px;color:var(--tx3);font-size:.7rem;cursor:pointer" title="Déconnexion">⏻</button></div>
   </div>
 
   <div class="sb-section" style="padding-bottom:0">
@@ -1242,7 +1257,58 @@ function initSidebarCollapse(){
 initSidebarCollapse();
 
 // ── SUPABASE HELPERS ───────────────────────────────────────
-const headers = {"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`};
+let headers = {"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`};
+
+// ── AUTH (Supabase magic link) ───────────────────────────────
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function updateAuthHeaders(session){
+  const token = session?.access_token || SUPABASE_KEY;
+  headers = {"apikey":SUPABASE_KEY,"Authorization":`Bearer ${token}`};
+}
+
+async function handleLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  if(!email){document.getElementById('login-msg').textContent='Entre ton email';return;}
+  const btn = document.getElementById('login-btn');
+  btn.disabled=true; btn.textContent='Envoi…';
+  const {error} = await sb.auth.signInWithOtp({email, options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+  btn.disabled=false; btn.textContent='Envoyer le magic link';
+  document.getElementById('login-msg').textContent = error ? `Erreur: ${error.message}` : '✓ Magic link envoyé — vérifie tes emails';
+}
+
+async function handleLogout(){
+  await sb.auth.signOut();
+  document.getElementById('login-overlay').style.display='flex';
+  document.getElementById('logout-btn').style.display='none';
+  document.getElementById('login-msg').textContent='Déconnecté';
+}
+
+async function checkAuth(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){
+    updateAuthHeaders(session);
+    document.getElementById('login-overlay').style.display='none';
+    document.getElementById('logout-btn').style.display='';
+    init();
+  } else {
+    document.getElementById('login-overlay').style.display='flex';
+  }
+  // Listen for auth changes (magic link return, token refresh)
+  sb.auth.onAuthStateChange((event, session)=>{
+    if(event==='SIGNED_IN' && session){
+      updateAuthHeaders(session);
+      document.getElementById('login-overlay').style.display='none';
+      document.getElementById('logout-btn').style.display='';
+      init();
+    } else if(event==='SIGNED_OUT'){
+      document.getElementById('login-overlay').style.display='flex';
+      document.getElementById('logout-btn').style.display='none';
+    } else if(event==='TOKEN_REFRESHED' && session){
+      updateAuthHeaders(session);
+    }
+  });
+}
 async function fetchJSON(url){
   const r=await fetch(url,{headers});
   if(!r.ok) throw new Error(`${r.status}`);
@@ -3519,7 +3585,7 @@ async function init(){
   }
 }
 
-init();
+checkAuth();
 
 // ── JARVIS PROJECT ────────────────────────────────────────
 let jpLoaded=false;
