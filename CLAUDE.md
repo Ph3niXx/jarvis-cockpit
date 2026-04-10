@@ -92,7 +92,8 @@ RLS : tables TFT → SELECT/INSERT/UPDATE restreints à `auth.uid()`, écriture 
 
 | Section | Source de données | Fréquence |
 |---|---|---|
-| Brief du jour | daily_briefs | Quotidien (Gemini) |
+| Brief du jour | daily_briefs + activity_briefs | Quotidien (Gemini + Jarvis observer) |
+| Ma semaine | articles + localStorage (read, actions, visits) | Temps réel (front-only) |
 | Nouveautés IA | articles (section=updates) | Quotidien |
 | LLMs / Agents / Énergie / FinServ / Outils / Business / Régulation / Arxiv | articles (par section) | Quotidien |
 | Wiki IA | wiki_concepts | Quotidien (détection) + Hebdo (enrichissement Claude) |
@@ -103,6 +104,7 @@ RLS : tables TFT → SELECT/INSERT/UPDATE restreints à `auth.uid()`, écriture 
 | Challenges | weekly_challenges | Hebdomadaire (Claude) |
 | Carnet d'idées | business_ideas | Manuel (depuis le front) |
 | RTE Toolbox | rte_usecases | Hebdomadaire (enrichissement Claude) |
+| Jarvis | jarvis_conversations + server.py (localhost:8765) | Temps réel (chat local/cloud) |
 | Mon profil | user_profile | Manuel (depuis le front) |
 | TFT Matches | tft_matches + tft_match_units + tft_match_traits + tft_match_lobby | Toutes les 2h (Riot API) |
 | Coûts API | weekly_analysis.tokens_used | Hebdomadaire (auto-loggé) |
@@ -141,7 +143,7 @@ RLS : tables TFT → SELECT/INSERT/UPDATE restreints à `auth.uid()`, écriture 
 Assistant IA personnel local ("Jarvis") qui :
 1. **Connaît la base de connaissances** via RAG sur Supabase pgvector (articles, wiki, opportunités, idées, RTE, profil)
 2. **Apprend de lui-même** : extraction nocturne des faits, entités et préférences depuis les conversations
-3. **Observe l'activité** (étape future : Teams, emails, fichiers) pour produire des briefs quotidiens
+3. **Observe l'activité** : capteur de fenêtre active (Windows) + brief quotidien automatique à 18h. Prochaines étapes : Teams, emails, fichiers
 4. **Route intelligemment** entre LLM local (90% des tâches) et API cloud Claude/Gemini (tâches complexes) pour rester sous 3€/mois
 
 ### Stack technique Jarvis
@@ -169,7 +171,10 @@ jarvis/
 ├── test_jarvis.py         # Test du LLM local
 ├── test_rag.py            # Test end-to-end du RAG
 ├── migrations/
-│   └── 001_enable_pgvector.sql
+│   ├── 001_enable_pgvector.sql
+│   ├── 002_jarvis_status_snapshot.sql
+│   ├── 003_structured_memory.sql
+│   └── 004_activity_briefs.sql
 ├── nightly_learner.py         # Extraction nocturne faits+entités (idempotent, scheduler asyncio)
 ├── observers/
 │   ├── __init__.py
