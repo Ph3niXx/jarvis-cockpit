@@ -1476,9 +1476,7 @@ async function fillActivityBrief(){
   const el=document.getElementById('mb-activity');
   if(!el)return;
   try{
-    const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
-    const yStr=yesterday.toISOString().split('T')[0];
-    const rows=await fetchJSON(`${SUPABASE_URL}/rest/v1/activity_briefs?date=eq.${yStr}&limit=1`);
+    const rows=await fetchJSON(`${SUPABASE_URL}/rest/v1/activity_briefs?order=date.desc&limit=1`);
     if(!rows.length||!rows[0].brief_html){el.innerHTML='';return;}
     el.innerHTML=rows[0].brief_html;
   }catch(e){el.innerHTML='';}
