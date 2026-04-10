@@ -2829,6 +2829,11 @@ document.addEventListener('keydown',e=>{
   }
 });
 
+/* ── SERVICE WORKER REGISTRATION ──────────────────────────── */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
 /* ── PWA INSTALL BANNER ──────────────────────────────────── */
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', e => {
