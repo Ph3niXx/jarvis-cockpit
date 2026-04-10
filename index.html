@@ -743,6 +743,7 @@ body.deep-work .count{display:none!important}
   .opp-detail-grid{grid-template-columns:1fr!important}
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" integrity="sha512-wKnMJtjLC6bOBNKEWBMBnEEOD3B1wZ2hBMqm9w7GApE6LzMb8gpVY3Xrx/sHBjK2bYFzqoMNfBGAGNmENYdg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
 
@@ -1145,6 +1146,9 @@ const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
 const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg","papers"];
 
+// ── SANITIZE (DOMPurify) — all DB-sourced HTML goes through this
+const safe = (html) => typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(html) : html;
+
 let currentDate = null;
 let allDates = [];
 let lastVisit = null;
@@ -1478,7 +1482,7 @@ async function fillActivityBrief(){
   try{
     const rows=await fetchJSON(`${SUPABASE_URL}/rest/v1/activity_briefs?order=date.desc&limit=1`);
     if(!rows.length||!rows[0].brief_html){el.innerHTML='';return;}
-    el.innerHTML=rows[0].brief_html;
+    el.innerHTML=safe(rows[0].brief_html);
   }catch(e){el.innerHTML='';}
 }
 
@@ -1767,7 +1771,7 @@ async function loadDay(dateStr){
     const briefs=await fetchJSON(`${SUPABASE_URL}/rest/v1/daily_briefs?date=eq.${dateStr}&limit=1`);
     const el=document.getElementById('brief-content');
     if(briefs.length&&briefs[0].brief_html){
-      el.innerHTML=briefs[0].brief_html;
+      el.innerHTML=safe(briefs[0].brief_html);
       // Post-process: wrap top-cards in a 2-col grid
       const topCards=el.querySelectorAll('.top-card');
       if(topCards.length>1){
@@ -1974,7 +1978,7 @@ function setWikiLevel(btn,level){
   btn.classList.add('active');
   const container=document.getElementById('focus-content')||document.getElementById('wiki-detail-container');
   const content=container._levels?.[level];
-  document.getElementById('wiki-level-content').innerHTML=content||'<em>Contenu généré lors du prochain run hebdomadaire Claude</em>';
+  document.getElementById('wiki-level-content').innerHTML=safe(content||'<em>Contenu généré lors du prochain run hebdomadaire Claude</em>');
 }
 
 // ── SIGNALS ────────────────────────────────────────────────
@@ -2532,7 +2536,7 @@ function showError(containerId,message,retryFn){
   document.getElementById(`_retry_${containerId}`).addEventListener('click',retryFn);
 }
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
-function stripHtml(s){if(!s)return'';const d=document.createElement('div');d.innerHTML=s;let t=d.textContent||d.innerText||'';t=t.replace(/The post .+ appeared first on .+/g,'').replace(/\s+/g,' ').trim();return t;}
+function stripHtml(s){if(!s)return'';const d=document.createElement('div');d.innerHTML=safe(s);let t=d.textContent||d.innerText||'';t=t.replace(/The post .+ appeared first on .+/g,'').replace(/\s+/g,' ').trim();return t;}
 function mdToHtml(s){if(!s)return'';
   return esc(s)
     .replace(/^### (.+)$/gm,'<h4 style="margin:12px 0 4px;font-size:14px;font-weight:700">$1</h4>')
@@ -3689,7 +3693,7 @@ function focusSearch(){
 // ── FOCUS OVERLAY ────────────────────────────────────────────
 function openFocusOverlay(htmlContent){
   const overlay=document.getElementById('card-focus-overlay');
-  document.getElementById('focus-content').innerHTML=htmlContent;
+  document.getElementById('focus-content').innerHTML=safe(htmlContent);
   overlay.classList.add('active');
   document.body.style.overflow='hidden';
 }
