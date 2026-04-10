@@ -236,6 +236,18 @@ a:hover{text-decoration:underline}
 .veille-breakdown{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
 .veille-breakdown span{font-size:.75rem;color:var(--tx3)}
 
+/* ── DEEP WORK MODE ───────────────────────────────────────── */
+.deep-work-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;color:var(--tx2);font-size:.8rem;cursor:pointer;transition:all .2s}
+.deep-work-btn:hover{background:var(--bg3,var(--bd));color:var(--tx)}
+.deep-work-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.deep-work-notice{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--accent);color:#fff;font-size:.85rem;z-index:1001;transform:translateY(-100%);transition:transform .3s ease}
+.deep-work-notice.visible{transform:translateY(0)}
+body.deep-work .sidebar{width:0!important;min-width:0!important;overflow:hidden!important;opacity:0!important;padding:0!important;border:none!important;pointer-events:none;transition:all .3s ease}
+body.deep-work .sb-overlay{display:none!important}
+body.deep-work .main{margin-left:0!important;transition:margin-left .3s ease}
+body.deep-work .card--new::before{display:none!important}
+body.deep-work .count{display:none!important}
+
 /* ── BRIEF LAYOUT ─────────────────────────────────────────── */
 .brief-content{line-height:1.7;color:var(--tx)}
 .brief-content *{color:inherit}
@@ -823,6 +835,7 @@ a:hover{text-decoration:underline}
       <button class="sb-nav-btn" id="btn-next" title="Jour suivant">→</button>
       <button class="sb-theme-toggle" onclick="toggleTheme()" aria-label="Changer le thème" title="Thème"><span id="theme-icon">🌙</span></button>
     </div>
+    <button id="deep-work-toggle" class="deep-work-btn" onclick="toggleDeepWork()" title="Mode Deep Work (Ctrl+Shift+F)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Focus</button>
     <div class="sb-kbd-hint" onclick="toggleShortcutsHelp()" title="Raccourcis clavier"><kbd>?</kbd> raccourcis</div>
   </div>
 </nav>
@@ -1012,6 +1025,7 @@ a:hover{text-decoration:underline}
         <tr><td><kbd>/</kbd></td><td>Recherche</td></tr>
         <tr><td><kbd>?</kbd></td><td>Cette aide</td></tr>
         <tr><td><kbd>Esc</kbd></td><td>Fermer les overlays</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></td><td>Mode Deep Work</td></tr>
       </table>
       <div class="kbd-help-hint">1 Brief · 2 Nouveautés · 3 LLMs · 4 Agents · 5 Énergie · 6 FinServ · 7 Outils · 8 Business · 9 Régulation</div>
     </div>
@@ -3550,7 +3564,50 @@ function toggleShortcutsHelp(){
   document.getElementById('kbd-help-backdrop').classList.toggle('show');
 }
 
+// ── DEEP WORK MODE ────────────────────────────────────────
+let deepWorkActive=false;
+function toggleDeepWork(){
+  deepWorkActive=!deepWorkActive;
+  document.body.classList.toggle('deep-work',deepWorkActive);
+  document.getElementById('deep-work-toggle').classList.toggle('active',deepWorkActive);
+  if(deepWorkActive){
+    _showDeepWorkNotice();
+    localStorage.setItem('deep-work','true');
+  }else{
+    _hideDeepWorkNotice();
+    localStorage.removeItem('deep-work');
+  }
+}
+function _showDeepWorkNotice(){
+  let n=document.getElementById('deep-work-notice');
+  if(!n){
+    n=document.createElement('div');
+    n.id='deep-work-notice';
+    n.className='deep-work-notice';
+    n.innerHTML=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      <span>Mode concentration activé — je ne te dérangerai pas.</span>
+      <button onclick="toggleDeepWork()" style="margin-left:auto;background:none;border:1px solid rgba(255,255,255,.3);color:inherit;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:.8rem">Quitter</button>`;
+    document.body.prepend(n);
+  }
+  requestAnimationFrame(()=>n.classList.add('visible'));
+}
+function _hideDeepWorkNotice(){
+  const n=document.getElementById('deep-work-notice');
+  if(n){n.classList.remove('visible');setTimeout(()=>n.remove(),300);}
+}
+// Restore deep work on load
+if(localStorage.getItem('deep-work')==='true'){
+  document.body.classList.add('deep-work');
+  deepWorkActive=true;
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.getElementById('deep-work-toggle')?.classList.add('active');
+    _showDeepWorkNotice();
+  });
+}
+
 document.addEventListener('keydown',e=>{
+  // Ctrl+Shift+F — Deep Work toggle (works even in inputs)
+  if(e.ctrlKey&&e.shiftKey&&e.key==='F'){e.preventDefault();toggleDeepWork();return;}
   if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
   if(e.ctrlKey||e.altKey||e.metaKey) return;
   switch(e.key){
