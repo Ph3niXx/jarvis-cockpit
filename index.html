@@ -201,6 +201,31 @@ a:hover{text-decoration:underline}
 .slv-section{font-size:var(--text-xs);color:var(--tx3);margin-left:var(--space-2)}
 .slv-allread{font-size:var(--text-sm);color:var(--green);font-weight:600}
 
+/* ── MY WEEK ─────────────────────────────────────────────── */
+.myweek-nav{display:flex;align-items:center;gap:12px}
+.myweek-nav-btn{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:6px;cursor:pointer;display:flex;align-items:center;color:var(--tx2);transition:all .15s}
+.myweek-nav-btn:hover{background:var(--bg3,var(--bd));color:var(--tx)}
+.myweek-range{font-size:.9rem;font-weight:600;color:var(--tx);min-width:180px;text-align:center}
+.myweek-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0}
+@media(max-width:600px){.myweek-kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi-card{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:16px;text-align:center}
+.kpi-label{font-size:.75rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.kpi-value{font-size:1.6rem;font-weight:700;color:var(--tx)}
+.kpi-sparkline{margin-top:8px;display:flex;justify-content:center}
+.myweek-streak{text-align:center;font-size:.95rem;padding:12px;background:var(--bg2);border-radius:10px;margin-bottom:20px}
+.myweek-section{margin-bottom:24px}
+.myweek-section-title{font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);margin-bottom:12px}
+.activity-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:.85rem}
+.activity-bar-label{width:36px;font-weight:600;color:var(--tx2);flex-shrink:0}
+.activity-bar-track{flex:1;height:24px;background:var(--bg2);border-radius:6px;overflow:hidden}
+.activity-bar-fill{height:100%;background:var(--accent);border-radius:6px;transition:width .5s ease}
+.activity-bar-value{font-size:.75rem;color:var(--tx3);min-width:100px}
+.topic-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.topic-rank{font-weight:700;color:var(--accent);width:24px}
+.topic-name{flex:1;color:var(--tx)}
+.topic-count{font-size:.8rem;color:var(--tx3)}
+.highlight-item{padding:10px 14px;background:var(--bg2);border-radius:10px;margin-bottom:8px;font-size:.85rem;color:var(--tx2);line-height:1.5}
+
 /* ── BRIEF LAYOUT ─────────────────────────────────────────── */
 .brief-content{line-height:1.7;color:var(--tx)}
 .brief-content *{color:inherit}
@@ -712,6 +737,7 @@ a:hover{text-decoration:underline}
 
   <div class="sb-section" style="padding-bottom:0">
     <button class="sb-link active" data-panel="brief" role="tab" aria-selected="true"><svg class="icon" aria-hidden="true"><use href="#icon-zap"/></svg><span class="label">Brief du jour</span></button>
+    <button class="sb-link" data-panel="myweek" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-calendar"/></svg><span class="label">Ma semaine</span></button>
   </div>
 
   <div class="sb-section" data-section="veille" role="tablist" aria-label="Veille">
@@ -798,6 +824,32 @@ a:hover{text-decoration:underline}
   <div class="panel active" role="tabpanel" id="panel-brief">
     <div class="page-header"><div class="page-title">Brief du jour<span class="brief-sparkline" id="brief-sparkline"></span></div><div class="page-subtitle">Synthèse macro + top 5 incontournables</div></div>
     <div class="content"><div id="since-last-visit"></div><div class="brief-content" id="brief-content"></div></div>
+  </div>
+
+  <!-- MY WEEK -->
+  <div class="panel" role="tabpanel" id="panel-myweek">
+    <div class="page-header">
+      <div class="page-title">Ma semaine</div>
+      <div class="myweek-nav">
+        <button class="myweek-nav-btn" onclick="changeWeek(-1)" aria-label="Semaine précédente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <span id="myweek-range" class="myweek-range">—</span>
+        <button class="myweek-nav-btn" onclick="changeWeek(1)" aria-label="Semaine suivante"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+    </div>
+    <div class="myweek-kpis" id="myweek-kpis"></div>
+    <div class="myweek-streak" id="myweek-streak"></div>
+    <div class="myweek-section">
+      <h2 class="myweek-section-title">Activité quotidienne</h2>
+      <div id="myweek-activity"></div>
+    </div>
+    <div class="myweek-section">
+      <h2 class="myweek-section-title">Top sujets</h2>
+      <div id="myweek-topics"></div>
+    </div>
+    <div class="myweek-section">
+      <h2 class="myweek-section-title">Faits marquants</h2>
+      <div id="myweek-highlights"></div>
+    </div>
   </div>
 
   <!-- ARTICLE SECTIONS -->
@@ -1160,6 +1212,7 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='profile') loadProfile();
     if(panel==='jarvis') initJarvis();
     if(panel==='jarvis-project') loadJarvisProject();
+    if(panel==='myweek') loadMyWeek();
     // Close mobile sidebar
     if(window.innerWidth<=768) toggleSidebar();
   });
@@ -1192,6 +1245,25 @@ function updateNavLabel(){
   document.getElementById('btn-prev').disabled=idx>=allDates.length-1;
   document.getElementById('btn-next').disabled=idx<=0;
 }
+
+// ── MY WEEK (stub — logic in Prompt 12) ───────────────────
+let myWeekLoaded=false;
+let myWeekOffset=0;
+function loadMyWeek(){
+  if(myWeekLoaded&&myWeekOffset===0)return;
+  const now=new Date();
+  const monday=new Date(now);monday.setDate(now.getDate()-now.getDay()+(now.getDay()===0?-6:1)+myWeekOffset*7);
+  const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
+  const fmt=d=>d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  document.getElementById('myweek-range').textContent=`${fmt(monday)} — ${fmt(sunday)}`;
+  document.getElementById('myweek-kpis').innerHTML='<div class="empty" style="grid-column:1/-1">Chargement des données...</div>';
+  document.getElementById('myweek-streak').textContent='';
+  document.getElementById('myweek-activity').innerHTML='';
+  document.getElementById('myweek-topics').innerHTML='';
+  document.getElementById('myweek-highlights').innerHTML='';
+  myWeekLoaded=true;
+}
+function changeWeek(dir){myWeekOffset+=dir;myWeekLoaded=false;loadMyWeek();}
 
 // ── SPARKLINE ─────────────────────────────────────────────
 async function getWeeklyArticleCounts(){
