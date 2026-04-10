@@ -248,6 +248,25 @@ body.deep-work .main{margin-left:0!important;transition:margin-left .3s ease}
 body.deep-work .card--new::before{display:none!important}
 body.deep-work .count{display:none!important}
 
+/* ── MORNING BRIEFING ─────────────────────────────────────── */
+.morning-briefing{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:20px 24px;margin-bottom:20px;animation:mbFadeIn .6s ease;position:relative;overflow:hidden}
+.morning-briefing::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent,#6C5CE7),#a78bfa,var(--accent,#6C5CE7));background-size:200% 100%;animation:mbGradient 3s ease infinite}
+@keyframes mbFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes mbGradient{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.mb-greeting{display:flex;align-items:center;gap:10px;font-size:1.1rem;font-weight:600;color:var(--tx);margin-bottom:12px}
+.mb-icon{color:var(--accent,#6C5CE7)}
+.mb-weather{font-size:.9rem;color:var(--tx2);margin-bottom:8px;line-height:1.5}
+.mb-stats{font-size:.85rem;color:var(--tx3);margin-bottom:16px;display:flex;flex-wrap:wrap;gap:12px}
+.mb-stat{display:inline-flex;align-items:center;gap:4px}
+.mb-controls{display:flex;gap:10px}
+.mb-btn{padding:8px 18px;border-radius:8px;border:none;font-size:.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+.mb-btn--play{background:var(--accent,#6C5CE7);color:#fff}
+.mb-btn--play:hover{opacity:.9}
+.mb-btn--play.playing{background:var(--bg3,var(--bd));color:var(--tx)}
+.mb-btn--skip{background:transparent;color:var(--tx3);border:1px solid var(--bd)}
+.mb-btn--skip:hover{background:var(--bg2);color:var(--tx2)}
+@media(max-width:600px){.morning-briefing{padding:14px 16px}.mb-greeting{font-size:1rem}.mb-stats{flex-direction:column;gap:4px}}
+
 /* ── BRIEF LAYOUT ─────────────────────────────────────────── */
 .brief-content{line-height:1.7;color:var(--tx)}
 .brief-content *{color:inherit}
@@ -846,7 +865,21 @@ body.deep-work .count{display:none!important}
   <!-- BRIEF -->
   <div class="panel active" role="tabpanel" id="panel-brief">
     <div class="page-header"><div class="page-title">Brief du jour<span class="brief-sparkline" id="brief-sparkline"></span></div><div class="page-subtitle">Synthèse macro + top 5 incontournables</div></div>
-    <div class="content"><div id="veille-score-widget"></div><div id="since-last-visit"></div><div class="brief-content" id="brief-content"></div></div>
+    <div class="content">
+      <div id="morning-briefing" class="morning-briefing">
+        <div class="mb-greeting">
+          <svg class="mb-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span id="mb-greeting-text">Bonjour Jean</span>
+        </div>
+        <div class="mb-weather" id="mb-weather"></div>
+        <div class="mb-stats" id="mb-stats"></div>
+        <div class="mb-controls">
+          <button id="mb-play-btn" class="mb-btn mb-btn--play" onclick="toggleBriefingAudio()"><svg id="mb-play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg><span id="mb-play-label">Écouter le brief</span></button>
+          <button class="mb-btn mb-btn--skip" onclick="dismissBriefing()">Passer</button>
+        </div>
+      </div>
+      <div id="veille-score-widget"></div><div id="since-last-visit"></div><div class="brief-content" id="brief-content"></div>
+    </div>
   </div>
 
   <!-- MY WEEK -->
@@ -1319,6 +1352,13 @@ function getStreak(){
     while(visits[_isoDay(d)]){streak++;d.setDate(d.getDate()-1);}
     return streak;
   }catch{return 0;}
+}
+
+// ── MORNING BRIEFING (stubs — logic in Prompt 16) ────────
+function toggleBriefingAudio(){}
+function dismissBriefing(){
+  const el=document.getElementById('morning-briefing');
+  if(el){el.style.transition='opacity .3s ease,transform .3s ease';el.style.opacity='0';el.style.transform='translateY(-10px)';setTimeout(()=>el.style.display='none',300);}
 }
 
 // ── VEILLE SCORE ──────────────────────────────────────────
