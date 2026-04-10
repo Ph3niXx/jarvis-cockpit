@@ -386,6 +386,21 @@ a:hover{text-decoration:underline}
 .jarvis-actions button:hover{color:var(--accent)}
 .jarvis-meta{font-size:var(--text-xs);color:var(--tx3);margin-top:var(--space-1)}
 
+/* ── SKELETON LOADERS ─────────────────────────────────────── */
+.skeleton{
+  background:linear-gradient(90deg,var(--bg2) 25%,var(--bd) 50%,var(--bg2) 75%);
+  background-size:200% 100%;animation:skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius:var(--radius-sm);
+}
+@keyframes skeleton-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skeleton{animation:none}}
+.skeleton-text{height:14px;margin-bottom:var(--space-2)}
+.skeleton-text.short{width:40%}
+.skeleton-text.medium{width:70%}
+.skeleton-title{height:18px;width:85%;margin-bottom:var(--space-3)}
+.skeleton-card{border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4) var(--space-5)}
+.skeleton-bar{height:44px;border-radius:var(--radius-sm);margin-bottom:var(--space-2)}
+
 /* ── LOADING & EMPTY ──────────────────────────────────────── */
 .loading{text-align:center;padding:var(--space-10);color:var(--tx3);font-size:14px}
 .loading::before{content:"";display:block;width:var(--space-6);height:var(--space-6);border:2px solid var(--bd);border-top-color:var(--accent);border-radius:50%;margin:0 auto var(--space-3);animation:spin .6s linear infinite}
@@ -628,7 +643,7 @@ a:hover{text-decoration:underline}
   <!-- BRIEF -->
   <div class="panel active" role="tabpanel" id="panel-brief">
     <div class="page-header"><div class="page-title">Brief du jour</div><div class="page-subtitle">Synthèse macro + top 5 incontournables</div></div>
-    <div class="content"><div id="since-last-visit"></div><div class="brief-content" id="brief-content"><div class="loading">Chargement du brief…</div></div></div>
+    <div class="content"><div id="since-last-visit"></div><div class="brief-content" id="brief-content"></div></div>
   </div>
 
   <!-- ARTICLE SECTIONS -->
@@ -913,6 +928,18 @@ async function patchJSON(url,body){
   return r;
 }
 
+// ── SKELETON LOADERS ──────────────────────────────────────
+const SKL_CARD='<div class="skeleton-card"><div class="skeleton skeleton-text short"></div><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text medium"></div></div>';
+function showSkeleton(id,type){
+  const el=document.getElementById(id);
+  if(!el)return;
+  if(type==='brief') el.innerHTML=`<div class="skeleton skeleton-text" style="width:90%"></div><div class="skeleton skeleton-text" style="width:80%"></div><div class="skeleton skeleton-text short"></div><div style="margin-top:var(--space-5);display:grid;grid-template-columns:1fr 1fr;gap:10px">${SKL_CARD}${SKL_CARD}</div>`;
+  else if(type==='cards') el.innerHTML=`<div class="cards-grid">${SKL_CARD}${SKL_CARD}${SKL_CARD}${SKL_CARD}</div>`;
+  else if(type==='wiki') el.innerHTML=`<div class="wiki-grid">${'<div class="skeleton-card"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div>'.repeat(6)}</div>`;
+  else if(type==='signals') el.innerHTML='<div class="skeleton skeleton-bar"></div>'.repeat(6);
+  else if(type==='list') el.innerHTML='<div class="skeleton-card" style="margin-bottom:var(--space-3)"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text short"></div></div>'.repeat(3);
+}
+
 // ── NAVIGATION ─────────────────────────────────────────────
 document.querySelectorAll('.sb-link').forEach(btn=>{
   btn.addEventListener('click',()=>{
@@ -973,6 +1000,9 @@ function updateNavLabel(){
 async function loadDay(dateStr){
   currentDate=dateStr;
   updateNavLabel();
+  // Show skeletons
+  showSkeleton('brief-content','brief');
+  SECTIONS.forEach(s=>showSkeleton(`cards-${s}`,'cards'));
   // Load articles
   let dayArticles=[];
   try{
@@ -1114,6 +1144,7 @@ function toggleSummary(id){
 let wikiLoaded=false;
 async function loadWiki(){
   if(wikiLoaded)return;
+  showSkeleton('wiki-grid','wiki');
   try{
     const concepts=await fetchJSON(`${SUPABASE_URL}/rest/v1/wiki_concepts?order=mention_count.desc&limit=100`);
     const grid=document.getElementById('wiki-grid');
@@ -1167,6 +1198,7 @@ function setWikiLevel(btn,level){
 let signalsLoaded=false;
 async function loadSignals(){
   if(signalsLoaded)return;
+  showSkeleton('signal-list','signals');
   try{
     const signals=await fetchJSON(`${SUPABASE_URL}/rest/v1/signal_tracking?order=mention_count.desc&limit=50`);
     const el=document.getElementById('signal-list');
@@ -1311,6 +1343,7 @@ async function loadRadar(){
 let challengesLoaded=false;
 async function loadChallenges(){
   if(challengesLoaded)return;
+  showSkeleton('challenges-content','list');
   try{
     const challenges=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_challenges?order=week_start.desc&limit=10`);
     const el=document.getElementById('challenges-content');
@@ -1333,6 +1366,7 @@ async function loadChallenges(){
 let oppsLoaded=false;
 async function loadOpportunities(){
   if(oppsLoaded)return;
+  showSkeleton('opportunities-content','list');
   try{
     const opps=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_opportunities?order=week_start.desc,relevance_score.desc&limit=30`);
     const el=document.getElementById('opportunities-content');
@@ -1433,6 +1467,7 @@ async function saveIdea(){
 let rteLoaded=false;
 async function loadRTE(){
   if(rteLoaded)return;
+  showSkeleton('rte-grid','list');
   try{
     const [usecases, articles]=await Promise.all([
       fetchJSON(`${SUPABASE_URL}/rest/v1/rte_usecases?order=tool,usecase&limit=50`),
@@ -1625,6 +1660,7 @@ async function saveProfile(){
 let recosLoaded=false;
 async function loadRecos(){
   if(recosLoaded)return;
+  showSkeleton('recos-grid','list');
   try{
     const recos=await fetchJSON(`${SUPABASE_URL}/rest/v1/learning_recommendations?order=week_start.desc,target_axis&limit=20`);
     const el=document.getElementById('recos-content');
