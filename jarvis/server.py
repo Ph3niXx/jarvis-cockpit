@@ -32,6 +32,7 @@ from config import (
 )
 from llm_client import chat_completion_async, get_client, _strip_thinking
 from retriever import search, search_and_format
+from embeddings import embed_text
 from supabase_client import sb_get, sb_post
 
 # ── App ────────────────────────────────────────────────────────────
@@ -193,8 +194,9 @@ async def chat(req: ChatRequest):
     context = ""
     if use_rag:
         try:
-            raw_results = search(req.question, k=5, threshold=0.3)
-            context = search_and_format(req.question, k=5)
+            qvec = embed_text(req.question)
+            raw_results = search(req.question, k=5, threshold=0.3, query_vector=qvec)
+            context = search_and_format(req.question, k=5, query_vector=qvec)
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"RAG search failed: {e}")
 

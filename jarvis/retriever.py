@@ -10,6 +10,7 @@ def search(
     k: int = None,
     threshold: float = None,
     source_filter: str | None = None,
+    query_vector: list[float] | None = None,
 ) -> list[dict]:
     """Search the k most relevant chunks for a query.
 
@@ -18,6 +19,7 @@ def search(
         k: number of results (default from config RAG_TOP_K)
         threshold: minimum similarity 0-1 (default from config)
         source_filter: table name to restrict search (optional)
+        query_vector: pre-computed embedding (skips embed_text if provided)
 
     Returns:
         List of dicts with keys: id, source_table, source_id, chunk_text,
@@ -28,7 +30,8 @@ def search(
     if threshold is None:
         threshold = RAG_SIMILARITY_THRESHOLD
 
-    query_vector = embed_text(query)
+    if query_vector is None:
+        query_vector = embed_text(query)
 
     # Build RPC params — vector sent as JSON array of floats
     params = {
@@ -46,13 +49,14 @@ def search_and_format(
     query: str,
     k: int = None,
     source_filter: str | None = None,
+    query_vector: list[float] | None = None,
 ) -> str:
     """Search and format results as context for LLM prompt injection.
 
     Returns a formatted string ready to be inserted into a system/user prompt.
     Returns empty string if no results found.
     """
-    results = search(query, k=k, source_filter=source_filter)
+    results = search(query, k=k, source_filter=source_filter, query_vector=query_vector)
 
     if not results:
         return ""
