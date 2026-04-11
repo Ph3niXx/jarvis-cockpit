@@ -198,7 +198,6 @@ def _llm_extract(prompt: str, text: str) -> dict:
                 ],
                 "temperature": 0.1,
                 "max_tokens": 1024,
-                "response_format": {"type": "json_object"},
             },
             timeout=120,
         )
