@@ -1320,6 +1320,12 @@ async function postJSON(url,body){
   const r=await fetch(url,{method:"POST",headers:{...headers,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify(body)});
   return r.json();
 }
+// ── TELEMETRY (best-effort, never breaks the app) ─────────
+async function track(eventType,payload={}){
+  try{await postJSON(`${SUPABASE_URL}/rest/v1/usage_events`,{event_type:eventType,payload});}
+  catch(e){console.warn('[track]',eventType,e.message);}
+}
+
 async function patchJSON(url,body){
   const r=await fetch(url,{method:"PATCH",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify(body)});
   return r;
@@ -1345,6 +1351,7 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     const panel=btn.dataset.panel;
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     document.getElementById(`panel-${panel}`).classList.add('active');
+    track('section_opened',{section:panel});
     // Load data on first visit
     if(panel==='wiki') loadWiki();
     if(panel==='signals') loadSignals();
@@ -1370,6 +1377,14 @@ function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sb-overlay').classList.toggle('show');
 }
+
+// ── LINK CLICK TRACKING (event delegation) ────────────────
+document.addEventListener('click',e=>{
+  const a=e.target.closest('a[target="_blank"]');
+  if(!a)return;
+  const panel=document.querySelector('.panel.active');
+  track('link_clicked',{url:a.href.substring(0,200),section:panel?panel.id.replace('panel-',''):''});
+});
 
 // ── DATE NAVIGATION ────────────────────────────────────────
 document.getElementById('btn-prev').addEventListener('click',()=>navigateDate(-1));
@@ -2562,6 +2577,7 @@ async function doSearch(q){
   if(q.length<2){el.innerHTML='';return;}
   try{
     const articles=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?or=(title.ilike.*${encodeURIComponent(q)}*,summary.ilike.*${encodeURIComponent(q)}*,source.ilike.*${encodeURIComponent(q)}*)&order=date_fetched.desc&limit=30`);
+    track('search_performed',{query_length:q.length,results_count:articles.length});
     if(!articles.length){el.innerHTML=`<div class="empty">Aucun résultat pour "${esc(q)}"</div>`;return;}
     el.innerHTML=articles.map(a=>`
       <div class="card">
@@ -2599,6 +2615,7 @@ function navigateTo(dateStr){
 
 // ── UTILS ──────────────────────────────────────────────────
 function showError(containerId,message,retryFn){
+  track('error_shown',{context:containerId,message:message.substring(0,100)});
   const el=document.getElementById(containerId);
   if(!el)return;
   el.innerHTML=`<div class="error-state"><div class="error-icon">⚠️</div><div class="error-msg">${message}</div><button class="btn btn-primary" id="_retry_${containerId}">Réessayer</button></div>`;
@@ -3523,6 +3540,7 @@ async function jarvisSend(){
   jarvisShowTyping();
 
   try{
+    track('pipeline_triggered',{pipeline:'jarvis_chat',mode:jarvisMode});
     const deep = jarvisMode === 'deep' || jarvisMode === 'cloud';
     const r = await fetch(`${jarvisUrl}/chat`, {
       method:'POST',

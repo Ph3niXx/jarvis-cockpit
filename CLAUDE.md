@@ -29,6 +29,7 @@ Cockpit IA personnel pour un manager en transformation digitale qui veut :
 - **Pipeline TFT** : `tft_pipeline.py` via GitHub Actions (toutes les 2h)
   - API Riot TFT → Supabase (matchs, compos, lobby, rank)
 - **Email** : Gmail SMTP notification quotidienne
+- **MCP Supabase** : connecteur direct disponible dans Claude Code (apply_migration, execute_sql, etc.) — nécessite OAuth au début de chaque session
 
 ### Repo structure
 ```
@@ -79,6 +80,7 @@ Tables existantes :
 - `weekly_analysis` — logs des runs Claude (tokens, coûts, résultats)
 - `user_profile` — profil personnel key/value (identité, ambitions, intérêts, notes)
 - `usecase_maturity` — ancienne table de scoring statique (dépréciée, remplacée par weekly_opportunities)
+- `usage_events` — télémétrie UX cockpit append-only (event_type, payload JSONB, ts). Migration: `jarvis/migrations/005_usage_events.sql`
 
 **Tables TFT :**
 - `tft_matches` — une ligne par match joué (placement, level, gold, durée, raw_payload JSONB, champs user_* éditables)
@@ -119,6 +121,22 @@ Tables existantes :
 - **XSS** : DOMPurify sanitize tout le HTML injecté dynamiquement via `safe()` helper.
 - **CSP** : Meta tag Content-Security-Policy restrictif (`frame-src: none`, `object-src: none`, whitelist explicite pour scripts/connect).
 - **Backend** : `jarvis/supabase_client.py` utilise toujours `service_role` key (jamais la publishable).
+
+## Télémétrie
+
+Table `usage_events` — append-only, pas de UPDATE/DELETE (enforcé par RLS). Le front envoie les events via `track(eventType, payload)` qui réutilise `postJSON()`. Best-effort : un échec de télémétrie ne casse jamais le cockpit.
+
+**Events instrumentés :**
+
+| event_type | payload | Point d'instrumentation |
+|---|---|---|
+| `section_opened` | `{section}` | Clic sidebar `.sb-link` |
+| `search_performed` | `{query_length, results_count}` | `doSearch()` après fetch |
+| `link_clicked` | `{url, section}` | Event delegation `a[target="_blank"]` |
+| `pipeline_triggered` | `{pipeline, mode}` | `jarvisSend()` avant fetch |
+| `error_shown` | `{context, message}` | `showError()` en entrée |
+
+**Règle** : ajouter un nouvel event_type nécessite de mettre à jour ce tableau AVANT le commit.
 
 ## Conventions
 
