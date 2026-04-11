@@ -52,13 +52,14 @@ ACTIVITY_EXTRACTION_PROMPT = """Analyse ces donnees d'activite quotidienne d'un 
 Extrais les informations DURABLES en JSON strict :
 
 1. "facts" : liste de faits sur les habitudes et rythme de travail.
-   Chaque fait a un "type" parmi : habit, pattern, context, preference
+   Chaque fait a un "type" parmi : preference, context, skill, opinion
    et un "text" qui decrit le fait de maniere concise.
    Concentre-toi sur les PATTERNS (outils principaux, horaires, repartition du temps), pas les details ephemeres.
 
 2. "entities" : liste d'outils, projets ou reunions recurrentes.
-   Chaque entite a un "type" parmi : tool, project, person, company, meeting
+   Chaque entite a un "type" parmi : tool, project, person, company, concept
    un "name" et une "description" courte.
+   Les reunions recurrentes doivent etre de type "project".
 
 Ignore les donnees triviales (<5 min d'activite). Retourne {"facts": [], "entities": []} si rien de notable.
 
@@ -271,23 +272,35 @@ def fetch_outlook_data(dates: list) -> list[dict]:
 
 # ── Upsert logic ─────────────────────────────────────────────
 
-def save_facts(facts: list, session_id: str, source: str = "conversation"):
+VALID_FACT_TYPES = {"preference", "goal", "context", "personality", "skill", "opinion"}
+FACT_TYPE_MAP = {"habit": "preference", "pattern": "context", "behavior": "preference"}
+
+VALID_ENTITY_TYPES = {"person", "project", "tool", "company", "concept"}
+ENTITY_TYPE_MAP = {"meeting": "project", "event": "project", "organization": "company"}
+
+
+def save_facts(facts: list, session_id: str | None, source: str = "conversation"):
     """Insert new facts into profile_facts."""
     if not facts:
         return 0
     rows = []
     for f in facts:
         ftype = f.get("type", "context")
+        ftype = FACT_TYPE_MAP.get(ftype, ftype)
+        if ftype not in VALID_FACT_TYPES:
+            ftype = "context"
         ftext = f.get("text", "").strip()
         if not ftext:
             continue
-        rows.append({
+        row = {
             "fact_type": ftype,
             "fact_text": ftext,
             "source": source,
             "confidence": 0.7,
-            "session_id": session_id,
-        })
+        }
+        if session_id is not None:
+            row["session_id"] = session_id
+        rows.append(row)
     if rows:
         sb_upsert("profile_facts", rows, service=True)
     return len(rows)
@@ -303,6 +316,9 @@ def save_entities(entities: list):
         if not name:
             continue
         etype = e.get("type", "concept")
+        etype = ENTITY_TYPE_MAP.get(etype, etype)
+        if etype not in VALID_ENTITY_TYPES:
+            etype = "concept"
         desc = e.get("description", "")
 
         existing = sb_read("entities", f"name=eq.{requests.utils.quote(name)}&limit=1")
@@ -421,7 +437,7 @@ def run(days: int | None = None) -> dict:
             log.info("  %s (%d sources, %d chars)...", d.isoformat(), len(texts), len(combined))
             result = _llm_extract(ACTIVITY_EXTRACTION_PROMPT, combined)
 
-            facts_count = save_facts(result["facts"], f"activity_{d.isoformat()}", source="activity")
+            facts_count = save_facts(result["facts"], None, source="activity")
             entities_count = save_entities(result["entities"])
 
             total_facts += facts_count
