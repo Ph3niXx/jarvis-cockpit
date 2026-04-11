@@ -21,13 +21,8 @@ from pathlib import Path
 
 import requests
 
-# ── Config ────────────────────────────────────────────────────
-
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://mrmgptqpflzyavdfqwwv.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
-LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-9b")
+from config import SUPABASE_URL, SUPABASE_KEY, LM_STUDIO_BASE_URL
+from supabase_client import sb_get, sb_post, sb_patch
 
 STATE_DIR = Path(__file__).resolve().parent.parent / "jarvis_data"
 STATE_FILE = STATE_DIR / "nightly_learner_state.json"
@@ -108,36 +103,12 @@ def _save_state(state: dict):
     STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
-# ── Supabase helpers ──────────────────────────────────────────
-
-def _headers(service=False):
-    key = SUPABASE_SERVICE_KEY or SUPABASE_KEY  # service_role required post-006 migration
-    return {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-
-
-def sb_read(table, params=""):
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    if params:
-        url += f"?{params}"
-    r = requests.get(url, headers=_headers(), timeout=10)
-    return r.json() if r.status_code == 200 else []
-
-
-def sb_upsert(table, data, service=True):
-    headers = {**_headers(service), "Prefer": "resolution=merge-duplicates"}
-    r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=headers, json=data, timeout=10)
-    if r.status_code not in (200, 201):
-        log.error("upsert %s: %s %s", table, r.status_code, r.text[:200])
-        return False
-    return True
-
-
 # ── Fetch conversations ──────────────────────────────────────
 
 def fetch_conversations(since_iso: str) -> dict[str, list]:
     """Fetch conversations since a date, grouped by session_id."""
     safe_since = since_iso.replace("+00:00", "Z")
-    rows = sb_read(
+    rows = sb_get(
         "jarvis_conversations",
         f"created_at=gte.{safe_since}&order=created_at.asc&limit=500"
     )
@@ -338,7 +309,7 @@ def save_facts(facts: list, session_id: str | None, source: str = "conversation"
             row["session_id"] = session_id
         rows.append(row)
     if rows:
-        sb_upsert("profile_facts", rows, service=True)
+        sb_post("profile_facts", rows, upsert=True)
     return len(rows)
 
 
@@ -357,24 +328,21 @@ def save_entities(entities: list):
             etype = "concept"
         desc = e.get("description", "")
 
-        existing = sb_read("entities", f"name=eq.{requests.utils.quote(name)}&limit=1")
+        existing = sb_get("entities", f"name=eq.{requests.utils.quote(name)}&limit=1")
         if existing:
             eid = existing[0]["id"]
             new_count = existing[0].get("mentions_count", 1) + 1
-            headers = {**_headers(service=True)}
-            requests.patch(
-                f"{SUPABASE_URL}/rest/v1/entities?id=eq.{eid}",
-                headers=headers,
-                json={"mentions_count": new_count, "last_mentioned": datetime.now(tz=timezone.utc).isoformat()},
-                timeout=10,
-            )
+            sb_patch("entities", f"id=eq.{eid}", {
+                "mentions_count": new_count,
+                "last_mentioned": datetime.now(tz=timezone.utc).isoformat(),
+            })
         else:
-            sb_upsert("entities", {
+            sb_post("entities", {
                 "entity_type": etype,
                 "name": name,
                 "description": desc,
                 "mentions_count": 1,
-            }, service=True)
+            }, upsert=True)
         count += 1
     return count
 

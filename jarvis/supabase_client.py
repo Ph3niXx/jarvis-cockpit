@@ -41,6 +41,15 @@ def sb_post(table: str, data, upsert: bool = False) -> bool:
     return r.status_code in (200, 201)
 
 
+def sb_patch(table: str, filter_params: str, data: dict) -> bool:
+    """PATCH (update) rows in a Supabase table matching filter."""
+    url = f"{SUPABASE_URL}/rest/v1/{table}?{filter_params}"
+    r = requests.patch(url, headers=_headers(), json=data, timeout=10)
+    if r.status_code not in (200, 204):
+        print(f"  [ERROR] sb_patch {table} ({r.status_code}): {r.text[:200]}")
+    return r.status_code in (200, 204)
+
+
 def sb_rpc(function_name: str, params: dict) -> list:
     """Call a Supabase RPC function (e.g. match_memories)."""
     r = requests.post(
