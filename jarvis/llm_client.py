@@ -21,20 +21,25 @@ def get_client() -> OpenAI:
     return _client
 
 
+def _sync_call(messages: list, max_tokens: int, temperature: float) -> tuple[str, int]:
+    """Blocking LLM call — must run in a thread to avoid blocking asyncio."""
+    client = get_client()
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+    )
+    answer = _strip_thinking(response.choices[0].message.content or "")
+    tokens = response.usage.total_tokens if response.usage else 0
+    return answer, tokens
+
+
 async def chat_completion_async(messages: list, max_tokens: int = 2048, temperature: float = 0.3) -> tuple[str, int]:
-    """Thread-safe LLM call with lock. Returns (answer, tokens)."""
+    """Async LLM call with lock. Runs sync SDK in thread pool to avoid blocking event loop."""
     async with _lock:
-        client = get_client()
-        response = client.chat.completions.create(
-            model=LLM_MODEL,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
-        )
-        answer = _strip_thinking(response.choices[0].message.content or "")
-        tokens = response.usage.total_tokens if response.usage else 0
-        return answer, tokens
+        return await asyncio.to_thread(_sync_call, messages, max_tokens, temperature)
 
 
 def chat_completion_sync(messages: list, max_tokens: int = 2048, temperature: float = 0.3) -> tuple[str, int]:

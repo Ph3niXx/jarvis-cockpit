@@ -77,7 +77,7 @@ echo         Logs : jarvis_data\last_status_gen.log
 REM 2c. Nightly learner attend que indexer + status soient finis (pas de conflit LLM)
 echo.
 echo   [...] Nightly learner attend la fin de l'indexation...
-start /B "" cmd /c "for /L %%i in (1,1,60) do (if exist jarvis_data\.indexer_done (if exist jarvis_data\.status_done goto :nl_go)) & timeout /t 5 /nobreak >nul) & :nl_go & del jarvis_data\.indexer_done jarvis_data\.status_done 2>nul & python jarvis\nightly_learner.py > jarvis_data\last_nightly_learner.log 2>&1"
+start /B "" jarvis\run_nightly_after_deps.bat
 echo         Demarre apres indexer+status - Logs : jarvis_data\last_nightly_learner.log
 
 :start_tunnel
