@@ -200,7 +200,7 @@ def _llm_extract(prompt: str, text: str) -> dict:
                 "max_tokens": 1024,
                 "chat_template_kwargs": {"enable_thinking": False},
             },
-            timeout=120,
+            timeout=300,
         )
         if r.status_code != 200:
             log.warning("LLM returned %s", r.status_code)

@@ -65,19 +65,19 @@ if %FRESHNESS% EQU 0 (
   echo   [OK] Tout est deja indexe, rien a faire.
 )
 
-REM 2b. Run nightly learner (catch up on unprocessed conversations)
-echo.
-echo   [...] Nightly learner en arriere-plan...
-if not exist jarvis_data mkdir jarvis_data
-start /B "" python jarvis\nightly_learner.py > jarvis_data\last_nightly_learner.log 2>&1
-echo         Logs : jarvis_data\last_nightly_learner.log
-
-REM 2c. Generate project status snapshot
+REM 2b. Generate project status snapshot (background, quick)
 echo.
 echo   [...] Generation du snapshot de statut en arriere-plan...
 if not exist jarvis_data mkdir jarvis_data
 start /B "" python jarvis\status_generator.py > jarvis_data\last_status_gen.log 2>&1
 echo         Logs : jarvis_data\last_status_gen.log
+
+REM 2c. Run nightly learner AFTER other LLM tasks finish (avoid concurrent load)
+echo.
+echo   [...] Nightly learner differe (attend fin indexer+status)...
+if not exist jarvis_data mkdir jarvis_data
+start /B "" cmd /c "timeout /t 60 /nobreak >nul && python jarvis\nightly_learner.py > jarvis_data\last_nightly_learner.log 2>&1"
+echo         Demarrage dans 60s - Logs : jarvis_data\last_nightly_learner.log
 
 :start_tunnel
 echo.
