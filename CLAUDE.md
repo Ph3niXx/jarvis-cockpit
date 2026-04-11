@@ -174,6 +174,19 @@ python jarvis/scripts/extract_signals.py
 # puis lancer manuellement les 2 tâches Cowork via l'interface
 ```
 
+### Règles de détection d'anomalies (extract_signals.py)
+
+Le script applique 8 règles d'anomalies pour transformer les statistiques brutes
+en signaux exploitables par l'audit. Une anomalie est levée quand l'observé dévie
+significativement de l'attendu, pas sur des seuils absolus arbitraires.
+
+Liste : sous-utilisation cockpit, sections mortes, erreurs récurrentes, engagement
+faible, recherche désertée, pipeline cassé, aucun commit, section inconnue détectée.
+
+"RAS" en sortie signifie qu'aucune des 8 règles n'a déclenché. Si tu trouves le
+script trop ou pas assez sensible, ajuste les seuils dans `extract_signals.py`
+(constantes en haut de fichier).
+
 ## Décisions de design
 
 - **Pas de max-width sur le contenu** — le cockpit utilise toute la largeur disponible
