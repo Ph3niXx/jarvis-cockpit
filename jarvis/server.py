@@ -4,7 +4,7 @@ import asyncio
 import sys
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 # Ensure jarvis/ is on the Python path
 sys.path.insert(0, os.path.dirname(__file__))
@@ -367,10 +367,8 @@ async def _nightly_scheduler():
     """Background task: run nightly_learner.run() every day at midnight local time."""
     while True:
         now = datetime.now()
-        tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        if tomorrow <= now:
-            tomorrow = tomorrow.replace(day=now.day + 1)
-        wait_seconds = (tomorrow - now).total_seconds()
+        tomorrow_midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        wait_seconds = (tomorrow_midnight - now).total_seconds()
         print(f"  [SCHEDULER] Prochain nightly_learner dans {wait_seconds/3600:.1f}h (minuit)")
         await asyncio.sleep(wait_seconds)
 
@@ -389,7 +387,7 @@ async def _daily_brief_scheduler():
         now = datetime.now()
         target = now.replace(hour=DAILY_BRIEF_HOUR, minute=0, second=0, microsecond=0)
         if target <= now:
-            target = target.replace(day=now.day + 1)
+            target += timedelta(days=1)
         wait_seconds = (target - now).total_seconds()
         print(f"  [SCHEDULER] Prochain activity brief dans {wait_seconds/3600:.1f}h ({DAILY_BRIEF_HOUR}h)")
         await asyncio.sleep(wait_seconds)
