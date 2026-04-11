@@ -239,11 +239,18 @@ async def chat(req: ChatRequest):
 
     messages = [{"role": "system", "content": system}]
 
+    # Sanitize history: enforce strict user/assistant alternation (Qwen3.5 requirement)
+    last_role = "system"
     for msg in req.history[-10:]:
         role = msg.get("role", "user")
         content = msg.get("content", "")
-        if role in ("user", "assistant") and content:
+        if role in ("user", "assistant") and content and role != last_role:
             messages.append({"role": role, "content": content})
+            last_role = role
+
+    # Ensure last history message isn't "user" (we add the real question next)
+    if messages[-1]["role"] == "user":
+        messages.pop()
 
     messages.append({"role": "user", "content": req.question})
 
