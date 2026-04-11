@@ -198,6 +198,7 @@ def _llm_extract(prompt: str, text: str) -> dict:
                 ],
                 "temperature": 0.1,
                 "max_tokens": 1024,
+                "chat_template_kwargs": {"enable_thinking": False},
             },
             timeout=120,
         )
