@@ -237,7 +237,9 @@ def fetch_rows(table: str, date_col: str | None, since: str | None) -> list:
     params = "order=id" if table != "user_profile" else "order=key"
 
     if since and date_col:
-        params += f"&{date_col}=gt.{since}"
+        # Strip timezone suffix (+00:00) — PostgREST URL encoding issue
+        since_clean = since.replace("+00:00", "").replace("Z", "")
+        params += f"&{date_col}=gt.{since_clean}"
 
     # Paginate for large tables
     all_rows = []
