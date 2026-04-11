@@ -54,30 +54,31 @@ if %FRESHNESS% EQU 2 (
   goto :start_tunnel
 )
 
+if not exist jarvis_data mkdir jarvis_data
+del jarvis_data\.indexer_done jarvis_data\.status_done 2>nul
+
 if %FRESHNESS% EQU 0 (
   echo.
   echo   [...] Indexation incrementale en arriere-plan...
-  if not exist jarvis_data mkdir jarvis_data
-  start /B "" python jarvis\indexer.py --incremental > jarvis_data\last_indexer.log 2>&1
+  start /B "" cmd /c "python jarvis\indexer.py --incremental > jarvis_data\last_indexer.log 2>&1 && echo done > jarvis_data\.indexer_done"
   echo         Logs : jarvis_data\last_indexer.log
 ) else (
   echo.
   echo   [OK] Tout est deja indexe, rien a faire.
+  echo done > jarvis_data\.indexer_done
 )
 
 REM 2b. Generate project status snapshot (background, quick)
 echo.
 echo   [...] Generation du snapshot de statut en arriere-plan...
-if not exist jarvis_data mkdir jarvis_data
-start /B "" python jarvis\status_generator.py > jarvis_data\last_status_gen.log 2>&1
+start /B "" cmd /c "python jarvis\status_generator.py > jarvis_data\last_status_gen.log 2>&1 && echo done > jarvis_data\.status_done"
 echo         Logs : jarvis_data\last_status_gen.log
 
-REM 2c. Run nightly learner AFTER other LLM tasks finish (avoid concurrent load)
+REM 2c. Nightly learner attend que indexer + status soient finis (pas de conflit LLM)
 echo.
-echo   [...] Nightly learner differe (attend fin indexer+status)...
-if not exist jarvis_data mkdir jarvis_data
-start /B "" cmd /c "timeout /t 60 /nobreak >nul && python jarvis\nightly_learner.py > jarvis_data\last_nightly_learner.log 2>&1"
-echo         Demarrage dans 60s - Logs : jarvis_data\last_nightly_learner.log
+echo   [...] Nightly learner attend la fin de l'indexation...
+start /B "" cmd /c "for /L %%i in (1,1,60) do (if exist jarvis_data\.indexer_done (if exist jarvis_data\.status_done goto :nl_go)) & timeout /t 5 /nobreak >nul) & :nl_go & del jarvis_data\.indexer_done jarvis_data\.status_done 2>nul & python jarvis\nightly_learner.py > jarvis_data\last_nightly_learner.log 2>&1"
+echo         Demarre apres indexer+status - Logs : jarvis_data\last_nightly_learner.log
 
 :start_tunnel
 echo.

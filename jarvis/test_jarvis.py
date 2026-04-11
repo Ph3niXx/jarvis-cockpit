@@ -67,6 +67,7 @@ def main():
             ],
             temperature=LLM_TEMPERATURE,
             max_tokens=LLM_MAX_TOKENS,
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
         )
         elapsed = time.perf_counter() - t0
     except APITimeoutError:

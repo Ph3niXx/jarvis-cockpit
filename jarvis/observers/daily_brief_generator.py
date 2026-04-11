@@ -20,7 +20,7 @@ import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from config import LM_STUDIO_BASE_URL, LLM_MODEL, SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY
+from config import SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY
 
 log = logging.getLogger("daily_brief_generator")
 
@@ -96,26 +96,19 @@ def _build_stats_text(stats: dict, outlook: dict | None = None) -> str:
 
 
 def _call_llm(stats_text: str) -> str:
-    """Call local LLM to generate narrative brief."""
+    """Call local LLM to generate narrative brief via centralized client."""
     try:
-        r = requests.post(
-            f"{LM_STUDIO_BASE_URL}/chat/completions",
-            json={
-                "model": LLM_MODEL,
-                "messages": [
-                    {"role": "system", "content": BRIEF_PROMPT},
-                    {"role": "user", "content": stats_text},
-                ],
-                "temperature": 0.3,
-                "max_tokens": 256,
-            },
-            timeout=60,
+        from llm_client import chat_completion_sync
+
+        answer, _tokens = chat_completion_sync(
+            messages=[
+                {"role": "system", "content": BRIEF_PROMPT},
+                {"role": "user", "content": stats_text},
+            ],
+            max_tokens=256,
+            temperature=0.3,
         )
-        if r.status_code != 200:
-            log.warning("LLM returned %s", r.status_code)
-            return ""
-        data = r.json()
-        return (data["choices"][0]["message"]["content"] or "").strip()
+        return answer
     except Exception as e:
         log.warning("LLM call failed: %s", e)
         return ""

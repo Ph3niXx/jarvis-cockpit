@@ -46,6 +46,10 @@ Extrais les informations suivantes en JSON strict :
 
 Si la conversation est triviale (salutations, tests), retourne {"facts": [], "entities": []}.
 
+Exemple :
+Input: "Jean: Je travaille sur le PI Planning de la semaine prochaine avec l'equipe CRM. Jarvis: Le PI Planning est un evenement SAFe cle."
+Output: {"facts": [{"type": "context", "text": "Prepare un PI Planning avec l'equipe CRM"}], "entities": [{"type": "project", "name": "PI Planning", "description": "Evenement SAFe de planification"}]}
+
 Reponds UNIQUEMENT avec le JSON, sans texte avant ou apres. /no_think"""
 
 ACTIVITY_EXTRACTION_PROMPT = """Analyse ces donnees d'activite quotidienne d'un utilisateur.
@@ -62,6 +66,10 @@ Extrais les informations DURABLES en JSON strict :
    Les reunions recurrentes doivent etre de type "project".
 
 Ignore les donnees triviales (<5 min d'activite). Retourne {"facts": [], "entities": []} si rien de notable.
+
+Exemple :
+Input: "Activite du 2026-04-10 : Dev: 3h20, Communication: 1h45. Top apps: VS Code (2h50), Teams (1h30), Chrome (45min)"
+Output: {"facts": [{"type": "context", "text": "Journee principalement dev avec VS Code, communication via Teams"}], "entities": [{"type": "tool", "name": "VS Code", "description": "IDE principal de developpement"}]}
 
 Reponds UNIQUEMENT avec le JSON, sans texte avant ou apres. /no_think"""
 
@@ -188,31 +196,16 @@ def _llm_extract(prompt: str, text: str) -> dict:
         return {"facts": [], "entities": []}
 
     try:
-        r = requests.post(
-            f"{LM_STUDIO_BASE_URL}/chat/completions",
-            json={
-                "model": LLM_MODEL,
-                "messages": [
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": text},
-                ],
-                "temperature": 0.1,
-                "max_tokens": 1024,
-                "chat_template_kwargs": {"enable_thinking": False},
-            },
-            timeout=300,
+        from llm_client import chat_completion_sync
+
+        raw, _tokens = chat_completion_sync(
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": text},
+            ],
+            max_tokens=1024,
+            temperature=0.1,
         )
-        if r.status_code != 200:
-            log.warning("LLM returned %s", r.status_code)
-            return {"facts": [], "entities": []}
-
-        data = r.json()
-        raw = data["choices"][0]["message"]["content"] or ""
-
-        # Check reasoning_content if content is empty (thinking mode)
-        if not raw.strip():
-            msg_data = data["choices"][0]["message"]
-            raw = msg_data.get("reasoning_content", "") or ""
 
         result = _parse_json_response(raw)
         if result:
@@ -233,7 +226,12 @@ def extract_from_session(messages: list) -> dict:
     conv_text = ""
     for msg in messages:
         role = "Jean" if msg["role"] == "user" else "Jarvis"
-        conv_text += f"{role}: {msg['content']}\n\n"
+        # Truncate long individual messages (e.g. RAG results, code dumps)
+        content = msg["content"][:1500] if len(msg["content"]) > 1500 else msg["content"]
+        conv_text += f"{role}: {content}\n\n"
+    # Cap total text to ~4000 chars to keep LLM processing fast
+    if len(conv_text) > 4000:
+        conv_text = conv_text[:4000] + "\n[... tronque ...]"
     return _llm_extract(CONVERSATION_EXTRACTION_PROMPT, conv_text)
 
 

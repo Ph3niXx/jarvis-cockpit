@@ -135,6 +135,7 @@ def main():
                 ],
                 max_tokens=LLM_MAX_TOKENS,
                 temperature=0.3,
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
             )
             llm_latency = time.perf_counter() - t0
 

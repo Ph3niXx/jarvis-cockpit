@@ -21,7 +21,7 @@ def _get_client() -> OpenAI:
         _client = OpenAI(
             base_url=LM_STUDIO_BASE_URL,
             api_key=LM_STUDIO_API_KEY,
-            timeout=30.0,
+            timeout=15.0,
         )
     return _client
 

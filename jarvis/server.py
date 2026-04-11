@@ -13,14 +13,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
-from openai import OpenAI, APIConnectionError, APITimeoutError
+import re
+
+from openai import APIConnectionError, APITimeoutError
 
 import requests as http_requests
 
 from config import (
     LM_STUDIO_BASE_URL,
-    LM_STUDIO_API_KEY,
-    LLM_MODEL,
     LLM_MAX_TOKENS,
     SUPABASE_URL,
     ANTHROPIC_API_KEY,
@@ -30,6 +30,7 @@ from config import (
     OUTLOOK_INTERVAL_S,
     DAILY_BRIEF_HOUR,
 )
+from llm_client import chat_completion_async, get_client, _strip_thinking
 from retriever import search, search_and_format
 from supabase_client import sb_get, sb_post
 
@@ -51,21 +52,12 @@ app.add_middleware(
 )
 
 SYSTEM_PROMPT = (
-    "Tu es Jarvis, l'assistant IA personnel de John. "
+    "Tu es Jarvis, l'assistant IA personnel de Jean. "
     "Tu es concis, précis, et tu parles français. "
     "Tu te bases sur le contexte fourni pour répondre. "
     "Si le contexte ne contient pas l'information demandée, dis-le honnêtement. "
     "/no_think"
 )
-
-_llm_client = None
-
-
-def _get_llm():
-    global _llm_client
-    if _llm_client is None:
-        _llm_client = OpenAI(base_url=LM_STUDIO_BASE_URL, api_key=LM_STUDIO_API_KEY, timeout=120.0)
-    return _llm_client
 
 
 # ── Models ─────────────────────────────────────────────────────────
@@ -92,7 +84,7 @@ def health():
 
     # LM Studio
     try:
-        client = _get_llm()
+        client = get_client()
         client.models.list()
         result["lm_studio"] = True
     except Exception:
@@ -140,20 +132,14 @@ def _save_conversation(session_id: str, role: str, content: str, mode: str, toke
         print(f"  [WARN] save_conversation: {e}")
 
 
-def _call_local_llm(messages: list, mode: str) -> tuple[str, int]:
-    """Call LM Studio local LLM. Returns (answer, tokens)."""
+async def _call_local_llm(messages: list, mode: str) -> tuple[str, int]:
+    """Call LM Studio local LLM via centralized client. Returns (answer, tokens)."""
     is_quick = mode == "quick"
-    client = _get_llm()
-    response = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=messages,
+    return await chat_completion_async(
+        messages,
         max_tokens=512 if is_quick else LLM_MAX_TOKENS,
         temperature=0.3,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}} if is_quick else {},
     )
-    answer = response.choices[0].message.content or ""
-    tokens = response.usage.total_tokens if response.usage else 0
-    return answer, tokens
 
 
 def _call_claude(system: str, messages: list) -> tuple[str, int]:
@@ -193,11 +179,11 @@ def _call_claude(system: str, messages: list) -> tuple[str, int]:
 
     usage = data.get("usage", {})
     tokens = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
-    return answer, tokens
+    return _strip_thinking(answer), tokens
 
 
 @app.post("/chat")
-def chat(req: ChatRequest):
+async def chat(req: ChatRequest):
     """RAG-augmented chat with Jarvis. Routes to local LLM or Claude cloud."""
     t0 = time.perf_counter()
     use_rag = req.mode in ("deep", "cloud")
@@ -271,13 +257,13 @@ def chat(req: ChatRequest):
             except ValueError as e:
                 # Fallback to local if API key missing or API error
                 print(f"  [WARN] Cloud fallback to local: {e}")
-                answer, tokens = _call_local_llm(messages, "deep")
+                answer, tokens = await _call_local_llm(messages, "deep")
         else:
-            answer, tokens = _call_local_llm(messages, req.mode)
+            answer, tokens = await _call_local_llm(messages, req.mode)
     except (APIConnectionError, ConnectionError):
         raise HTTPException(status_code=503, detail="LM Studio is not running")
     except APITimeoutError:
-        raise HTTPException(status_code=504, detail="LM Studio timeout (120s)")
+        raise HTTPException(status_code=504, detail="LM Studio timeout (60s)")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM error: {e}")
 
@@ -510,7 +496,7 @@ def _startup_checks():
 
     # LM Studio
     try:
-        client = _get_llm()
+        client = get_client()
         models = client.models.list()
         model_ids = [m.id for m in models.data]
         print(f"  [OK] LM Studio: connected ({len(model_ids)} models)")
