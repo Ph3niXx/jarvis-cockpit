@@ -16,11 +16,9 @@ if "%SUPABASE_KEY%"=="" (
   set SUPABASE_KEY=sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e
 )
 if "%SUPABASE_SERVICE_KEY%"=="" (
-  echo.
-  echo   [X] SUPABASE_SERVICE_KEY non defini.
-  echo       Obligatoire depuis la migration 006 (RLS authenticated).
-  echo       Definis-la dans les variables d'environnement Windows.
-  echo.
+  echo [X] SUPABASE_SERVICE_KEY non defini.
+  echo     Obligatoire depuis la migration 006 - RLS authenticated.
+  echo     Definis-la dans les variables d'environnement Windows.
   pause
   exit /b 1
 )
