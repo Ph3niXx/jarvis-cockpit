@@ -34,7 +34,7 @@ OBSERVER_INTERVAL_S = int(os.getenv("OBSERVER_INTERVAL_S", "30"))
 OUTLOOK_INTERVAL_S = int(os.getenv("OUTLOOK_INTERVAL_S", "300"))  # 5 min
 DAILY_BRIEF_HOUR = int(os.getenv("DAILY_BRIEF_HOUR", "18"))
 
-# Supabase (reuse existing env vars)
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")  # publishable/anon key (reads)
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")  # service_role key (writes)
+# Supabase (reuse existing env vars — URL and publishable key are public, same as index.html)
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://mrmgptqpflzyavdfqwwv.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")  # service_role key (writes, no default)
