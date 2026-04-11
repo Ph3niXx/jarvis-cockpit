@@ -37,7 +37,6 @@ def _sync_call(messages: list, max_tokens: int, temperature: float) -> tuple[str
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
             )
             answer = _strip_thinking(response.choices[0].message.content or "")
             tokens = response.usage.total_tokens if response.usage else 0
