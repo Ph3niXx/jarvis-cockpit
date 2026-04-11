@@ -147,6 +147,32 @@ Table `usage_events` — append-only, pas de UPDATE/DELETE (enforcé par RLS). L
 - Le weekly_analysis.py utilise Claude Haiku 4.5 avec un budget max de 1$/run
 - Le CostTracker dans weekly_analysis.py arrête le pipeline si le budget est dépassé
 - Le `user_profile` et le `skill_radar` sont injectés comme contexte dans tous les prompts Claude
+- Les logs pipelines locaux vivent dans `jarvis_data/*.log` (pas `jarvis/logs/`)
+
+## Weekly Pipeline
+
+Le projet tourne un pipeline hebdomadaire en 3 étapes séquentielles, chacune en tâche planifiée indépendante. Toutes les étapes communiquent via des fichiers sur disque (pas d'orchestrateur central), ce qui garantit la robustesse en cas d'échec partiel.
+
+### Calendrier
+
+| Heure  | Étape | Outil   | Input                                              | Output                                  |
+|--------|-------|---------|----------------------------------------------------|-----------------------------------------|
+| 05h30  | 1     | Python  | Supabase, git, jarvis_data/logs                    | `jarvis/intel/YYYY-MM-DD-signals.md`    |
+| 06h00  | 2     | Cowork  | project_status.yaml, dernier audit                 | `jarvis/intel/YYYY-MM-DD-veille.md`     |
+| 07h00  | 3     | Cowork  | signals.md + veille.md + CLAUDE.md + INDEX.md      | `jarvis/upgrades/YYYY-MM-DD-audit.md`   |
+
+### Marges et fail-safe
+
+- 30 min entre étape 1 et 2 (le script Python prend ~30s, marge de sécurité large)
+- 1h entre étape 2 et 3 (la veille Cowork peut occasionnellement prendre 5-8 min)
+- Chaque tâche Cowork (étapes 2 et 3) DOIT vérifier que ses fichiers d'entrée portent la date d'aujourd'hui. Si elle lit un fichier daté d'un autre jour, elle s'arrête et log une erreur.
+
+### Lancement manuel
+
+```
+python jarvis/scripts/extract_signals.py
+# puis lancer manuellement les 2 tâches Cowork via l'interface
+```
 
 ## Décisions de design
 
