@@ -142,6 +142,46 @@ def fetch_conversations(since_iso: str) -> dict[str, list]:
 
 # ── LLM extraction ───────────────────────────────────────────
 
+def _parse_json_response(raw: str) -> dict | None:
+    """Robustly extract a JSON object with 'facts' and 'entities' from LLM output."""
+    # Strip <think>...</think> blocks (Qwen3.5 thinking mode leak)
+    cleaned = re.sub(r'<think>[\s\S]*?</think>', '', raw).strip()
+
+    # Strip markdown code fences
+    cleaned = re.sub(r'```(?:json)?\s*', '', cleaned).strip()
+
+    # Try direct parse first
+    try:
+        result = json.loads(cleaned)
+        if "facts" in result or "entities" in result:
+            return result
+    except json.JSONDecodeError:
+        pass
+
+    # Find JSON block containing "facts" key
+    for match in re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', cleaned):
+        try:
+            result = json.loads(match.group())
+            if "facts" in result or "entities" in result:
+                return result
+        except json.JSONDecodeError:
+            continue
+
+    # Last resort: find outermost braces with "facts" inside
+    match = re.search(r'\{[\s\S]*"facts"[\s\S]*\}', cleaned)
+    if match:
+        # Try progressively shorter substrings from the end to handle trailing garbage
+        text = match.group()
+        for end in range(len(text), 0, -1):
+            if text[end - 1] == '}':
+                try:
+                    return json.loads(text[:end])
+                except json.JSONDecodeError:
+                    continue
+
+    return None
+
+
 def _llm_extract(prompt: str, text: str) -> dict:
     """Send text to Qwen3.5 with a given prompt and extract JSON facts + entities."""
     if len(text.strip()) < 20:
@@ -158,6 +198,7 @@ def _llm_extract(prompt: str, text: str) -> dict:
                 ],
                 "temperature": 0.1,
                 "max_tokens": 1024,
+                "response_format": {"type": "json_object"},
             },
             timeout=120,
         )
@@ -168,23 +209,20 @@ def _llm_extract(prompt: str, text: str) -> dict:
         data = r.json()
         raw = data["choices"][0]["message"]["content"] or ""
 
+        # Check reasoning_content if content is empty (thinking mode)
         if not raw.strip():
             msg_data = data["choices"][0]["message"]
             raw = msg_data.get("reasoning_content", "") or ""
 
-        match = re.search(r'\{[\s\S]*\}', raw)
-        if match:
-            result = json.loads(match.group())
+        result = _parse_json_response(raw)
+        if result:
             return {
                 "facts": result.get("facts", []),
                 "entities": result.get("entities", []),
             }
-        log.warning("No JSON found in LLM response (%d chars)", len(raw))
+        log.warning("No JSON found in LLM response (%d chars): %.100s...", len(raw), raw)
         return {"facts": [], "entities": []}
 
-    except json.JSONDecodeError as e:
-        log.warning("JSON parse error: %s", e)
-        return {"facts": [], "entities": []}
     except Exception as e:
         log.warning("LLM extraction failed: %s", e)
         return {"facts": [], "entities": []}
