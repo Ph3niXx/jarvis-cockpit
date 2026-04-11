@@ -403,12 +403,25 @@ def run(days: int | None = None) -> dict:
 
     latest_created_at = since
 
-    for sid, msgs in sessions.items():
+    consecutive_failures = 0
+    session_ids = list(sessions.keys())
+    for idx, sid in enumerate(session_ids):
+        msgs = sessions[sid]
         log.info("  Session %s... (%d msgs)", sid[:8], len(msgs))
         result = extract_from_session(msgs)
 
         facts_count = save_facts(result["facts"], sid, source="conversation")
         entities_count = save_entities(result["entities"])
+
+        if facts_count == 0 and entities_count == 0:
+            consecutive_failures += 1
+            if consecutive_failures >= 3:
+                remaining = len(session_ids) - idx - 1
+                log.error("Circuit breaker: %d echecs consecutifs, skip %d sessions restantes", consecutive_failures, remaining)
+                break
+        else:
+            log.debug("consecutive_failures reset apres extraction OK sur session %s", sid[:8])
+            consecutive_failures = 0
 
         total_facts += facts_count
         total_entities += entities_count

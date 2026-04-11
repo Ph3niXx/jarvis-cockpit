@@ -1,9 +1,14 @@
 """Jarvis — Centralized LLM client with concurrency lock."""
 
 import asyncio
+import logging
 import re
-from openai import OpenAI
+import time
+from openai import OpenAI, APITimeoutError, APIConnectionError
 from config import LM_STUDIO_BASE_URL, LM_STUDIO_API_KEY, LLM_MODEL
+
+log = logging.getLogger(__name__)
+MAX_RETRIES = 2  # 3 attempts total (1 initial + 2 retries)
 
 _client = None
 _lock = asyncio.Lock()
@@ -22,18 +27,28 @@ def get_client() -> OpenAI:
 
 
 def _sync_call(messages: list, max_tokens: int, temperature: float) -> tuple[str, int]:
-    """Blocking LLM call — must run in a thread to avoid blocking asyncio."""
+    """Blocking LLM call with retry on timeout/connection errors."""
     client = get_client()
-    response = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=messages,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
-    )
-    answer = _strip_thinking(response.choices[0].message.content or "")
-    tokens = response.usage.total_tokens if response.usage else 0
-    return answer, tokens
+    last_exc = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            response = client.chat.completions.create(
+                model=LLM_MODEL,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+            )
+            answer = _strip_thinking(response.choices[0].message.content or "")
+            tokens = response.usage.total_tokens if response.usage else 0
+            return answer, tokens
+        except (APITimeoutError, APIConnectionError) as e:
+            last_exc = e
+            if attempt < MAX_RETRIES:
+                backoff = 2 ** (attempt + 1)  # 2s, 4s
+                log.warning("LLM retry %d/%d after %s (backoff %ds)", attempt + 1, MAX_RETRIES, type(e).__name__, backoff)
+                time.sleep(backoff)
+    raise last_exc
 
 
 async def chat_completion_async(messages: list, max_tokens: int = 2048, temperature: float = 0.3) -> tuple[str, int]:
@@ -44,14 +59,4 @@ async def chat_completion_async(messages: list, max_tokens: int = 2048, temperat
 
 def chat_completion_sync(messages: list, max_tokens: int = 2048, temperature: float = 0.3) -> tuple[str, int]:
     """Synchronous LLM call (for scripts like nightly_learner). No lock needed — scripts run alone."""
-    client = get_client()
-    response = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=messages,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
-    )
-    answer = _strip_thinking(response.choices[0].message.content or "")
-    tokens = response.usage.total_tokens if response.usage else 0
-    return answer, tokens
+    return _sync_call(messages, max_tokens, temperature)
