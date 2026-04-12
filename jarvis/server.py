@@ -376,6 +376,8 @@ def _build_context(question: str, mode: str, history: list[dict]) -> tuple[list,
 
     # Compact long histories (skip in quick mode — short conversations)
     compacted = _compact_history(history) if mode != "quick" else history
+    did_compact = len(compacted) < len(history)
+    compacted_count = len(history) - len(compacted) + 1 if did_compact else 0  # +1 = summary replaces N msgs
 
     # Inject compaction summary (system message) if present
     for msg in compacted:
@@ -398,7 +400,8 @@ def _build_context(question: str, mode: str, history: list[dict]) -> tuple[list,
 
     messages.append({"role": "user", "content": question})
 
-    return messages, raw_results
+    compaction_info = {"compacted": did_compact, "compacted_count": compacted_count}
+    return messages, raw_results, compaction_info
 
 
 async def _route_llm(messages: list, mode: str) -> tuple[str, int, str]:
@@ -437,7 +440,7 @@ async def chat(req: ChatRequest):
     """RAG-augmented chat with Jarvis. Routes to local LLM or Claude cloud."""
     t0 = time.perf_counter()
 
-    messages, raw_results = _build_context(req.question, req.mode, req.history)
+    messages, raw_results, compaction_info = _build_context(req.question, req.mode, req.history)
     answer, tokens, backend = await _route_llm(messages, req.mode)
     _persist_exchange(req.session_id, req.question, answer, req.mode, tokens)
 
@@ -459,6 +462,8 @@ async def chat(req: ChatRequest):
         "tokens_used": tokens,
         "latency_ms": elapsed_ms,
         "backend": backend,
+        "compacted": compaction_info["compacted"],
+        "compacted_count": compaction_info["compacted_count"],
     }
 
 
