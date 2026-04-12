@@ -1,17 +1,32 @@
 """Jarvis — Centralized LLM client with concurrency lock."""
 
 import asyncio
+import json
 import logging
 import re
 import time
+from datetime import datetime, timezone
+from pathlib import Path
+
 from openai import OpenAI, APITimeoutError, APIConnectionError
 from config import LM_STUDIO_BASE_URL, LM_STUDIO_API_KEY, LLM_MODEL
 
 log = logging.getLogger(__name__)
 MAX_RETRIES = 2  # 3 attempts total (1 initial + 2 retries)
+TRACE_FILE = Path("jarvis_data/llm_traces.jsonl")
 
 _client = None
 _lock = asyncio.Lock()
+
+
+def _write_trace(span: dict) -> None:
+    """Append a trace span to the JSONL file. Best-effort — never raises."""
+    try:
+        TRACE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with TRACE_FILE.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(span, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 
 def _strip_thinking(text: str) -> str:
@@ -30,6 +45,8 @@ def _sync_call(messages: list, max_tokens: int, temperature: float, response_for
     """Blocking LLM call with retry on timeout/connection errors."""
     client = get_client()
     last_exc = None
+    start_time = time.time()
+    chars_in = sum(len(m.get("content", "")) for m in messages)
     kwargs = dict(
         model=LLM_MODEL,
         messages=messages,
@@ -43,6 +60,15 @@ def _sync_call(messages: list, max_tokens: int, temperature: float, response_for
             response = client.chat.completions.create(**kwargs)
             answer = _strip_thinking(response.choices[0].message.content or "")
             tokens = response.usage.total_tokens if response.usage else 0
+            _write_trace({
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "model": LLM_MODEL,
+                "chars_in": chars_in,
+                "tokens_out": tokens,
+                "latency_ms": round((time.time() - start_time) * 1000),
+                "attempts": attempt + 1,
+                "status": "ok",
+            })
             return answer, tokens
         except (APITimeoutError, APIConnectionError) as e:
             last_exc = e
@@ -50,6 +76,15 @@ def _sync_call(messages: list, max_tokens: int, temperature: float, response_for
                 backoff = 2 ** (attempt + 1)  # 2s, 4s
                 log.warning("LLM retry %d/%d after %s (backoff %ds)", attempt + 1, MAX_RETRIES, type(e).__name__, backoff)
                 time.sleep(backoff)
+    _write_trace({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "model": LLM_MODEL,
+        "chars_in": chars_in,
+        "latency_ms": round((time.time() - start_time) * 1000),
+        "attempts": MAX_RETRIES + 1,
+        "status": "error",
+        "error_type": type(last_exc).__name__,
+    })
     raise last_exc
 
 
