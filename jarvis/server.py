@@ -96,7 +96,19 @@ def health():
     # LM Studio (fast ping, 2s timeout)
     try:
         r = http_requests.get(f"{LM_STUDIO_BASE_URL}/models", timeout=2)
-        result["lm_studio"] = "connected" if r.status_code == 200 else "error"
+        if r.status_code == 200:
+            try:
+                models = r.json().get("data", [])
+                if models:
+                    result["lm_studio"] = "connected"
+                else:
+                    result["lm_studio"] = "no_model_loaded"
+                    result["status"] = "degraded"
+            except (ValueError, KeyError):
+                result["lm_studio"] = "connected"  # can't parse, assume OK
+        else:
+            result["lm_studio"] = "error"
+            result["status"] = "degraded"
     except Exception:
         result["status"] = "degraded"
 

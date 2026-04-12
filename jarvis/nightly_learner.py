@@ -373,6 +373,13 @@ def run(days: int | None = None) -> dict:
         r = requests.get(f"{LM_STUDIO_BASE_URL}/models", timeout=5)
         if r.status_code != 200:
             raise Exception("not reachable")
+        try:
+            models = r.json().get("data", [])
+            if not models:
+                log.error("  [X] LM Studio connecte mais aucun modele charge.")
+                return {"status": "error", "reason": "no_model_loaded"}
+        except (ValueError, KeyError):
+            pass  # can't parse, assume OK
         log.info("  [OK] LM Studio connecte")
     except Exception:
         log.error("  [X] LM Studio non disponible. Reporte a demain.")
