@@ -314,6 +314,42 @@ def _compact_history(history: list[dict], max_recent: int = 4) -> list[dict]:
         return history
 
 
+def _get_activity_context(question: str) -> str:
+    """Inject today's activity context if question is about activity. Returns formatted text or ""."""
+    q_lower = question.lower()
+    activity_keywords = ["fait aujourd", "fait quoi", "journée", "activité", "réunion", "meeting", "email", "mail", "outlook", "agenda", "calendrier"]
+    if not any(kw in q_lower for kw in activity_keywords):
+        return ""
+
+    try:
+        from observers.daily_brief_generator import _build_stats_text
+        from observers.window_observer import read_day_entries, compute_stats
+        from observers.outlook_observer import read_outlook_data
+        from datetime import date as dt_date
+
+        today = dt_date.today()
+        entries = read_day_entries(today)
+        outlook = read_outlook_data(today)
+        if not entries and not outlook:
+            return ""
+
+        stats = compute_stats(entries) if entries else {}
+        result = (
+            f"\n\n[Activité observée aujourd'hui ({today.isoformat()})]\n"
+            + _build_stats_text(stats, outlook=outlook if outlook else None)
+        )
+        if outlook and outlook.get("meetings"):
+            meetings_list = ", ".join(
+                f"{m['start']}-{m['end']} {m['subject']}" + (" (Teams)" if m.get("is_teams") else "")
+                for m in outlook["meetings"]
+            )
+            result += f"\nRéunions détail : {meetings_list}"
+        return result
+    except Exception as e:
+        print(f"  [WARN] Activity context injection failed: {e}")
+        return ""
+
+
 def _build_context(question: str, mode: str, history: list[dict]) -> tuple[list, list]:
     """Build system prompt + messages list with RAG, activity and profile facts.
 
@@ -333,34 +369,7 @@ def _build_context(question: str, mode: str, history: list[dict]) -> tuple[list,
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"RAG search failed: {e}")
 
-    # 1b. Inject today's activity context if question is about activity
-    activity_context = ""
-    q_lower = question.lower()
-    activity_keywords = ["fait aujourd", "fait quoi", "journée", "activité", "réunion", "meeting", "email", "mail", "outlook", "agenda", "calendrier"]
-    if any(kw in q_lower for kw in activity_keywords):
-        try:
-            from observers.daily_brief_generator import _build_stats_text
-            from observers.window_observer import read_day_entries, compute_stats
-            from observers.outlook_observer import read_outlook_data
-            from datetime import date as dt_date
-
-            today = dt_date.today()
-            entries = read_day_entries(today)
-            outlook = read_outlook_data(today)
-            if entries or outlook:
-                stats = compute_stats(entries) if entries else {}
-                activity_context = (
-                    f"\n\n[Activité observée aujourd'hui ({today.isoformat()})]\n"
-                    + _build_stats_text(stats, outlook=outlook if outlook else None)
-                )
-                if outlook and outlook.get("meetings"):
-                    meetings_list = ", ".join(
-                        f"{m['start']}-{m['end']} {m['subject']}" + (" (Teams)" if m.get("is_teams") else "")
-                        for m in outlook["meetings"]
-                    )
-                    activity_context += f"\nRéunions détail : {meetings_list}"
-        except Exception as e:
-            print(f"  [WARN] Activity context injection failed: {e}")
+    activity_context = _get_activity_context(question)
 
     # 2. Build system prompt with profile facts
     system = SYSTEM_PROMPT
