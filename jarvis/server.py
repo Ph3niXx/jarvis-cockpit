@@ -133,6 +133,40 @@ def health():
     else:
         result["status"] = "no_data"
 
+    # LLM traces (last hour)
+    trace_file = Path("jarvis_data/llm_traces.jsonl")
+    if not trace_file.exists():
+        result["llm_traces"] = "no_data"
+    else:
+        try:
+            lines = trace_file.read_text(encoding="utf-8").splitlines()[-100:]
+            now = datetime.now(timezone.utc)
+            one_hour_ago = now - timedelta(hours=1)
+            recent = []
+            last_ts = None
+            for line in lines:
+                try:
+                    span = json.loads(line)
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                last_ts = span.get("ts", last_ts)
+                ts = span.get("ts")
+                if ts:
+                    span_dt = datetime.fromisoformat(ts)
+                    if span_dt >= one_hour_ago:
+                        recent.append(span)
+
+            ok_count = sum(1 for s in recent if s.get("status") == "ok")
+            avg_lat = round(sum(s.get("latency_ms", 0) for s in recent) / len(recent)) if recent else 0
+            result["llm_traces"] = {
+                "last_trace_ts": last_ts or "never",
+                "traces_1h": len(recent),
+                "success_rate_1h": round(ok_count / len(recent) * 100, 1) if recent else 0,
+                "avg_latency_ms": avg_lat,
+            }
+        except Exception:
+            result["llm_traces"] = "error"
+
     return result
 
 
