@@ -1,10 +1,12 @@
 """Jarvis — FastAPI server bridging the cockpit UI to LM Studio + Supabase RAG."""
 
 import asyncio
+import json
 import sys
 import os
 import time
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 # Ensure jarvis/ is on the Python path
 sys.path.insert(0, os.path.dirname(__file__))
@@ -80,24 +82,56 @@ class SearchRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    """Check LM Studio + Supabase connectivity."""
-    result = {"status": "ok", "lm_studio": False, "supabase": False, "vectors_count": 0}
+    """Check LM Studio + Supabase + nightly_learner health."""
+    result = {
+        "status": "healthy",
+        "lm_studio": "unreachable",
+        "supabase": False,
+        "vectors_count": 0,
+        "active_facts": 0,
+        "last_nightly_run": "never",
+        "nightly_stats": {},
+    }
 
-    # LM Studio
+    # LM Studio (fast ping, 2s timeout)
     try:
-        client = get_client()
-        client.models.list()
-        result["lm_studio"] = True
+        r = http_requests.get(f"{LM_STUDIO_BASE_URL}/models", timeout=2)
+        result["lm_studio"] = "connected" if r.status_code == 200 else "error"
     except Exception:
         result["status"] = "degraded"
 
-    # Supabase
+    # Supabase — vectors count
     try:
         rows = sb_get("memories_vectors", "select=id&limit=10000")
         result["supabase"] = True
         result["vectors_count"] = len(rows) if rows else 0
     except Exception:
         result["status"] = "degraded"
+
+    # Supabase — active profile facts
+    try:
+        facts = sb_get("profile_facts", "superseded_by=is.null&select=id")
+        result["active_facts"] = len(facts) if facts else 0
+    except Exception:
+        pass
+
+    # Nightly learner state
+    state_file = Path("jarvis_data/nightly_learner_state.json")
+    if state_file.exists():
+        try:
+            nightly = json.loads(state_file.read_text(encoding="utf-8"))
+            result["last_nightly_run"] = nightly.get("last_run", "never")
+            result["nightly_stats"] = nightly.get("last_stats", {})
+            # Stale if last run > 36h ago
+            last_run = nightly.get("last_run")
+            if last_run:
+                last_dt = datetime.fromisoformat(last_run)
+                if (datetime.now(timezone.utc) - last_dt).total_seconds() > 36 * 3600:
+                    result["status"] = "degraded"
+        except Exception:
+            pass
+    else:
+        result["status"] = "no_data"
 
     return result
 
