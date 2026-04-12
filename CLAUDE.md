@@ -79,7 +79,6 @@ Tables existantes :
 - `rte_usecases` — 12 use cases IA pour la mission RTE (Jira, Excel, SAFe, Confluence, Slack)
 - `weekly_analysis` — logs des runs Claude (tokens, coûts, résultats)
 - `user_profile` — profil personnel key/value (identité, ambitions, intérêts, notes)
-- `usecase_maturity` — ancienne table de scoring statique (dépréciée, remplacée par weekly_opportunities)
 - `usage_events` — télémétrie UX cockpit append-only (event_type, payload JSONB, ts). Migration: `jarvis/migrations/005_usage_events.sql`
 
 **Tables TFT :**
