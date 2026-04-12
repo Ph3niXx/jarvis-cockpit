@@ -32,7 +32,7 @@ from config import (
     OUTLOOK_INTERVAL_S,
     DAILY_BRIEF_HOUR,
 )
-from llm_client import chat_completion_async, chat_completion_sync, get_client, _strip_thinking
+from llm_client import chat_completion_async, chat_completion_sync, check_lm_studio, get_client, _strip_thinking
 from retriever import search, search_and_format
 from embeddings import embed_text
 from supabase_client import sb_get, sb_post
@@ -94,22 +94,9 @@ def health():
     }
 
     # LM Studio (fast ping, 2s timeout)
-    try:
-        r = http_requests.get(f"{LM_STUDIO_BASE_URL}/models", timeout=2)
-        if r.status_code == 200:
-            try:
-                models = r.json().get("data", [])
-                if models:
-                    result["lm_studio"] = "connected"
-                else:
-                    result["lm_studio"] = "no_model_loaded"
-                    result["status"] = "degraded"
-            except (ValueError, KeyError):
-                result["lm_studio"] = "connected"  # can't parse, assume OK
-        else:
-            result["lm_studio"] = "error"
-            result["status"] = "degraded"
-    except Exception:
+    lm_status = check_lm_studio(timeout=2)
+    result["lm_studio"] = lm_status
+    if lm_status != "connected":
         result["status"] = "degraded"
 
     # Supabase — vectors count

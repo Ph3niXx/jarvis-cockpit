@@ -369,19 +369,14 @@ def run(days: int | None = None) -> dict:
 
     # 1. Check LM Studio
     log.info("[1/5] Verification de LM Studio...")
-    try:
-        r = requests.get(f"{LM_STUDIO_BASE_URL}/models", timeout=5)
-        if r.status_code != 200:
-            raise Exception("not reachable")
-        try:
-            models = r.json().get("data", [])
-            if not models:
-                log.error("  [X] LM Studio connecte mais aucun modele charge.")
-                return {"status": "error", "reason": "no_model_loaded"}
-        except (ValueError, KeyError):
-            pass  # can't parse, assume OK
+    from llm_client import check_lm_studio
+    lm_status = check_lm_studio(timeout=5)
+    if lm_status == "connected":
         log.info("  [OK] LM Studio connecte")
-    except Exception:
+    elif lm_status == "no_model_loaded":
+        log.error("  [X] LM Studio connecte mais aucun modele charge.")
+        return {"status": "error", "reason": "no_model_loaded"}
+    else:
         log.error("  [X] LM Studio non disponible. Reporte a demain.")
         return {"status": "error", "reason": "lm_studio_unavailable"}
 

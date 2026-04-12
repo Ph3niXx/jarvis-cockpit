@@ -8,6 +8,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+import requests as http_requests
+
 from openai import OpenAI, APITimeoutError, APIConnectionError
 from config import LM_STUDIO_BASE_URL, LM_STUDIO_API_KEY, LLM_MODEL
 
@@ -17,6 +19,21 @@ TRACE_FILE = Path("jarvis_data/llm_traces.jsonl")
 
 _client = None
 _lock = asyncio.Lock()
+
+
+def check_lm_studio(timeout: float = 5.0) -> str:
+    """Check LM Studio availability. Returns 'connected', 'no_model_loaded', or 'unreachable'."""
+    try:
+        r = http_requests.get(f"{LM_STUDIO_BASE_URL}/models", timeout=timeout)
+        if r.status_code != 200:
+            return "unreachable"
+        try:
+            models = r.json().get("data", [])
+            return "connected" if models else "no_model_loaded"
+        except (ValueError, KeyError):
+            return "connected"
+    except Exception:
+        return "unreachable"
 
 
 def _write_trace(span: dict) -> None:
