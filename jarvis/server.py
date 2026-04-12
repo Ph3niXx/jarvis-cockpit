@@ -217,26 +217,28 @@ def _call_claude(system: str, messages: list) -> tuple[str, int]:
     return _strip_thinking(answer), tokens
 
 
-@app.post("/chat")
-async def chat(req: ChatRequest):
-    """RAG-augmented chat with Jarvis. Routes to local LLM or Claude cloud."""
-    t0 = time.perf_counter()
-    use_rag = req.mode in ("deep", "cloud")
+def _build_context(question: str, mode: str, history: list[dict]) -> tuple[list, list]:
+    """Build system prompt + messages list with RAG, activity and profile facts.
+
+    Returns (messages, raw_results) where raw_results are the RAG search hits
+    (empty list if mode == "quick").
+    """
+    use_rag = mode in ("deep", "cloud")
 
     # 1. Retrieve RAG context (deep + cloud modes)
     raw_results = []
     context = ""
     if use_rag:
         try:
-            qvec = embed_text(req.question)
-            raw_results = search(req.question, k=5, threshold=0.3, query_vector=qvec)
-            context = search_and_format(req.question, k=5, query_vector=qvec)
+            qvec = embed_text(question)
+            raw_results = search(question, k=5, threshold=0.3, query_vector=qvec)
+            context = search_and_format(question, k=5, query_vector=qvec)
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"RAG search failed: {e}")
 
     # 1b. Inject today's activity context if question is about activity
     activity_context = ""
-    q_lower = req.question.lower()
+    q_lower = question.lower()
     activity_keywords = ["fait aujourd", "fait quoi", "journée", "activité", "réunion", "meeting", "email", "mail", "outlook", "agenda", "calendrier"]
     if any(kw in q_lower for kw in activity_keywords):
         try:
@@ -263,7 +265,7 @@ async def chat(req: ChatRequest):
         except Exception as e:
             print(f"  [WARN] Activity context injection failed: {e}")
 
-    # 2. Build messages with profile facts injection
+    # 2. Build system prompt with profile facts
     system = SYSTEM_PROMPT
     profile_context = _get_profile_facts()
     if profile_context:
@@ -277,7 +279,7 @@ async def chat(req: ChatRequest):
 
     # Sanitize history: enforce strict user/assistant alternation (Qwen3.5 requirement)
     last_role = "system"
-    for msg in req.history[-10:]:
+    for msg in history[-10:]:
         role = msg.get("role", "user")
         content = msg.get("content", "")
         if role in ("user", "assistant") and content and role != last_role:
@@ -288,13 +290,18 @@ async def chat(req: ChatRequest):
     if messages[-1]["role"] == "user":
         messages.pop()
 
-    messages.append({"role": "user", "content": req.question})
+    messages.append({"role": "user", "content": question})
 
-    # 3. Route to the right LLM backend
+    return messages, raw_results
+
+
+async def _route_llm(messages: list, mode: str) -> tuple[str, int, str]:
+    """Route to the right LLM backend. Returns (answer, tokens, backend)."""
     backend = "local"
     try:
-        if req.mode == "cloud":
+        if mode == "cloud":
             try:
+                system = messages[0]["content"] if messages and messages[0]["role"] == "system" else ""
                 answer, tokens = _call_claude(system, messages)
                 backend = "claude"
             except ValueError as e:
@@ -302,7 +309,7 @@ async def chat(req: ChatRequest):
                 print(f"  [WARN] Cloud fallback to local: {e}")
                 answer, tokens = await _call_local_llm(messages, "deep")
         else:
-            answer, tokens = await _call_local_llm(messages, req.mode)
+            answer, tokens = await _call_local_llm(messages, mode)
     except (APIConnectionError, ConnectionError):
         raise HTTPException(status_code=503, detail="LM Studio is not running")
     except APITimeoutError:
@@ -310,13 +317,27 @@ async def chat(req: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM error: {e}")
 
+    return answer, tokens, backend
+
+
+def _persist_exchange(session_id: str, question: str, answer: str, mode: str, tokens: int):
+    """Save user + assistant messages to jarvis_conversations."""
+    _save_conversation(session_id, "user", question, mode)
+    _save_conversation(session_id, "assistant", answer, mode, tokens)
+
+
+@app.post("/chat")
+async def chat(req: ChatRequest):
+    """RAG-augmented chat with Jarvis. Routes to local LLM or Claude cloud."""
+    t0 = time.perf_counter()
+
+    messages, raw_results = _build_context(req.question, req.mode, req.history)
+    answer, tokens, backend = await _route_llm(messages, req.mode)
+    _persist_exchange(req.session_id, req.question, answer, req.mode, tokens)
+
     elapsed_ms = int((time.perf_counter() - t0) * 1000)
 
-    # 4. Save conversation to Supabase
-    _save_conversation(req.session_id, "user", req.question, req.mode)
-    _save_conversation(req.session_id, "assistant", answer, req.mode, tokens)
-
-    # 5. Build sources summary
+    # Build sources summary
     sources = []
     for r in (raw_results or []):
         sources.append({
