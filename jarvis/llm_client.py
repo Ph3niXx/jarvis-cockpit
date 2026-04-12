@@ -22,22 +22,25 @@ def _strip_thinking(text: str) -> str:
 def get_client() -> OpenAI:
     global _client
     if _client is None:
-        _client = OpenAI(base_url=LM_STUDIO_BASE_URL, api_key=LM_STUDIO_API_KEY, timeout=60.0)
+        _client = OpenAI(base_url=LM_STUDIO_BASE_URL, api_key=LM_STUDIO_API_KEY, timeout=120.0)
     return _client
 
 
-def _sync_call(messages: list, max_tokens: int, temperature: float) -> tuple[str, int]:
+def _sync_call(messages: list, max_tokens: int, temperature: float, response_format: dict | None = None) -> tuple[str, int]:
     """Blocking LLM call with retry on timeout/connection errors."""
     client = get_client()
     last_exc = None
+    kwargs = dict(
+        model=LLM_MODEL,
+        messages=messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+    if response_format is not None:
+        kwargs["response_format"] = response_format
     for attempt in range(MAX_RETRIES + 1):
         try:
-            response = client.chat.completions.create(
-                model=LLM_MODEL,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-            )
+            response = client.chat.completions.create(**kwargs)
             answer = _strip_thinking(response.choices[0].message.content or "")
             tokens = response.usage.total_tokens if response.usage else 0
             return answer, tokens
@@ -50,12 +53,12 @@ def _sync_call(messages: list, max_tokens: int, temperature: float) -> tuple[str
     raise last_exc
 
 
-async def chat_completion_async(messages: list, max_tokens: int = 2048, temperature: float = 0.3) -> tuple[str, int]:
+async def chat_completion_async(messages: list, max_tokens: int = 2048, temperature: float = 0.3, response_format: dict | None = None) -> tuple[str, int]:
     """Async LLM call with lock. Runs sync SDK in thread pool to avoid blocking event loop."""
     async with _lock:
-        return await asyncio.to_thread(_sync_call, messages, max_tokens, temperature)
+        return await asyncio.to_thread(_sync_call, messages, max_tokens, temperature, response_format)
 
 
-def chat_completion_sync(messages: list, max_tokens: int = 2048, temperature: float = 0.3) -> tuple[str, int]:
+def chat_completion_sync(messages: list, max_tokens: int = 2048, temperature: float = 0.3, response_format: dict | None = None) -> tuple[str, int]:
     """Synchronous LLM call (for scripts like nightly_learner). No lock needed — scripts run alone."""
-    return _sync_call(messages, max_tokens, temperature)
+    return _sync_call(messages, max_tokens, temperature, response_format)

@@ -176,6 +176,7 @@ def _llm_extract(prompt: str, text: str) -> dict:
             ],
             max_tokens=1024,
             temperature=0.1,
+            response_format={"type": "json_object"},
         )
 
         result = _parse_json_response(raw)
