@@ -32,7 +32,7 @@ from config import (
     OUTLOOK_INTERVAL_S,
     DAILY_BRIEF_HOUR,
 )
-from llm_client import chat_completion_async, get_client, _strip_thinking
+from llm_client import chat_completion_async, chat_completion_sync, get_client, _strip_thinking
 from retriever import search, search_and_format
 from embeddings import embed_text
 from supabase_client import sb_get, sb_post
@@ -263,6 +263,57 @@ def _call_claude(system: str, messages: list) -> tuple[str, int]:
     return _strip_thinking(answer), tokens
 
 
+def _compact_history(history: list[dict], max_recent: int = 4) -> list[dict]:
+    """Summarize old messages when history is long, keeping recent ones intact.
+
+    Returns a compacted history: [summary_msg] + recent_messages.
+    Falls back to original history on any error.
+    """
+    if len(history) <= max_recent + 2:
+        return history
+
+    old_messages = history[:-max_recent]
+    recent_messages = history[-max_recent:]
+
+    # Format old messages for summarization
+    lines = []
+    for msg in old_messages:
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+        if role in ("user", "assistant") and content:
+            speaker = "Jean" if role == "user" else "Jarvis"
+            lines.append(f"{speaker}: {content[:500]}")
+
+    if not lines:
+        return history
+
+    prompt = (
+        "Resume cette conversation en 2-3 phrases. "
+        "Garde les decisions, les questions ouvertes et les faits importants. "
+        "Ignore les salutations et bavardages.\n\n"
+        + "\n".join(lines)
+    )
+
+    try:
+        before_chars = sum(len(m.get("content", "")) for m in old_messages)
+        summary, _tokens = chat_completion_sync(
+            [{"role": "user", "content": prompt}],
+            max_tokens=256,
+            temperature=0.3,
+        )
+        if not summary.strip():
+            return history
+
+        after_chars = len(summary)
+        print(f"  [COMPACT] {len(old_messages)} messages -> 1 summary ({before_chars} -> {after_chars} chars)")
+
+        summary_msg = {"role": "system", "content": f"[Resume conversation precedente] {summary}"}
+        return [summary_msg] + recent_messages
+    except Exception as e:
+        print(f"  [WARN] History compaction failed: {e}")
+        return history
+
+
 def _build_context(question: str, mode: str, history: list[dict]) -> tuple[list, list]:
     """Build system prompt + messages list with RAG, activity and profile facts.
 
@@ -323,9 +374,18 @@ def _build_context(question: str, mode: str, history: list[dict]) -> tuple[list,
 
     messages = [{"role": "system", "content": system}]
 
+    # Compact long histories (skip in quick mode — short conversations)
+    compacted = _compact_history(history) if mode != "quick" else history
+
+    # Inject compaction summary (system message) if present
+    for msg in compacted:
+        if msg.get("role") == "system" and msg.get("content", "").startswith("[Resume"):
+            messages.append(msg)
+            break
+
     # Sanitize history: enforce strict user/assistant alternation (Qwen3.5 requirement)
     last_role = "system"
-    for msg in history[-10:]:
+    for msg in compacted[-10:]:
         role = msg.get("role", "user")
         content = msg.get("content", "")
         if role in ("user", "assistant") and content and role != last_role:
