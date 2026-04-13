@@ -745,6 +745,13 @@ body.deep-work .count{display:none!important}
 .muted{color:var(--tx3)}
 .tft-table{width:100%;border-collapse:collapse}
 .profile-input:focus,.profile-textarea:focus{border-color:var(--accent);outline:none}
+.morning-briefing.compact{padding:var(--space-3) var(--space-5);margin-bottom:var(--space-3)}
+.morning-briefing.compact .mb-greeting{font-size:var(--text-sm);margin-bottom:0}
+.morning-briefing.compact .mb-weather{display:none}
+.morning-briefing.compact .mb-controls{display:none}
+.morning-briefing.compact .mb-stats{margin-bottom:0;font-size:var(--text-xs)}
+.morning-briefing.compact #mb-activity{display:none}
+.morning-briefing.compact::before{animation:none}
 .mark-all-read{display:inline-flex;align-items:center;gap:6px;padding:var(--space-2) var(--space-4);border:1px solid var(--bd);border-radius:var(--radius-sm);background:transparent;color:var(--tx3);font-size:var(--text-xs);cursor:pointer;transition:all .15s;font-family:var(--font);margin-bottom:var(--space-3)}
 .mark-all-read:hover{background:var(--bg2);color:var(--tx)}
 .mark-all-read--done{color:var(--green);border-color:var(--green)}
@@ -1561,8 +1568,16 @@ function fillMorningBriefing(dayArticles){
   const el=document.getElementById('morning-briefing');
   if(!el||el.style.display==='none')return;
 
+  // Compact mode: si dernière visite < 8h
+  const lastV=getLastVisit();
+  let isCompact=false;
+  if(lastV){
+    const hoursSince=(Date.now()-new Date(lastV).getTime())/3600000;
+    if(hoursSince<8){el.classList.add('compact');isCompact=true;}
+  }
+
   // Greeting
-  document.getElementById('mb-greeting-text').textContent=_getMorningGreeting();
+  document.getElementById('mb-greeting-text').textContent=isCompact?`${_getMorningGreeting()} — retour rapide`:_getMorningGreeting();
 
   // Weather from articles
   const weather=_getEcosystemWeather(dayArticles);
