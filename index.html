@@ -3642,7 +3642,15 @@ async function init(){
     allDates=[...new Set(data.map(a=>a.fetch_date).filter(Boolean))].sort().reverse();
     if(allDates.length){
       currentDate=allDates[0];
-      loadDay(currentDate);
+      await loadDay(currentDate);
+      // Prefetch sections populaires après un délai pour ne pas bloquer le brief
+      setTimeout(()=>{
+        if(!signalsLoaded) loadSignals().catch(()=>{});
+        if(!wikiLoaded) loadWiki().catch(()=>{});
+      },2000);
+      setTimeout(()=>{
+        if(!radarLoaded) loadRadar().catch(()=>{});
+      },5000);
     }else{
       document.getElementById('brief-content').innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('rocket')}</div>En attente du premier digest — lance le pipeline GitHub Actions !</div>`;
       document.getElementById('sb-date').textContent='En attente…';
