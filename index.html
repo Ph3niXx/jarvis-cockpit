@@ -745,6 +745,9 @@ body.deep-work .count{display:none!important}
 .muted{color:var(--tx3)}
 .tft-table{width:100%;border-collapse:collapse}
 .profile-input:focus,.profile-textarea:focus{border-color:var(--accent);outline:none}
+.mark-all-read{display:inline-flex;align-items:center;gap:6px;padding:var(--space-2) var(--space-4);border:1px solid var(--bd);border-radius:var(--radius-sm);background:transparent;color:var(--tx3);font-size:var(--text-xs);cursor:pointer;transition:all .15s;font-family:var(--font);margin-bottom:var(--space-3)}
+.mark-all-read:hover{background:var(--bg2);color:var(--tx)}
+.mark-all-read--done{color:var(--green);border-color:var(--green)}
 @media(max-width:768px){
   .tft-info-grid{grid-template-columns:1fr!important}
   .opp-detail-grid{grid-template-columns:1fr!important}
@@ -1194,6 +1197,24 @@ function markAsRead(articleId){
     localStorage.setItem(STORAGE_KEY,JSON.stringify(read));
     renderVeilleScore();
   }catch{}
+}
+function markAllRead(section){
+  const grid=document.getElementById('cards-'+section);
+  if(!grid)return;
+  grid.querySelectorAll('.card--unread').forEach(card=>{
+    const id=card.dataset.articleId;
+    if(id)markAsRead(id);
+    card.classList.remove('card--unread');
+    card.classList.add('card--read');
+  });
+  const cEl=document.getElementById('c-'+section);
+  if(cEl)cEl.textContent='✓';
+  const btn=grid.querySelector('.mark-all-read');
+  if(btn){
+    btn.classList.add('mark-all-read--done');
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Tous lus';
+  }
+  renderVeilleScore();
 }
 function isRead(articleId){return !!getReadArticles()[articleId];}
 function getLastVisit(){try{return localStorage.getItem(LAST_VISIT_KEY);}catch{return null;}}
@@ -1820,7 +1841,9 @@ async function loadDay(dateStr){
       if(sbLink) sbLink.classList.toggle('sb-link--empty',!filtered.length);
       if(!el)return;
       if(!filtered.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('inbox')}</div>Aucun article dans cette section</div>`;return;}
-      el.innerHTML=filtered.map(a=>{
+      const unreadInSection=filtered.filter(a=>!readMap[a.id]).length;
+      const markAllBtn=unreadInSection>0?`<button class="mark-all-read" onclick="markAllRead('${s}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Tout marquer comme lu</button>`:'';
+      el.innerHTML=markAllBtn+filtered.map(a=>{
         const read=!!readMap[a.id];
         return `
         <div class="card ${read?'card--read':'card--unread'}${s==='papers'?' card--paper':''}${newCls(a.date_published||dateStr)}" data-article-id="${a.id}" data-section="${s}">
