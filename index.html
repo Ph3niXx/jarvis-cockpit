@@ -752,6 +752,11 @@ body.deep-work .count{display:none!important}
 .morning-briefing.compact .mb-stats{margin-bottom:0;font-size:var(--text-xs)}
 .morning-briefing.compact #mb-activity{display:none}
 .morning-briefing.compact::before{animation:none}
+.sb-progress{padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--bd)}
+.sb-progress-bar{height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;margin:var(--space-2) 0}
+.sb-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .5s ease}
+.sb-progress-stats{display:flex;justify-content:space-between;font-size:var(--text-xs);color:var(--tx3)}
+.sb-progress-label{font-size:var(--text-xs);font-weight:600;color:var(--tx2)}
 .mark-all-read{display:inline-flex;align-items:center;gap:6px;padding:var(--space-2) var(--space-4);border:1px solid var(--bd);border-radius:var(--radius-sm);background:transparent;color:var(--tx3);font-size:var(--text-xs);cursor:pointer;transition:all .15s;font-family:var(--font);margin-bottom:var(--space-3)}
 .mark-all-read:hover{background:var(--bg2);color:var(--tx)}
 .mark-all-read--done{color:var(--green);border-color:var(--green)}
@@ -825,6 +830,8 @@ body.deep-work .count{display:none!important}
     <div class="sb-logo"><svg aria-hidden="true"><use href="#icon-brain"/></svg> AI Cockpit</div>
     <div style="display:flex;align-items:center;gap:8px"><div class="sb-date" id="sb-date"></div><button id="logout-btn" onclick="handleLogout()" style="display:none;background:none;border:1px solid var(--bd);border-radius:6px;padding:2px 8px;color:var(--tx3);font-size:.7rem;cursor:pointer" title="Déconnexion">⏻</button></div>
   </div>
+
+  <div class="sb-progress" id="sb-progress"></div>
 
   <div class="sb-section" style="padding-bottom:0">
     <button class="sb-link active" data-panel="brief" role="tab" aria-selected="true"><svg class="icon" aria-hidden="true"><use href="#icon-zap"/></svg><span class="label">Brief du jour</span></button>
@@ -1203,6 +1210,7 @@ function markAsRead(articleId){
     for(const[id,ts]of Object.entries(read)){if(ts<cutoff)delete read[id];}
     localStorage.setItem(STORAGE_KEY,JSON.stringify(read));
     renderVeilleScore();
+    renderSidebarProgress();
   }catch{}
 }
 function markAllRead(section){
@@ -1222,6 +1230,25 @@ function markAllRead(section){
     btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Tous lus';
   }
   renderVeilleScore();
+  renderSidebarProgress();
+}
+function renderSidebarProgress(){
+  const el=document.getElementById('sb-progress');
+  if(!el)return;
+  const readMap=getReadArticles();
+  const cards=document.querySelectorAll('.card[data-article-id]');
+  const total=cards.length;
+  const read=[...cards].filter(c=>readMap[c.dataset.articleId]).length;
+  const pct=total>0?Math.round((read/total)*100):0;
+  const score=calculateVeilleScore();
+  const streak=getStreak();
+  el.innerHTML=`
+    <div class="sb-progress-label">Aujourd'hui</div>
+    <div class="sb-progress-bar"><div class="sb-progress-fill" style="width:${pct}%"></div></div>
+    <div class="sb-progress-stats">
+      <span>${read}/${total} lus</span>
+      <span>${streak>0?'🔥'+streak+'j':''} · ${score.total}/100</span>
+    </div>`;
 }
 function isRead(articleId){return !!getReadArticles()[articleId];}
 function getLastVisit(){try{return localStorage.getItem(LAST_VISIT_KEY);}catch{return null;}}
@@ -1925,6 +1952,8 @@ async function loadDay(dateStr){
   renderVeilleScore();
   // Morning briefing
   fillMorningBriefing(dayArticles);
+  // Sidebar progress widget
+  renderSidebarProgress();
 }
 
 function renderPipelineStatus(dateStr,articleCount){
