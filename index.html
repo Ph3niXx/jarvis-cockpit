@@ -2451,41 +2451,45 @@ async function loadOpportunities(){
     if(!opps.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trending-up')}</div>Les opportunités seront générées dimanche soir par le run hebdomadaire Claude.<br>Il analysera les articles de la semaine et identifiera des use cases concrets avec hypothèses business.</div>`;return;}
     cockpitData.opportunities=opps;
 
-    const catIcons={money:'💰',life:'⚡'};
-    const catLabels={money:'Rapporter de l\'argent',life:'Simplifier ta vie'};
-    const timingColors={too_early:'var(--blue)',right_time:'var(--green)',getting_late:'var(--amber)'};
-    const confidenceColors={high:'var(--green)',medium:'var(--amber)',low:'var(--tx3)'};
-    const effortLabels={weekend_project:'Weekend project',['1_month']:'~1 mois',['3_months']:'~3 mois',['6_months+']:'6+ mois'};
-
     // Group by category
     const money=opps.filter(o=>o.category==='money');
     const life=opps.filter(o=>o.category==='life');
 
     function renderOpp(o){
-      return `<div class="card${newCls(o.created_at||o.week_start)}" data-item-id="${o.id}" data-opp-id="${o.id}" draggable="true" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'}" onclick="openCardFocus(this,event)">
+      const catIcons={money:'💰',life:'⚡'};
+      const timingColors={too_early:'var(--blue)',right_time:'var(--green)',getting_late:'var(--amber)'};
+      const confidenceColors={high:'var(--green)',medium:'var(--amber)',low:'var(--tx3)'};
+      const effortLabels={weekend_project:'Weekend project',['1_month']:'~1 mois',['3_months']:'~3 mois',['6_months+']:'6+ mois'};
+
+      return `<div class="card${newCls(o.created_at||o.week_start)}" data-item-id="${o.id}" data-opp-id="${o.id}" draggable="true" style="border-left:3px solid ${o.category==='money'?'var(--green)':'var(--blue)'}">
         <div class="flex-header">
           ${_DRAG_HANDLE_SVG}
           <span class="text-icon">${catIcons[o.category]||'💡'}</span>
           <span class="badge badge--neutral">${esc(o.sector||'')}</span>
-          <span class="badge" style="background:${o.timing==='right_time'?'var(--green-bg)':o.timing==='too_early'?'var(--blue-bg)':'var(--amber-bg)'};color:${timingColors[o.timing]||'var(--tx3)'}">${o.timing==='right_time'?'Bon timing':o.timing==='too_early'?'Trop tôt':'Se dépêcher'}</span>
-          <span class="badge" style="border:1px solid ${confidenceColors[o.confidence]||'var(--bd)'};color:${confidenceColors[o.confidence]||'var(--tx3)'}">Confiance: ${o.confidence}</span>
           <span class="opp-score">${o.relevance_score}%</span>
         </div>
         <div class="text-title">${esc(o.usecase_title)}</div>
-        <div class="text-desc" style="margin-bottom:10px">${esc(o.usecase_description||'')}</div>
-        <div class="opp-detail-grid">
-          <div><span class="text-muted">Qui paie :</span> ${esc(o.who_pays||'')}</div>
-          <div><span class="text-muted">Marché :</span> ${o.market_size}</div>
-          <div><span class="text-muted">Effort :</span> ${effortLabels[o.effort_to_build]||o.effort_to_build}</div>
-          <div><span class="text-muted">Concurrence :</span> ${o.competition}</div>
+        <div class="text-desc" style="-webkit-line-clamp:2;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden">${esc(o.usecase_description||'')}</div>
+        <div class="opp-details" style="display:none">
+          <div class="flex-header" style="margin-top:var(--space-2)">
+            <span class="badge" style="background:${o.timing==='right_time'?'var(--green-bg)':o.timing==='too_early'?'var(--blue-bg)':'var(--amber-bg)'};color:${timingColors[o.timing]||'var(--tx3)'}">${o.timing==='right_time'?'Bon timing':o.timing==='too_early'?'Trop tôt':'Se dépêcher'}</span>
+            <span class="badge" style="border:1px solid ${confidenceColors[o.confidence]||'var(--bd)'};color:${confidenceColors[o.confidence]||'var(--tx3)'}">Confiance: ${o.confidence}</span>
+          </div>
+          <div class="opp-detail-grid">
+            <div><span class="text-muted">Qui paie :</span> ${esc(o.who_pays||'')}</div>
+            <div><span class="text-muted">Marché :</span> ${o.market_size}</div>
+            <div><span class="text-muted">Effort :</span> ${effortLabels[o.effort_to_build]||o.effort_to_build}</div>
+            <div><span class="text-muted">Concurrence :</span> ${o.competition}</div>
+          </div>
+          <div class="opp-why"><strong>Pourquoi toi :</strong> ${esc(o.relevance_why||'')}</div>
+          <div class="opp-nextstep"><strong>Next step :</strong> ${esc(o.next_step||'')}</div>
+          ${(o.source_articles||[]).length?`<div class="opp-sources">${o.source_articles.map(u=>`<a href="${esc(u)}" target="_blank">Article source →</a>`).join('')}</div>`:''}
+          ${renderRelatedLinks(o.usecase_title,'opportunities')}
         </div>
-        <div class="opp-why"><strong>Pourquoi toi :</strong> ${esc(o.relevance_why||'')}</div>
-        <div class="opp-nextstep">
-          <strong>Next step :</strong> ${esc(o.next_step||'')}
+        <div style="display:flex;gap:var(--space-2);align-items:center;margin-top:var(--space-2)">
+          ${actionBtn('follow',o.id)}${jarvisBtn(o.usecase_title,'opportunite')}
+          <button class="card-expand" onclick="event.stopPropagation();const d=this.closest('.card').querySelector('.opp-details');const show=d.style.display==='none';d.style.display=show?'block':'none';this.textContent=show?'Réduire ▴':'Détails ▾'">Détails ▾</button>
         </div>
-        ${(o.source_articles||[]).length?`<div class="opp-sources">${o.source_articles.map(u=>`<a href="${esc(u)}" target="_blank">Article source →</a>`).join('')}</div>`:''}
-        ${actionBtn('follow',o.id)}${jarvisBtn(o.usecase_title,'opportunite')}
-        ${renderRelatedLinks(o.usecase_title,'opportunities')}
       </div>`;
     }
 
