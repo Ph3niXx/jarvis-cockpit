@@ -2018,7 +2018,7 @@ function toggleWikiGroup(cat,headerEl){
   else{content.style.maxHeight=content.scrollHeight+'px';content.style.opacity='1';chevron.style.transform='rotate(0)';}
 }
 function _renderWikiCard(c){
-  return `<div class="wiki-card${newCls(c.last_mentioned)}" data-item-id="${esc(c.slug)}" onclick="showWikiDetail('${esc(c.slug)}')" style="cursor:pointer">
+  return `<div class="wiki-card${newCls(c.last_mentioned)}" data-item-id="${esc(c.slug)}" tabindex="0" role="button" onclick="showWikiDetail('${esc(c.slug)}')" style="cursor:pointer">
     <div class="wiki-card-name">${esc(c.name)}</div>
     <div class="wiki-card-stats">
       <span>${c.mention_count} mentions</span>
@@ -2254,7 +2254,7 @@ async function loadSignals(){
     if(risingNew.length){
       html+=`<div class="section-label" style="color:var(--green)">Signaux à surveiller</div>`;
       html+=risingNew.map(s=>`
-        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" style="border-left:3px solid ${s.trend==='rising'?'var(--green)':'var(--blue)'};cursor:pointer" onclick="openCardFocus(this,event)">
+        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" tabindex="0" role="button" style="border-left:3px solid ${s.trend==='rising'?'var(--green)':'var(--blue)'};cursor:pointer" onclick="openCardFocus(this,event)">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1">
             <span class="signal-name">${esc(s.term)}</span>
@@ -2272,7 +2272,7 @@ async function loadSignals(){
     if(stable.length){
       html+=`<div class="section-label" style="margin-top:20px">Sujets établis</div>`;
       html+=stable.map(s=>`
-        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" style="cursor:pointer" onclick="openCardFocus(this,event)">
+        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" tabindex="0" role="button" style="cursor:pointer" onclick="openCardFocus(this,event)">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${jarvisBtn(s.term,'signal')}${renderRelatedLinks(s.term,'signals')}</div>
           <span class="signal-count">${s.mention_count}x</span>
@@ -2284,7 +2284,7 @@ async function loadSignals(){
     if(declining.length){
       html+=`<div class="section-label" style="margin-top:20px">En déclin</div>`;
       html+=declining.map(s=>`
-        <div class="signal-item signal-declining${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" style="cursor:pointer" onclick="openCardFocus(this,event)">
+        <div class="signal-item signal-declining${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" tabindex="0" role="button" style="cursor:pointer" onclick="openCardFocus(this,event)">
           <span class="signal-trend">${trendIcons[s.trend]}</span>
           <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${jarvisBtn(s.term,'signal')}${renderRelatedLinks(s.term,'signals')}</div>
           <span class="signal-count">${s.mention_count}x</span>
@@ -2365,7 +2365,7 @@ async function loadChallenges(){
     if(!challenges.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trophy')}</div>Les challenges seront générés par le run hebdomadaire Claude</div>`;return;}
     cockpitData.challenges=challenges;
     el.innerHTML=challenges.map(c=>`
-      <div class="challenge-card${newCls(c.created_at||c.week_start)}" data-item-id="${c.id}" style="${c.status==='completed'?'opacity:.6;border-color:var(--green)':''};cursor:pointer" onclick="openCardFocus(this,event)">
+      <div class="challenge-card${newCls(c.created_at||c.week_start)}" data-item-id="${c.id}" tabindex="0" role="button" style="${c.status==='completed'?'opacity:.6;border-color:var(--green)':''};cursor:pointer" onclick="openCardFocus(this,event)">
         <div class="challenge-title">${c.status==='completed'?'✅ ':''} ${esc(c.title)}</div>
         <div class="challenge-desc">${esc(c.description||'')}</div>
         <div class="challenge-meta">
@@ -4026,6 +4026,8 @@ if(localStorage.getItem('deep-work')==='true'){
 }
 
 document.addEventListener('keydown',e=>{
+  // Activate role="button" elements with Enter/Space
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role="button"]')){e.preventDefault();e.target.click();return;}
   // Ctrl+Shift+F — Deep Work toggle (works even in inputs)
   if(e.ctrlKey&&e.shiftKey&&e.key==='F'){e.preventDefault();toggleDeepWork();return;}
   if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
