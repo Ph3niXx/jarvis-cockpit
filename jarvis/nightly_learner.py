@@ -26,7 +26,6 @@ from supabase_client import sb_get, sb_post, sb_patch
 
 STATE_DIR = Path(__file__).resolve().parent.parent / "jarvis_data"
 STATE_FILE = STATE_DIR / "nightly_learner_state.json"
-LOG_FILE = STATE_DIR / "nightly_learner.log"
 
 CONVERSATION_EXTRACTION_PROMPT = """Analyse cette conversation entre un utilisateur et son assistant IA.
 Extrais les informations suivantes en JSON strict :
@@ -75,11 +74,7 @@ def _setup_logging():
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     logger = logging.getLogger("nightly_learner")
     logger.setLevel(logging.INFO)
-    # File handler
-    fh = logging.FileHandler(LOG_FILE, encoding="utf-8")
-    fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
-    logger.addHandler(fh)
-    # Console handler
+    # Console handler (captured to last_nightly_learner.log by run_nightly_after_deps.bat)
     ch = logging.StreamHandler()
     ch.setFormatter(logging.Formatter("%(message)s"))
     logger.addHandler(ch)
