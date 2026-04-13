@@ -2012,6 +2012,17 @@ async function loadDay(dateStr){
   renderVeilleScore();
   // Morning briefing
   fillMorningBriefing(dayArticles);
+  // Global mark-all-read button in brief
+  const briefEl=document.getElementById('brief-content');
+  if(briefEl){
+    const allUnread=document.querySelectorAll('.card--unread').length;
+    if(allUnread>0){
+      const markAllGlobal=document.createElement('div');
+      markAllGlobal.style.cssText='text-align:center;padding:var(--space-3) 0;margin-top:var(--space-3)';
+      markAllGlobal.innerHTML=`<button class="mark-all-read" onclick="SECTIONS.forEach(s=>markAllRead(s));this.classList.add('mark-all-read--done');this.textContent='\\u2713 ${allUnread} articles marqués lus';renderSidebarProgress()">📚 Tout marquer comme lu (${allUnread} articles)</button>`;
+      briefEl.prepend(markAllGlobal);
+    }
+  }
   // Sidebar progress widget
   renderSidebarProgress();
 }
