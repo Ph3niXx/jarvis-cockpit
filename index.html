@@ -266,7 +266,7 @@ body.deep-work .count{display:none!important}
 
 /* ── MORNING BRIEFING ─────────────────────────────────────── */
 .morning-briefing{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:20px 24px;margin-bottom:20px;animation:mbFadeIn .6s ease;position:relative;overflow:hidden}
-.morning-briefing::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent,#6C5CE7),#a78bfa,var(--accent,#6C5CE7));background-size:200% 100%;animation:mbGradient 3s ease infinite}
+.morning-briefing::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent,#6C5CE7),#a78bfa,var(--accent,#6C5CE7));background-size:200% 100%;animation:mbGradient 3s ease 1}
 @keyframes mbFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes mbGradient{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 .mb-greeting{display:flex;align-items:center;gap:10px;font-size:1.1rem;font-weight:600;color:var(--tx);margin-bottom:12px}
@@ -327,7 +327,7 @@ body.deep-work .count{display:none!important}
 .card:hover{border-color:var(--bd2)}
 .card--unread:not([data-section]){border-left:3px solid var(--accent)}
 .card--unread .card-title::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:var(--space-2);vertical-align:middle}
-.card--read{opacity:.7}
+.card--read{opacity:.85}
 .card-meta{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)}
 .card-source{font-size:var(--text-xs);font-weight:600;background:var(--bg2);padding:2px var(--space-2);border-radius:var(--radius-xs);color:var(--tx2)}
 .card-date{font-size:var(--text-xs);color:var(--tx3)}
@@ -568,7 +568,7 @@ body.deep-work .count{display:none!important}
   border-radius:var(--radius-sm);
 }
 @keyframes skeleton-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-@media(prefers-reduced-motion:reduce){.skeleton{animation:none}}
+@media(prefers-reduced-motion:reduce){.skeleton{animation:none}.morning-briefing::before{animation:none}.morning-briefing{animation:none}}
 .skeleton-text{height:14px;margin-bottom:var(--space-2)}
 .skeleton-text.short{width:40%}
 .skeleton-text.medium{width:70%}
