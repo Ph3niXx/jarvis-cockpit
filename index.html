@@ -2346,6 +2346,15 @@ async function loadSignals(){
       </div>
     </div>`;
 
+    // Notification opt-in banner
+    if('Notification' in window && Notification.permission==='default'){
+      html+=`<div style="background:var(--accent-bg);border-radius:var(--radius);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-3)">
+        <span>🔔</span>
+        <span style="flex:1;font-size:var(--text-sm)">Active les notifications pour être alerté des signaux rising</span>
+        <button class="btn btn-primary" onclick="Notification.requestPermission().then(()=>this.closest('div').remove())" style="font-size:var(--text-xs)">Activer</button>
+      </div>`;
+    }
+
     // Weekly analysis summary from Claude
     if(summary){
       html+=`<div class="signal-analysis">
@@ -3722,6 +3731,34 @@ function jarvisReset(){
   document.getElementById('jarvis-chat').innerHTML = '';
 }
 
+// ── SIGNAL NOTIFICATIONS ────────────────────────────────────
+const NOTIF_SEEN_KEY='cockpit-notif-seen';
+
+async function checkNewSignals(){
+  try{
+    const signals=await fetchJSON(`${SUPABASE_URL}/rest/v1/signal_tracking?trend=eq.rising&order=updated_at.desc&limit=5`);
+    if(!signals.length)return;
+    const seen=JSON.parse(localStorage.getItem(NOTIF_SEEN_KEY)||'{}');
+    const newSignals=signals.filter(s=>{
+      const key=s.id||s.term;
+      const ts=s.updated_at||s.week_start;
+      return !seen[key]||seen[key]<ts;
+    });
+    if(!newSignals.length)return;
+    if(Notification.permission==='default') await Notification.requestPermission();
+    if(Notification.permission==='granted'){
+      const terms=newSignals.map(s=>s.term).join(', ');
+      new Notification('AI Cockpit — Signaux rising',{
+        body:`${newSignals.length} signal${newSignals.length>1?'s':''} en hausse : ${terms}`,
+        icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236C5CE7"><circle cx="12" cy="12" r="12"/></svg>',
+        tag:'cockpit-signals'
+      });
+    }
+    newSignals.forEach(s=>{seen[s.id||s.term]=s.updated_at||new Date().toISOString();});
+    localStorage.setItem(NOTIF_SEEN_KEY,JSON.stringify(seen));
+  }catch(e){console.warn('checkNewSignals',e);}
+}
+
 // ── INIT ───────────────────────────────────────────────────
 async function init(){
   lastVisit=getLastVisit();
@@ -3747,6 +3784,10 @@ async function init(){
   }catch(e){
     console.error('init',e);
     showError('brief-content','Erreur de connexion à Supabase',()=>init());
+  }
+  if('Notification' in window){
+    checkNewSignals();
+    setInterval(checkNewSignals,30*60*1000);
   }
 }
 
