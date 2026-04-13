@@ -479,18 +479,27 @@ def run(days: int | None = None) -> dict:
         log.warning("Reindexation echouee: %s", e)
 
     # No data at all — still update checkpoint
-    if total_facts == 0 and total_entities == 0 and not sessions and not observer_items:
-        state["last_result"] = "no_data"
+    if total_facts == 0 and total_entities == 0:
+        if not sessions and not observer_items:
+            state["last_result"] = "no_data"
+        else:
+            state["last_result"] = "empty_extraction"
     else:
         state["last_result"] = "ok"
 
     state["last_processed_at"] = latest_created_at
     state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
+    extraction_inputs = total_sessions + len(observer_items)
+    extraction_outputs = total_facts + total_entities
     state["last_stats"] = {
         "sessions": total_sessions,
         "activity_days": len(observer_items),
         "facts": total_facts,
         "entities": total_entities,
+        "extraction_rate": (
+            round(extraction_outputs / extraction_inputs, 2)
+            if extraction_inputs > 0 else 0.0
+        ),
     }
     _save_state(state)
 
