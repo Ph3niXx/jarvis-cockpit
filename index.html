@@ -568,7 +568,11 @@ body.deep-work .count{display:none!important}
   border-radius:var(--radius-sm);
 }
 @keyframes skeleton-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-@media(prefers-reduced-motion:reduce){.skeleton{animation:none}.morning-briefing::before{animation:none}.morning-briefing{animation:none}}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important;scroll-behavior:auto !important}
+  .skeleton{animation:none !important;background:var(--bg2) !important}
+  .voice-pulse,.voice-btn.listening,.morning-briefing::before,.jarvis-typing::after,.card--new::after,.card--highlight{animation:none !important}
+}
 .skeleton-text{height:14px;margin-bottom:var(--space-2)}
 .skeleton-text.short{width:40%}
 .skeleton-text.medium{width:70%}
