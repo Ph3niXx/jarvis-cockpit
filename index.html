@@ -3838,6 +3838,12 @@ const TFT_TRAIT_ICONS={
   RhaastUniqueTrait:'redeemer',APTrait:'replicator',AssassinTrait:'rogue',
   SummonTrait:'shepherd',SpaceGroove:'spacegroove',Stargazer:'stargazer',
   Timebreaker:'timebreaker',FlexTrait:'voyager',
+  TahmKenchUniqueTrait:'singularity', JhinUniqueTrait:'galaxyhunter',
+};
+// Fallback emoji for classes without CDN icons
+const TFT_TRAIT_EMOJI={
+  ResistTank:'🛡️',ShieldTank:'⚔️',MeleeTrait:'🗡️',HPTank:'💪',RangedTrait:'🎯',
+  MissFortuneUndeterminedTrait:'❓',
 };
 const TFT_TRAIT_CDN='https://raw.communitydragon.org/latest/game/assets/ux/traiticons';
 function tftTraitIconUrl(apiName){
@@ -3850,7 +3856,10 @@ function tftTraitTagHtml(t){
   const cls=s>=4?'s4':s>=3?'s3':s>=2?'s2':'s1';
   const name=tftTraitDisplayName(t.trait_name);
   const iconUrl=tftTraitIconUrl(t.trait_name);
-  const icon=iconUrl?`<img src="${iconUrl}" width="14" height="14" style="vertical-align:middle;filter:brightness(1.2)" onerror="this.style.display='none'" alt="">`:``;
+  const emoji=TFT_TRAIT_EMOJI[t.trait_name]||'';
+  const icon=iconUrl
+    ?`<img src="${iconUrl}" width="14" height="14" style="vertical-align:middle;filter:brightness(1.2)" onerror="this.replaceWith(document.createTextNode('${emoji||name.charAt(0)}'))" alt="">`
+    :(emoji||name.charAt(0));
   return `<span class="tft-trait-tag ${cls}" title="${name} (${t.num_units||''})">${icon} ${t.num_units||''}</span>`;
 }
 
