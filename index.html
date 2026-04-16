@@ -848,7 +848,10 @@ body.deep-work .count{display:none!important}
 }
 /* ── PERFORMANCE SECTION ─────────────────────────────────── */
 .perf-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
-.perf-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4)}
+.perf-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4);position:relative}
+.perf-tip{cursor:help}
+.perf-tip .perf-tooltip{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:50;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--radius);padding:var(--space-3);font-size:12px;color:var(--tx2);line-height:1.5;min-width:240px;max-width:320px;box-shadow:var(--shadow-md);pointer-events:none}
+.perf-tip:hover .perf-tooltip{display:block}
 .perf-card-label{font-size:13px;color:var(--tx2);margin-bottom:var(--space-1)}
 .perf-card-value{font-size:24px;font-weight:700;font-family:var(--mono)}
 .perf-card-delta{font-size:12px;margin-top:2px}
@@ -4809,6 +4812,26 @@ function perfFmtDate(isoStr){
   return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
+/** Match runs to a target distance by name keywords OR distance range (±10%).
+ *  Keywords take priority (more reliable than distance for races).
+ *  Returns array of {activity, normalizedTime} sorted best first. */
+const PERF_TARGETS=[
+  {label:'1 km',  dist:1000,  keywords:[]},
+  {label:'5 km',  dist:5000,  keywords:['5k','5 km','5km','parkrun']},
+  {label:'10 km', dist:10000, keywords:['10k','10 km','10km']},
+  {label:'Semi',  dist:21100, keywords:['semi','half','21k','21.1']},
+  {label:'Marathon',dist:42195,keywords:['marathon','42k','42.2']},
+];
+function perfMatchRuns(runs, target){
+  const name=a=>(a.name||'').toLowerCase();
+  // 1. keyword match (case-insensitive, whole-word-ish)
+  let matched=runs.filter(a=>target.keywords.some(kw=>name(a).includes(kw)));
+  // 2. fallback: distance range ±10%
+  if(!matched.length) matched=runs.filter(a=>a.distance_m>=target.dist*0.9&&a.distance_m<=target.dist*1.1);
+  // Normalize time to exact target distance (same speed assumption)
+  return matched.map(a=>({activity:a,normalizedTime:a.moving_time_s*(target.dist/a.distance_m)})).sort((a,b)=>a.normalizedTime-b.normalizedTime);
+}
+
 /* ── PERFORMANCE DATA CACHE ─────────────────────────────── */
 let _perfData=null;
 let _perfLoaded=false;
@@ -4882,18 +4905,31 @@ function renderPerfMetrics(activities){
   // FC repos — table health_vitals n'existe pas encore
   const hrRest='—';
 
-  const card=(label,value,delta,deltaClass)=>`<div class="perf-card"><div class="perf-card-label">${label}</div><div class="perf-card-value">${value}</div><div class="perf-card-delta ${deltaClass}">${delta}</div></div>`;
+  const card=(label,value,delta,deltaClass,tooltip)=>`<div class="perf-card${tooltip?' perf-tip':''}"><div class="perf-card-label">${label}</div><div class="perf-card-value">${value}</div><div class="perf-card-delta ${deltaClass}">${delta}</div>${tooltip?`<div class="perf-tooltip">${tooltip}</div>`:''}</div>`;
+
+  // Extra detail for tooltips
+  const timeThis=thisWeek.reduce((s,a)=>s+(a.moving_time_s||0),0);
+  const timeLast=lastWeek.reduce((s,a)=>s+(a.moving_time_s||0),0);
+  const volTip=`<strong>Volume kilométrique hebdo</strong><br>Cette semaine : ${volThis.toFixed(1)} km en ${perfFmtTime(timeThis)}<br>Semaine préc. : ${volLast.toFixed(1)} km en ${perfFmtTime(timeLast)}<br><br>Vise une progression de 5-10% par semaine max pour éviter les blessures.`;
+
+  const sessTip=`<strong>Nombre de séances</strong><br>${sessCount} cette semaine (${thisWeek.map(a=>a.sport_type).filter((v,i,arr)=>arr.indexOf(v)===i).join(', ')||'—'})<br><br>3-5 séances/semaine est optimal pour un coureur régulier.`;
+
+  const acuteH=(activities.filter(a=>new Date(a.start_date).getTime()>=Date.now()-7*864e5).reduce((s,a)=>s+(a.moving_time_s||0),0)/3600).toFixed(1);
+  const chronicH=(activities.filter(a=>new Date(a.start_date).getTime()>=Date.now()-28*864e5).reduce((s,a)=>s+(a.moving_time_s||0),0)/3600/4).toFixed(1);
+  const acwrTip=`<strong>Acute:Chronic Workload Ratio</strong><br>Charge aiguë (7j) : ${acuteH}h<br>Charge chronique (moy. hebdo 28j) : ${chronicH}h<br>Ratio : ${acwr!==null?acwr.toFixed(2):'—'}<br><br><strong>Zones :</strong><br>0.8–1.3 = optimal (forme + récupération)<br>1.3–1.5 = attention (risque blessure ↑)<br>&gt; 1.5 = danger (surcharge)`;
+
+  const hrTip=`<strong>FC repos moyenne (7j)</strong><br>Donnée Apple Health non encore connectée.<br><br>Une FC repos basse indique une bonne récupération. Une hausse de +5 bpm vs la moyenne peut signaler fatigue ou surentraînement.`;
 
   if(!activities.length){
-    el.innerHTML=card('Volume semaine','—','','neutral')+card('Séances','—','','neutral')+card('ACWR','—','','neutral')+card('FC repos 7j','—','','neutral');
+    el.innerHTML=card('Volume semaine','—','','neutral')+card('Séances','—','','neutral')+card('ACWR','—','','neutral',acwrTip)+card('FC repos 7j','—','','neutral',hrTip);
     return;
   }
 
   el.innerHTML=
-    card('Volume semaine',`${volThis.toFixed(1)} km`, volDelta!==null?`${volDelta>0?'+':''}${volDelta.toFixed(0)}% vs sem. préc.`:'Première semaine', volDelta===null?'neutral':volDelta>=0?'up':'down')+
-    card('Séances',sessCount,'cette semaine','neutral')+
-    card('ACWR',acwr!==null?acwr.toFixed(2):'—','',acwrClass)+
-    card('FC repos 7j',hrRest,'Apple Health (bientôt)','neutral');
+    card('Volume semaine',`${volThis.toFixed(1)} km`, volDelta!==null?`${volDelta>0?'+':''}${volDelta.toFixed(0)}% vs sem. préc.`:'Première semaine', volDelta===null?'neutral':volDelta>=0?'up':'down', volTip)+
+    card('Séances',sessCount,'cette semaine','neutral', sessTip)+
+    card('ACWR',acwr!==null?acwr.toFixed(2):'—','',acwrClass, acwrTip)+
+    card('FC repos 7j',hrRest,'Apple Health (bientôt)','neutral', hrTip);
 }
 
 function renderPerfChart(activities, numWeeks){
@@ -4997,12 +5033,18 @@ function renderPerfSubMetrics(activities){
   let z2Delta='';
   if(z2Pct!==null&&z2PrevPct!==null){const diff=z2Pct-z2PrevPct;z2Delta=`${diff>0?'+':''}${diff.toFixed(0)}pts vs 4 sem. préc.`;}
 
-  const sub=(label,value,delta)=>`<div class="perf-card"><div class="perf-card-label">${label}</div><div class="perf-card-value" style="font-size:18px">${value}</div><div class="perf-card-delta neutral">${delta}</div></div>`;
+  const sub=(label,value,delta,tooltip)=>`<div class="perf-card${tooltip?' perf-tip':''}"><div class="perf-card-label">${label}</div><div class="perf-card-value" style="font-size:18px">${value}</div><div class="perf-card-delta neutral">${delta}</div>${tooltip?`<div class="perf-tooltip">${tooltip}</div>`:''}</div>`;
+
+  const efTip=`<strong>Efficiency Factor (EF)</strong><br>Allure (min/km) ÷ FC moyenne.<br>Moy. 4 sem. : ${efAvg!==null?efAvg.toFixed(4):'—'} (${efVals.length} séances)<br>${efPrevAvg!==null?'4 sem. préc. : '+efPrevAvg.toFixed(4):''}<br><br>Plus l'EF est <strong>bas</strong>, plus tu es efficace : tu cours vite pour un effort cardiaque donné. Une baisse d'EF dans le temps indique un gain de forme aérobie.`;
+
+  const z2Tip=`<strong>Temps en Zone 2</strong><br>${z2Count}/${withHR.length} séances en Z2 (FC ${Math.round(z2Low)}–${Math.round(z2High)} bpm)<br>FC max estimée : ${FC_MAX} bpm (220 − 30 ans)<br><br>La zone 2 développe l'endurance de base. Vise 70-80% de tes séances en Z2 pour construire une base aérobie solide sans surcharge.`;
+
+  const driftTip=`<strong>Dérive cardiaque</strong><br>Mesure la hausse de FC au fil d'un effort constant (ex: la FC monte de 5 bpm entre le km 5 et le km 15 à la même allure).<br><br>Nécessite les streams Strava (données seconde par seconde), pas disponible via l'API summary.`;
 
   el.innerHTML=
-    sub('Efficiency Factor', efAvg!==null?efAvg.toFixed(4):'—', efDelta)+
-    sub('Temps en Z2', z2Pct!==null?`${z2Pct.toFixed(0)}%`:'—', z2Delta)+
-    sub('Dérive cardiaque','—','<span title="Nécessite les streams Strava (détail seconde par seconde)">Nécessite les streams Strava</span>');
+    sub('Efficiency Factor', efAvg!==null?efAvg.toFixed(4):'—', efDelta, efTip)+
+    sub('Temps en Z2', z2Pct!==null?`${z2Pct.toFixed(0)}%`:'—', z2Delta, z2Tip)+
+    sub('Dérive cardiaque','—','Nécessite les streams Strava', driftTip);
 }
 
 function renderPerfProjections(activities){
@@ -5011,19 +5053,18 @@ function renderPerfProjections(activities){
   const d90=now-90*864e5;
   const runs=activities.filter(a=>a.sport_type==='Run'&&new Date(a.start_date).getTime()>=d90&&a.distance_m>0&&a.moving_time_s>0);
 
-  // Find best perf for target distances
-  const targets=[{label:'5 km',dist:5000},{label:'10 km',dist:10000},{label:'Semi',dist:21100},{label:'Marathon',dist:42195}];
-  let bestDist=null,bestTime=null;
-
-  // Find best reference perf (closest to any target within ±10%)
+  // Find best reference performance across all targets (keyword + distance matching)
+  const targets=PERF_TARGETS.filter(t=>t.dist>=5000); // projections from 5k+
+  let bestDist=null,bestTime=null,bestName='';
   for(const t of targets){
-    const candidates=runs.filter(a=>a.distance_m>=t.dist*0.9&&a.distance_m<=t.dist*1.1);
-    candidates.forEach(a=>{
-      const speed=a.distance_m/a.moving_time_s;
+    const matched=perfMatchRuns(runs,t);
+    if(matched.length){
+      const top=matched[0];
+      const speed=top.activity.distance_m/top.activity.moving_time_s;
       if(!bestDist||speed>(bestDist/bestTime)){
-        bestDist=a.distance_m;bestTime=a.moving_time_s;
+        bestDist=top.activity.distance_m;bestTime=top.activity.moving_time_s;bestName=top.activity.name||t.label;
       }
-    });
+    }
   }
 
   let leftHTML='<h3>Temps de course prédits</h3>';
@@ -5034,7 +5075,7 @@ function renderPerfProjections(activities){
       const predicted=perfRiegel(bestDist,bestTime,t.dist);
       leftHTML+=`<div class="perf-pred-row"><span class="perf-pred-dist">${t.label}</span><span class="perf-pred-time">${perfFmtTime(predicted)}</span></div>`;
     });
-    leftHTML+=`<div class="perf-pred-note">Basé sur ta meilleure perf des 90 derniers jours (Riegel)</div>`;
+    leftHTML+=`<div class="perf-pred-note">Basé sur "${safe(bestName)}" — meilleure perf des 90 derniers jours (Riegel)</div>`;
   }
 
   const rightHTML=`<h3>Prochain objectif</h3>
@@ -5149,28 +5190,21 @@ function renderPerfRecords(activities){
   const el=document.getElementById('perf-records');
   const runs=activities.filter(a=>a.sport_type==='Run'&&a.distance_m>0&&a.moving_time_s>0);
 
-  const distances=[{label:'1 km',dist:1000},{label:'5 km',dist:5000},{label:'10 km',dist:10000},{label:'Semi (21.1 km)',dist:21100},{label:'Marathon (42.2 km)',dist:42195}];
-
   let html='<div class="perf-records"><div><h4 style="font-size:13px;font-weight:600;margin-bottom:var(--space-2)">Distance</h4>';
   let html2='<div><h4 style="font-size:13px;font-weight:600;margin-bottom:var(--space-2)">Record</h4>';
 
   let found=false;
-  distances.forEach(t=>{
-    const candidates=runs.filter(a=>a.distance_m>=t.dist*0.9&&a.distance_m<=t.dist*1.1);
-    if(!candidates.length){
+  PERF_TARGETS.forEach(t=>{
+    const matched=perfMatchRuns(runs,t);
+    if(!matched.length){
       html+=`<div class="perf-record-row"><span>${t.label}</span></div>`;
       html2+=`<div class="perf-record-row"><span style="color:var(--tx3)">—</span></div>`;
       return;
     }
     found=true;
-    // Normalize: time for exactly target distance at same speed
-    let best=null,bestDate='';
-    candidates.forEach(a=>{
-      const normalized=a.moving_time_s*(t.dist/a.distance_m);
-      if(!best||normalized<best){best=normalized;bestDate=a.start_date;}
-    });
+    const best=matched[0];
     html+=`<div class="perf-record-row"><span>${t.label}</span></div>`;
-    html2+=`<div class="perf-record-row"><span class="perf-pred-time">${perfFmtTime(best)}</span><span style="color:var(--tx3);font-size:11px;margin-left:8px">${perfFmtDate(bestDate)}</span></div>`;
+    html2+=`<div class="perf-record-row"><span class="perf-pred-time">${perfFmtTime(best.normalizedTime)}</span><span style="color:var(--tx3);font-size:11px;margin-left:8px">${perfFmtDate(best.activity.start_date)}</span></div>`;
   });
 
   html+='</div>';html2+='</div>';
