@@ -1636,7 +1636,23 @@ async function handleLogout(){
   document.getElementById('login-msg').textContent='Déconnecté';
 }
 
+// ── DEV MODE (localhost only) ──────────────────────────────
+// Set once in browser console: localStorage.setItem('sb-dev-key','your_service_role_key')
+const _isLocalhost = ['localhost','127.0.0.1',''].includes(location.hostname);
+const _devKey = _isLocalhost && localStorage.getItem('sb-dev-key');
+if(_devKey){
+  headers = {"apikey":_devKey,"Authorization":`Bearer ${_devKey}`};
+  console.info('[dev] Using service key from localStorage — auth bypassed');
+}
+
 async function checkAuth(){
+  // Dev bypass: skip OAuth on localhost when sb-dev-key is set
+  if(_devKey){
+    document.getElementById('login-overlay').style.display='none';
+    document.getElementById('logout-btn').style.display='';
+    init();
+    return;
+  }
   const {data:{session}} = await sb.auth.getSession();
   if(session){
     updateAuthHeaders(session);
