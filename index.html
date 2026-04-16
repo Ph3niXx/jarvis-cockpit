@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://mrmgptqpflzyavdfqwwv.supabase.co http://localhost:8765 https://*.trycloudflare.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://mrmgptqpflzyavdfqwwv.supabase.co http://localhost:8765 https://*.trycloudflare.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://ws.audioscrobbler.com; img-src 'self' data: https://raw.communitydragon.org; frame-src 'none'; object-src 'none'; base-uri 'self';">
 <title>AI Cockpit</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2318181B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z'/><path d='M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z'/><path d='M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4'/></svg>">
 <link rel="manifest" href="manifest.json">
@@ -1808,7 +1808,46 @@ const _mockDB=(()=>{
   return{articles:mockArticles,strava_activities:stravaActivities,wiki_concepts:mockWiki,signal_tracking:mockSignals,daily_briefs:[mockBrief],
     skill_radar:[{axis:'prompting',axis_label:'Prompting',score:7},{axis:'rag',axis_label:'RAG',score:5},{axis:'agents',axis_label:'Agents',score:4},{axis:'fine_tuning',axis_label:'Fine-tuning',score:3},{axis:'mlops',axis_label:'MLOps',score:2},{axis:'ethics',axis_label:'Éthique IA',score:6},{axis:'business',axis_label:'Business IA',score:5},{axis:'coding',axis_label:'Coding IA',score:6}],
     learning_recommendations:[],weekly_challenges:[],weekly_opportunities:[],business_ideas:[],rte_usecases:[],user_profile:[{key:'name',value:'Jean Lakomsky'},{key:'role',value:'RTE - Malakoff Humanis'}],
-    weekly_analysis:[],usage_events:[],tft_matches:[],tft_match_units:[],tft_match_traits:[],tft_match_lobby:[],tft_rank_history:[],jarvis_status_snapshot:[{id:1,snapshot_data:{},generated_at:day(0)}],jarvis_conversations:[],profile_facts:[],entities:[],activity_briefs:[],memories_vectors:[],
+    weekly_analysis:[],usage_events:[],
+    tft_matches:[
+      {id:'m1',match_id:'M1',played_at:day(1),placement:1,level:8,is_win:true,total_damage:1200,game_length_s:1920,set_number:17,queue_id:1100,gold_left:12},
+      {id:'m2',match_id:'M2',played_at:day(3),placement:4,level:7,is_win:true,total_damage:800,game_length_s:1680,set_number:17,queue_id:1100,gold_left:5},
+      {id:'m3',match_id:'M3',played_at:day(5),placement:7,level:7,is_win:false,total_damage:450,game_length_s:1500,set_number:17,queue_id:1090,gold_left:2},
+    ],
+    tft_match_units:[
+      {match_id:'M1',character_id:'TFT17_Fiora',champion_name:'Fiora',tier:2,cost:5,items:['InfinityEdge','Bloodthirster','LastWhisper'],num_items:3},
+      {match_id:'M1',character_id:'TFT17_Blitzcrank',champion_name:'Blitzcrank',tier:2,cost:5,items:['Redemption'],num_items:1},
+      {match_id:'M1',character_id:'TFT17_Sona',champion_name:'Sona',tier:2,cost:5,items:['SpearOfShojin','BlueBuff'],num_items:2},
+      {match_id:'M1',character_id:'TFT17_Corki',champion_name:'Corki',tier:2,cost:4,items:['GuinsoosRageblade','RunaansHurricane','GiantSlayer'],num_items:3},
+      {match_id:'M1',character_id:'TFT17_Nami',champion_name:'Nami',tier:1,cost:4,items:[],num_items:0},
+      {match_id:'M1',character_id:'TFT17_Akali',champion_name:'Akali',tier:2,cost:2,items:[],num_items:0},
+      {match_id:'M1',character_id:'TFT17_Poppy',champion_name:'Poppy',tier:2,cost:1,items:[],num_items:0},
+      {match_id:'M1',character_id:'TFT17_Caitlyn',champion_name:'Caitlyn',tier:2,cost:1,items:[],num_items:0},
+      {match_id:'M2',character_id:'TFT17_Graves',champion_name:'Graves',tier:2,cost:5,items:['InfinityEdge','LastWhisper','Deathblade'],num_items:3},
+      {match_id:'M2',character_id:'TFT17_Shen',champion_name:'Shen',tier:1,cost:5,items:['WarmogsArmor'],num_items:1},
+      {match_id:'M2',character_id:'TFT17_Vex',champion_name:'Vex',tier:2,cost:5,items:[],num_items:0},
+      {match_id:'M2',character_id:'TFT17_Maokai',champion_name:'Maokai',tier:2,cost:3,items:[],num_items:0},
+      {match_id:'M2',character_id:'TFT17_Nunu',champion_name:'Nunu',tier:2,cost:4,items:['BrambleVest','DragonsClaw'],num_items:2},
+      {match_id:'M2',character_id:'TFT17_Aatrox',champion_name:'Aatrox',tier:2,cost:1,items:[],num_items:0},
+      {match_id:'M3',character_id:'TFT17_Morgana',champion_name:'Morgana',tier:1,cost:5,items:['RabadonsDeathcap','JeweledGauntlet'],num_items:2},
+      {match_id:'M3',character_id:'TFT17_Riven',champion_name:'Riven',tier:2,cost:4,items:['Bloodthirster'],num_items:1},
+      {match_id:'M3',character_id:'TFT17_Aurora',champion_name:'Aurora',tier:2,cost:3,items:[],num_items:0},
+      {match_id:'M3',character_id:'TFT17_Illaoi',champion_name:'Illaoi',tier:2,cost:3,items:[],num_items:0},
+      {match_id:'M3',character_id:'TFT17_Jax',champion_name:'Jax',tier:2,cost:2,items:[],num_items:0},
+    ],
+    tft_match_traits:[
+      {match_id:'M1',trait_name:'Fateweaver',style:3,num_units:4,is_active:true},
+      {match_id:'M1',trait_name:'ShieldTank',style:2,num_units:2,is_active:true},
+      {match_id:'M1',trait_name:'RangedTrait',style:2,num_units:2,is_active:true},
+      {match_id:'M1',trait_name:'FioraUniqueTrait',style:1,num_units:1,is_active:true},
+      {match_id:'M2',trait_name:'DarkStar',style:3,num_units:4,is_active:true},
+      {match_id:'M2',trait_name:'MeleeTrait',style:2,num_units:3,is_active:true},
+      {match_id:'M2',trait_name:'GravesTrait',style:1,num_units:1,is_active:true},
+      {match_id:'M3',trait_name:'SpaceGroove',style:2,num_units:3,is_active:true},
+      {match_id:'M3',trait_name:'HPTank',style:2,num_units:2,is_active:true},
+      {match_id:'M3',trait_name:'MorganaUniqueTrait',style:1,num_units:1,is_active:true},
+    ],
+    tft_match_lobby:[],tft_rank_history:[],jarvis_status_snapshot:[{id:1,snapshot_data:{},generated_at:day(0)}],jarvis_conversations:[],profile_facts:[],entities:[],activity_briefs:[],memories_vectors:[],
     music_scrobbles:(()=>{const tracks=[['Humble','Kendrick Lamar','DAMN.'],['Blinding Lights','The Weeknd','After Hours'],['Starboy','The Weeknd','Starboy'],['Money Trees','Kendrick Lamar','good kid, m.A.A.d city'],['Supernova','Aespa','My World'],['Bohemian Rhapsody','Queen','A Night at the Opera'],['DNA.','Kendrick Lamar','DAMN.'],['Save Your Tears','The Weeknd','After Hours'],['Lose Yourself','Eminem','8 Mile'],['SICKO MODE','Travis Scott','ASTROWORLD'],['Levitating','Dua Lipa','Future Nostalgia'],['Bad Guy','Billie Eilish','WHEN WE ALL FALL ASLEEP'],['Next Level','Aespa','Next Level'],['HUMBLE.','Kendrick Lamar','DAMN.'],['Numb','Linkin Park','Meteora'],['In the End','Linkin Park','Hybrid Theory'],['Radioactive','Imagine Dragons','Night Visions'],['Shape of You','Ed Sheeran','÷'],['Electric Feel','MGMT','Oracular Spectacular'],['Take Five','Dave Brubeck','Time Out']];const s=[];for(let d=0;d<30;d++){const n=Math.floor(Math.random()*8)+3;for(let i=0;i<n;i++){const t=tracks[Math.floor(Math.random()*tracks.length)];const h=6+Math.floor(Math.random()*16);const m=Math.floor(Math.random()*60);s.push({id:`ms-${d}-${i}`,track_name:t[0],artist_name:t[1],album_name:t[2],scrobbled_at:new Date(now.getTime()-d*864e5+h*36e5+m*6e4).toISOString()});}}return s.sort((a,b)=>b.scrobbled_at.localeCompare(a.scrobbled_at));})(),
     music_stats_daily:(()=>{const s=[];for(let d=0;d<90;d++){const c=Math.floor(Math.random()*15)+2;const ua=Math.floor(Math.random()*8)+2;s.push({stat_date:day(d).slice(0,10),scrobble_count:c,unique_tracks:Math.min(c,Math.floor(Math.random()*10)+2),unique_artists:ua,top_artist:['Kendrick Lamar','The Weeknd','Aespa','Linkin Park','Queen'][Math.floor(Math.random()*5)],top_artist_count:Math.floor(Math.random()*5)+2,listening_minutes:Math.round(c*3.5),new_artists_count:Math.floor(Math.random()*3),top_track:'Humble',top_track_artist:'Kendrick Lamar',top_track_count:Math.floor(Math.random()*3)+1});}return s;})(),
     music_top_weekly:[{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Kendrick Lamar',play_count:28,rank:1},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'The Weeknd',play_count:19,rank:2},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Aespa',play_count:12,rank:3},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Linkin Park',play_count:8,rank:4},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Queen',play_count:5,rank:5}],
@@ -3746,19 +3785,22 @@ function tftChampHtml(u,size='sm'){
   const itemCls=size==='lg'?'tft-detail-champ-item':'tft-champ-item';
   return `<div class="${prefix}champ"><div class="${prefix}champ-wrap">${tftStars(u.tier)?`<div class="${prefix}champ-stars">${tftStars(u.tier)}</div>`:''}<img class="${imgCls}" src="${tftChampImg(u.character_id)}" alt="${u.champion_name}" width="${w}" height="${w}" loading="lazy" onerror="tftImgFallback(this,'${u.champion_name}')"></div>${items.length?`<div class="${prefix}champ-items">${items.map(i=>`<img class="${itemCls}" src="${tftItemImg(i)}" alt="${i}" width="${itemSize}" height="${itemSize}" loading="lazy" onerror="tftImgFallback(this,'${i}')">`).join('')}</div>`:''}<div class="${prefix}champ-name">${u.champion_name||'?'}</div></div>`;
 }
-// Trait API name → clean display name (Set 16 + 17)
+// Trait API name → display name (from Riot DDragon tft-trait.json)
 const TFT_TRAIT_NAMES={
-  // Set 17 unique traits (champions)
-  BlitzcrankUniqueTrait:'Blitzcrank',FioraUniqueTrait:'Fiora',GravesTrait:'Graves',
-  ShenUniqueTrait:'Shen',SonaUniqueTrait:'Sona',VexUniqueTrait:'Vex',
-  MorganaUniqueTrait:'Morgana',RhaastUniqueTrait:'Rhaast',
-  // Set 17 origins
-  AnimaSquad:'Anima',DarkStar:'Dark Star',SpaceGroove:'Space Groove',
-  Timebreaker:'Timebreaker',Fateweaver:'Fateweaver',DRX:'DRX',Astronaut:'Astronaut',
-  // Set 17 classes
-  AssassinTrait:'Rogue',MeleeTrait:'Challenger',ResistTank:'Bastion',ShieldTank:'Vanguard',
-  FlexTrait:'Replicator',
-  // Set 16 (keep for backward compat)
+  // ── Set 17: Space Gods (official Riot mapping) ──
+  ADMIN:'Arbiter',APTrait:'Replicator',ASTrait:'Challenger',AnimaSquad:'Anima',
+  AssassinTrait:'Rogue',Astronaut:'Meeple',BlitzcrankUniqueTrait:'Party Animal',
+  DRX:'N.O.V.A.',DarkStar:'Dark Star',Fateweaver:'Fateweaver',
+  FioraUniqueTrait:'Divine Duelist',FlexTrait:'Voyager',GravesTrait:'Factory New',
+  HPTank:'Brawler',JhinUniqueTrait:'Eradicator',ManaTrait:'Conduit',Mecha:'Mecha',
+  MeleeTrait:'Marauder',MissFortuneUniqueTrait:'Gun Goddess',
+  MorganaUniqueTrait:'Dark Lady',Primordian:'Primordian',PsyOps:'Psionic',
+  RangedTrait:'Sniper',ResistTank:'Bastion',RhaastUniqueTrait:'Redeemer',
+  ShenUniqueTrait:'Bulwark',ShieldTank:'Vanguard',SonaUniqueTrait:'Commander',
+  SpaceGroove:'Space Groove',Stargazer:'Stargazer',SummonTrait:'Shepherd',
+  TahmKenchUniqueTrait:'Oracle',Timebreaker:'Timebreaker',VexUniqueTrait:'Doomer',
+  ZedUniqueTrait:'Galaxy Hunter',
+  // ── Set 16 (backward compat) ──
   Bilgewater:'Bilgewater',Demacia:'Demacia',Noxus:'Noxus',Freljord:'Freljord',
   Piltover:'Piltover',Ionia:'Ionia',Shurima:'Shurima',Targon:'Targon',Void:'Void',
   Zaun:'Zaun',Yordle:'Yordle',Defender:'Defender',Invoker:'Invoker',Juggernaut:'Juggernaut',
