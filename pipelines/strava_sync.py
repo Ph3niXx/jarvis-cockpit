@@ -48,7 +48,11 @@ def env_required(name):
 # ---------------------------------------------------------------------------
 
 def refresh_access_token(client_id, client_secret, refresh_token):
-    """Exchange refresh_token for a fresh access_token."""
+    """Exchange refresh_token for a fresh access_token.
+
+    Returns (access_token, new_refresh_token). Strava rotates refresh
+    tokens on each call — the caller must persist new_refresh_token.
+    """
     resp = requests.post(STRAVA_TOKEN_URL, data={
         "client_id": client_id,
         "client_secret": client_secret,
@@ -61,15 +65,12 @@ def refresh_access_token(client_id, client_secret, refresh_token):
         )
     data = resp.json()
     access_token = data.get("access_token")
+    new_refresh_token = data.get("refresh_token", refresh_token)
     if not access_token:
         raise ValueError(f"No access_token in refresh response: {data}")
-    scopes = data.get("scope", "???")
-    token_type = data.get("token_type", "???")
-    print(f"[strava] Access token refreshed (type={token_type}, scopes={scopes}, expires={data.get('expires_at', '?')})")
-    if "activity:read_all" not in scopes and "activity:read" not in scopes:
-        print(f"[strava] WARNING: scopes '{scopes}' may not include activity read permission!")
-        print(f"[strava] Re-run scripts/strava_oauth_init.py to re-authorize with correct scopes.")
-    return access_token
+    rotated = new_refresh_token != refresh_token
+    print(f"[strava] Access token refreshed (expires={data.get('expires_at', '?')}, token_rotated={rotated})")
+    return access_token, new_refresh_token
 
 
 def strava_get(access_token, path, params=None):
@@ -119,16 +120,21 @@ def fetch_activity_detail(access_token, activity_id):
 # Supabase helpers
 # ---------------------------------------------------------------------------
 
+def supabase_headers(service_key):
+    """Standard Supabase REST headers with service_role auth."""
+    return {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": "application/json",
+    }
+
+
 def supabase_upsert(url, service_key, table, rows):
     """Upsert rows into a Supabase table via REST API (on conflict: id)."""
     if not rows:
         return
-    headers = {
-        "apikey": service_key,
-        "Authorization": f"Bearer {service_key}",
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates",
-    }
+    headers = supabase_headers(service_key)
+    headers["Prefer"] = "resolution=merge-duplicates"
     resp = requests.post(
         f"{url}/rest/v1/{table}",
         headers=headers,
@@ -139,6 +145,38 @@ def supabase_upsert(url, service_key, table, rows):
         raise RuntimeError(
             f"Supabase upsert to {table} failed ({resp.status_code}): {resp.text}"
         )
+
+
+def load_refresh_token_from_supabase(url, service_key):
+    """Read strava_refresh_token from user_profile table. Returns None if absent."""
+    resp = requests.get(
+        f"{url}/rest/v1/user_profile",
+        headers=supabase_headers(service_key),
+        params={"key": "eq.strava_refresh_token", "select": "value"},
+        timeout=15,
+    )
+    if resp.status_code == 200:
+        rows = resp.json()
+        if rows and rows[0].get("value"):
+            print("[supabase] Loaded refresh_token from user_profile")
+            return rows[0]["value"]
+    return None
+
+
+def save_refresh_token_to_supabase(url, service_key, token):
+    """Persist the latest refresh_token in user_profile (upsert on key)."""
+    headers = supabase_headers(service_key)
+    headers["Prefer"] = "resolution=merge-duplicates"
+    resp = requests.post(
+        f"{url}/rest/v1/user_profile",
+        headers=headers,
+        data=json.dumps({"key": "strava_refresh_token", "value": token}),
+        timeout=15,
+    )
+    if resp.status_code in (200, 201):
+        print("[supabase] Saved new refresh_token to user_profile")
+    else:
+        print(f"[supabase] WARNING: Failed to save refresh_token ({resp.status_code}): {resp.text}")
 
 
 # ---------------------------------------------------------------------------
@@ -186,12 +224,20 @@ def sync(dry_run=False):
     # Read config
     client_id = env_required("STRAVA_CLIENT_ID")
     client_secret = env_required("STRAVA_CLIENT_SECRET")
-    refresh_token = env_required("STRAVA_REFRESH_TOKEN")
+    env_refresh_token = env_required("STRAVA_REFRESH_TOKEN")
     supabase_url = env_required("SUPABASE_URL")
     service_key = env_required("SUPABASE_SERVICE_KEY")
 
-    # Step 1: Refresh access token
-    access_token = refresh_access_token(client_id, client_secret, refresh_token)
+    # Step 1: Get the latest refresh_token (Supabase first, env fallback)
+    refresh_token = load_refresh_token_from_supabase(supabase_url, service_key) or env_refresh_token
+    access_token, new_refresh_token = refresh_access_token(client_id, client_secret, refresh_token)
+
+    # Persist rotated token so the next run uses the fresh one
+    if new_refresh_token != refresh_token:
+        if not dry_run:
+            save_refresh_token_to_supabase(supabase_url, service_key, new_refresh_token)
+        else:
+            print(f"[dry-run] Would save new refresh_token to Supabase")
 
     # Step 2: Fetch recent activity list
     after_ts = (datetime.now(timezone.utc) - timedelta(days=LOOKBACK_DAYS)).timestamp()
