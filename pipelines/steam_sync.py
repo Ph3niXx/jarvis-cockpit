@@ -57,8 +57,11 @@ def steam_get(api_key, interface, method, version=1, params=None):
         try:
             resp = requests.get(url, params=all_params, timeout=30)
             if resp.status_code == 403:
-                print(f"FATAL: Steam API 403 — invalid API key or private profile")
-                sys.exit(1)
+                # 403 on GetOwnedGames = bad key. 403 on achievements = game doesn't support it
+                if 'GetOwnedGames' in method or 'GetRecentlyPlayed' in method:
+                    print(f"FATAL: Steam API 403 — invalid API key or private profile")
+                    sys.exit(1)
+                return {}  # Skip gracefully for per-game endpoints
             if resp.status_code >= 500:
                 wait = 2 ** attempt
                 print(f"[steam] Server error {resp.status_code}, retrying in {wait}s")
