@@ -4824,9 +4824,11 @@ const PERF_TARGETS=[
 ];
 function perfMatchRuns(runs, target){
   const name=a=>(a.name||'').toLowerCase();
-  // 1. keyword match (case-insensitive, whole-word-ish)
-  let matched=runs.filter(a=>target.keywords.some(kw=>name(a).includes(kw)));
-  // 2. fallback: distance range ±10%
+  const minDist=target.dist*0.8, maxDist=target.dist*1.15;
+  // 1. keyword match + distance sanity check (≥80% of target)
+  //    "Début prépa semi/marathon" at 15km must NOT match Marathon
+  let matched=runs.filter(a=>target.keywords.some(kw=>name(a).includes(kw))&&a.distance_m>=minDist&&a.distance_m<=maxDist);
+  // 2. fallback: distance range ±10% (no keyword needed)
   if(!matched.length) matched=runs.filter(a=>a.distance_m>=target.dist*0.9&&a.distance_m<=target.dist*1.1);
   // Normalize time to exact target distance (same speed assumption)
   return matched.map(a=>({activity:a,normalizedTime:a.moving_time_s*(target.dist/a.distance_m)})).sort((a,b)=>a.normalizedTime-b.normalizedTime);
