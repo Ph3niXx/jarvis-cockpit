@@ -1637,15 +1637,64 @@ async function handleLogout(){
 }
 
 // ── DEV MODE (localhost only) ──────────────────────────────
-// Auto-activates on localhost: bypasses OAuth, uses legacy anon JWT (strava tables allow anon SELECT)
+// Bypasses OAuth and serves mock data — no Supabase calls, no RLS issues
 const _isLocalhost = ['localhost','127.0.0.1',''].includes(location.hostname);
 const _devMode = _isLocalhost && (new URLSearchParams(location.search).has('dev') || localStorage.getItem('sb-dev-mode'));
 if(_devMode){
-  const _anonJWT='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ybWdwdHFwZmx6eWF2ZGZxd3d2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDY5ODUsImV4cCI6MjA5MDgyMjk4NX0.lrnMBVGQ_t4xCz3_JAMxng4NVzEW8Iq8Uq-SerXIa5w';
-  headers={"apikey":_anonJWT,"Authorization":`Bearer ${_anonJWT}`};
   localStorage.setItem('sb-dev-mode','1');
-  console.info('[dev] Localhost dev mode — auth bypassed, anon JWT active');
+  console.info('[dev] Localhost dev mode — mock data active');
 }
+
+// ── MOCK DATA ──────────────────────────────────────────────
+const _mockDB=(()=>{
+  if(!_devMode) return null;
+  const now=new Date();
+  const day=d=>new Date(now.getTime()-d*864e5).toISOString();
+  const weekAgo=d=>new Date(now.getTime()-d*7*864e5).toISOString();
+  const mockArticles=[];
+  const sections=['updates','llm','agents','energy','finserv','tools','biz','reg','papers'];
+  sections.forEach(sec=>{
+    for(let i=0;i<5;i++){
+      mockArticles.push({id:`mock-${sec}-${i}`,source:`Mock Source ${i}`,title:`[${sec.toUpperCase()}] Article de test #${i+1}`,url:'#',summary:`Résumé mock pour la section ${sec}, article ${i+1}.`,section:sec,fetch_date:day(0).slice(0,10),date_published:day(i),tags:['mock','test']});
+    }
+  });
+  const mockRun=(id,name,daysAgo,distKm,paceMinKm,hr)=>{
+    const distM=distKm*1000;const timeS=Math.round(paceMinKm*60*(distKm));
+    return{id,name,sport_type:'Run',start_date:day(daysAgo),distance_m:distM,moving_time_s:timeS,elapsed_time_s:timeS+120,average_speed:distM/timeS,average_heartrate:hr,max_heartrate:hr+15,suffer_score:Math.round(timeS/30),calories:Math.round(distKm*70),total_elevation_gain:Math.round(distKm*8)};
+  };
+  const stravaActivities=[
+    mockRun(1,'Sortie longue dimanche',1,18,5.4,148),
+    mockRun(2,'Fractionné 10x400m',3,8,4.8,165),
+    mockRun(3,'Footing récup',5,6,6.1,132),
+    mockRun(4,'Tempo run',7,12,5.0,155),
+    mockRun(5,'Sortie longue',8,21.1,5.3,150),
+    mockRun(6,'Easy run',10,8,5.8,138),
+    mockRun(7,'Intervals 5x1000m',12,10,4.9,162),
+    mockRun(8,'Footing',14,7,6.0,135),
+    mockRun(9,'Course en nature',17,15,5.6,145),
+    mockRun(10,'10k race',20,10.2,4.5,172),
+    mockRun(11,'Récup',22,5,6.3,128),
+    mockRun(12,'Long run',24,20,5.5,147),
+    mockRun(13,'Seuil',28,12,5.1,158),
+    mockRun(14,'Easy',30,7,6.0,133),
+    mockRun(15,'Semi-marathon test',35,21.5,5.2,152),
+  ];
+  const mockWiki=[
+    {id:'w1',slug:'rag',name:'RAG',category:'technique',summary_beginner:'Retrieval-Augmented Generation',mention_count:12,first_seen:day(30).slice(0,10)},
+    {id:'w2',slug:'mcp',name:'MCP',category:'protocole',summary_beginner:'Model Context Protocol',mention_count:8,first_seen:day(20).slice(0,10)},
+    {id:'w3',slug:'fine-tuning',name:'Fine-tuning',category:'technique',summary_beginner:'Ajustement de modèle',mention_count:6,first_seen:day(40).slice(0,10)},
+  ];
+  const mockSignals=[
+    {id:'s1',term:'agentic',week_start:weekAgo(0).slice(0,10),mention_count:8,trend:'rising'},
+    {id:'s2',term:'MCP',week_start:weekAgo(0).slice(0,10),mention_count:5,trend:'stable'},
+    {id:'s3',term:'reasoning',week_start:weekAgo(0).slice(0,10),mention_count:3,trend:'new'},
+  ];
+  const mockBrief={date:day(0).slice(0,10),brief_html:'<p><strong>Brief mock du jour.</strong> Les dernières avancées en IA couvrent les agents autonomes, le fine-tuning efficace et les nouveaux protocoles comme MCP.</p><h3>Ce qui change pour toi</h3><ul><li>Les agents deviennent plus accessibles</li><li>MCP standardise les intégrations</li></ul>',article_count:45};
+  return{articles:mockArticles,strava_activities:stravaActivities,wiki_concepts:mockWiki,signal_tracking:mockSignals,daily_briefs:[mockBrief],
+    skill_radar:[{axis:'prompting',axis_label:'Prompting',score:7},{axis:'rag',axis_label:'RAG',score:5},{axis:'agents',axis_label:'Agents',score:4},{axis:'fine_tuning',axis_label:'Fine-tuning',score:3},{axis:'mlops',axis_label:'MLOps',score:2},{axis:'ethics',axis_label:'Éthique IA',score:6},{axis:'business',axis_label:'Business IA',score:5},{axis:'coding',axis_label:'Coding IA',score:6}],
+    learning_recommendations:[],weekly_challenges:[],weekly_opportunities:[],business_ideas:[],rte_usecases:[],user_profile:[{key:'name',value:'Jean Lakomsky'},{key:'role',value:'RTE - Malakoff Humanis'}],
+    weekly_analysis:[],usage_events:[],tft_matches:[],tft_match_units:[],tft_match_traits:[],tft_match_lobby:[],tft_rank_history:[],jarvis_status_snapshot:[{id:1,snapshot_data:{},generated_at:day(0)}],jarvis_conversations:[],profile_facts:[],entities:[],activity_briefs:[],memories_vectors:[]};
+})();
 
 async function checkAuth(){
   // Dev bypass: skip OAuth on localhost
@@ -1680,11 +1729,26 @@ async function checkAuth(){
   });
 }
 async function fetchJSON(url){
+  // Dev mode: intercept Supabase calls and return mock data
+  if(_devMode&&_mockDB&&url.includes('/rest/v1/')){
+    const table=url.split('/rest/v1/')[1].split('?')[0];
+    const params=new URL(url).searchParams;
+    let rows=_mockDB[table]||[];
+    // Basic filter support for eq.X params
+    for(const[k,v] of params){if(v.startsWith('eq.')){const val=v.slice(3);rows=rows.filter(r=>String(r[k])===val);}}
+    // order support
+    const order=params.get('order');
+    if(order){const[col,dir]=order.split('.');rows=[...rows].sort((a,b)=>{const av=a[col],bv=b[col];if(av<bv)return dir==='desc'?1:-1;if(av>bv)return dir==='desc'?-1:1;return 0;});}
+    // limit
+    const limit=params.get('limit');if(limit)rows=rows.slice(0,parseInt(limit));
+    return rows;
+  }
   const r=await fetch(url,{headers});
   if(!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
 async function postJSON(url,body){
+  if(_devMode&&url.includes('/rest/v1/')){console.info('[dev] postJSON mock →',url.split('/rest/v1/')[1]);return[body];}
   const r=await fetch(url,{method:"POST",headers:{...headers,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify(body)});
   return r.json();
 }
@@ -1695,6 +1759,7 @@ async function track(eventType,payload={}){
 }
 
 async function patchJSON(url,body){
+  if(_devMode&&url.includes('/rest/v1/')){console.info('[dev] patchJSON mock →',url.split('/rest/v1/')[1]);return{ok:true};}
   const r=await fetch(url,{method:"PATCH",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify(body)});
   return r;
 }
