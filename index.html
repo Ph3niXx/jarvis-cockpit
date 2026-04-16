@@ -3813,10 +3813,32 @@ const TFT_TRAIT_NAMES={
   KaisaUnique:'Kai\'Sa',KindredUnique:'Kindred',ShyvanaUnique:'Shyvana',SylasTrait:'Sylas',
 };
 function tftTraitDisplayName(apiName){return TFT_TRAIT_NAMES[apiName]||apiName.replace(/Trait$/,'').replace(/Unique$/,'').replace(/([a-z])([A-Z])/g,'$1 $2');}
+
+// Trait API name → CDN icon filename (only traits with available icons)
+const TFT_TRAIT_ICONS={
+  AnimaSquad:'animatech',ADMIN:'arbiter',Astronaut:'astronaut',ShenUniqueTrait:'bulwark',
+  ASTrait:'challenger',ManaTrait:'channeler',SonaUniqueTrait:'commander',
+  MorganaUniqueTrait:'darklady',DarkStar:'darkstar',FioraUniqueTrait:'divineduelist',
+  VexUniqueTrait:'doomer',GravesTrait:'factorynew',Fateweaver:'fateweaver',
+  ZedUniqueTrait:'galaxyhunter',MissFortuneUniqueTrait:'gungoddess',Mecha:'mecha',
+  DRX:'nova',BlitzcrankUniqueTrait:'partyanimal',Primordian:'primordian',PsyOps:'psyops',
+  RhaastUniqueTrait:'redeemer',APTrait:'replicator',AssassinTrait:'rogue',
+  SummonTrait:'shepherd',SpaceGroove:'spacegroove',Stargazer:'stargazer',
+  Timebreaker:'timebreaker',FlexTrait:'voyager',
+};
+const TFT_TRAIT_CDN='https://raw.communitydragon.org/latest/game/assets/ux/traiticons';
+function tftTraitIconUrl(apiName){
+  const fn=TFT_TRAIT_ICONS[apiName];
+  return fn?`${TFT_TRAIT_CDN}/trait_icon_17_${fn}.tft_set17.png`:null;
+}
+
 function tftTraitTagHtml(t){
   const s=t.style||0;
   const cls=s>=4?'s4':s>=3?'s3':s>=2?'s2':'s1';
-  return `<span class="tft-trait-tag ${cls}">${tftTraitDisplayName(t.trait_name)} ${t.num_units||''}</span>`;
+  const name=tftTraitDisplayName(t.trait_name);
+  const iconUrl=tftTraitIconUrl(t.trait_name);
+  const icon=iconUrl?`<img src="${iconUrl}" width="14" height="14" style="vertical-align:middle;filter:brightness(1.2)" onerror="this.style.display='none'" alt="">`:``;
+  return `<span class="tft-trait-tag ${cls}" title="${name} (${t.num_units||''})">${icon} ${t.num_units||''}</span>`;
 }
 
 async function loadTft(){
