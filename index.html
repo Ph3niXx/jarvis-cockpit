@@ -980,6 +980,38 @@ body.deep-work .count{display:none!important}
 @media(max-width:480px){
   .music-metrics{grid-template-columns:1fr}
 }
+/* ── GAMING SECTION ──────────────────────────────────────── */
+.gaming-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.gaming-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4)}
+.gaming-card-label{font-size:13px;color:var(--tx2);margin-bottom:var(--space-1)}
+.gaming-card-value{font-size:24px;font-weight:700;font-family:var(--mono)}
+.gaming-card-sub{font-size:12px;margin-top:2px;color:var(--tx3)}
+.gaming-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.gaming-box{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4)}
+.gaming-box h3{font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)}
+.gaming-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px}
+.gaming-bar-label{width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.gaming-bar-wrap{flex:1;height:14px;background:var(--bg2);border-radius:7px;overflow:hidden}
+.gaming-bar-fill{height:100%;border-radius:7px}
+.gaming-bar-val{width:44px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--tx3);flex-shrink:0}
+.gaming-chart-box{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4);margin-bottom:24px}
+.gaming-ach-row{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:13px;align-items:baseline}
+.gaming-ach-row:last-child{border-bottom:none}
+.gaming-ach-date{width:70px;flex-shrink:0;color:var(--tx3);font-size:11px}
+.gaming-ach-name{font-weight:600;flex:1}
+.gaming-ach-game{color:var(--tx3);font-size:12px;flex-shrink:0;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gaming-shame-toggle{padding:6px 14px;border:1px solid var(--bd);border-radius:var(--radius-sm);background:transparent;color:var(--tx2);font-size:12px;cursor:pointer;font-family:var(--font);margin-top:var(--space-2)}
+.gaming-shame-toggle:hover{background:var(--bg2)}
+.gaming-shame-list{margin-top:var(--space-2);font-size:12px;color:var(--tx3);columns:2;column-gap:16px}
+.gaming-shame-list div{padding:2px 0}
+@media(max-width:768px){
+  .gaming-metrics{grid-template-columns:repeat(2,1fr)}
+  .gaming-two-col{grid-template-columns:1fr}
+  .gaming-shame-list{columns:1}
+}
+@media(max-width:480px){
+  .gaming-metrics{grid-template-columns:1fr}
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -1117,7 +1149,8 @@ body.deep-work .count{display:none!important}
   <div class="sb-section" data-section="gaming" role="tablist" aria-label="Gaming">
     <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Gaming<span class="sb-section-count" id="sc-gaming"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="tft" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-gamepad-2"/></svg><span class="label">TFT Matches</span></button>
+      <button class="sb-link" data-panel="gaming-overview" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-gamepad-2"/></svg><span class="label">Vue d'ensemble</span></button>
+      <button class="sb-link" data-panel="tft" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-target"/></svg><span class="label">TFT Matches</span></button>
     </div>
   </div>
 
@@ -1458,6 +1491,19 @@ body.deep-work .count{display:none!important}
       <div id="perf-heatmap" style="margin-bottom:24px"></div>
       <h3 style="font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)">Records personnels (Course)</h3>
       <div id="perf-records"></div>
+    </div>
+  </div>
+
+  <!-- ── GAMING: VUE D'ENSEMBLE ──────────────────────────── -->
+  <div class="panel" role="tabpanel" id="panel-gaming-overview">
+    <div class="page-header"><div class="page-title">Gaming</div><div class="page-subtitle">Steam + TFT — stats et historique</div></div>
+    <div class="content">
+      <div id="gaming-metrics" class="gaming-metrics"></div>
+      <div id="gaming-two-col" class="gaming-two-col"></div>
+      <div id="gaming-chart"></div>
+      <h3 style="font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)">Achievements récents</h3>
+      <div id="gaming-achievements"></div>
+      <div id="gaming-shame" style="margin-top:24px"></div>
     </div>
   </div>
 
@@ -1966,6 +2012,7 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='perf-overview') loadPerfOverview();
     if(panel==='perf-history') loadPerfHistory();
     if(panel==='music-overview') loadMusicOverview();
+    if(panel==='gaming-overview') loadGamingOverview();
     // Close mobile sidebar
     if(window.innerWidth<=768) toggleSidebar();
   });
@@ -5824,6 +5871,190 @@ function renderMusicInsight(insights){
   if(!insights.length){el.innerHTML='';return;}  // Silent — no insight yet
   const ins=insights[0];
   el.innerHTML=`<div class="music-insight-box"><div class="music-insight-header">🎵 Récap de la semaine</div><div>${safe(ins.summary)}</div></div>`;
+}
+
+/* ── GAMING HELPERS ──────────────────────────────────────── */
+
+function gamingFmtDuration(mins){const h=Math.floor(mins/60),m=Math.round(mins%60);return h>0?`${h}h ${String(m).padStart(2,'0')}m`:`${m}m`;}
+function gamingWeekStart(d){const dt=new Date(d);const day=dt.getUTCDay();const diff=dt.getUTCDate()-day+(day===0?-6:1);dt.setUTCDate(diff);dt.setUTCHours(0,0,0,0);return dt;}
+
+let _gamingLoaded=false;
+
+async function loadGamingOverview(){
+  if(_gamingLoaded) return;
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    const monday=gamingWeekStart(new Date()).toISOString().slice(0,10);
+    const lastMonday=gamingWeekStart(new Date(Date.now()-7*864e5)).toISOString().slice(0,10);
+    const d12w=new Date(Date.now()-84*864e5).toISOString().slice(0,10);
+    const d30=new Date(Date.now()-30*864e5).toISOString().slice(0,10);
+
+    const [statsAll,snapshotToday,snapshotRecent,achievements,gameDetails]=await Promise.all([
+      fetchJSON(`${SUPABASE_URL}/rest/v1/gaming_stats_daily?select=stat_date,total_playtime_minutes,games_played_count,top_game_name,top_game_minutes&order=stat_date.desc&limit=90`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/steam_games_snapshot?select=appid,name,playtime_forever_minutes,playtime_2weeks_minutes,img_icon_url&snapshot_date=eq.${today}&order=playtime_2weeks_minutes.desc&limit=500`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/steam_games_snapshot?select=name,playtime_2weeks_minutes&snapshot_date=eq.${today}&playtime_2weeks_minutes=gt.0&order=playtime_2weeks_minutes.desc&limit=10`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/steam_achievements?select=achievement_name,achievement_api_name,achievement_description,unlocked_at,appid&order=unlocked_at.desc&limit=10`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/steam_game_details?select=appid,name,genres&limit=500`),
+    ]);
+    _gamingLoaded=true;
+    renderGamingMetrics(statsAll,snapshotToday,achievements,monday,lastMonday);
+    renderGamingTwoCol(snapshotRecent,gameDetails);
+    renderGamingChart(statsAll);
+    renderGamingAchievements(achievements,gameDetails);
+    renderGamingShame(snapshotToday);
+  }catch(e){
+    console.error('[gaming]',e);
+    document.getElementById('gaming-metrics').innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${eIcon('gamepad-2')}</div>Erreur de chargement des données gaming</div>`;
+  }
+}
+
+function renderGamingMetrics(stats,snapshot,achievements,monday,lastMonday){
+  const el=document.getElementById('gaming-metrics');
+  if(!snapshot.length&&!stats.length){
+    el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${eIcon('gamepad-2')}</div>Configure Steam pour voir tes stats gaming</div>`;
+    return;
+  }
+  const card=(label,value,sub)=>`<div class="gaming-card"><div class="gaming-card-label">${label}</div><div class="gaming-card-value">${value}</div><div class="gaming-card-sub">${sub}</div></div>`;
+
+  // Card 1: playtime this week
+  const thisWeek=stats.filter(s=>s.stat_date>=monday);
+  const lastWeek=stats.filter(s=>s.stat_date>=lastMonday&&s.stat_date<monday);
+  const minsThis=thisWeek.reduce((s,d)=>s+(d.total_playtime_minutes||0),0);
+  const minsLast=lastWeek.reduce((s,d)=>s+(d.total_playtime_minutes||0),0);
+  const delta=minsLast>0?((minsThis-minsLast)/minsLast*100):null;
+  const deltaStr=delta!==null?` <span style="color:${delta>=0?'var(--green)':'var(--coral)'};">${delta>0?'+':''}${delta.toFixed(0)}%</span>`:'';
+
+  // Card 2: active games
+  const active=snapshot.filter(g=>g.playtime_2weeks_minutes>0).length;
+
+  // Card 3: top game 7j
+  const last7=stats.slice(0,7);
+  const topCounts={};
+  last7.forEach(s=>{if(s.top_game_name){topCounts[s.top_game_name]=(topCounts[s.top_game_name]||0)+(s.top_game_minutes||0);}});
+  const topGame=Object.entries(topCounts).sort((a,b)=>b[1]-a[1])[0];
+
+  // Card 4: achievements month
+  const achCount=achievements.length;
+
+  el.innerHTML=
+    card('Jeu cette semaine',gamingFmtDuration(minsThis),deltaStr||'Première semaine')+
+    card('Jeux actifs',active,`sur ${snapshot.length} possédés`)+
+    card('Top jeu 7j',topGame?topGame[0]:'—',topGame?gamingFmtDuration(topGame[1]):'')+
+    card('Achievements',achCount,`ce mois`);
+}
+
+function renderGamingTwoCol(recent,details){
+  const el=document.getElementById('gaming-two-col');
+  const maxMin=recent.length?Math.max(...recent.map(r=>r.playtime_2weeks_minutes)):1;
+
+  // Left: playtime by game
+  let leftHTML=`<div class="gaming-box"><h3>Temps par jeu (2 semaines)</h3>`;
+  if(!recent.length){
+    leftHTML+=`<div style="color:var(--tx3);font-size:13px">Aucun jeu joué récemment</div>`;
+  }else{
+    const show=recent.slice(0,5);
+    const others=recent.slice(5);
+    const othersMin=others.reduce((s,r)=>s+r.playtime_2weeks_minutes,0);
+    show.forEach(r=>{
+      const pct=Math.round(r.playtime_2weeks_minutes/maxMin*100);
+      leftHTML+=`<div class="gaming-bar-row"><span class="gaming-bar-label">${safe(r.name)}</span><div class="gaming-bar-wrap"><div class="gaming-bar-fill" style="width:${pct}%;background:#c440da"></div></div><span class="gaming-bar-val">${gamingFmtDuration(r.playtime_2weeks_minutes)}</span></div>`;
+    });
+    if(othersMin>0){
+      const pct=Math.round(othersMin/maxMin*100);
+      leftHTML+=`<div class="gaming-bar-row"><span class="gaming-bar-label" style="color:var(--tx3)">Autres (${others.length})</span><div class="gaming-bar-wrap"><div class="gaming-bar-fill" style="width:${pct}%;background:var(--tx3)"></div></div><span class="gaming-bar-val">${gamingFmtDuration(othersMin)}</span></div>`;
+    }
+  }
+  leftHTML+=`</div>`;
+
+  // Right: genre breakdown
+  let rightHTML=`<div class="gaming-box"><h3>Répartition genres</h3>`;
+  const detailMap=new Map(details.map(d=>[d.appid,d]));
+  const genreMins={};
+  let totalGenreMins=0;
+  recent.forEach(r=>{
+    // Find appid from name (snapshot has appid via the broader query)
+    const detail=[...detailMap.values()].find(d=>d.name===r.name);
+    const genre=(detail?.genres||[])[0]||'Non classé';
+    genreMins[genre]=(genreMins[genre]||0)+r.playtime_2weeks_minutes;
+    totalGenreMins+=r.playtime_2weeks_minutes;
+  });
+  const genreSorted=Object.entries(genreMins).sort((a,b)=>b[1]-a[1]);
+  if(!genreSorted.length||!details.length){
+    rightHTML+=`<div style="color:var(--tx3);font-size:13px">Enrichissement des genres en cours</div>`;
+  }else{
+    const maxG=genreSorted[0][1];
+    const colors=['#c440da','#3B82F6','#059669','#D97706','#EA580C','#DB2777'];
+    genreSorted.slice(0,6).forEach(([genre,mins],i)=>{
+      const pct=totalGenreMins>0?Math.round(mins/totalGenreMins*100):0;
+      rightHTML+=`<div class="gaming-bar-row"><span class="gaming-bar-label">${genre}</span><div class="gaming-bar-wrap"><div class="gaming-bar-fill" style="width:${Math.round(mins/maxG*100)}%;background:${colors[i%6]}"></div></div><span class="gaming-bar-val">${pct}%</span></div>`;
+    });
+  }
+  rightHTML+=`</div>`;
+  el.innerHTML=leftHTML+rightHTML;
+}
+
+function renderGamingChart(stats){
+  const el=document.getElementById('gaming-chart');
+  if(!stats.length){el.innerHTML='';return;}
+
+  // Group by week
+  const weeks=new Map();
+  stats.forEach(s=>{
+    const ws=gamingWeekStart(new Date(s.stat_date+'T12:00:00Z')).toISOString().slice(0,10);
+    weeks.set(ws,(weeks.get(ws)||0)+(s.total_playtime_minutes||0));
+  });
+  const sorted=[...weeks.entries()].sort((a,b)=>a[0].localeCompare(b[0])).slice(-12);
+  if(!sorted.length||sorted.every(([,v])=>v===0)){el.innerHTML='';return;}
+
+  const hours=sorted.map(([,v])=>v/60);
+  const labels=sorted.map(([k])=>{const d=new Date(k);return `${d.getDate()}/${d.getMonth()+1}`;});
+  const maxH=Math.max(...hours,0.1);
+  const avgH=hours.reduce((a,b)=>a+b,0)/hours.length;
+
+  const W=600,H=180,pad={t:10,r:10,b:30,l:40};
+  const gW=W-pad.l-pad.r,gH=H-pad.t-pad.b;
+  const barW=gW/sorted.length*0.7,gap=gW/sorted.length;
+
+  let svg=`<div class="gaming-chart-box"><h3 style="font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)">Historique (12 semaines)</h3><svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">`;
+  // Average line
+  const avgY=pad.t+gH-(avgH/maxH)*gH;
+  svg+=`<line x1="${pad.l}" y1="${avgY}" x2="${W-pad.r}" y2="${avgY}" stroke="var(--tx3)" stroke-width="1" stroke-dasharray="4 3"/>`;
+  svg+=`<text x="${pad.l-4}" y="${avgY+3}" text-anchor="end" fill="var(--tx3)" font-size="8" font-family="var(--mono)">moy</text>`;
+
+  hours.forEach((h,i)=>{
+    const x=pad.l+i*gap+(gap-barW)/2;
+    const barH=(h/maxH)*gH;
+    const y=pad.t+gH-barH;
+    svg+=`<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="#c440da" opacity="0.8"><title>${labels[i]}: ${h.toFixed(1)}h</title></rect>`;
+    if(i%2===0) svg+=`<text x="${x+barW/2}" y="${H-4}" text-anchor="middle" fill="var(--tx3)" font-size="8" font-family="var(--mono)">${labels[i]}</text>`;
+  });
+  svg+=`</svg></div>`;
+  el.innerHTML=svg;
+}
+
+function renderGamingAchievements(achievements,details){
+  const el=document.getElementById('gaming-achievements');
+  if(!achievements.length){
+    el.innerHTML=`<div style="color:var(--tx3);font-size:13px;padding:var(--space-3)">Aucun achievement récent</div>`;
+    return;
+  }
+  const detailMap=new Map(details.map(d=>[d.appid,d]));
+  el.innerHTML=achievements.map(a=>{
+    const game=detailMap.get(a.appid);
+    const name=a.achievement_name||a.achievement_api_name||'?';
+    const d=new Date(a.unlocked_at);
+    return `<div class="gaming-ach-row"><span class="gaming-ach-date">${d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})}</span><span class="gaming-ach-name">${safe(name)}</span><span class="gaming-ach-game">${game?safe(game.name):a.appid}</span></div>`;
+  }).join('');
+}
+
+function renderGamingShame(snapshot){
+  const el=document.getElementById('gaming-shame');
+  const neverPlayed=snapshot.filter(g=>g.playtime_forever_minutes===0);
+  if(!neverPlayed.length){el.innerHTML='';return;}
+
+  const show=neverPlayed.slice(0,20);
+  const rest=neverPlayed.length-show.length;
+  el.innerHTML=`<div class="gaming-box"><h3>🎮 Pile of Shame</h3><div style="font-size:14px;margin-bottom:var(--space-2)"><strong>${neverPlayed.length}</strong> jeux jamais lancés</div><button class="gaming-shame-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.nextElementSibling.style.display==='none'?'Voir la liste':'Masquer'">Voir la liste</button><div class="gaming-shame-list" style="display:none">${show.map(g=>`<div>${safe(g.name)}</div>`).join('')}${rest>0?`<div style="font-weight:600">...et ${rest} autres</div>`:''}</div></div>`;
 }
 
 /* ── SERVICE WORKER REGISTRATION ──────────────────────────── */
