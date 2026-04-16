@@ -159,7 +159,12 @@ def main():
     # Exchange code for tokens
     token_data = exchange_code(client_id, client_secret, CallbackHandler.auth_code)
 
+    # Debug: show exactly what Strava returned (minus secrets)
+    safe_keys = {k: v for k, v in token_data.items() if k not in ("access_token", "refresh_token")}
+    print(f"\n[debug] Token response (sans secrets): {json.dumps(safe_keys, indent=2)}")
+
     refresh_token = token_data.get("refresh_token")
+    granted_scopes = token_data.get("scope", "NOT_RETURNED")
     athlete = token_data.get("athlete", {})
     athlete_id = athlete.get("id")
     first_name = athlete.get("firstname", "?")
@@ -169,12 +174,28 @@ def main():
         print(f"\nERROR: No refresh_token in response: {json.dumps(token_data, indent=2)}")
         sys.exit(1)
 
+    # Verify scopes
+    print(f"\n  Granted scopes: {granted_scopes}")
+    if "activity:read_all" not in granted_scopes and "activity:read" not in granted_scopes:
+        print()
+        print("!" * 60)
+        print("  WARNING: Strava did NOT grant activity:read_all !")
+        print(f"  Scopes received: {granted_scopes}")
+        print("  The sync pipeline WILL FAIL with 401.")
+        print()
+        print("  Fix: go to https://www.strava.com/settings/apps")
+        print("  Revoke this app, then re-run this script.")
+        print("  On the Strava consent screen, make sure ALL checkboxes")
+        print("  are checked (especially 'View data about your activities').")
+        print("!" * 60)
+
     print()
     print("=" * 60)
-    print("  SUCCESS — Copy these values into GitHub Secrets:")
+    print("  Copy these values into GitHub Secrets:")
     print("=" * 60)
     print()
     print(f"  Athlete: {first_name} {last_name} (ID: {athlete_id})")
+    print(f"  Scopes:  {granted_scopes}")
     print()
     print(f"  STRAVA_REFRESH_TOKEN={refresh_token}")
     print(f"  STRAVA_ATHLETE_ID={athlete_id}")
