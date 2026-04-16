@@ -3761,10 +3761,22 @@ function tftChampImg(charId){
   const setTag='tft_set'+id.match(/tft(\d+)/)?.[1];
   return `${TFT_CDN}/assets/characters/${id}/hud/${id}_square.${setTag}.png`;
 }
+// Item icon strategy: standard items use tft_set13, artifacts use tft_set16
+// Emblem items → use the trait icon instead
+const TFT_ITEM_CDN=`${TFT_CDN}/assets/maps/tft/icons/items/hexcore`;
 function tftItemImg(itemName){
   if(!itemName) return '';
-  const n=itemName.toLowerCase().replace(/emblemitem$/,'emblem');
-  return `${TFT_CDN}/assets/maps/tft/icons/items/hexcore/tft_item_${n}.tft_set13.png`;
+  const n=itemName.toLowerCase();
+  // Emblem items → map to trait icon
+  if(n.endsWith('emblemitem')){
+    const traitApi=itemName.replace('EmblemItem','');
+    const iconUrl=tftTraitIconUrl(traitApi);
+    if(iconUrl) return iconUrl;
+  }
+  // Artifact items → set16
+  if(n.startsWith('artifact_')) return `${TFT_ITEM_CDN}/tft_item_${n}.tft_set16.png`;
+  // Standard items → set13
+  return `${TFT_ITEM_CDN}/tft_item_${n}.tft_set13.png`;
 }
 function tftImgFallback(el,label){
   el.onerror=null;
