@@ -178,6 +178,9 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
   .opp-detail-grid{grid-template-columns:1fr!important}
   .tft-col-dmg,.tft-col-dur{display:none}
   .tft-table td,.tft-table th{padding:6px 6px!important;font-size:12px!important}
+  .tft-match-meta{display:none}
+  .tft-champ-name{display:none}
+  .tft-champ{width:38px}.tft-champ-img{width:34px;height:34px}
   .sb-link{padding:12px 16px}
   .sb-nav-btn{width:44px;height:44px}
   .page-header{position:static;box-shadow:none}
@@ -755,20 +758,46 @@ body.deep-work .count{display:none!important}
 .profile-field-status.status-saved{color:var(--green)}
 .profile-field-status.status-error{color:var(--red)}
 .profile-status{margin-left:var(--space-3);font-size:var(--text-sm);color:var(--green)}
+/* ── TFT VISUAL REDESIGN ────────────────────────────────── */
+.tft-match-card{display:flex;align-items:center;gap:14px;padding:12px 14px;border-bottom:1px solid var(--bd);cursor:pointer;transition:background .1s}
+.tft-match-card:hover{background:var(--bg2)}
+.tft-match-card:first-child{border-top:1px solid var(--bd)}
+.tft-place{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0;color:#fff}
+.tft-place.p1{background:linear-gradient(135deg,#FFD700,#FFA500)}.tft-place.top4{background:var(--green)}.tft-place.bot4{background:var(--red)}
+.tft-match-body{flex:1;min-width:0}
+.tft-match-traits{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.tft-trait-tag{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;line-height:16px}
+.tft-trait-tag.s1{background:#4a3728;color:#CD7F32}.tft-trait-tag.s2{background:#3a3a40;color:#C0C0C0}
+.tft-trait-tag.s3{background:#3d3520;color:#FFD700}.tft-trait-tag.s4{background:#352040;color:#E0B0FF}
+.tft-match-units{display:flex;gap:4px;flex-wrap:wrap}
+.tft-champ{display:inline-flex;flex-direction:column;align-items:center;width:46px}
+.tft-champ-wrap{position:relative;width:40px;height:40px}
+.tft-champ-img{width:40px;height:40px;border-radius:6px;border:2px solid;object-fit:cover;display:block}
+.tft-champ-img.c1{border-color:#848999}.tft-champ-img.c2{border-color:#11b288}.tft-champ-img.c3{border-color:#207ac7}.tft-champ-img.c4{border-color:#c440da}.tft-champ-img.c5{border-color:#ffb93b}
+.tft-champ-stars{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:9px;color:#FFD700;text-shadow:0 1px 2px rgba(0,0,0,.8);white-space:nowrap;letter-spacing:-1px}
+.tft-champ-items{display:flex;gap:1px;justify-content:center;margin-top:1px}
+.tft-champ-item{width:13px;height:13px;border-radius:2px;border:1px solid rgba(255,255,255,.15)}
+.tft-champ-name{font-size:8px;color:var(--tx3);max-width:46px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.tft-match-meta{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:2px;font-size:11px;color:var(--tx3)}
+.tft-match-meta .tft-meta-lvl{font-weight:600;color:var(--tx2)}
+/* Detail overlay */
 .tft-detail-header{display:flex;align-items:center;gap:14px;margin-bottom:var(--space-5)}
 .tft-detail-title{font-weight:600}
 .tft-detail-sub{font-size:12px;color:var(--tx3)}
 .tft-info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-2);margin-bottom:var(--space-5)}
 .tft-info-cell{background:var(--bg2);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:12px}
-.tft-section-title{font-size:var(--text-sm);font-weight:600;margin-bottom:var(--space-2)}
-.tft-unit-list{display:flex;flex-direction:column;gap:6px;margin-bottom:var(--space-5)}
-.tft-unit-row{display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3)}
-.tft-unit-name{font-weight:600;min-width:100px}
-.tft-unit-stars{color:var(--amber);font-size:var(--text-xs)}
-.tft-unit-cost{font-size:var(--text-xs);color:var(--tx3)}
-.tft-unit-items{font-size:var(--text-xs);flex:1}
+.tft-section-title{font-size:var(--text-sm);font-weight:600;margin:var(--space-3) 0 var(--space-2)}
+.tft-detail-units{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--space-5)}
+.tft-detail-champ{display:flex;flex-direction:column;align-items:center;width:64px}
+.tft-detail-champ-wrap{position:relative;width:56px;height:56px}
+.tft-detail-champ-img{width:56px;height:56px;border-radius:8px;border:2px solid;object-fit:cover;display:block}
+.tft-detail-champ-img.c1{border-color:#848999}.tft-detail-champ-img.c2{border-color:#11b288}.tft-detail-champ-img.c3{border-color:#207ac7}.tft-detail-champ-img.c4{border-color:#c440da}.tft-detail-champ-img.c5{border-color:#ffb93b}
+.tft-detail-champ-stars{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:11px;color:#FFD700;text-shadow:0 1px 2px rgba(0,0,0,.8);white-space:nowrap}
+.tft-detail-champ-items{display:flex;gap:2px;justify-content:center;margin-top:2px}
+.tft-detail-champ-item{width:18px;height:18px;border-radius:3px;border:1px solid rgba(255,255,255,.15)}
+.tft-detail-champ-name{font-size:10px;margin-top:2px;color:var(--tx2);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 .tft-traits-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--space-5)}
-.tft-trait-badge{display:inline-block;padding:var(--space-1) 10px;border-radius:20px;font-size:var(--text-xs);font-weight:600}
+.tft-trait-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600}
 .tft-lobby-list{display:flex;flex-direction:column;gap:var(--space-1);margin-bottom:var(--space-6)}
 .tft-lobby-row{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:var(--radius-sm);font-size:12px}
 .tft-lobby-rank{font-weight:700;min-width:var(--space-5)}
@@ -777,8 +806,8 @@ body.deep-work .count{display:none!important}
 .tft-lobby-traits{font-size:10px;color:var(--tx3)}
 .tft-edit-section{border-top:1px solid var(--bd);padding-top:var(--space-5)}
 .tft-edit-label{font-size:var(--text-xs);color:var(--tx3);display:block;margin-bottom:var(--space-1)}
-.tft-edit-input{width:100%;padding:6px var(--space-2);border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px}
-.tft-edit-textarea{width:100%;padding:var(--space-2);border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:var(--text-sm);font-family:var(--font);resize:vertical}
+.tft-edit-input{width:100%;padding:6px var(--space-2);border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:12px;background:var(--bg3);color:var(--tx)}
+.tft-edit-textarea{width:100%;padding:var(--space-2);border-radius:var(--radius-sm);border:1px solid var(--bd);font-size:var(--text-sm);font-family:var(--font);resize:vertical;background:var(--bg3);color:var(--tx)}
 .tft-save-btn{width:100%;padding:10px;border-radius:var(--radius-sm);border:none;background:var(--tx);color:var(--bg);font-weight:600;font-size:var(--text-sm);cursor:pointer;transition:opacity .15s}
 .tft-save-btn:hover{opacity:.85}
 .tft-save-status{text-align:center;margin-top:var(--space-2);font-size:12px}
@@ -3684,6 +3713,45 @@ let tftTraitsCache={};
 let tftUnitsCache={};
 let tftLoaded=false;
 
+// ── TFT CDN HELPERS ──────────────────────────────────────
+const TFT_CDN='https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default';
+function tftChampImg(charId){
+  if(!charId) return '';
+  const id=charId.toLowerCase();
+  const set=id.match(/tft(\d+)_/)?.[0]?.slice(0,-1)||'tft_set17';
+  const setTag='tft_set'+id.match(/tft(\d+)/)?.[1];
+  return `${TFT_CDN}/assets/characters/${id}/hud/${id}_square.${setTag}.png`;
+}
+function tftItemImg(itemName){
+  if(!itemName) return '';
+  return `${TFT_CDN}/assets/maps/tft/icons/items/hexcore/tft_item_${itemName.toLowerCase()}.tft_set13.png`;
+}
+function tftImgFallback(el,label){
+  el.onerror=null;
+  const c=label?label.charAt(0).toUpperCase():'?';
+  el.src=`data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><rect width='48' height='48' rx='6' fill='%2327272A'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23A1A1AA' font-size='16' font-family='sans-serif'>${c}</text></svg>`;
+}
+const TFT_COST_CLASS={1:'c1',2:'c2',3:'c3',4:'c4',5:'c5'};
+function tftPlaceHtml(p){
+  const cls=p===1?'p1':p<=4?'top4':'bot4';
+  return `<div class="tft-place ${cls}">${p}</div>`;
+}
+function tftStars(tier){return tier>1?'★'.repeat(tier):'';}
+function tftChampHtml(u,size='sm'){
+  const prefix=size==='lg'?'tft-detail-':'tft-';
+  const imgCls=`${prefix}champ-img ${TFT_COST_CLASS[u.cost]||'c1'}`;
+  const w=size==='lg'?56:40;
+  const items=(u.items||[]).slice(0,3);
+  const itemSize=size==='lg'?18:13;
+  const itemCls=size==='lg'?'tft-detail-champ-item':'tft-champ-item';
+  return `<div class="${prefix}champ"><div class="${prefix}champ-wrap">${tftStars(u.tier)?`<div class="${prefix}champ-stars">${tftStars(u.tier)}</div>`:''}<img class="${imgCls}" src="${tftChampImg(u.character_id)}" alt="${u.champion_name}" width="${w}" height="${w}" loading="lazy" onerror="tftImgFallback(this,'${u.champion_name}')"></div>${items.length?`<div class="${prefix}champ-items">${items.map(i=>`<img class="${itemCls}" src="${tftItemImg(i)}" alt="${i}" width="${itemSize}" height="${itemSize}" loading="lazy" onerror="tftImgFallback(this,'${i}')">`).join('')}</div>`:''}<div class="${prefix}champ-name">${u.champion_name||'?'}</div></div>`;
+}
+function tftTraitTagHtml(t){
+  const s=t.style||0;
+  const cls=s>=4?'s4':s>=3?'s3':s>=2?'s2':'s1';
+  return `<span class="tft-trait-tag ${cls}">${t.trait_name} ${t.num_units||''}</span>`;
+}
+
 async function loadTft(){
   if(tftLoaded) return;
   try{
@@ -3803,44 +3871,26 @@ function renderTftTable(){
     return;
   }
 
-  const placeBadge=(p)=>{
-    if(p===1) return `<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;font-weight:700;font-size:13px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#fff">1</span>`;
-    if(p<=4) return `<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;font-weight:700;font-size:13px;background:var(--green);color:#fff">${p}</span>`;
-    return `<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;font-weight:700;font-size:13px;background:var(--red);color:#fff">${p}</span>`;
-  };
+  const fmtDate=(d)=>{const dt=new Date(d);return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});};
+  const fmtDur=(s)=>s?Math.floor(s/60)+'m'+String(Math.floor(s%60)).padStart(2,'0'):'—';
 
-  const formatDate=(d)=>{
-    const dt=new Date(d);
-    return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  };
-
-  const getCompo=(mid)=>{
-    const traits=(tftTraitsCache[mid]||[]).filter(t=>t.style>=2).map(t=>t.trait_name);
-    return traits.length?traits.join(', '):'—';
-  };
-
-  const getCarry=(mid)=>{
-    const units=tftUnitsCache[mid]||[];
-    if(!units.length) return '—';
-    const carry=units.reduce((a,b)=>(b.num_items||0)>(a.num_items||0)?b:a);
-    return carry.champion_name?(carry.champion_name+(carry.tier?'★'.repeat(carry.tier):'')):'—';
-  };
-
-  const formatDuration=(s)=>s?Math.floor(s/60)+'m'+String(Math.floor(s%60)).padStart(2,'0'):'—';
-
-  tableEl.innerHTML=`<table class="tft-table data-table">
-    <tr><th>Date</th><th style="text-align:center">Place</th><th>Compo</th><th>Carry</th><th class="right">Lvl</th><th class="right tft-col-dmg">DMG</th><th class="right tft-col-dur">Durée</th><th>Note</th></tr>
-    ${filtered.map(m=>`<tr class="tft-row" data-matchid="${m.match_id}" style="cursor:pointer" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''" onclick="openTftDetail('${m.match_id}')">
-      <td style="white-space:nowrap">${formatDate(m.played_at)}</td>
-      <td style="text-align:center">${placeBadge(m.placement)}</td>
-      <td class="muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${getCompo(m.match_id)}</td>
-      <td style="font-size:12px;font-weight:600">${getCarry(m.match_id)}</td>
-      <td class="right">${m.level||'—'}</td>
-      <td class="right mono tft-col-dmg">${m.total_damage||'—'}</td>
-      <td class="right tft-col-dur" style="font-size:12px">${formatDuration(m.game_length_s)}</td>
-      <td style="font-size:12px;color:var(--tx3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.user_note||''}</td>
-    </tr>`).join('')}
-  </table>`;
+  tableEl.innerHTML=filtered.map(m=>{
+    const traits=(tftTraitsCache[m.match_id]||[]).filter(t=>t.style>=2).sort((a,b)=>(b.style||0)-(a.style||0));
+    const units=(tftUnitsCache[m.match_id]||[]).sort((a,b)=>(b.cost||0)-(a.cost||0));
+    return `<div class="tft-match-card" onclick="openTftDetail('${m.match_id}')">
+      ${tftPlaceHtml(m.placement)}
+      <div class="tft-match-body">
+        <div class="tft-match-traits">${traits.map(t=>tftTraitTagHtml(t)).join('')}</div>
+        <div class="tft-match-units">${units.map(u=>tftChampHtml(u)).join('')}</div>
+      </div>
+      <div class="tft-match-meta">
+        <span class="tft-meta-lvl">Lvl ${m.level||'?'}</span>
+        <span>${fmtDur(m.game_length_s)}</span>
+        <span>${fmtDate(m.played_at)}</span>
+        ${m.user_note?'<span>📝</span>':''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function openTftDetail(matchId){
@@ -3856,17 +3906,10 @@ async function openTftDetail(matchId){
 
   const formatDate=(d)=>new Date(d).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const formatDuration=(s)=>s?Math.floor(s/60)+'m'+String(Math.floor(s%60)).padStart(2,'0'):'—';
-  const placeBadge=(p)=>{
-    const bg=p===1?'linear-gradient(135deg,#FFD700,#FFA500)':p<=4?'var(--green)':'var(--red)';
-    return `<span style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;border-radius:50%;font-weight:700;font-size:15px;background:${bg};color:#fff">${p}</span>`;
-  };
-  const stars=(n)=>n?'★'.repeat(n):'';
-  const styleBg=(s)=>s>=4?'var(--accent-bg)':s>=3?'var(--amber-bg)':s>=2?'#E8E8E8':'var(--bg2)';
-  const styleColor=(s)=>s>=4?'var(--accent)':s>=3?'var(--amber)':s>=2?'var(--tx)':'var(--tx3)';
 
   let html=`
     <div class="tft-detail-header">
-      ${placeBadge(m.placement)}
+      ${tftPlaceHtml(m.placement)}
       <div>
         <div class="tft-detail-title">${m.is_win?'Victoire (Top 4)':'Défaite (Bot 4)'} — #${m.placement}</div>
         <div class="tft-detail-sub">${formatDate(m.played_at)} · ${formatDuration(m.game_length_s)} · Lvl ${m.level||'?'}</div>
@@ -3874,32 +3917,22 @@ async function openTftDetail(matchId){
     </div>
 
     <div class="tft-info-grid">
-      <div class="tft-info-cell">
-        <div class="text-muted">Mode</div>
-        <div style="font-weight:600">${m.queue_id===1100?'Ranked':m.queue_id===1090?'Normal':'Autre'}</div>
-      </div>
-      <div class="tft-info-cell">
-        <div class="text-muted">Dommages</div>
-        <div style="font-weight:600">${m.total_damage||'—'}</div>
-      </div>
-      <div class="tft-info-cell">
-        <div class="text-muted">Gold restant</div>
-        <div style="font-weight:600">${m.gold_left??'—'}</div>
-      </div>
+      <div class="tft-info-cell"><div class="text-muted">Mode</div><div style="font-weight:600">${m.queue_id===1100?'Ranked':m.queue_id===1090?'Normal':'Autre'}</div></div>
+      <div class="tft-info-cell"><div class="text-muted">Dommages</div><div style="font-weight:600">${m.total_damage||'—'}</div></div>
+      <div class="tft-info-cell"><div class="text-muted">Gold restant</div><div style="font-weight:600">${m.gold_left??'—'}</div></div>
     </div>
 
     <div class="tft-section-title">🛡️ Champions (${units.length})</div>
-    <div class="tft-unit-list">
-      ${units.map(u=>`<div class="tft-unit-row">
-        <div class="tft-unit-name">${u.champion_name} <span class="tft-unit-stars">${stars(u.tier)}</span></div>
-        <div class="tft-unit-cost">${u.cost}g</div>
-        <div class="tft-unit-items">${(u.items||[]).length?u.items.join(', '):'<span class="text-muted">pas d\'items</span>'}</div>
-      </div>`).join('')}
+    <div class="tft-detail-units">
+      ${units.map(u=>tftChampHtml(u,'lg')).join('')}
     </div>
 
     <div class="tft-section-title">⚔️ Traits</div>
     <div class="tft-traits-wrap">
-      ${traits.map(t=>`<span class="tft-trait-badge" style="background:${t.is_active?styleBg(t.style):'var(--bg2)'};color:${t.is_active?styleColor(t.style):'var(--tx3)'}">${t.trait_name} ${t.is_active?t.num_units:'off'}</span>`).join('')}
+      ${traits.filter(t=>t.is_active).sort((a,b)=>(b.style||0)-(a.style||0)).map(t=>{
+        const s=t.style||0;const cls=s>=4?'s4':s>=3?'s3':s>=2?'s2':'s1';
+        return `<span class="tft-trait-badge ${cls}">${t.trait_name} ${t.num_units||''}</span>`;
+      }).join('')}
     </div>
 
     <div class="tft-section-title">👥 Lobby (${lobby.length} adversaires)</div>
