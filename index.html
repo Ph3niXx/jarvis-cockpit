@@ -3746,10 +3746,35 @@ function tftChampHtml(u,size='sm'){
   const itemCls=size==='lg'?'tft-detail-champ-item':'tft-champ-item';
   return `<div class="${prefix}champ"><div class="${prefix}champ-wrap">${tftStars(u.tier)?`<div class="${prefix}champ-stars">${tftStars(u.tier)}</div>`:''}<img class="${imgCls}" src="${tftChampImg(u.character_id)}" alt="${u.champion_name}" width="${w}" height="${w}" loading="lazy" onerror="tftImgFallback(this,'${u.champion_name}')"></div>${items.length?`<div class="${prefix}champ-items">${items.map(i=>`<img class="${itemCls}" src="${tftItemImg(i)}" alt="${i}" width="${itemSize}" height="${itemSize}" loading="lazy" onerror="tftImgFallback(this,'${i}')">`).join('')}</div>`:''}<div class="${prefix}champ-name">${u.champion_name||'?'}</div></div>`;
 }
+// Trait API name → clean display name (Set 16 + 17)
+const TFT_TRAIT_NAMES={
+  // Set 17 unique traits (champions)
+  BlitzcrankUniqueTrait:'Blitzcrank',FioraUniqueTrait:'Fiora',GravesTrait:'Graves',
+  ShenUniqueTrait:'Shen',SonaUniqueTrait:'Sona',VexUniqueTrait:'Vex',
+  MorganaUniqueTrait:'Morgana',RhaastUniqueTrait:'Rhaast',
+  // Set 17 origins
+  AnimaSquad:'Anima',DarkStar:'Dark Star',SpaceGroove:'Space Groove',
+  Timebreaker:'Timebreaker',Fateweaver:'Fateweaver',DRX:'DRX',Astronaut:'Astronaut',
+  // Set 17 classes
+  AssassinTrait:'Rogue',MeleeTrait:'Challenger',ResistTank:'Bastion',ShieldTank:'Vanguard',
+  FlexTrait:'Replicator',
+  // Set 16 (keep for backward compat)
+  Bilgewater:'Bilgewater',Demacia:'Demacia',Noxus:'Noxus',Freljord:'Freljord',
+  Piltover:'Piltover',Ionia:'Ionia',Shurima:'Shurima',Targon:'Targon',Void:'Void',
+  Zaun:'Zaun',Yordle:'Yordle',Defender:'Defender',Invoker:'Invoker',Juggernaut:'Juggernaut',
+  Slayer:'Slayer',Vanquisher:'Vanquisher',Sorcerer:'Sorcerer',Warden:'Warden',
+  Brawler:'Brawler',Gunslinger:'Gunslinger',Longshot:'Longshot',
+  Blacksmith:'Blacksmith',Caretaker:'Caretaker',Heroic:'Heroic',
+  DarkinWeapon:'Darkin',Soulbound:'Soulbound',RuneMage:'Rune Mage',
+  Huntress:'Huntress',Glutton:'Glutton',Rapidfire:'Rapidfire',
+  Emperor:'Emperor',DarkChild:'Dark Child',TheBoss:'The Boss',Chronokeeper:'Chronokeeper',
+  KaisaUnique:'Kai\'Sa',KindredUnique:'Kindred',ShyvanaUnique:'Shyvana',SylasTrait:'Sylas',
+};
+function tftTraitDisplayName(apiName){return TFT_TRAIT_NAMES[apiName]||apiName.replace(/Trait$/,'').replace(/Unique$/,'').replace(/([a-z])([A-Z])/g,'$1 $2');}
 function tftTraitTagHtml(t){
   const s=t.style||0;
   const cls=s>=4?'s4':s>=3?'s3':s>=2?'s2':'s1';
-  return `<span class="tft-trait-tag ${cls}">${t.trait_name} ${t.num_units||''}</span>`;
+  return `<span class="tft-trait-tag ${cls}">${tftTraitDisplayName(t.trait_name)} ${t.num_units||''}</span>`;
 }
 
 async function loadTft(){
@@ -3763,8 +3788,8 @@ async function loadTft(){
     if(matchIds.length){
       const idsParam=matchIds.map(id=>`"${id}"`).join(',');
       const [traits,units]=await Promise.all([
-        fetchJSON(`${SUPABASE_URL}/rest/v1/tft_match_traits?match_id=in.(${idsParam})&is_active=eq.true&select=match_id,trait_name,style`),
-        fetchJSON(`${SUPABASE_URL}/rest/v1/tft_match_units?match_id=in.(${idsParam})&select=match_id,champion_name,tier,cost,items,num_items`)
+        fetchJSON(`${SUPABASE_URL}/rest/v1/tft_match_traits?match_id=in.(${idsParam})&is_active=eq.true&select=match_id,trait_name,style,num_units`),
+        fetchJSON(`${SUPABASE_URL}/rest/v1/tft_match_units?match_id=in.(${idsParam})&select=match_id,character_id,champion_name,tier,cost,items,num_items`)
       ]);
       // Group by match_id
       traits.forEach(t=>{
@@ -3875,7 +3900,7 @@ function renderTftTable(){
   const fmtDur=(s)=>s?Math.floor(s/60)+'m'+String(Math.floor(s%60)).padStart(2,'0'):'—';
 
   tableEl.innerHTML=filtered.map(m=>{
-    const traits=(tftTraitsCache[m.match_id]||[]).filter(t=>t.style>=2).sort((a,b)=>(b.style||0)-(a.style||0));
+    const traits=(tftTraitsCache[m.match_id]||[]).filter(t=>t.style>=2&&!t.trait_name.includes('Unique')).sort((a,b)=>(b.style||0)-(a.style||0));
     const units=(tftUnitsCache[m.match_id]||[]).sort((a,b)=>(b.cost||0)-(a.cost||0));
     return `<div class="tft-match-card" onclick="openTftDetail('${m.match_id}')">
       ${tftPlaceHtml(m.placement)}
