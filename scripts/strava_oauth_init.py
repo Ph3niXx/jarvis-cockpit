@@ -75,6 +75,21 @@ def exchange_code(client_id, client_secret, code):
         return json.loads(resp.read().decode("utf-8"))
 
 
+def test_activity_access(access_token):
+    """Verify the token can actually read activities (returns True/False)."""
+    req = urllib.request.Request(
+        "https://www.strava.com/api/v3/athlete/activities?per_page=1",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return True, data
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        return False, body
+
+
 class CallbackHandler(http.server.BaseHTTPRequestHandler):
     """HTTP handler that captures the OAuth callback."""
 
@@ -159,12 +174,8 @@ def main():
     # Exchange code for tokens
     token_data = exchange_code(client_id, client_secret, CallbackHandler.auth_code)
 
-    # Debug: show exactly what Strava returned (minus secrets)
-    safe_keys = {k: v for k, v in token_data.items() if k not in ("access_token", "refresh_token")}
-    print(f"\n[debug] Token response (sans secrets): {json.dumps(safe_keys, indent=2)}")
-
     refresh_token = token_data.get("refresh_token")
-    granted_scopes = token_data.get("scope", "NOT_RETURNED")
+    access_token = token_data.get("access_token")
     athlete = token_data.get("athlete", {})
     athlete_id = athlete.get("id")
     first_name = athlete.get("firstname", "?")
@@ -174,20 +185,29 @@ def main():
         print(f"\nERROR: No refresh_token in response: {json.dumps(token_data, indent=2)}")
         sys.exit(1)
 
-    # Verify scopes
-    print(f"\n  Granted scopes: {granted_scopes}")
-    if "activity:read_all" not in granted_scopes and "activity:read" not in granted_scopes:
+    # Live test: can this token actually read activities?
+    print("Testing activity:read_all permission...")
+    ok, result = test_activity_access(access_token)
+    if ok:
+        print(f"  OK — token can read activities ({len(result)} returned in test)")
+    else:
         print()
         print("!" * 60)
-        print("  WARNING: Strava did NOT grant activity:read_all !")
-        print(f"  Scopes received: {granted_scopes}")
-        print("  The sync pipeline WILL FAIL with 401.")
+        print("  FAILED — token CANNOT read activities!")
+        print(f"  Strava response: {result}")
         print()
-        print("  Fix: go to https://www.strava.com/settings/apps")
-        print("  Revoke this app, then re-run this script.")
-        print("  On the Strava consent screen, make sure ALL checkboxes")
-        print("  are checked (especially 'View data about your activities').")
+        print("  The authorization did not include activity:read_all.")
+        print("  When Strava shows the consent screen, make sure you")
+        print("  check ALL permission boxes, especially:")
+        print("  'View data about your activities'")
+        print()
+        print("  Steps to fix:")
+        print("  1. Go to https://www.strava.com/settings/apps")
+        print("  2. Revoke this app")
+        print("  3. Re-run this script")
+        print("  4. CHECK ALL BOXES on the Strava consent screen")
         print("!" * 60)
+        sys.exit(1)
 
     print()
     print("=" * 60)
