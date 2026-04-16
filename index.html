@@ -846,6 +846,54 @@ body.deep-work .count{display:none!important}
   .tft-info-grid{grid-template-columns:1fr!important}
   .opp-detail-grid{grid-template-columns:1fr!important}
 }
+/* ── PERFORMANCE SECTION ─────────────────────────────────── */
+.perf-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.perf-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4)}
+.perf-card-label{font-size:13px;color:var(--tx2);margin-bottom:var(--space-1)}
+.perf-card-value{font-size:24px;font-weight:700;font-family:var(--mono)}
+.perf-card-delta{font-size:12px;margin-top:2px}
+.perf-card-delta.up{color:var(--green)}.perf-card-delta.down{color:var(--coral)}.perf-card-delta.neutral{color:var(--tx3)}
+.perf-card-delta.zone-ok{color:var(--green)}.perf-card-delta.zone-warn{color:var(--amber)}.perf-card-delta.zone-danger{color:var(--coral)}
+.perf-chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)}
+.perf-chart-title{font-size:var(--text-base);font-weight:600}
+.perf-period-btns{display:flex;gap:4px}
+.perf-period-btn{padding:4px 10px;border:1px solid var(--bd);border-radius:var(--radius-sm);background:transparent;color:var(--tx2);font-size:var(--text-xs);cursor:pointer;font-family:var(--font)}
+.perf-period-btn.active{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.perf-chart-box{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4);margin-bottom:24px}
+.perf-sub-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--bd)}
+.perf-proj-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.perf-proj-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-5)}
+.perf-proj-card h3{font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)}
+.perf-pred-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.perf-pred-row:last-child{border-bottom:none}
+.perf-pred-dist{color:var(--tx2)}.perf-pred-time{font-family:var(--mono);font-weight:600}
+.perf-pred-note{font-size:11px;color:var(--tx3);margin-top:var(--space-2)}
+.perf-table{width:100%;border-collapse:collapse;font-size:13px}
+.perf-table th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--bd);color:var(--tx2);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+.perf-table td{padding:8px 10px;border-bottom:1px solid var(--bd)}
+.perf-table tr:hover{background:var(--bg2)}
+.perf-badge{display:inline-block;padding:2px 8px;border-radius:var(--radius-full);font-size:11px;font-weight:600}
+.perf-badge.green{background:var(--green-bg);color:var(--green)}
+.perf-badge.amber{background:var(--amber-bg);color:var(--amber)}
+.perf-badge.coral{background:var(--coral-bg);color:var(--coral)}
+.perf-heatmap-grid{display:flex;gap:2px;overflow-x:auto;padding-bottom:var(--space-2)}
+.perf-heatmap-col{display:flex;flex-direction:column;gap:2px}
+.perf-heatmap-cell{width:11px;height:11px;border-radius:2px}
+.perf-records{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
+.perf-record-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.perf-record-row:last-child{border-bottom:none}
+.perf-cta-btn{padding:8px 16px;border:1px solid var(--bd);border-radius:var(--radius-sm);background:var(--bg2);color:var(--tx);font-size:13px;cursor:pointer;font-family:var(--font)}
+.perf-cta-btn:hover{background:var(--bg3);border-color:var(--tx3)}
+@media(max-width:768px){
+  .perf-metrics{grid-template-columns:repeat(2,1fr)}
+  .perf-sub-metrics{grid-template-columns:1fr}
+  .perf-proj-grid{grid-template-columns:1fr}
+  .perf-records{grid-template-columns:1fr}
+  .perf-table .perf-col-pace,.perf-table .perf-col-effort{display:none}
+}
+@media(max-width:480px){
+  .perf-metrics{grid-template-columns:1fr}
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -898,6 +946,8 @@ body.deep-work .count{display:none!important}
   <symbol id="icon-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
   <symbol id="icon-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
   <symbol id="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></symbol>
+  <symbol id="icon-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol>
+  <symbol id="icon-bar-chart-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></symbol>
 </svg>
 
 <!-- MOBILE TOGGLE -->
@@ -959,6 +1009,14 @@ body.deep-work .count{display:none!important}
     <div class="sb-section-items">
       <button class="sb-link" data-panel="ideas" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-lightbulb"/></svg><span class="label">Carnet d'idées</span></button>
       <button class="sb-link" data-panel="rte" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-train-front"/></svg><span class="label">RTE Toolbox</span></button>
+    </div>
+  </div>
+
+  <div class="sb-section" data-section="performance" role="tablist" aria-label="Performance">
+    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Performance<span class="sb-section-count" id="sc-performance"></span></button>
+    <div class="sb-section-items">
+      <button class="sb-link" data-panel="perf-overview" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-activity"/></svg><span class="label">Vue d'ensemble</span></button>
+      <button class="sb-link" data-panel="perf-history" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-bar-chart-2"/></svg><span class="label">Historique</span></button>
     </div>
   </div>
 
@@ -1273,6 +1331,39 @@ body.deep-work .count{display:none!important}
           <div class="jp-stub">Section 3 — Miroir genant. A venir.</div>
         </div>
       </section>
+    </div>
+  </div>
+
+  <!-- ── PERFORMANCE: VUE D'ENSEMBLE ─────────────────────── -->
+  <div class="panel" role="tabpanel" id="panel-perf-overview">
+    <div class="page-header"><div class="page-title">Performance</div><div class="page-subtitle">Suivi sportif — Strava</div></div>
+    <div class="content">
+      <div id="perf-metrics" class="perf-metrics"></div>
+      <div id="perf-chart-box" class="perf-chart-box">
+        <div class="perf-chart-header">
+          <span class="perf-chart-title">Charge vs forme</span>
+          <div class="perf-period-btns">
+            <button class="perf-period-btn active" data-perf-weeks="4">4 sem</button>
+            <button class="perf-period-btn" data-perf-weeks="12">12 sem</button>
+            <button class="perf-period-btn" data-perf-weeks="52">1 an</button>
+          </div>
+        </div>
+        <div id="perf-chart-svg"></div>
+        <div id="perf-sub-metrics" class="perf-sub-metrics"></div>
+      </div>
+      <div id="perf-projections" class="perf-proj-grid"></div>
+      <div id="perf-journal"></div>
+    </div>
+  </div>
+
+  <!-- ── PERFORMANCE: HISTORIQUE ────────────────────────── -->
+  <div class="panel" role="tabpanel" id="panel-perf-history">
+    <div class="page-header"><div class="page-title">Historique sportif</div><div class="page-subtitle">Heatmap annuelle et records personnels</div></div>
+    <div class="content">
+      <h3 style="font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)">Activité sur 12 mois</h3>
+      <div id="perf-heatmap" style="margin-bottom:24px"></div>
+      <h3 style="font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)">Records personnels (Course)</h3>
+      <div id="perf-records"></div>
     </div>
   </div>
 
@@ -1627,6 +1718,8 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='jarvis') initJarvis();
     if(panel==='jarvis-project') loadJarvisProject();
     if(panel==='myweek') loadMyWeek();
+    if(panel==='perf-overview') loadPerfOverview();
+    if(panel==='perf-history') loadPerfHistory();
     // Close mobile sidebar
     if(window.innerWidth<=768) toggleSidebar();
   });
@@ -4580,6 +4673,431 @@ document.addEventListener('keydown',e=>{
     else openCmdPalette();
   }
 });
+
+/* ── PERFORMANCE HELPERS ─────────────────────────────────── */
+
+/** Get Monday 00:00 UTC of the week containing `date`. */
+function perfWeekStart(date){const d=new Date(date);const day=d.getUTCDay();const diff=d.getUTCDate()-day+(day===0?-6:1);d.setUTCDate(diff);d.setUTCHours(0,0,0,0);return d;}
+
+/** ACWR = acute load (7d) / chronic load (28d avg weekly). */
+function perfACWR(activities){
+  const now=Date.now();
+  const d7=now-7*864e5, d28=now-28*864e5;
+  const acute=activities.filter(a=>new Date(a.start_date).getTime()>=d7).reduce((s,a)=>s+(a.moving_time_s||0),0);
+  const chronic28=activities.filter(a=>new Date(a.start_date).getTime()>=d28).reduce((s,a)=>s+(a.moving_time_s||0),0);
+  const chronicWeekly=chronic28/4;
+  if(chronicWeekly===0) return null;
+  return acute/chronicWeekly;
+}
+
+/** Efficiency Factor = pace (min/km) / HR. Lower = fitter for same HR. */
+function perfEF(avgSpeedMs, avgHR){
+  if(!avgSpeedMs||avgSpeedMs<=0||!avgHR||avgHR<=0) return null;
+  const paceMinKm=(1000/avgSpeedMs)/60;
+  return paceMinKm/avgHR;
+}
+
+/** Riegel race time prediction: T2 = T1 * (D2/D1)^1.06 */
+function perfRiegel(knownDist, knownTime, targetDist){
+  return knownTime*Math.pow(targetDist/knownDist, 1.06);
+}
+
+/** Format seconds to MM:SS or H:MM:SS */
+function perfFmtTime(totalSec){
+  const s=Math.round(totalSec);
+  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+  if(h>0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+/** Format pace from distance_m and moving_time_s → "5:32/km" */
+function perfFmtPace(distM, timeS){
+  if(!distM||distM<=0||!timeS) return '—';
+  const paceS=timeS/(distM/1000);
+  const m=Math.floor(paceS/60), s=Math.round(paceS%60);
+  return `${m}:${String(s).padStart(2,'0')}/km`;
+}
+
+/** Format date in French short: "Lun 14 avr" */
+function perfFmtDate(isoStr){
+  const d=new Date(isoStr);
+  const days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const months=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+/* ── PERFORMANCE DATA CACHE ─────────────────────────────── */
+let _perfData=null;
+let _perfLoaded=false;
+let _perfHistLoaded=false;
+
+async function perfFetchAll(){
+  if(_perfData) return _perfData;
+  const oneYearAgo=new Date(Date.now()-366*864e5).toISOString();
+  const url=`${SUPABASE_URL}/rest/v1/strava_activities?select=id,name,sport_type,start_date,distance_m,moving_time_s,elapsed_time_s,average_speed,average_heartrate,max_heartrate,suffer_score,calories&start_date=gte.${oneYearAgo}&order=start_date.desc&limit=500`;
+  const data=await fetchJSON(url);
+  _perfData=data;
+  return data;
+}
+
+/* ── PERFORMANCE: OVERVIEW ──────────────────────────────── */
+async function loadPerfOverview(){
+  if(_perfLoaded) return;
+  _perfLoaded=true;
+  try{
+    const activities=await perfFetchAll();
+    renderPerfMetrics(activities);
+    renderPerfChart(activities, 12);
+    renderPerfSubMetrics(activities);
+    renderPerfProjections(activities);
+    renderPerfJournal(activities);
+    // Period buttons
+    document.querySelectorAll('.perf-period-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.perf-period-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const weeks=parseInt(btn.dataset.perfWeeks);
+        renderPerfChart(activities, weeks);
+      });
+    });
+  }catch(e){
+    console.error('[perf]',e);
+    document.getElementById('perf-metrics').innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${eIcon('activity')}</div>Erreur de chargement des données Strava</div>`;
+  }
+}
+
+function renderPerfMetrics(activities){
+  const el=document.getElementById('perf-metrics');
+  const now=new Date();
+  const thisMonday=perfWeekStart(now);
+  const lastMonday=new Date(thisMonday.getTime()-7*864e5);
+  const twoWeeksAgo=new Date(thisMonday.getTime()-14*864e5);
+
+  const thisWeek=activities.filter(a=>{const d=new Date(a.start_date);return d>=thisMonday;});
+  const lastWeek=activities.filter(a=>{const d=new Date(a.start_date);return d>=lastMonday&&d<thisMonday;});
+  const prevWeek=activities.filter(a=>{const d=new Date(a.start_date);return d>=twoWeeksAgo&&d<lastMonday;});
+
+  // Volume
+  const volThis=thisWeek.reduce((s,a)=>s+(a.distance_m||0),0)/1000;
+  const volLast=lastWeek.reduce((s,a)=>s+(a.distance_m||0),0)/1000;
+  const volDelta=volLast>0?((volThis-volLast)/volLast*100):null;
+
+  // Sessions
+  const sessCount=thisWeek.length;
+
+  // ACWR
+  const acwr=perfACWR(activities);
+  let acwrClass='neutral', acwrLabel='—';
+  if(acwr!==null){
+    acwrLabel=acwr.toFixed(2);
+    if(acwr>=0.8&&acwr<=1.3){acwrClass='zone-ok';acwrLabel+=' Zone optimale';}
+    else if(acwr>1.3&&acwr<=1.5){acwrClass='zone-warn';acwrLabel+=' Attention';}
+    else if(acwr>1.5){acwrClass='zone-danger';acwrLabel+=' Danger';}
+    else{acwrClass='neutral';}
+  }
+
+  // FC repos — table health_vitals n'existe pas encore
+  const hrRest='—';
+
+  const card=(label,value,delta,deltaClass)=>`<div class="perf-card"><div class="perf-card-label">${label}</div><div class="perf-card-value">${value}</div><div class="perf-card-delta ${deltaClass}">${delta}</div></div>`;
+
+  if(!activities.length){
+    el.innerHTML=card('Volume semaine','—','','neutral')+card('Séances','—','','neutral')+card('ACWR','—','','neutral')+card('FC repos 7j','—','','neutral');
+    return;
+  }
+
+  el.innerHTML=
+    card('Volume semaine',`${volThis.toFixed(1)} km`, volDelta!==null?`${volDelta>0?'+':''}${volDelta.toFixed(0)}% vs sem. préc.`:'Première semaine', volDelta===null?'neutral':volDelta>=0?'up':'down')+
+    card('Séances',sessCount,'cette semaine','neutral')+
+    card('ACWR',acwr!==null?acwr.toFixed(2):'—','',acwrClass)+
+    card('FC repos 7j',hrRest,'Apple Health (bientôt)','neutral');
+}
+
+function renderPerfChart(activities, numWeeks){
+  const el=document.getElementById('perf-chart-svg');
+  if(!activities.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('activity')}</div>En attente de données Strava</div>`;return;}
+
+  const now=new Date();
+  const cutoff=new Date(now.getTime()-numWeeks*7*864e5);
+  const filtered=activities.filter(a=>new Date(a.start_date)>=cutoff);
+
+  // Group by week
+  const weeks=new Map();
+  for(let i=0;i<numWeeks;i++){
+    const ws=new Date(perfWeekStart(now).getTime()-i*7*864e5);
+    weeks.set(ws.toISOString().slice(0,10),{charge:0,efVals:[]});
+  }
+  filtered.forEach(a=>{
+    const ws=perfWeekStart(new Date(a.start_date)).toISOString().slice(0,10);
+    if(weeks.has(ws)){
+      weeks.get(ws).charge+=(a.moving_time_s||0)/3600;
+      const ef=perfEF(a.average_speed, a.average_heartrate);
+      if(ef!==null) weeks.get(ws).efVals.push(ef);
+    }
+  });
+
+  const sorted=[...weeks.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+  const charges=sorted.map(([,v])=>v.charge);
+  const efs=sorted.map(([,v])=>v.efVals.length?v.efVals.reduce((a,b)=>a+b,0)/v.efVals.length:null);
+  const labels=sorted.map(([k])=>{const d=new Date(k);return `${d.getDate()}/${d.getMonth()+1}`;});
+
+  const W=Math.min(700,document.getElementById('perf-chart-box').offsetWidth-32);
+  const H=200;
+  const pad={t:10,r:10,b:30,l:40};
+  const gW=W-pad.l-pad.r, gH=H-pad.t-pad.b;
+
+  const maxC=Math.max(...charges,1);
+  const cPoints=charges.map((v,i)=>{const x=pad.l+(i/(charges.length-1||1))*gW;const y=pad.t+gH-(v/maxC)*gH;return{x,y};});
+
+  // EF scale
+  const efValid=efs.filter(v=>v!==null);
+  const maxEF=efValid.length?Math.max(...efValid)*1.1:1;
+  const ePoints=efs.map((v,i)=>{if(v===null)return null;const x=pad.l+(i/(efs.length-1||1))*gW;const y=pad.t+gH-(v/maxEF)*gH;return{x,y};}).filter(Boolean);
+
+  let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">`;
+  // Grid lines
+  for(let i=0;i<=4;i++){
+    const y=pad.t+gH*(i/4);
+    svg+=`<line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="var(--bd)" stroke-width="0.5"/>`;
+    svg+=`<text x="${pad.l-4}" y="${y+4}" text-anchor="end" fill="var(--tx3)" font-size="9" font-family="var(--mono)">${(maxC*(1-i/4)).toFixed(1)}h</text>`;
+  }
+  // X labels
+  const step=Math.max(1,Math.floor(labels.length/6));
+  labels.forEach((l,i)=>{if(i%step===0){const x=pad.l+(i/(labels.length-1||1))*gW;svg+=`<text x="${x}" y="${H-4}" text-anchor="middle" fill="var(--tx3)" font-size="9" font-family="var(--mono)">${l}</text>`;}});
+
+  // Charge line (blue, solid)
+  if(cPoints.length>1){
+    const d=cPoints.map((p,i)=>`${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    svg+=`<path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2"/>`;
+    cPoints.forEach(p=>{svg+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--blue)"/>`;});
+  }
+
+  // EF line (green, dashed)
+  if(ePoints.length>1){
+    const d=ePoints.map((p,i)=>`${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    svg+=`<path d="${d}" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  }
+
+  // Legend
+  svg+=`<circle cx="${pad.l}" cy="${pad.t-1}" r="4" fill="var(--blue)"/><text x="${pad.l+8}" y="${pad.t+3}" fill="var(--tx2)" font-size="10">Charge (h)</text>`;
+  svg+=`<line x1="${pad.l+90}" y1="${pad.t-1}" x2="${pad.l+105}" y2="${pad.t-1}" stroke="var(--green)" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${pad.l+110}" y="${pad.t+3}" fill="var(--tx2)" font-size="10">Forme (EF)</text>`;
+
+  svg+=`</svg>`;
+  el.innerHTML=svg;
+}
+
+function renderPerfSubMetrics(activities){
+  const el=document.getElementById('perf-sub-metrics');
+  const now=Date.now();
+  const d28=now-28*864e5, d56=now-56*864e5;
+  const FC_MAX=190; // 220 - 30 (âge estimé)
+
+  const recent=activities.filter(a=>new Date(a.start_date).getTime()>=d28);
+  const prev=activities.filter(a=>{const t=new Date(a.start_date).getTime();return t>=d56&&t<d28;});
+
+  // EF
+  const efVals=recent.map(a=>perfEF(a.average_speed,a.average_heartrate)).filter(v=>v!==null);
+  const efPrev=prev.map(a=>perfEF(a.average_speed,a.average_heartrate)).filter(v=>v!==null);
+  const efAvg=efVals.length?(efVals.reduce((a,b)=>a+b,0)/efVals.length):null;
+  const efPrevAvg=efPrev.length?(efPrev.reduce((a,b)=>a+b,0)/efPrev.length):null;
+  let efDelta='';
+  if(efAvg!==null&&efPrevAvg!==null&&efPrevAvg>0){const pct=((efAvg-efPrevAvg)/efPrevAvg*100);efDelta=`${pct>0?'+':''}${pct.toFixed(0)}% vs 4 sem. préc.`;}
+
+  // Z2 (60-75% FC max)
+  const z2Low=FC_MAX*0.6, z2High=FC_MAX*0.75;
+  const withHR=recent.filter(a=>a.average_heartrate>0);
+  const z2Count=withHR.filter(a=>a.average_heartrate>=z2Low&&a.average_heartrate<=z2High).length;
+  const z2Pct=withHR.length?(z2Count/withHR.length*100):null;
+  const prevHR=prev.filter(a=>a.average_heartrate>0);
+  const z2PrevCount=prevHR.filter(a=>a.average_heartrate>=z2Low&&a.average_heartrate<=z2High).length;
+  const z2PrevPct=prevHR.length?(z2PrevCount/prevHR.length*100):null;
+  let z2Delta='';
+  if(z2Pct!==null&&z2PrevPct!==null){const diff=z2Pct-z2PrevPct;z2Delta=`${diff>0?'+':''}${diff.toFixed(0)}pts vs 4 sem. préc.`;}
+
+  const sub=(label,value,delta)=>`<div class="perf-card"><div class="perf-card-label">${label}</div><div class="perf-card-value" style="font-size:18px">${value}</div><div class="perf-card-delta neutral">${delta}</div></div>`;
+
+  el.innerHTML=
+    sub('Efficiency Factor', efAvg!==null?efAvg.toFixed(4):'—', efDelta)+
+    sub('Temps en Z2', z2Pct!==null?`${z2Pct.toFixed(0)}%`:'—', z2Delta)+
+    sub('Dérive cardiaque','—','<span title="Nécessite les streams Strava (détail seconde par seconde)">Nécessite les streams Strava</span>');
+}
+
+function renderPerfProjections(activities){
+  const el=document.getElementById('perf-projections');
+  const now=Date.now();
+  const d90=now-90*864e5;
+  const runs=activities.filter(a=>a.sport_type==='Run'&&new Date(a.start_date).getTime()>=d90&&a.distance_m>0&&a.moving_time_s>0);
+
+  // Find best perf for target distances
+  const targets=[{label:'5 km',dist:5000},{label:'10 km',dist:10000},{label:'Semi',dist:21100},{label:'Marathon',dist:42195}];
+  let bestDist=null,bestTime=null;
+
+  // Find best reference perf (closest to any target within ±10%)
+  for(const t of targets){
+    const candidates=runs.filter(a=>a.distance_m>=t.dist*0.9&&a.distance_m<=t.dist*1.1);
+    candidates.forEach(a=>{
+      const speed=a.distance_m/a.moving_time_s;
+      if(!bestDist||speed>(bestDist/bestTime)){
+        bestDist=a.distance_m;bestTime=a.moving_time_s;
+      }
+    });
+  }
+
+  let leftHTML='<h3>Temps de course prédits</h3>';
+  if(!bestDist){
+    leftHTML+=`<div class="empty" style="padding:var(--space-5)"><div class="empty-icon">${eIcon('activity')}</div>Pas assez de données de course (90 derniers jours)</div>`;
+  }else{
+    targets.forEach(t=>{
+      const predicted=perfRiegel(bestDist,bestTime,t.dist);
+      leftHTML+=`<div class="perf-pred-row"><span class="perf-pred-dist">${t.label}</span><span class="perf-pred-time">${perfFmtTime(predicted)}</span></div>`;
+    });
+    leftHTML+=`<div class="perf-pred-note">Basé sur ta meilleure perf des 90 derniers jours (Riegel)</div>`;
+  }
+
+  const rightHTML=`<h3>Prochain objectif</h3>
+    <div style="text-align:center;padding:var(--space-5);color:var(--tx3)">
+      <div style="font-size:14px;margin-bottom:var(--space-3)">Définis ton objectif</div>
+      <button class="perf-cta-btn" onclick="if(typeof initJarvis==='function'){document.querySelector('[data-panel=\\'jarvis\\']').click();setTimeout(()=>{const i=document.getElementById('jarvis-input');if(i){i.value='Aide-moi à définir un objectif running';i.dispatchEvent(new Event('input'));}},300);}">Demander à Jarvis</button>
+    </div>`;
+
+  el.innerHTML=`<div class="perf-proj-card">${leftHTML}</div><div class="perf-proj-card">${rightHTML}</div>`;
+}
+
+function renderPerfJournal(activities){
+  const el=document.getElementById('perf-journal');
+  const last10=activities.slice(0,10);
+  if(!last10.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('activity')}</div>Aucune activité synchronisée</div>`;return;}
+
+  const effortBadge=(score)=>{
+    if(score==null) return '—';
+    if(score<100) return `<span class="perf-badge green">${score}</span>`;
+    if(score<=200) return `<span class="perf-badge amber">${score}</span>`;
+    return `<span class="perf-badge coral">${score}</span>`;
+  };
+
+  let html=`<table class="perf-table"><thead><tr><th>Date</th><th>Séance</th><th>Distance</th><th class="perf-col-pace">Allure</th><th>FC moy</th><th class="perf-col-effort">Effort</th></tr></thead><tbody>`;
+  last10.forEach(a=>{
+    html+=`<tr>
+      <td>${perfFmtDate(a.start_date)}</td>
+      <td>${safe(a.name||'—')}</td>
+      <td>${a.distance_m?(a.distance_m/1000).toFixed(1)+' km':'—'}</td>
+      <td class="perf-col-pace">${perfFmtPace(a.distance_m,a.moving_time_s)}</td>
+      <td>${a.average_heartrate?Math.round(a.average_heartrate):'—'}</td>
+      <td class="perf-col-effort">${effortBadge(a.suffer_score)}</td>
+    </tr>`;
+  });
+  html+=`</tbody></table>`;
+  el.innerHTML=html;
+}
+
+/* ── PERFORMANCE: HISTORY ───────────────────────────────── */
+async function loadPerfHistory(){
+  if(_perfHistLoaded) return;
+  _perfHistLoaded=true;
+  try{
+    const activities=await perfFetchAll();
+    renderPerfHeatmap(activities);
+    renderPerfRecords(activities);
+  }catch(e){
+    console.error('[perf-history]',e);
+    document.getElementById('perf-heatmap').innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('bar-chart-2')}</div>Erreur de chargement</div>`;
+  }
+}
+
+function renderPerfHeatmap(activities){
+  const el=document.getElementById('perf-heatmap');
+  // Build day→minutes map
+  const dayMap=new Map();
+  activities.forEach(a=>{
+    const day=new Date(a.start_date).toISOString().slice(0,10);
+    dayMap.set(day,(dayMap.get(day)||0)+(a.moving_time_s||0)/60);
+  });
+
+  // Build 52 weeks × 7 days grid (most recent week on the right)
+  const now=new Date();
+  now.setUTCHours(0,0,0,0);
+  const today=now.getTime();
+  const dayOfWeek=now.getUTCDay()||7; // Mon=1..Sun=7
+
+  // Colors
+  const colorFor=(mins)=>{
+    if(!mins||mins<=0) return 'var(--bg2)';
+    if(mins<=30) return 'var(--green-bg)';
+    if(mins<=60) return '#86efac';
+    return 'var(--green)';
+  };
+
+  let html='<div class="perf-heatmap-grid">';
+  // Day labels
+  html+='<div class="perf-heatmap-col" style="margin-right:4px">';
+  ['L','M','M','J','V','S','D'].forEach((d,i)=>{
+    html+=`<div style="width:11px;height:11px;font-size:8px;line-height:11px;text-align:center;color:var(--tx3)">${i%2===0?d:''}</div>`;
+  });
+  html+='</div>';
+
+  for(let w=52;w>=0;w--){
+    html+='<div class="perf-heatmap-col">';
+    for(let d=1;d<=7;d++){
+      const offset=(w*7)+(dayOfWeek-d);
+      const cellDate=new Date(today-offset*864e5);
+      const key=cellDate.toISOString().slice(0,10);
+      const mins=dayMap.get(key)||0;
+      const title=`${perfFmtDate(key)}: ${mins>0?Math.round(mins)+' min':'repos'}`;
+      html+=`<div class="perf-heatmap-cell" style="background:${colorFor(mins)}" title="${title}"></div>`;
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+
+  // Legend
+  html+=`<div style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:10px;color:var(--tx3)">
+    <span>Moins</span>
+    <div style="width:11px;height:11px;background:var(--bg2);border-radius:2px"></div>
+    <div style="width:11px;height:11px;background:var(--green-bg);border-radius:2px"></div>
+    <div style="width:11px;height:11px;background:#86efac;border-radius:2px"></div>
+    <div style="width:11px;height:11px;background:var(--green);border-radius:2px"></div>
+    <span>Plus</span>
+  </div>`;
+
+  el.innerHTML=html;
+}
+
+function renderPerfRecords(activities){
+  const el=document.getElementById('perf-records');
+  const runs=activities.filter(a=>a.sport_type==='Run'&&a.distance_m>0&&a.moving_time_s>0);
+
+  const distances=[{label:'1 km',dist:1000},{label:'5 km',dist:5000},{label:'10 km',dist:10000},{label:'Semi (21.1 km)',dist:21100},{label:'Marathon (42.2 km)',dist:42195}];
+
+  let html='<div class="perf-records"><div><h4 style="font-size:13px;font-weight:600;margin-bottom:var(--space-2)">Distance</h4>';
+  let html2='<div><h4 style="font-size:13px;font-weight:600;margin-bottom:var(--space-2)">Record</h4>';
+
+  let found=false;
+  distances.forEach(t=>{
+    const candidates=runs.filter(a=>a.distance_m>=t.dist*0.9&&a.distance_m<=t.dist*1.1);
+    if(!candidates.length){
+      html+=`<div class="perf-record-row"><span>${t.label}</span></div>`;
+      html2+=`<div class="perf-record-row"><span style="color:var(--tx3)">—</span></div>`;
+      return;
+    }
+    found=true;
+    // Normalize: time for exactly target distance at same speed
+    let best=null,bestDate='';
+    candidates.forEach(a=>{
+      const normalized=a.moving_time_s*(t.dist/a.distance_m);
+      if(!best||normalized<best){best=normalized;bestDate=a.start_date;}
+    });
+    html+=`<div class="perf-record-row"><span>${t.label}</span></div>`;
+    html2+=`<div class="perf-record-row"><span class="perf-pred-time">${perfFmtTime(best)}</span><span style="color:var(--tx3);font-size:11px;margin-left:8px">${perfFmtDate(bestDate)}</span></div>`;
+  });
+
+  html+='</div>';html2+='</div>';
+
+  if(!found){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('activity')}</div>Pas encore de courses enregistrées</div>`;
+    return;
+  }
+  el.innerHTML=html+html2;
+}
 
 /* ── SERVICE WORKER REGISTRATION ──────────────────────────── */
 if ('serviceWorker' in navigator) {
