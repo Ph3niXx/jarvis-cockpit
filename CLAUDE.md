@@ -139,6 +139,7 @@ Tables existantes :
 | Mon profil | user_profile | Manuel (depuis le front) |
 | Performance (Vue d'ensemble) | strava_activities (KPIs, graphe charge/forme, projections, journal) | Quotidien (Strava API) |
 | Performance (Historique) | strava_activities (heatmap annuelle, records personnels) | Quotidien (Strava API) |
+| Musique | music_scrobbles, music_stats_daily, music_top_weekly, music_loved_tracks + Last.fm API frontend | Quotidien (Last.fm API) |
 | TFT Matches | tft_matches + tft_match_units + tft_match_traits + tft_match_lobby | Toutes les 2h (Riot API) |
 | Coûts API | weekly_analysis.tokens_used | Hebdomadaire (auto-loggé) |
 | Recherche | articles (full-text ilike) | Temps réel |

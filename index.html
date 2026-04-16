@@ -897,6 +897,52 @@ body.deep-work .count{display:none!important}
 @media(max-width:480px){
   .perf-metrics{grid-template-columns:1fr}
 }
+/* ── MUSIC SECTION ───────────────────────────────────────── */
+.music-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.music-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4)}
+.music-card-label{font-size:13px;color:var(--tx2);margin-bottom:var(--space-1)}
+.music-card-value{font-size:24px;font-weight:700;font-family:var(--mono)}
+.music-card-sub{font-size:12px;margin-top:2px;color:var(--tx3)}
+.music-card-delta{font-size:12px;margin-top:2px}
+.music-card-delta.up{color:var(--green)}.music-card-delta.down{color:var(--coral)}.music-card-delta.neutral{color:var(--tx3)}
+.music-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.music-box{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4)}
+.music-box h3{font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)}
+.music-period-btns{display:flex;gap:4px;margin-bottom:var(--space-3)}
+.music-period-btn{padding:3px 8px;border:1px solid var(--bd);border-radius:var(--radius-sm);background:transparent;color:var(--tx2);font-size:var(--text-xs);cursor:pointer;font-family:var(--font)}
+.music-period-btn.active{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.music-rank-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px}
+.music-rank-num{width:22px;height:22px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.music-rank-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.music-rank-count{font-family:var(--mono);font-size:12px;color:var(--tx3);flex-shrink:0;width:36px;text-align:right}
+.music-rank-bar{height:4px;border-radius:2px;background:var(--blue);margin-top:2px}
+.music-timeline{margin-bottom:24px}
+.music-timeline-sep{text-align:center;color:var(--tx3);font-size:11px;padding:8px 0 4px;letter-spacing:1px}
+.music-timeline-row{display:flex;gap:10px;padding:4px 0;font-size:13px;align-items:baseline}
+.music-timeline-time{width:44px;flex-shrink:0;color:var(--tx3);font-size:11px;font-family:var(--mono)}
+.music-timeline-track{font-weight:600}
+.music-timeline-artist{color:var(--tx2)}
+.music-timeline-album{color:var(--tx3);font-size:12px}
+.music-streak{font-size:28px;font-weight:700;font-family:var(--mono);margin-bottom:var(--space-3)}
+.music-heatmap-wrap{margin-bottom:24px}
+.music-heatmap-grid{display:flex;gap:2px;overflow-x:auto;padding-bottom:var(--space-2)}
+.music-heatmap-col{display:flex;flex-direction:column;gap:2px}
+.music-heatmap-cell{width:11px;height:11px;border-radius:2px}
+.music-discovery-box{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4);margin-bottom:24px}
+.music-badge{display:inline-block;padding:2px 8px;border-radius:var(--radius-full);font-size:11px;font-weight:600}
+.music-badge.explorer{background:var(--green-bg);color:var(--green)}
+.music-badge.comfort{background:var(--amber-bg);color:var(--amber)}
+.music-loved-list{font-size:13px}
+.music-loved-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bd)}
+.music-loved-row:last-child{border-bottom:none}
+@media(max-width:768px){
+  .music-metrics{grid-template-columns:repeat(2,1fr)}
+  .music-two-col{grid-template-columns:1fr}
+  .music-timeline-album{display:none}
+}
+@media(max-width:480px){
+  .music-metrics{grid-template-columns:1fr}
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -951,6 +997,7 @@ body.deep-work .count{display:none!important}
   <symbol id="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></symbol>
   <symbol id="icon-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></symbol>
   <symbol id="icon-bar-chart-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></symbol>
+  <symbol id="icon-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
 </svg>
 
 <!-- MOBILE TOGGLE -->
@@ -1020,6 +1067,13 @@ body.deep-work .count{display:none!important}
     <div class="sb-section-items">
       <button class="sb-link" data-panel="perf-overview" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-activity"/></svg><span class="label">Vue d'ensemble</span></button>
       <button class="sb-link" data-panel="perf-history" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-bar-chart-2"/></svg><span class="label">Historique</span></button>
+    </div>
+  </div>
+
+  <div class="sb-section" data-section="culture" role="tablist" aria-label="Culture">
+    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Culture<span class="sb-section-count" id="sc-culture"></span></button>
+    <div class="sb-section-items">
+      <button class="sb-link" data-panel="music-overview" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-music"/></svg><span class="label">Musique</span></button>
     </div>
   </div>
 
@@ -1370,6 +1424,21 @@ body.deep-work .count{display:none!important}
     </div>
   </div>
 
+  <!-- ── MUSIQUE: VUE D'ENSEMBLE ──────────────────────────── -->
+  <div class="panel" role="tabpanel" id="panel-music-overview">
+    <div class="page-header"><div class="page-title">Musique</div><div class="page-subtitle">Écoutes Apple Music via Last.fm</div></div>
+    <div class="content">
+      <div id="music-metrics" class="music-metrics"></div>
+      <div id="music-two-col" class="music-two-col"></div>
+      <h3 style="font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)">Dernières écoutes</h3>
+      <div id="music-timeline" class="music-timeline"></div>
+      <div id="music-streak-heatmap"></div>
+      <div id="music-discovery"></div>
+      <h3 style="font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)">Favoris</h3>
+      <div id="music-loved"></div>
+    </div>
+  </div>
+
 <div id="speed-read-overlay" class="speed-overlay">
   <div class="speed-header">
     <span class="speed-title" id="speed-title">Speed Read</span>
@@ -1402,6 +1471,9 @@ body.deep-work .count{display:none!important}
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
 const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg","papers"];
+const LASTFM_API_KEY = 'PLACEHOLDER_LASTFM_KEY'; // Replace with your Last.fm API key (public, read-only)
+const LASTFM_USERNAME = 'PLACEHOLDER_LASTFM_USER'; // Replace with your Last.fm username
+const LASTFM_BASE = 'https://ws.audioscrobbler.com/2.0/';
 
 // ── SANITIZE (DOMPurify) — all DB-sourced HTML goes through this
 const safe = (html) => typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(html) : html;
@@ -1696,7 +1768,12 @@ const _mockDB=(()=>{
   return{articles:mockArticles,strava_activities:stravaActivities,wiki_concepts:mockWiki,signal_tracking:mockSignals,daily_briefs:[mockBrief],
     skill_radar:[{axis:'prompting',axis_label:'Prompting',score:7},{axis:'rag',axis_label:'RAG',score:5},{axis:'agents',axis_label:'Agents',score:4},{axis:'fine_tuning',axis_label:'Fine-tuning',score:3},{axis:'mlops',axis_label:'MLOps',score:2},{axis:'ethics',axis_label:'Éthique IA',score:6},{axis:'business',axis_label:'Business IA',score:5},{axis:'coding',axis_label:'Coding IA',score:6}],
     learning_recommendations:[],weekly_challenges:[],weekly_opportunities:[],business_ideas:[],rte_usecases:[],user_profile:[{key:'name',value:'Jean Lakomsky'},{key:'role',value:'RTE - Malakoff Humanis'}],
-    weekly_analysis:[],usage_events:[],tft_matches:[],tft_match_units:[],tft_match_traits:[],tft_match_lobby:[],tft_rank_history:[],jarvis_status_snapshot:[{id:1,snapshot_data:{},generated_at:day(0)}],jarvis_conversations:[],profile_facts:[],entities:[],activity_briefs:[],memories_vectors:[]};
+    weekly_analysis:[],usage_events:[],tft_matches:[],tft_match_units:[],tft_match_traits:[],tft_match_lobby:[],tft_rank_history:[],jarvis_status_snapshot:[{id:1,snapshot_data:{},generated_at:day(0)}],jarvis_conversations:[],profile_facts:[],entities:[],activity_briefs:[],memories_vectors:[],
+    music_scrobbles:(()=>{const tracks=[['Humble','Kendrick Lamar','DAMN.'],['Blinding Lights','The Weeknd','After Hours'],['Starboy','The Weeknd','Starboy'],['Money Trees','Kendrick Lamar','good kid, m.A.A.d city'],['Supernova','Aespa','My World'],['Bohemian Rhapsody','Queen','A Night at the Opera'],['DNA.','Kendrick Lamar','DAMN.'],['Save Your Tears','The Weeknd','After Hours'],['Lose Yourself','Eminem','8 Mile'],['SICKO MODE','Travis Scott','ASTROWORLD'],['Levitating','Dua Lipa','Future Nostalgia'],['Bad Guy','Billie Eilish','WHEN WE ALL FALL ASLEEP'],['Next Level','Aespa','Next Level'],['HUMBLE.','Kendrick Lamar','DAMN.'],['Numb','Linkin Park','Meteora'],['In the End','Linkin Park','Hybrid Theory'],['Radioactive','Imagine Dragons','Night Visions'],['Shape of You','Ed Sheeran','÷'],['Electric Feel','MGMT','Oracular Spectacular'],['Take Five','Dave Brubeck','Time Out']];const s=[];for(let d=0;d<30;d++){const n=Math.floor(Math.random()*8)+3;for(let i=0;i<n;i++){const t=tracks[Math.floor(Math.random()*tracks.length)];const h=6+Math.floor(Math.random()*16);const m=Math.floor(Math.random()*60);s.push({id:`ms-${d}-${i}`,track_name:t[0],artist_name:t[1],album_name:t[2],scrobbled_at:new Date(now.getTime()-d*864e5+h*36e5+m*6e4).toISOString()});}}return s.sort((a,b)=>b.scrobbled_at.localeCompare(a.scrobbled_at));})(),
+    music_stats_daily:(()=>{const s=[];for(let d=0;d<90;d++){const c=Math.floor(Math.random()*15)+2;const ua=Math.floor(Math.random()*8)+2;s.push({stat_date:day(d).slice(0,10),scrobble_count:c,unique_tracks:Math.min(c,Math.floor(Math.random()*10)+2),unique_artists:ua,top_artist:['Kendrick Lamar','The Weeknd','Aespa','Linkin Park','Queen'][Math.floor(Math.random()*5)],top_artist_count:Math.floor(Math.random()*5)+2,listening_minutes:Math.round(c*3.5),new_artists_count:Math.floor(Math.random()*3),top_track:'Humble',top_track_artist:'Kendrick Lamar',top_track_count:Math.floor(Math.random()*3)+1});}return s;})(),
+    music_top_weekly:[{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Kendrick Lamar',play_count:28,rank:1},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'The Weeknd',play_count:19,rank:2},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Aespa',play_count:12,rank:3},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Linkin Park',play_count:8,rank:4},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Queen',play_count:5,rank:5}],
+    music_loved_tracks:[{track_name:'Humble',artist_name:'Kendrick Lamar',loved_at:day(2)},{track_name:'Blinding Lights',artist_name:'The Weeknd',loved_at:day(5)},{track_name:'Bohemian Rhapsody',artist_name:'Queen',loved_at:day(10)},{track_name:'Supernova',artist_name:'Aespa',loved_at:day(15)},{track_name:'Take Five',artist_name:'Dave Brubeck',loved_at:day(20)}],
+    music_scrobbles_raw:[]};
 })();
 
 async function checkAuth(){
@@ -1806,6 +1883,7 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='myweek') loadMyWeek();
     if(panel==='perf-overview') loadPerfOverview();
     if(panel==='perf-history') loadPerfHistory();
+    if(panel==='music-overview') loadMusicOverview();
     // Close mobile sidebar
     if(window.innerWidth<=768) toggleSidebar();
   });
@@ -5221,6 +5299,337 @@ function renderPerfRecords(activities){
     return;
   }
   el.innerHTML=html+html2;
+}
+
+/* ── MUSIC HELPERS ───────────────────────────────────────── */
+
+/** Format minutes to "Xh YYm" */
+function musicFmtDuration(mins){const h=Math.floor(mins/60),m=Math.round(mins%60);return h>0?`${h}h ${String(m).padStart(2,'0')}m`:`${m}m`;}
+
+/** Format number with French thousand separator */
+function musicFmtNum(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
+
+/** Monday of current week at 00:00 UTC */
+function musicWeekStart(d){const dt=new Date(d);const day=dt.getUTCDay();const diff=dt.getUTCDate()-day+(day===0?-6:1);dt.setUTCDate(diff);dt.setUTCHours(0,0,0,0);return dt;}
+
+/* ── MUSIC DATA ─────────────────────────────────────────── */
+let _musicLoaded=false;
+const _musicCache={};
+
+async function musicFetchLastfm(method,params={}){
+  if(_devMode){
+    // Mock Last.fm API responses for dev mode
+    if(method==='user.getInfo') return{user:{playcount:'4287',registered:{'#text':'2020-04-28'}}};
+    if(method==='user.getTopArtists') return{topartists:{artist:[{name:'Kendrick Lamar',playcount:'312'},{name:'The Weeknd',playcount:'245'},{name:'Aespa',playcount:'189'},{name:'Linkin Park',playcount:'156'},{name:'Queen',playcount:'98'}]}};
+    return{};
+  }
+  const url=`${LASTFM_BASE}?method=${method}&user=${LASTFM_USERNAME}&api_key=${LASTFM_API_KEY}&format=json&${new URLSearchParams(params)}`;
+  const r=await fetch(url);
+  if(!r.ok) throw new Error(`Last.fm ${r.status}`);
+  return r.json();
+}
+
+/* ── MUSIC: LOAD ────────────────────────────────────────── */
+async function loadMusicOverview(){
+  if(_musicLoaded) return;
+  try{
+    const [statsAll,scrobbles,topWeekly,loved]=await Promise.all([
+      fetchJSON(`${SUPABASE_URL}/rest/v1/music_stats_daily?select=stat_date,scrobble_count,unique_tracks,unique_artists,top_artist,top_artist_count,listening_minutes,new_artists_count&order=stat_date.desc&limit=90`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/music_scrobbles?select=track_name,artist_name,album_name,scrobbled_at&order=scrobbled_at.desc&limit=20`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/music_top_weekly?select=week_start,category,item_name,secondary_name,play_count,rank&category=eq.artist&order=week_start.desc,rank.asc&limit=5`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/music_loved_tracks?select=track_name,artist_name,loved_at&order=loved_at.desc&limit=10`),
+    ]);
+    _musicLoaded=true;
+    renderMusicMetrics(statsAll);
+    renderMusicTwoCol(topWeekly,statsAll);
+    renderMusicTimeline(scrobbles);
+    renderMusicStreakHeatmap(statsAll);
+    renderMusicDiscovery(statsAll);
+    renderMusicLoved(loved);
+  }catch(e){
+    console.error('[music]',e);
+    document.getElementById('music-metrics').innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${eIcon('music')}</div>Erreur de chargement des données musique</div>`;
+  }
+}
+
+/* ── MUSIC: METRICS ─────────────────────────────────────── */
+function renderMusicMetrics(stats){
+  const el=document.getElementById('music-metrics');
+  if(!stats.length){
+    el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${eIcon('music')}</div>Configure Last.fm et écoute de la musique pour voir tes stats</div>`;
+    return;
+  }
+  const now=new Date();
+  const monday=musicWeekStart(now).toISOString().slice(0,10);
+  const lastMonday=musicWeekStart(new Date(now.getTime()-7*864e5)).toISOString().slice(0,10);
+
+  const thisWeek=stats.filter(s=>s.stat_date>=monday);
+  const lastWeek=stats.filter(s=>s.stat_date>=lastMonday&&s.stat_date<monday);
+  const last7=stats.slice(0,7);
+
+  // Card 1: listening time
+  const minsThis=thisWeek.reduce((s,d)=>s+(d.listening_minutes||0),0);
+  const minsLast=lastWeek.reduce((s,d)=>s+(d.listening_minutes||0),0);
+  const timeDelta=minsLast>0?((minsThis-minsLast)/minsLast*100):null;
+
+  // Card 2: scrobbles 7d
+  const scrob7=last7.reduce((s,d)=>s+(d.scrobble_count||0),0);
+  const avgDay=last7.length?Math.round(scrob7/last7.length):0;
+
+  // Card 3: diversity
+  const total7=scrob7;
+  const uniqArt7=last7.reduce((s,d)=>s+(d.unique_artists||0),0);
+  const divRatio=total7>0?(uniqArt7/total7):0;
+  let divLabel='—',divClass='neutral';
+  if(total7>0){
+    if(divRatio>0.30){divLabel='Diversité haute';divClass='up';}
+    else if(divRatio>=0.15){divLabel='Moyenne';divClass='neutral';}
+    else{divLabel='Basse, tu tournes en boucle';divClass='down';}
+  }
+
+  const card=(label,value,sub,deltaClass)=>`<div class="music-card"><div class="music-card-label">${label}</div><div class="music-card-value">${value}</div><div class="music-card-delta ${deltaClass||'neutral'}">${sub}</div></div>`;
+
+  // Card 4: all-time (async, filled after)
+  el.innerHTML=
+    card('Écoute cette semaine',musicFmtDuration(minsThis),timeDelta!==null?`${timeDelta>0?'+':''}${timeDelta.toFixed(0)}% vs sem. préc.`:'Première semaine',timeDelta===null?'neutral':timeDelta>=0?'up':'down')+
+    card('Scrobbles 7j',scrob7,`${avgDay}/jour en moy.`,'neutral')+
+    card('Diversité',divRatio>0?(divRatio*100).toFixed(0)+'%':'—',divLabel,divClass)+
+    card('All-time','<span id="music-alltime-val">...</span>','<span id="music-alltime-sub"></span>','neutral');
+
+  // Fetch Last.fm user.getInfo for all-time count
+  musicFetchLastfm('user.getInfo').then(data=>{
+    const u=data?.user;
+    if(u){
+      const valEl=document.getElementById('music-alltime-val');
+      const subEl=document.getElementById('music-alltime-sub');
+      if(valEl) valEl.textContent=musicFmtNum(parseInt(u.playcount||0));
+      if(subEl){
+        const regDate=u.registered?.['#text']||u.registered?.unixtime;
+        subEl.textContent=regDate?`depuis ${regDate.slice?regDate.slice(0,10):new Date(regDate*1000).toLocaleDateString('fr-FR')}`:'';
+      }
+    }
+  }).catch(()=>{
+    const valEl=document.getElementById('music-alltime-val');
+    if(valEl) valEl.textContent='—';
+  });
+}
+
+/* ── MUSIC: TOP ARTISTS + PATTERN ───────────────────────── */
+function renderMusicTwoCol(topWeekly,stats){
+  const el=document.getElementById('music-two-col');
+
+  // Left: Top artists
+  let leftHTML=`<div class="music-box"><h3>Top artistes</h3>`;
+  leftHTML+=`<div class="music-period-btns">`;
+  ['7j','1m','3m','1an','All-time'].forEach((label,i)=>{
+    const periods=['7day','1month','3month','12month','overall'];
+    leftHTML+=`<button class="music-period-btn${i===0?' active':''}" data-music-period="${periods[i]}">${label}</button>`;
+  });
+  leftHTML+=`</div><div id="music-top-artists-list"></div></div>`;
+
+  // Right: Listening pattern
+  let rightHTML=`<div class="music-box"><h3>Pattern d'écoute</h3><div id="music-pattern-chart"></div></div>`;
+
+  el.innerHTML=leftHTML+rightHTML;
+
+  // Render initial top artists from Supabase weekly data
+  const maxP=topWeekly.length?Math.max(...topWeekly.map(t=>t.play_count)):1;
+  renderTopArtistsList(topWeekly.map(t=>({name:t.item_name,playcount:t.play_count})),maxP);
+  _musicCache['7day']=topWeekly.map(t=>({name:t.item_name,playcount:t.play_count}));
+
+  // Period buttons
+  document.querySelectorAll('.music-period-btn').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      document.querySelectorAll('.music-period-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const period=btn.dataset.musicPeriod;
+      if(_musicCache[period]){
+        const mx=Math.max(..._musicCache[period].map(a=>parseInt(a.playcount)||1));
+        renderTopArtistsList(_musicCache[period],mx);
+        return;
+      }
+      try{
+        const data=await musicFetchLastfm('user.getTopArtists',{period,limit:5});
+        const artists=(data?.topartists?.artist||[]).map(a=>({name:a.name,playcount:parseInt(a.playcount)||0}));
+        _musicCache[period]=artists;
+        const mx=artists.length?Math.max(...artists.map(a=>a.playcount)):1;
+        renderTopArtistsList(artists,mx);
+      }catch(e){
+        document.getElementById('music-top-artists-list').innerHTML=`<div style="color:var(--tx3);font-size:13px">Données temporairement indisponibles</div>`;
+      }
+    });
+  });
+
+  // Render pattern chart
+  renderMusicPattern(stats);
+}
+
+function renderTopArtistsList(artists,maxP){
+  const el=document.getElementById('music-top-artists-list');
+  if(!artists.length){el.innerHTML=`<div style="color:var(--tx3);font-size:13px;padding:var(--space-3)">Pas encore de données</div>`;return;}
+  el.innerHTML=artists.map((a,i)=>{
+    const pct=maxP>0?Math.round((parseInt(a.playcount)||0)/maxP*100):0;
+    return`<div class="music-rank-row"><span class="music-rank-num">${i+1}</span><span class="music-rank-name">${safe(a.name)}</span><span class="music-rank-count">${a.playcount}</span></div><div class="music-rank-bar" style="width:${pct}%;margin-left:32px;margin-bottom:4px"></div>`;
+  }).join('');
+}
+
+function renderMusicPattern(stats){
+  const el=document.getElementById('music-pattern-chart');
+  const last28=stats.filter(s=>{const d=new Date(s.stat_date);return d>=new Date(Date.now()-28*864e5);});
+  if(!last28.length){el.innerHTML=`<div class="empty">${eIcon('music')} Pas assez de données</div>`;return;}
+
+  // Group by day of week (0=Mon..6=Sun)
+  const byDay=Array(7).fill(null).map(()=>({total:0,count:0}));
+  last28.forEach(s=>{
+    const d=new Date(s.stat_date+'T12:00:00Z');
+    let dow=d.getUTCDay()-1;if(dow<0)dow=6; // Mon=0..Sun=6
+    byDay[dow].total+=s.scrobble_count||0;
+    byDay[dow].count++;
+  });
+  const avgs=byDay.map(d=>d.count>0?d.total/d.count:0);
+  const maxAvg=Math.max(...avgs,1);
+  const labels=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+  const W=280,H=140,pad={t:20,b:40,l:10,r:10};
+  const gW=W-pad.l-pad.r,gH=H-pad.t-pad.b;
+  const barW=gW/7*0.6,gap=gW/7;
+
+  let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">`;
+  avgs.forEach((v,i)=>{
+    const x=pad.l+i*gap+(gap-barW)/2;
+    const barH=(v/maxAvg)*gH;
+    const y=pad.t+gH-barH;
+    svg+=`<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="var(--blue)" opacity="0.8"/>`;
+    svg+=`<text x="${x+barW/2}" y="${pad.t+gH+14}" text-anchor="middle" fill="var(--tx2)" font-size="10" font-family="var(--font)">${labels[i]}</text>`;
+    const durStr=musicFmtDuration(v*3.5);
+    svg+=`<text x="${x+barW/2}" y="${pad.t+gH+26}" text-anchor="middle" fill="var(--tx3)" font-size="8" font-family="var(--mono)">${durStr}</text>`;
+  });
+  svg+=`</svg>`;
+
+  // Weekend vs weekday insight
+  const wkday=avgs.slice(0,5).reduce((a,b)=>a+b,0)/5;
+  const wkend=(avgs[5]+avgs[6])/2;
+  const wkPct=wkday>0?((wkend-wkday)/wkday*100):0;
+  const insight=wkPct>10?`Weekend : +${Math.round(wkPct)}% vs semaine`:wkPct<-10?`Semaine : +${Math.round(-wkPct)}% vs weekend`:'Écoute régulière toute la semaine';
+
+  el.innerHTML=svg+`<div style="font-size:12px;color:var(--tx3);margin-top:var(--space-2)">${insight}</div>`;
+}
+
+/* ── MUSIC: TIMELINE ────────────────────────────────────── */
+function renderMusicTimeline(scrobbles){
+  const el=document.getElementById('music-timeline');
+  if(!scrobbles.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('music')}</div>Aucun scrobble enregistré</div>`;return;}
+
+  let html='',lastDate='';
+  scrobbles.forEach(s=>{
+    const d=new Date(s.scrobbled_at);
+    const dateStr=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+    const timeStr=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    if(dateStr!==lastDate){
+      html+=`<div class="music-timeline-sep">─── ${dateStr} ───</div>`;
+      lastDate=dateStr;
+    }
+    html+=`<div class="music-timeline-row"><span class="music-timeline-time">${timeStr}</span><span class="music-timeline-track">${safe(s.track_name)}</span><span class="music-timeline-artist"> — ${safe(s.artist_name)}</span><span class="music-timeline-album">${s.album_name?safe(s.album_name):''}</span></div>`;
+  });
+  el.innerHTML=html;
+}
+
+/* ── MUSIC: STREAK + HEATMAP ────────────────────────────── */
+function renderMusicStreakHeatmap(stats){
+  const el=document.getElementById('music-streak-heatmap');
+
+  // Streak: consecutive days with scrobbles going back from today
+  const today=new Date().toISOString().slice(0,10);
+  const statMap=new Map(stats.map(s=>[s.stat_date,s.scrobble_count]));
+  let streak=0;
+  for(let i=0;i<365;i++){
+    const d=new Date(Date.now()-i*864e5).toISOString().slice(0,10);
+    if((statMap.get(d)||0)>0) streak++;
+    else break;
+  }
+
+  // Heatmap
+  const now=new Date();now.setUTCHours(0,0,0,0);
+  const todayTs=now.getTime();
+  const dayOfWeek=now.getUTCDay()||7;
+  const colorFor=(c)=>{
+    if(!c||c<=0) return 'var(--bg2)';
+    if(c<=10) return '#C0DD97';
+    if(c<=25) return '#97C459';
+    if(c<=50) return '#639922';
+    return '#3B6D11';
+  };
+
+  let heatmap='<div class="music-heatmap-grid">';
+  heatmap+='<div class="music-heatmap-col" style="margin-right:4px">';
+  ['L','M','M','J','V','S','D'].forEach((d,i)=>{
+    heatmap+=`<div style="width:11px;height:11px;font-size:8px;line-height:11px;text-align:center;color:var(--tx3)">${i%2===0?d:''}</div>`;
+  });
+  heatmap+='</div>';
+
+  for(let w=52;w>=0;w--){
+    heatmap+='<div class="music-heatmap-col">';
+    for(let d=1;d<=7;d++){
+      const offset=(w*7)+(dayOfWeek-d);
+      const cellDate=new Date(todayTs-offset*864e5);
+      const key=cellDate.toISOString().slice(0,10);
+      const count=statMap.get(key)||0;
+      const title=`${perfFmtDate(key)}: ${count} scrobbles`;
+      heatmap+=`<div class="music-heatmap-cell" style="background:${colorFor(count)}" title="${title}"></div>`;
+    }
+    heatmap+='</div>';
+  }
+  heatmap+='</div>';
+  heatmap+=`<div style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:10px;color:var(--tx3)"><span>Moins</span><div style="width:11px;height:11px;background:var(--bg2);border-radius:2px"></div><div style="width:11px;height:11px;background:#C0DD97;border-radius:2px"></div><div style="width:11px;height:11px;background:#97C459;border-radius:2px"></div><div style="width:11px;height:11px;background:#639922;border-radius:2px"></div><div style="width:11px;height:11px;background:#3B6D11;border-radius:2px"></div><span>Plus</span></div>`;
+
+  el.innerHTML=`<div style="display:flex;align-items:baseline;gap:16px;margin-bottom:var(--space-3)"><h3 style="font-size:var(--text-base);font-weight:600">Régularité</h3><div class="music-streak">${streak>0?`🔥 ${streak} jour${streak>1?'s':''}`:'—'}</div></div><div class="music-heatmap-wrap">${heatmap}</div>`;
+}
+
+/* ── MUSIC: DISCOVERY VS COMFORT ────────────────────────── */
+function renderMusicDiscovery(stats){
+  const el=document.getElementById('music-discovery');
+  const last28=stats.filter(s=>new Date(s.stat_date)>=new Date(Date.now()-28*864e5));
+  const last7=stats.slice(0,7);
+  if(!last7.length){el.innerHTML='';return;}
+
+  const newArt7=last7.reduce((s,d)=>s+(d.new_artists_count||0),0);
+  const uniqArt7=last7.reduce((s,d)=>s+(d.unique_artists||0),0);
+  const ratio=uniqArt7>0?(newArt7/uniqArt7):0;
+  const pct=Math.round(ratio*100);
+  let badge='',badgeClass='';
+  if(pct>30){badge='Explorateur';badgeClass='explorer';}
+  else if(pct<10){badge='Confort zone';badgeClass='comfort';}
+
+  // Sparkline (28 days, oldest→newest)
+  const sorted=[...last28].sort((a,b)=>a.stat_date.localeCompare(b.stat_date));
+  const points=sorted.map(d=>{
+    const ua=d.unique_artists||1;
+    return(d.new_artists_count||0)/ua;
+  });
+  const maxP=Math.max(...points,0.01);
+  const svgW=200,svgH=30;
+  let sparkSvg=`<svg viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}" style="display:block;margin-top:var(--space-2)">`;
+  if(points.length>1){
+    const d=points.map((v,i)=>{const x=(i/(points.length-1))*svgW;const y=svgH-(v/maxP)*svgH*0.8-2;return`${i===0?'M':'L'}${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ');
+    sparkSvg+=`<path d="${d}" fill="none" stroke="var(--green)" stroke-width="1.5"/>`;
+  }
+  sparkSvg+=`</svg>`;
+
+  el.innerHTML=`<div class="music-discovery-box"><div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-2)"><h3 style="font-size:var(--text-base);font-weight:600;margin:0">Découverte vs confort</h3>${badge?`<span class="music-badge ${badgeClass}">${badge}</span>`:''}</div><div style="font-size:14px"><strong>${newArt7}</strong> nouveaux artistes cette semaine <span style="color:var(--tx3)">(${pct}% de découverte)</span></div>${sparkSvg}<div style="font-size:11px;color:var(--tx3);margin-top:var(--space-1)">Ratio découverte sur 4 semaines</div></div>`;
+}
+
+/* ── MUSIC: LOVED TRACKS ────────────────────────────────── */
+function renderMusicLoved(loved){
+  const el=document.getElementById('music-loved');
+  if(!loved.length){el.innerHTML=`<div class="empty" style="padding:var(--space-4)"><div class="empty-icon">${eIcon('music')}</div>Pas encore de favoris</div>`;return;}
+
+  let html=`<div style="font-size:12px;color:var(--tx3);margin-bottom:var(--space-2)">${loved.length} favori${loved.length>1?'s':''}</div><div class="music-loved-list">`;
+  loved.forEach(l=>{
+    const d=new Date(l.loved_at);
+    html+=`<div class="music-loved-row"><span><strong>${safe(l.track_name)}</strong> — ${safe(l.artist_name)}</span><span style="color:var(--tx3);font-size:11px">${perfFmtDate(l.loved_at)}</span></div>`;
+  });
+  html+='</div>';
+  el.innerHTML=html;
 }
 
 /* ── SERVICE WORKER REGISTRATION ──────────────────────────── */
