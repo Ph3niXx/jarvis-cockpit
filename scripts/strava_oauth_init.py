@@ -128,7 +128,7 @@ def main():
         "redirect_uri": REDIRECT_URI,
         "response_type": "code",
         "scope": SCOPES,
-        "approval_prompt": "auto",
+        "approval_prompt": "force",
     })
     auth_url = f"{STRAVA_AUTH_URL}?{auth_params}"
 
