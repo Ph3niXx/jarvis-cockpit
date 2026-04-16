@@ -1,0 +1,30 @@
+name: Last.fm — Scrobble Sync
+
+on:
+  schedule:
+    # Quotidien à 5h UTC (7h Paris), après les autres pipelines
+    - cron: '0 5 * * *'
+  workflow_dispatch:  # Lancement manuel
+
+jobs:
+  lastfm-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r pipelines/requirements-lastfm.txt
+
+      - name: Run Last.fm sync
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_USERNAME: ${{ secrets.LASTFM_USERNAME }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python pipelines/lastfm_sync.py

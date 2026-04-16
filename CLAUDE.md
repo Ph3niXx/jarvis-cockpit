@@ -30,6 +30,8 @@ Cockpit IA personnel pour un manager en transformation digitale qui veut :
   - API Riot TFT → Supabase (matchs, compos, lobby, rank)
 - **Pipeline Strava** : `pipelines/strava_sync.py` via GitHub Actions (quotidien 4h30 UTC)
   - API Strava → Supabase (activités sportives, raw + mappé)
+- **Pipeline Last.fm** : `pipelines/lastfm_sync.py` via GitHub Actions (quotidien 5h UTC)
+  - API Last.fm → Supabase (scrobbles, stats quotidiennes, tops hebdo, loved tracks)
 - **Email** : Gmail SMTP notification quotidienne
 - **MCP Supabase** : connecteur direct disponible dans Claude Code (apply_migration, execute_sql, etc.) — nécessite OAuth au début de chaque session
 
@@ -52,6 +54,10 @@ jarvis_data/                         # Données perso Jarvis (non versionné)
 scripts/strava_oauth_init.py         # Script one-shot OAuth Strava (local)
 pipelines/strava_sync.py             # Pipeline sync Strava → Supabase
 pipelines/requirements-strava.txt    # Dépendances isolées pour le pipeline Strava
+pipelines/lastfm_sync.py             # Pipeline sync Last.fm → Supabase
+pipelines/requirements-lastfm.txt    # Dépendances isolées pour le pipeline Last.fm
+.github/workflows/lastfm-sync.yml   # Cron Last.fm quotidien 5h UTC
+docs/lastfm-setup.md                 # Procédure de setup Last.fm
 docs/strava-setup.md                 # Procédure de setup Strava
 CLAUDE.md                            # Ce fichier
 ```
@@ -72,6 +78,8 @@ RIOT_PUUID          # PUUID du joueur TFT à tracker
 STRAVA_CLIENT_ID    # Strava API app client ID
 STRAVA_CLIENT_SECRET # Strava API app client secret
 STRAVA_REFRESH_TOKEN # Strava OAuth2 refresh token (obtenu via scripts/strava_oauth_init.py)
+LASTFM_API_KEY      # Last.fm API key (https://www.last.fm/api/account/create)
+LASTFM_USERNAME     # Last.fm username
 ```
 
 ### Base de données Supabase
@@ -97,6 +105,13 @@ Tables existantes :
 - `tft_match_traits` — traits de la compo finale (trait_id brut + trait_name nettoyé, style, tier, is_active)
 - `tft_match_lobby` — 7 adversaires par match (placement, main_traits, main_carry, dénormalisé)
 - `tft_rank_history` — snapshot quotidien du rang ranked (tier, rank, LP, wins, losses)
+
+**Tables Last.fm / Musique :**
+- `music_scrobbles_raw` — payloads JSON bruts des pages Last.fm (archive, service_role only)
+- `music_scrobbles` — une ligne par écoute (track, artist, album, scrobbled_at, MBIDs)
+- `music_stats_daily` — agrégats quotidiens (scrobble_count, unique artists/tracks, top artist/track, listening_minutes, new_artists_count)
+- `music_top_weekly` — top 10 artistes/tracks/albums par semaine (category, item_name, play_count, rank)
+- `music_loved_tracks` — titres "loved" avec date
 
 **Tables Strava :**
 - `strava_activities_raw` — archive brute des réponses API (id Strava, athlete_id, payload JSONB complet, fetched_at)
