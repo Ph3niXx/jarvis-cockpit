@@ -1637,17 +1637,19 @@ async function handleLogout(){
 }
 
 // ── DEV MODE (localhost only) ──────────────────────────────
-// Set once in browser console: localStorage.setItem('sb-dev-key','your_service_role_key')
+// Auto-activates on localhost: bypasses OAuth, uses legacy anon JWT (strava tables allow anon SELECT)
 const _isLocalhost = ['localhost','127.0.0.1',''].includes(location.hostname);
-const _devKey = _isLocalhost && localStorage.getItem('sb-dev-key');
-if(_devKey){
-  headers = {"apikey":_devKey,"Authorization":`Bearer ${_devKey}`};
-  console.info('[dev] Using service key from localStorage — auth bypassed');
+const _devMode = _isLocalhost && (new URLSearchParams(location.search).has('dev') || localStorage.getItem('sb-dev-mode'));
+if(_devMode){
+  const _anonJWT='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ybWdwdHFwZmx6eWF2ZGZxd3d2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDY5ODUsImV4cCI6MjA5MDgyMjk4NX0.lrnMBVGQ_t4xCz3_JAMxng4NVzEW8Iq8Uq-SerXIa5w';
+  headers={"apikey":_anonJWT,"Authorization":`Bearer ${_anonJWT}`};
+  localStorage.setItem('sb-dev-mode','1');
+  console.info('[dev] Localhost dev mode — auth bypassed, anon JWT active');
 }
 
 async function checkAuth(){
-  // Dev bypass: skip OAuth on localhost when sb-dev-key is set
-  if(_devKey){
+  // Dev bypass: skip OAuth on localhost
+  if(_devMode){
     document.getElementById('login-overlay').style.display='none';
     document.getElementById('logout-btn').style.display='';
     init();
@@ -4759,9 +4761,9 @@ async function perfFetchAll(){
 /* ── PERFORMANCE: OVERVIEW ──────────────────────────────── */
 async function loadPerfOverview(){
   if(_perfLoaded) return;
-  _perfLoaded=true;
   try{
     const activities=await perfFetchAll();
+    _perfLoaded=true;
     renderPerfMetrics(activities);
     renderPerfChart(activities, 12);
     renderPerfSubMetrics(activities);
@@ -5009,9 +5011,9 @@ function renderPerfJournal(activities){
 /* ── PERFORMANCE: HISTORY ───────────────────────────────── */
 async function loadPerfHistory(){
   if(_perfHistLoaded) return;
-  _perfHistLoaded=true;
   try{
     const activities=await perfFetchAll();
+    _perfHistLoaded=true;
     renderPerfHeatmap(activities);
     renderPerfRecords(activities);
   }catch(e){
