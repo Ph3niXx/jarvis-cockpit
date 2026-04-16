@@ -55,13 +55,41 @@ def refresh_access_token(client_id, client_secret, refresh_token):
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
     }, timeout=30)
-    resp.raise_for_status()
+    if resp.status_code != 200:
+        raise RuntimeError(
+            f"Token refresh failed ({resp.status_code}): {resp.text}"
+        )
     data = resp.json()
     access_token = data.get("access_token")
     if not access_token:
         raise ValueError(f"No access_token in refresh response: {data}")
-    print(f"[strava] Access token refreshed (expires {data.get('expires_at', '?')})")
+    scopes = data.get("scope", "???")
+    token_type = data.get("token_type", "???")
+    print(f"[strava] Access token refreshed (type={token_type}, scopes={scopes}, expires={data.get('expires_at', '?')})")
+    if "activity:read_all" not in scopes and "activity:read" not in scopes:
+        print(f"[strava] WARNING: scopes '{scopes}' may not include activity read permission!")
+        print(f"[strava] Re-run scripts/strava_oauth_init.py to re-authorize with correct scopes.")
     return access_token
+
+
+def strava_get(access_token, path, params=None):
+    """Make an authenticated GET to the Strava API with error context."""
+    url = f"{STRAVA_API_BASE}{path}"
+    resp = requests.get(
+        url,
+        headers={"Authorization": f"Bearer {access_token}"},
+        params=params,
+        timeout=30,
+    )
+    if resp.status_code == 401:
+        raise RuntimeError(
+            f"Strava 401 Unauthorized on {path}. "
+            f"Response: {resp.text}. "
+            f"The refresh_token may have been revoked or the scopes are insufficient. "
+            f"Re-run: python scripts/strava_oauth_init.py"
+        )
+    resp.raise_for_status()
+    return resp.json()
 
 
 def fetch_activity_list(access_token, after_ts):
@@ -69,14 +97,9 @@ def fetch_activity_list(access_token, after_ts):
     activities = []
     page = 1
     while True:
-        resp = requests.get(
-            f"{STRAVA_API_BASE}/athlete/activities",
-            headers={"Authorization": f"Bearer {access_token}"},
-            params={"after": int(after_ts), "per_page": 30, "page": page},
-            timeout=30,
-        )
-        resp.raise_for_status()
-        batch = resp.json()
+        batch = strava_get(access_token, "/athlete/activities", {
+            "after": int(after_ts), "per_page": 30, "page": page,
+        })
         if not batch:
             break
         activities.extend(batch)
@@ -89,13 +112,7 @@ def fetch_activity_list(access_token, after_ts):
 
 def fetch_activity_detail(access_token, activity_id):
     """Fetch full activity details by id."""
-    resp = requests.get(
-        f"{STRAVA_API_BASE}/activities/{activity_id}",
-        headers={"Authorization": f"Bearer {access_token}"},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    return strava_get(access_token, f"/activities/{activity_id}")
 
 
 # ---------------------------------------------------------------------------
