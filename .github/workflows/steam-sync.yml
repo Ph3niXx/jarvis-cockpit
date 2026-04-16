@@ -1,0 +1,30 @@
+name: Steam — Gaming Sync
+
+on:
+  schedule:
+    # Quotidien à 5h30 UTC (7h30 Paris), après Last.fm
+    - cron: '30 5 * * *'
+  workflow_dispatch:  # Lancement manuel
+
+jobs:
+  steam-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r pipelines/requirements-steam.txt
+
+      - name: Run Steam sync
+        env:
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          STEAM_ID: ${{ secrets.STEAM_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python pipelines/steam_sync.py --force

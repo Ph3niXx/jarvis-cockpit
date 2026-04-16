@@ -32,6 +32,8 @@ Cockpit IA personnel pour un manager en transformation digitale qui veut :
   - API Strava → Supabase (activités sportives, raw + mappé)
 - **Pipeline Last.fm** : `pipelines/lastfm_sync.py` via GitHub Actions (quotidien 5h UTC)
   - API Last.fm → Supabase (scrobbles, stats quotidiennes, tops hebdo, loved tracks)
+- **Pipeline Steam** : `pipelines/steam_sync.py` via GitHub Actions (quotidien 5h30 UTC)
+  - API Steam → Supabase (bibliothèque, playtime, achievements, stats gaming)
 - **Email** : Gmail SMTP notification quotidienne
 - **MCP Supabase** : connecteur direct disponible dans Claude Code (apply_migration, execute_sql, etc.) — nécessite OAuth au début de chaque session
 
@@ -58,6 +60,10 @@ pipelines/lastfm_sync.py             # Pipeline sync Last.fm → Supabase
 pipelines/requirements-lastfm.txt    # Dépendances isolées pour le pipeline Last.fm
 .github/workflows/lastfm-sync.yml   # Cron Last.fm quotidien 5h UTC
 docs/lastfm-setup.md                 # Procédure de setup Last.fm
+pipelines/steam_sync.py              # Pipeline sync Steam → Supabase
+pipelines/requirements-steam.txt     # Dépendances isolées pour le pipeline Steam
+.github/workflows/steam-sync.yml    # Cron Steam quotidien 5h30 UTC
+docs/steam-setup.md                  # Procédure de setup Steam
 docs/strava-setup.md                 # Procédure de setup Strava
 CLAUDE.md                            # Ce fichier
 ```
@@ -80,6 +86,8 @@ STRAVA_CLIENT_SECRET # Strava API app client secret
 STRAVA_REFRESH_TOKEN # Strava OAuth2 refresh token (obtenu via scripts/strava_oauth_init.py)
 LASTFM_API_KEY      # Last.fm API key (https://www.last.fm/api/account/create)
 LASTFM_USERNAME     # Last.fm username
+STEAM_API_KEY       # Steam Web API key (https://steamcommunity.com/dev/apikey)
+STEAM_ID            # Steam ID 64-bit (17 chiffres)
 ```
 
 ### Base de données Supabase
@@ -117,6 +125,12 @@ Tables existantes :
 - `music_artist_tags` — cache tags/genres par artiste (top_tag, tags[], fetched_at, refresh 90j)
 - `music_genre_weekly` — répartition genres par semaine (genre, scrobble_count, percentage, rank)
 - `music_insights_weekly` — récap IA hebdo généré par Gemini (summary, mood_keywords, discovery_ratio)
+
+**Tables Steam / Gaming :**
+- `steam_games_snapshot` — snapshot quotidien bibliothèque (appid, name, playtime_forever, playtime_2weeks, snapshot_date)
+- `steam_game_details` — cache enrichissement Store API (genres, categories, developer, header_image, description)
+- `steam_achievements` — achievements débloqués (appid, api_name, display_name, unlocked_at)
+- `gaming_stats_daily` — stats quotidiennes agrégées (total_playtime_minutes, games_played_count, top_game)
 
 **Tables Strava :**
 - `strava_activities_raw` — archive brute des réponses API (id Strava, athlete_id, payload JSONB complet, fetched_at)
