@@ -28,6 +28,8 @@ Cockpit IA personnel pour un manager en transformation digitale qui veut :
   - Claude Haiku 4.5 (~0.03$/run) pour wiki, signaux, recommandations, challenges, opportunités, RTE
 - **Pipeline TFT** : `tft_pipeline.py` via GitHub Actions (toutes les 2h)
   - API Riot TFT → Supabase (matchs, compos, lobby, rank)
+- **Pipeline Strava** : `pipelines/strava_sync.py` via GitHub Actions (quotidien 4h30 UTC)
+  - API Strava → Supabase (activités sportives, raw + mappé)
 - **Email** : Gmail SMTP notification quotidienne
 - **MCP Supabase** : connecteur direct disponible dans Claude Code (apply_migration, execute_sql, etc.) — nécessite OAuth au début de chaque session
 
@@ -46,6 +48,11 @@ jarvis_data/                         # Données perso Jarvis (non versionné)
 .github/workflows/daily_digest.yml   # Cron quotidien
 .github/workflows/weekly_analysis.yml # Cron hebdomadaire
 .github/workflows/tft-sync.yml      # Cron TFT toutes les 2h
+.github/workflows/strava-sync.yml   # Cron Strava quotidien 4h30 UTC
+scripts/strava_oauth_init.py         # Script one-shot OAuth Strava (local)
+pipelines/strava_sync.py             # Pipeline sync Strava → Supabase
+pipelines/requirements-strava.txt    # Dépendances isolées pour le pipeline Strava
+docs/strava-setup.md                 # Procédure de setup Strava
 CLAUDE.md                            # Ce fichier
 ```
 
@@ -62,6 +69,9 @@ SUPABASE_USER_ID    # UUID de l'utilisateur Supabase auth
 ANTHROPIC_API_KEY   # Claude API
 RIOT_API_KEY        # Riot Games Developer API key (https://developer.riotgames.com)
 RIOT_PUUID          # PUUID du joueur TFT à tracker
+STRAVA_CLIENT_ID    # Strava API app client ID
+STRAVA_CLIENT_SECRET # Strava API app client secret
+STRAVA_REFRESH_TOKEN # Strava OAuth2 refresh token (obtenu via scripts/strava_oauth_init.py)
 ```
 
 ### Base de données Supabase
@@ -87,6 +97,10 @@ Tables existantes :
 - `tft_match_traits` — traits de la compo finale (trait_id brut + trait_name nettoyé, style, tier, is_active)
 - `tft_match_lobby` — 7 adversaires par match (placement, main_traits, main_carry, dénormalisé)
 - `tft_rank_history` — snapshot quotidien du rang ranked (tier, rank, LP, wins, losses)
+
+**Tables Strava :**
+- `strava_activities_raw` — archive brute des réponses API (id Strava, athlete_id, payload JSONB complet, fetched_at)
+- `strava_activities` — données mappées pour le cockpit (sport_type, distance_m, moving_time_s, heartrate, watts, calories, etc.)
 
 **RLS (après migration 006)** : toutes les tables requièrent `authenticated` pour SELECT. 4 tables frontend (business_ideas, user_profile, skill_radar, tft_matches) ont aussi INSERT/UPDATE pour `authenticated`. Anon ne peut plus rien lire. Les pipelines backend (main.py, weekly_analysis.py, tft_pipeline.py, Jarvis) utilisent `service_role` key qui bypass RLS.
 
