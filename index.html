@@ -3763,7 +3763,8 @@ function tftChampImg(charId){
 }
 function tftItemImg(itemName){
   if(!itemName) return '';
-  return `${TFT_CDN}/assets/maps/tft/icons/items/hexcore/tft_item_${itemName.toLowerCase()}.tft_set13.png`;
+  const n=itemName.toLowerCase().replace(/emblemitem$/,'emblem');
+  return `${TFT_CDN}/assets/maps/tft/icons/items/hexcore/tft_item_${n}.tft_set13.png`;
 }
 function tftImgFallback(el,label){
   el.onerror=null;
@@ -3964,7 +3965,7 @@ function renderTftTable(){
   const fmtDur=(s)=>s?Math.floor(s/60)+'m'+String(Math.floor(s%60)).padStart(2,'0'):'—';
 
   tableEl.innerHTML=filtered.map(m=>{
-    const traits=(tftTraitsCache[m.match_id]||[]).filter(t=>t.style>=2&&!t.trait_name.includes('Unique')).sort((a,b)=>(b.style||0)-(a.style||0));
+    const traits=(tftTraitsCache[m.match_id]||[]).filter(t=>t.style>=1).sort((a,b)=>(b.style||0)-(a.style||0));
     const units=(tftUnitsCache[m.match_id]||[]).sort((a,b)=>(b.cost||0)-(a.cost||0));
     return `<div class="tft-match-card" onclick="openTftDetail('${m.match_id}')">
       ${tftPlaceHtml(m.placement)}
