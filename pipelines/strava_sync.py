@@ -27,9 +27,8 @@ import requests
 STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
 STRAVA_API_BASE = "https://www.strava.com/api/v3"
 
-# How many days back to fetch (avoids full re-fetch every run)
-# First run uses --backfill flag for full history, daily runs use 30 days
-LOOKBACK_DAYS = 30
+# How many days back to fetch — 1 year by default, idempotent upserts so no dupes
+LOOKBACK_DAYS = 365
 
 # Strava rate limits: 100 req/15min, 1000/day
 DELAY_BETWEEN_DETAIL_CALLS = 1.0  # seconds
@@ -304,8 +303,9 @@ def sync(dry_run=False):
 
 if __name__ == "__main__":
     dry_run_mode = "--dry-run" in sys.argv
-    backfill_mode = "--backfill" in sys.argv
-    if backfill_mode:
-        LOOKBACK_DAYS = 730  # ~2 years
-        print(f"[strava] BACKFILL mode: fetching last {LOOKBACK_DAYS} days")
+    # Override lookback: --days=N
+    for arg in sys.argv:
+        if arg.startswith("--days="):
+            LOOKBACK_DAYS = int(arg.split("=")[1])
+            print(f"[strava] Custom lookback: {LOOKBACK_DAYS} days")
     sync(dry_run=dry_run_mode)
