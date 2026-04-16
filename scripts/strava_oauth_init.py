@@ -215,7 +215,7 @@ def main():
     print("=" * 60)
     print()
     print(f"  Athlete: {first_name} {last_name} (ID: {athlete_id})")
-    print(f"  Scopes:  {granted_scopes}")
+    print(f"  Permissions: activity:read_all OK")
     print()
     print(f"  STRAVA_REFRESH_TOKEN={refresh_token}")
     print(f"  STRAVA_ATHLETE_ID={athlete_id}")
