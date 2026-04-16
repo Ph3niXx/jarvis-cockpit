@@ -1471,8 +1471,9 @@ body.deep-work .count{display:none!important}
 const SUPABASE_URL = "https://mrmgptqpflzyavdfqwwv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_EvHJAk2BOwXN23stOddXQQ_AAzbKw5e";
 const SECTIONS = ["updates","llm","agents","energy","finserv","tools","biz","reg","papers"];
-const LASTFM_API_KEY = 'PLACEHOLDER_LASTFM_KEY'; // Replace with your Last.fm API key (public, read-only)
-const LASTFM_USERNAME = 'PLACEHOLDER_LASTFM_USER'; // Replace with your Last.fm username
+// Last.fm credentials loaded from Supabase user_profile at runtime (not hardcoded)
+let LASTFM_API_KEY = '';
+let LASTFM_USERNAME = '';
 const LASTFM_BASE = 'https://ws.audioscrobbler.com/2.0/';
 
 // ── SANITIZE (DOMPurify) — all DB-sourced HTML goes through this
@@ -5333,6 +5334,14 @@ async function musicFetchLastfm(method,params={}){
 async function loadMusicOverview(){
   if(_musicLoaded) return;
   try{
+    // Load Last.fm credentials from user_profile if not yet set
+    if(!LASTFM_API_KEY||!LASTFM_USERNAME){
+      const profile=await fetchJSON(`${SUPABASE_URL}/rest/v1/user_profile?select=key,value&key=in.(lastfm_api_key,lastfm_username)`);
+      profile.forEach(r=>{
+        if(r.key==='lastfm_api_key') LASTFM_API_KEY=r.value;
+        if(r.key==='lastfm_username') LASTFM_USERNAME=r.value;
+      });
+    }
     const [statsAll,scrobbles,topWeekly,loved]=await Promise.all([
       fetchJSON(`${SUPABASE_URL}/rest/v1/music_stats_daily?select=stat_date,scrobble_count,unique_tracks,unique_artists,top_artist,top_artist_count,listening_minutes,new_artists_count&order=stat_date.desc&limit=90`),
       fetchJSON(`${SUPABASE_URL}/rest/v1/music_scrobbles?select=track_name,artist_name,album_name,scrobbled_at&order=scrobbled_at.desc&limit=20`),
