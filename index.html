@@ -935,6 +935,14 @@ body.deep-work .count{display:none!important}
 .music-loved-list{font-size:13px}
 .music-loved-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bd)}
 .music-loved-row:last-child{border-bottom:none}
+.music-insight-box{background:var(--bg2);border-radius:var(--radius);padding:var(--space-5);margin-bottom:24px;line-height:1.6;font-size:14px}
+.music-insight-header{font-size:13px;font-weight:600;color:var(--tx2);margin-bottom:var(--space-2)}
+.music-genre-box{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius);padding:var(--space-4);margin-bottom:24px}
+.music-genre-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px}
+.music-genre-label{width:100px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;flex-shrink:0}
+.music-genre-bar-wrap{flex:1;height:16px;background:var(--bg2);border-radius:8px;overflow:hidden}
+.music-genre-bar-fill{height:100%;border-radius:8px;transition:width .3s}
+.music-genre-pct{width:40px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--tx3);flex-shrink:0}
 @media(max-width:768px){
   .music-metrics{grid-template-columns:repeat(2,1fr)}
   .music-two-col{grid-template-columns:1fr}
@@ -1428,8 +1436,10 @@ body.deep-work .count{display:none!important}
   <div class="panel" role="tabpanel" id="panel-music-overview">
     <div class="page-header"><div class="page-title">Musique</div><div class="page-subtitle">Écoutes Apple Music via Last.fm</div></div>
     <div class="content">
+      <div id="music-insight"></div>
       <div id="music-metrics" class="music-metrics"></div>
       <div id="music-two-col" class="music-two-col"></div>
+      <div id="music-genres"></div>
       <h3 style="font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)">Dernières écoutes</h3>
       <div id="music-timeline" class="music-timeline"></div>
       <div id="music-streak-heatmap"></div>
@@ -1774,7 +1784,10 @@ const _mockDB=(()=>{
     music_stats_daily:(()=>{const s=[];for(let d=0;d<90;d++){const c=Math.floor(Math.random()*15)+2;const ua=Math.floor(Math.random()*8)+2;s.push({stat_date:day(d).slice(0,10),scrobble_count:c,unique_tracks:Math.min(c,Math.floor(Math.random()*10)+2),unique_artists:ua,top_artist:['Kendrick Lamar','The Weeknd','Aespa','Linkin Park','Queen'][Math.floor(Math.random()*5)],top_artist_count:Math.floor(Math.random()*5)+2,listening_minutes:Math.round(c*3.5),new_artists_count:Math.floor(Math.random()*3),top_track:'Humble',top_track_artist:'Kendrick Lamar',top_track_count:Math.floor(Math.random()*3)+1});}return s;})(),
     music_top_weekly:[{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Kendrick Lamar',play_count:28,rank:1},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'The Weeknd',play_count:19,rank:2},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Aespa',play_count:12,rank:3},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Linkin Park',play_count:8,rank:4},{week_start:weekAgo(0).slice(0,10),category:'artist',item_name:'Queen',play_count:5,rank:5}],
     music_loved_tracks:[{track_name:'Humble',artist_name:'Kendrick Lamar',loved_at:day(2)},{track_name:'Blinding Lights',artist_name:'The Weeknd',loved_at:day(5)},{track_name:'Bohemian Rhapsody',artist_name:'Queen',loved_at:day(10)},{track_name:'Supernova',artist_name:'Aespa',loved_at:day(15)},{track_name:'Take Five',artist_name:'Dave Brubeck',loved_at:day(20)}],
-    music_scrobbles_raw:[]};
+    music_scrobbles_raw:[],
+    music_genre_weekly:(()=>{const d=new Date(now);const wd=d.getUTCDay();const diff=d.getUTCDate()-wd+(wd===0?-6:1);d.setUTCDate(diff);d.setUTCHours(0,0,0,0);const mon=d.toISOString().slice(0,10);return[{week_start:mon,genre:'hip-hop',scrobble_count:28,percentage:38,rank:1},{week_start:mon,genre:'pop',scrobble_count:15,percentage:20,rank:2},{week_start:mon,genre:'k-pop',scrobble_count:12,percentage:16,rank:3},{week_start:mon,genre:'rock',scrobble_count:10,percentage:14,rank:4},{week_start:mon,genre:'jazz',scrobble_count:5,percentage:7,rank:5},{week_start:mon,genre:'electronic',scrobble_count:4,percentage:5,rank:6}];})(),
+    music_insights_weekly:(()=>{const d=new Date(now);const wd=d.getUTCDay();const diff=d.getUTCDate()-wd+(wd===0?-6:1);d.setUTCDate(diff);d.setUTCHours(0,0,0,0);const mon=d.toISOString().slice(0,10);return[{week_start:mon,summary:"Semaine dominée par le hip-hop avec Kendrick en tête — ton mood semble intense et focalisé. Surprise : Dave Brubeck dans tes écoutes montre une vraie diversité de goûts. Tu pourrais explorer le jazz-hop (Robert Glasper, Nujabes) pour fusionner tes deux mondes."}];})(),
+    music_artist_tags:[]};
 })();
 
 async function checkAuth(){
@@ -5342,15 +5355,20 @@ async function loadMusicOverview(){
         if(r.key==='lastfm_username') LASTFM_USERNAME=r.value;
       });
     }
-    const [statsAll,scrobbles,topWeekly,loved]=await Promise.all([
+    const monday=musicWeekStart(new Date()).toISOString().slice(0,10);
+    const [statsAll,scrobbles,topWeekly,loved,genres,insights]=await Promise.all([
       fetchJSON(`${SUPABASE_URL}/rest/v1/music_stats_daily?select=stat_date,scrobble_count,unique_tracks,unique_artists,top_artist,top_artist_count,listening_minutes,new_artists_count&order=stat_date.desc&limit=90`),
       fetchJSON(`${SUPABASE_URL}/rest/v1/music_scrobbles?select=track_name,artist_name,album_name,scrobbled_at&order=scrobbled_at.desc&limit=20`),
       fetchJSON(`${SUPABASE_URL}/rest/v1/music_top_weekly?select=week_start,category,item_name,secondary_name,play_count,rank&category=eq.artist&order=week_start.desc,rank.asc&limit=5`),
       fetchJSON(`${SUPABASE_URL}/rest/v1/music_loved_tracks?select=track_name,artist_name,loved_at&order=loved_at.desc&limit=10`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/music_genre_weekly?select=genre,percentage,rank&week_start=eq.${monday}&order=rank.asc&limit=6`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/music_insights_weekly?select=summary,week_start&order=week_start.desc&limit=1`),
     ]);
     _musicLoaded=true;
+    renderMusicInsight(insights);
     renderMusicMetrics(statsAll);
     renderMusicTwoCol(topWeekly,statsAll);
+    renderMusicGenres(genres);
     renderMusicTimeline(scrobbles);
     renderMusicStreakHeatmap(statsAll);
     renderMusicDiscovery(statsAll);
@@ -5639,6 +5657,29 @@ function renderMusicLoved(loved){
   });
   html+='</div>';
   el.innerHTML=html;
+}
+
+/* ── MUSIC: GENRES ───────────────────────────────────────── */
+function renderMusicGenres(genres){
+  const el=document.getElementById('music-genres');
+  if(!genres.length){el.innerHTML='';return;}  // Silent — enrichment not yet run
+
+  const colors=['var(--blue)','var(--green)','var(--amber)','var(--coral)','var(--pink)','var(--accent)'];
+  let html=`<div class="music-genre-box"><h3 style="font-size:var(--text-base);font-weight:600;margin-bottom:var(--space-3)">Genres cette semaine</h3>`;
+  genres.forEach((g,i)=>{
+    const color=colors[i%colors.length];
+    html+=`<div class="music-genre-row"><span class="music-genre-label">${safe(g.genre)}</span><div class="music-genre-bar-wrap"><div class="music-genre-bar-fill" style="width:${g.percentage}%;background:${color}"></div></div><span class="music-genre-pct">${g.percentage}%</span></div>`;
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+/* ── MUSIC: AI INSIGHT ──────────────────────────────────── */
+function renderMusicInsight(insights){
+  const el=document.getElementById('music-insight');
+  if(!insights.length){el.innerHTML='';return;}  // Silent — no insight yet
+  const ins=insights[0];
+  el.innerHTML=`<div class="music-insight-box"><div class="music-insight-header">🎵 Récap de la semaine</div><div>${safe(ins.summary)}</div></div>`;
 }
 
 /* ── SERVICE WORKER REGISTRATION ──────────────────────────── */

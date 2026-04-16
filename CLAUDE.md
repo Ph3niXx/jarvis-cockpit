@@ -113,6 +113,11 @@ Tables existantes :
 - `music_top_weekly` — top 10 artistes/tracks/albums par semaine (category, item_name, play_count, rank)
 - `music_loved_tracks` — titres "loved" avec date
 
+**Tables Last.fm enrichissement :**
+- `music_artist_tags` — cache tags/genres par artiste (top_tag, tags[], fetched_at, refresh 90j)
+- `music_genre_weekly` — répartition genres par semaine (genre, scrobble_count, percentage, rank)
+- `music_insights_weekly` — récap IA hebdo généré par Gemini (summary, mood_keywords, discovery_ratio)
+
 **Tables Strava :**
 - `strava_activities_raw` — archive brute des réponses API (id Strava, athlete_id, payload JSONB complet, fetched_at)
 - `strava_activities` — données mappées pour le cockpit (sport_type, distance_m, moving_time_s, heartrate, watts, calories, etc.)
