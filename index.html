@@ -4823,15 +4823,20 @@ const PERF_TARGETS=[
   {label:'Marathon',dist:42195,keywords:['marathon','42k','42.2']},
 ];
 function perfMatchRuns(runs, target){
-  const name=a=>(a.name||'').toLowerCase();
+  const nm=a=>(a.name||'').toLowerCase();
   const minDist=target.dist*0.8, maxDist=target.dist*1.15;
   // 1. keyword match + distance sanity check (≥80% of target)
   //    "Début prépa semi/marathon" at 15km must NOT match Marathon
-  let matched=runs.filter(a=>target.keywords.some(kw=>name(a).includes(kw))&&a.distance_m>=minDist&&a.distance_m<=maxDist);
+  let matched=runs.filter(a=>target.keywords.some(kw=>nm(a).includes(kw))&&a.distance_m>=minDist&&a.distance_m<=maxDist);
+  let isRace=matched.length>0;
   // 2. fallback: distance range ±10% (no keyword needed)
   if(!matched.length) matched=runs.filter(a=>a.distance_m>=target.dist*0.9&&a.distance_m<=target.dist*1.1);
-  // Normalize time to exact target distance (same speed assumption)
-  return matched.map(a=>({activity:a,normalizedTime:a.moving_time_s*(target.dist/a.distance_m)})).sort((a,b)=>a.normalizedTime-b.normalizedTime);
+  return matched.map(a=>{
+    // Races (keyword match): use elapsed time as-is (real finish time)
+    // Training (distance match): normalize moving_time to target distance
+    const recordTime=isRace?(a.elapsed_time_s||a.moving_time_s):(a.moving_time_s*(target.dist/a.distance_m));
+    return{activity:a,recordTime,normalizedTime:a.moving_time_s*(target.dist/a.distance_m)};
+  }).sort((a,b)=>a.recordTime-b.recordTime);
 }
 
 /* ── PERFORMANCE DATA CACHE ─────────────────────────────── */
@@ -5206,7 +5211,7 @@ function renderPerfRecords(activities){
     found=true;
     const best=matched[0];
     html+=`<div class="perf-record-row"><span>${t.label}</span></div>`;
-    html2+=`<div class="perf-record-row"><span class="perf-pred-time">${perfFmtTime(best.normalizedTime)}</span><span style="color:var(--tx3);font-size:11px;margin-left:8px">${perfFmtDate(best.activity.start_date)}</span></div>`;
+    html2+=`<div class="perf-record-row"><span class="perf-pred-time">${perfFmtTime(best.recordTime)}</span><span style="color:var(--tx3);font-size:11px;margin-left:8px">${perfFmtDate(best.activity.start_date)}</span></div>`;
   });
 
   html+='</div>';html2+='</div>';
