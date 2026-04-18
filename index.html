@@ -1390,20 +1390,8 @@ body.deep-work .count{display:none!important}
     <button class="sb-link" data-panel="myweek" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-calendar"/></svg><span class="label">Ma semaine</span></button>
   </div>
 
-  <div class="sb-section" data-section="veille" role="tablist" aria-label="Veille">
-    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Veille<span class="sb-section-count" id="sc-veille"></span></button>
-    <div class="sb-section-items">
-      <button class="sb-link" data-panel="top" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-star"/></svg><span class="label">Top du jour</span></button>
-      <button class="sb-link" data-panel="updates" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-sparkles"/></svg><span class="label">Nouveautés IA</span><span class="count" id="c-updates">-</span></button>
-      <button class="sb-link" data-panel="llm" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-bot"/></svg><span class="label">LLMs</span><span class="count" id="c-llm">-</span></button>
-      <button class="sb-link" data-panel="agents" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-settings"/></svg><span class="label">Agents</span><span class="count" id="c-agents">-</span></button>
-      <button class="sb-link" data-panel="energy" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-zap"/></svg><span class="label">IA x Énergie</span><span class="count" id="c-energy">-</span></button>
-      <button class="sb-link" data-panel="finserv" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-building-2"/></svg><span class="label">FinServ</span><span class="count" id="c-finserv">-</span></button>
-      <button class="sb-link" data-panel="tools" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-wrench"/></svg><span class="label">Outils</span><span class="count" id="c-tools">-</span></button>
-      <button class="sb-link" data-panel="biz" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-trending-up"/></svg><span class="label">Business</span><span class="count" id="c-biz">-</span></button>
-      <button class="sb-link" data-panel="reg" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-scale"/></svg><span class="label">Régulation</span><span class="count" id="c-reg">-</span></button>
-      <button class="sb-link" data-panel="papers" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-book-open"/></svg><span class="label">Arxiv</span><span class="count" id="c-papers">-</span></button>
-    </div>
+  <div class="sb-section" style="padding-bottom:0">
+    <button class="sb-link" data-panel="veille" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-sparkles"/></svg><span class="label">Veille</span><span class="count" id="c-veille-total">-</span></button>
   </div>
 
   <div class="sb-section" data-section="intelligence" role="tablist" aria-label="Intelligence">
@@ -1583,6 +1571,41 @@ body.deep-work .count{display:none!important}
     <div class="myweek-section">
       <h2 class="myweek-section-title">Faits marquants</h2>
       <div id="myweek-highlights"></div>
+    </div>
+  </div>
+
+  <!-- VEILLE UNIFIÉE (P11) -->
+  <div class="panel" role="tabpanel" id="panel-veille">
+    <div class="page-header">
+      <div class="breadcrumb">
+        <span>Cockpit</span>
+        <span class="sep">›</span>
+        <strong>Veille</strong>
+      </div>
+      <div class="header-actions">
+        <span class="kbd"><span class="mod-key">Ctrl</span> K</span>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero-kicker">Veille · Flux unifié</div>
+      <h1 class="hero-title">Tout ce qu'il faut savoir aujourd'hui.</h1>
+      <div class="hero-meta" id="veille-meta"></div>
+    </section>
+
+    <div class="filter-bar" role="tablist" aria-label="Catégories de veille">
+      <button class="pill active" data-filter="all">Tous <span class="count" id="f-all">-</span></button>
+      <button class="pill" data-filter="hot">Hot <span class="count" id="f-hot">-</span></button>
+      <button class="pill" data-filter="models">Modèles &amp; agents <span class="count" id="f-models">-</span></button>
+      <button class="pill" data-filter="eco">Écosystème <span class="count" id="f-eco">-</span></button>
+      <button class="pill" data-filter="energy">Énergie <span class="count" id="f-energy">-</span></button>
+      <button class="pill" data-filter="finserv">FinServ <span class="count" id="f-finserv">-</span></button>
+      <button class="pill" data-filter="reg">Régulation <span class="count" id="f-reg">-</span></button>
+      <button class="pill" data-filter="research">Recherche <span class="count" id="f-research">-</span></button>
+    </div>
+
+    <div class="content">
+      <ul class="list-v2" id="veille-list"></ul>
     </div>
   </div>
 
@@ -2371,6 +2394,7 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='jarvis') initJarvis();
     if(panel==='jarvis-project') loadJarvisProject();
     if(panel==='myweek') loadMyWeek();
+    if(panel==='veille') renderVeille();
     if(panel==='perf-overview') loadPerfOverview();
     if(panel==='perf-history') loadPerfHistory();
     if(panel==='music-overview') loadMusicOverview();
@@ -2963,9 +2987,101 @@ function renderBriefV2(dayArticles,dateStr){
   if(window.__renderModKeys)window.__renderModKeys();
 }
 
+// ── VEILLE UNIFIED RENDERING (P11) ───────────────────────
+const _VEILLE_SECTION_LABEL={updates:'Nouveautés',llm:'LLM',agents:'Agents',energy:'Énergie',finserv:'FinServ',tools:'Outils',biz:'Business',reg:'Régulation',papers:'Arxiv'};
+function _mapSectionToFilter(section){
+  return ({updates:'models',llm:'models',agents:'models',energy:'energy',finserv:'finserv',tools:'eco',biz:'eco',reg:'reg',papers:'research'})[section]||'eco';
+}
+let _veilleCache=[];
+function _renderVeilleListItem(a,idx){
+  const readMap=getReadArticles();
+  const unread=!readMap[a.id];
+  const label=_VEILLE_SECTION_LABEL[a.section]||(a.section||'').toUpperCase();
+  return `<li class="list-item${unread?' is-unread':''}" data-article-id="${a.id}" onclick="window.open('${esc(a.url)}','_blank');markAsRead('${a.id}');this.classList.remove('is-unread')">
+    <div class="list-item-rank">${String((idx||0)+1).padStart(2,'0')}</div>
+    <div class="list-item-body">
+      <div class="list-item-meta">
+        <span class="section-tag">${esc(label)}</span>
+        <span>${esc(a.source||'')}</span>
+      </div>
+      <div class="list-item-title">${esc(a.title)}</div>
+      <div class="list-item-summary">${esc(stripHtml(a.summary||'').slice(0,200))}</div>
+    </div>
+    <div class="list-item-aside">${a.date_published?timeAgoTag(a.date_published).replace(/<[^>]+>/g,''):''}</div>
+  </li>`;
+}
+function _veilleFilterArticles(articles,filter){
+  if(filter==='all')return articles;
+  if(filter==='hot'){
+    // Hot = non-lus, sources premium OR section=updates
+    const readMap=getReadArticles();
+    return articles.filter(a=>!readMap[a.id]&&(a.section==='updates'||a.section==='biz'));
+  }
+  return articles.filter(a=>_mapSectionToFilter(a.section)===filter);
+}
+function _updateVeilleCounts(articles){
+  const all=articles.length;
+  const byFilter={all,hot:_veilleFilterArticles(articles,'hot').length};
+  ['models','eco','energy','finserv','reg','research'].forEach(f=>{
+    byFilter[f]=articles.filter(a=>_mapSectionToFilter(a.section)===f).length;
+  });
+  Object.entries(byFilter).forEach(([k,v])=>{
+    const el=document.getElementById(`f-${k}`);
+    if(el)el.textContent=v;
+  });
+  const totalEl=document.getElementById('c-veille-total');
+  if(totalEl)totalEl.textContent=all||'-';
+  const metaEl=document.getElementById('veille-meta');
+  if(metaEl){
+    const readMap=getReadArticles();
+    const unread=articles.filter(a=>!readMap[a.id]).length;
+    metaEl.innerHTML=[
+      `<strong>${all}</strong> articles`,
+      `<span class="dot">·</span>`,
+      `<strong>${unread}</strong> non lus`,
+      `<span class="dot">·</span>`,
+      `~${Math.max(1,Math.round(all*1.5))} min`
+    ].join('');
+  }
+}
+function _bindVeilleFilterBar(){
+  document.querySelectorAll('#panel-veille .filter-bar .pill').forEach(p=>{
+    p.onclick=()=>{
+      document.querySelectorAll('#panel-veille .filter-bar .pill').forEach(x=>x.classList.remove('active'));
+      p.classList.add('active');
+      const filtered=_veilleFilterArticles(_veilleCache,p.dataset.filter);
+      const listEl=document.getElementById('veille-list');
+      if(listEl)listEl.innerHTML=filtered.map((a,i)=>_renderVeilleListItem(a,i)).join('');
+    };
+  });
+}
+async function renderVeille(forceFilter){
+  const listEl=document.getElementById('veille-list');
+  if(!listEl)return;
+  if(!_veilleCache.length){
+    try{
+      const date=currentDate||new Date().toISOString().split('T')[0];
+      _veilleCache=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?fetch_date=eq.${date}&order=date_fetched.desc&limit=200`);
+    }catch(e){console.error('renderVeille',e);listEl.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('inbox')}</div>Erreur de chargement</div>`;return;}
+  }
+  _updateVeilleCounts(_veilleCache);
+  _bindVeilleFilterBar();
+  // Active filter
+  const filter=forceFilter||'all';
+  document.querySelectorAll('#panel-veille .filter-bar .pill').forEach(p=>{
+    p.classList.toggle('active',p.dataset.filter===filter);
+  });
+  const filtered=_veilleFilterArticles(_veilleCache,filter);
+  listEl.innerHTML=filtered.map((a,i)=>_renderVeilleListItem(a,i)).join('');
+  if(window.__renderModKeys)window.__renderModKeys();
+}
+// Invalidate cache when day changes — called from loadDay
+function _invalidateVeilleCache(){_veilleCache=[];}
+
 // ── LOAD DAY DATA ──────────────────────────────────────────
 async function loadDay(dateStr){
   currentDate=dateStr;
+  _invalidateVeilleCache();
   updateNavLabel();
   // Show skeletons
   showSkeleton('brief-content','brief');
@@ -5114,6 +5230,12 @@ function escProse(s){
 
 // ── KEYBOARD SHORTCUTS ────────────────────────────────────────
 function navigateToPanel(panelId){
+  // Backcompat routing : legacy Veille sub-panels → #panel-veille + auto-filter
+  const _legacyVeille={top:'hot',updates:'models',llm:'models',agents:'models',energy:'energy',finserv:'finserv',tools:'eco',biz:'eco',reg:'reg',papers:'research'};
+  if(panelId in _legacyVeille){
+    const btn=document.querySelector('.sb-link[data-panel="veille"]');
+    if(btn){btn.click();setTimeout(()=>renderVeille(_legacyVeille[panelId]),50);return;}
+  }
   const btn=document.querySelector(`.sb-link[data-panel="${panelId}"]`);
   if(btn) btn.click();
 }
