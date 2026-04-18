@@ -38,7 +38,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   --mono:'JetBrains Mono','SF Mono','Fira Code',monospace;
   --display:'Fraunces',Georgia,'Times New Roman',serif;
   --radius-xs:3px;--radius-sm:5px;--radius:8px;--radius-lg:12px;--radius-full:9999px;
-  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;
   --text-xs:0.6875rem;--text-sm:0.8125rem;--text-base:0.9375rem;--text-lg:1.125rem;--text-xl:1.375rem;--text-2xl:1.75rem;
   --text-3xl:2.25rem;--text-display:clamp(2.5rem,4vw + 1rem,3.5rem);
   --sidebar-w:240px;
@@ -127,6 +127,56 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
   position:sticky;top:0;z-index:50;background:var(--bg);
   backdrop-filter:blur(8px);background:color-mix(in srgb,var(--bg) 85%,transparent);
 }
+
+/* ── HERO (composant central de chaque panel) ───────────── */
+.hero{
+  padding:var(--space-12) var(--space-12) var(--space-10);
+  background:var(--bg3);
+  border-bottom:1px solid var(--bd);
+  position:relative;
+}
+.hero-kicker{
+  font-family:var(--mono);
+  font-size:var(--text-xs);
+  color:var(--tx3);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  margin-bottom:var(--space-4);
+}
+.hero-title{
+  font-family:var(--display);
+  font-size:var(--text-display);
+  font-weight:400;
+  font-variation-settings:"opsz" 144,"wght" 400;
+  letter-spacing:-.025em;
+  line-height:1.02;
+  color:var(--tx);
+  margin-bottom:var(--space-5);
+}
+.hero-meta{
+  font-family:var(--mono);
+  font-size:var(--text-sm);
+  color:var(--tx2);
+  margin-bottom:var(--space-8);
+  display:flex;
+  gap:var(--space-4);
+  flex-wrap:wrap;
+  align-items:center;
+}
+.hero-meta .dot{color:var(--tx3);opacity:.5}
+.hero-meta strong{color:var(--tx);font-weight:500}
+.hero-actions{
+  display:flex;
+  gap:var(--space-3);
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+@media(max-width:768px){
+  .hero{padding:var(--space-8) var(--space-6) var(--space-6)}
+  .hero-title{font-size:var(--text-3xl)}
+}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
