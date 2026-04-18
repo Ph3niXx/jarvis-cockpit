@@ -1041,8 +1041,27 @@ body.deep-work .count{display:none!important}
 .opp-sources{margin-top:var(--space-2);font-size:var(--text-xs)}
 .opp-sources a{margin-right:var(--space-2)}
 .opp-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);font-size:12px;margin-bottom:10px}
-.opp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:var(--space-5)}
 .opp-grid+.section-label{margin-top:var(--space-6)}
+@media(max-width:600px){.opp-grid{grid-template-columns:1fr;gap:var(--space-4)}}
+
+.opp-card{
+  background:var(--bg3);border:1px solid var(--bd);
+  border-radius:var(--radius-lg);padding:var(--space-6);
+  border-left:3px solid var(--accent-brand);
+  display:flex;flex-direction:column;gap:var(--space-4);
+  transition:border-color var(--transition-fast),box-shadow var(--transition-fast);
+}
+.opp-card:hover{border-color:var(--bd2);box-shadow:var(--shadow-sm)}
+.opp-card.is-warning{border-left-color:var(--warning)}
+.opp-card.is-done{border-left-color:var(--tx3);opacity:.6}
+.opp-card .opp-kicker{font-family:var(--mono);font-size:var(--text-xs);color:var(--accent-text);text-transform:uppercase;letter-spacing:.12em;font-weight:600}
+.opp-card.is-warning .opp-kicker{color:var(--warning)}
+.opp-card .opp-title{font-family:var(--display);font-size:var(--text-xl);font-weight:400;letter-spacing:-.02em;line-height:1.2;color:var(--tx)}
+.opp-card .opp-body{font-size:var(--text-sm);color:var(--tx2);line-height:1.55;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.opp-card .opp-footer{display:flex;justify-content:space-between;align-items:center;padding-top:var(--space-3);border-top:1px solid var(--bd);font-family:var(--mono);font-size:var(--text-xs);color:var(--tx3)}
+.opp-card .opp-cta-row{display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap}
+.opp-card.dragging{opacity:.4}
 [data-opp-id][draggable="true"]{cursor:grab}
 [data-opp-id][draggable="true"]:active{cursor:grabbing}
 [data-opp-id].dragging{opacity:.4;transform:scale(.98);transition:opacity .15s,transform .15s}
@@ -1756,13 +1775,29 @@ body.deep-work .count{display:none!important}
 
   <!-- CHALLENGES -->
   <div class="panel" role="tabpanel" id="panel-challenges">
-    <div class="page-header"><div class="page-title">Défis</div><div class="page-subtitle">Mini-défis hebdo pour monter en compétence.</div></div>
+    <div class="page-header">
+      <div class="breadcrumb"><span>Apprentissage</span><span class="sep">›</span><strong>Défis</strong></div>
+      <div class="header-actions"><span class="kbd"><span class="mod-key">Ctrl</span> K</span></div>
+    </div>
+    <section class="hero">
+      <div class="hero-kicker">Apprentissage · En cours</div>
+      <h1 class="hero-title">Tes défis actuels.</h1>
+      <div class="hero-meta" id="challenges-meta"></div>
+    </section>
     <div class="content"><div id="challenges-content"><div class="loading">Chargement…</div></div></div>
   </div>
 
   <!-- OPPORTUNITIES -->
   <div class="panel" role="tabpanel" id="panel-opportunities">
-    <div class="page-header"><div class="page-title">Opportunités</div><div class="page-subtitle">Actions concrètes à lancer.</div></div>
+    <div class="page-header">
+      <div class="breadcrumb"><span>Intelligence</span><span class="sep">›</span><strong>Opportunités</strong></div>
+      <div class="header-actions"><span class="kbd"><span class="mod-key">Ctrl</span> K</span></div>
+    </div>
+    <section class="hero">
+      <div class="hero-kicker">Action · Cette semaine</div>
+      <h1 class="hero-title">Opportunités à saisir.</h1>
+      <div class="hero-meta" id="opp-meta"></div>
+    </section>
     <div class="content"><div id="opportunities-content"><div class="loading">Chargement…</div></div></div>
   </div>
 
@@ -3837,23 +3872,44 @@ async function loadChallenges(){
   try{
     const challenges=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_challenges?order=week_start.desc&limit=10`);
     const el=document.getElementById('challenges-content');
-    if(!challenges.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trophy')}</div>Les challenges seront générés par le run hebdomadaire Claude</div>`;return;}
+    const metaEl=document.getElementById('challenges-meta');
+    if(!challenges.length){
+      if(metaEl)metaEl.innerHTML='';
+      el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trophy')}</div>Les défis seront générés par le run hebdomadaire Claude.</div>`;
+      return;
+    }
     cockpitData.challenges=challenges;
-    el.innerHTML=challenges.map(c=>`
-      <div class="challenge-card${newCls(c.created_at||c.week_start)}" data-item-id="${c.id}" tabindex="0" role="button" style="${c.status==='completed'?'opacity:.6;border-color:var(--accent-brand)':''};cursor:pointer" onclick="openCardFocus(this,event)">
-        <div class="challenge-title">${c.status==='completed'?'✅ ':''} ${esc(c.title)}</div>
-        <div class="challenge-desc">${esc(c.description||'')}</div>
-        <div class="challenge-meta">
-          <span>Axe : ${esc(c.target_axis)}</span>
-          <span>+${c.score_reward} pts</span>
-          <span>${c.difficulty}</span>
+    const done=challenges.filter(c=>c.status==='completed').length;
+    const total=challenges.length;
+    if(metaEl){
+      metaEl.innerHTML=[
+        `<span><strong>${total}</strong> défis</span>`,
+        `<span class="dot">·</span>`,
+        `<strong>${done}</strong> terminé${done>1?'s':''}`,
+        `<span class="dot">·</span>`,
+        `<strong>${total-done}</strong> en cours`
+      ].join('');
+    }
+    el.innerHTML=`<div class="opp-grid">${challenges.map(c=>{
+      const isDone=c.status==='completed';
+      return `<article class="opp-card${isDone?' is-done':''}${newCls(c.created_at||c.week_start)}" data-item-id="${c.id}" tabindex="0" role="button" style="cursor:pointer" onclick="openCardFocus(this,event)">
+        <div class="opp-kicker">${esc(c.target_axis||'Défi')}</div>
+        <h3 class="opp-title">${esc(c.title)}</h3>
+        <p class="opp-body">${esc(c.description||'')}</p>
+        <div class="opp-footer">
+          <span>+${c.score_reward||0} pts · ${esc(c.difficulty||'—')}</span>
+          <span>${isDone?'Terminé':'En cours'}</span>
         </div>
-        ${actionBtn('done',c.id)}${jarvisBtn(c.title,'challenge')}
+        <div class="opp-cta-row">
+          ${actionBtn('done',c.id)}${jarvisBtn(c.title,'challenge')}
+        </div>
         ${renderRelatedLinks(c.title,'challenges')}
-      </div>`).join('');
+      </article>`;
+    }).join('')}</div>`;
+    if(window.__renderModKeys)window.__renderModKeys();
     updateSidebarBadge('challenges',challenges,'created_at');
     challengesLoaded=true;
-  }catch(e){console.error('loadChallenges',e);showError('challenges-content','Erreur de chargement des challenges',()=>{challengesLoaded=false;loadChallenges()})}
+  }catch(e){console.error('loadChallenges',e);showError('challenges-content','Erreur de chargement des défis',()=>{challengesLoaded=false;loadChallenges()})}
 }
 
 // ── OPPORTUNITIES (with drag & drop) ──────────────────────
@@ -3915,59 +3971,66 @@ async function loadOpportunities(){
     const money=opps.filter(o=>o.category==='money');
     const life=opps.filter(o=>o.category==='life');
 
+    const effortLabels={weekend_project:'Weekend project',['1_month']:'~1 mois',['3_months']:'~3 mois',['6_months+']:'6+ mois'};
     function renderOpp(o){
-      const catIcons={money:'<svg class="icon" aria-hidden="true"><use href="#icon-trending-up"/></svg>',life:'<svg class="icon" aria-hidden="true"><use href="#icon-zap"/></svg>'};
-      const timingColors={too_early:'var(--accent-brand)',right_time:'var(--accent-brand)',getting_late:'var(--warning)'};
-      const confidenceColors={high:'var(--accent-brand)',medium:'var(--warning)',low:'var(--tx3)'};
-      const effortLabels={weekend_project:'Weekend project',['1_month']:'~1 mois',['3_months']:'~3 mois',['6_months+']:'6+ mois'};
-
-      return `<div class="card${newCls(o.created_at||o.week_start)}" data-item-id="${o.id}" data-opp-id="${o.id}" draggable="true" style="border-left:3px solid var(--accent-brand)">
-        <div class="flex-header">
-          ${_DRAG_HANDLE_SVG}
-          <span class="text-icon">${catIcons[o.category]||'<svg class="icon" aria-hidden="true"><use href="#icon-lightbulb"/></svg>'}</span>
-          <span class="badge badge--neutral">${esc(o.sector||'')}</span>
-          <span class="opp-score">${o.relevance_score}%</span>
-        </div>
-        <div class="text-title">${esc(o.usecase_title)}</div>
-        <div class="text-desc" style="-webkit-line-clamp:2;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden">${esc(o.usecase_description||'')}</div>
+      const catLabel=o.category==='money'?'Business':o.category==='life'?'Mission':'Opportunité';
+      const stateClass=o.timing==='getting_late'?' is-warning':'';
+      const timingLabel=o.timing==='right_time'?'Bon timing':o.timing==='too_early'?'Trop tôt':o.timing==='getting_late'?'Se dépêcher':'—';
+      return `<article class="opp-card${stateClass}${newCls(o.created_at||o.week_start)}" data-item-id="${o.id}" data-opp-id="${o.id}" draggable="true">
+        <div class="opp-kicker">${esc(catLabel)} · ${esc(o.sector||'')}</div>
+        <h3 class="opp-title">${esc(o.usecase_title||'')}</h3>
+        <p class="opp-body">${esc(o.usecase_description||'')}</p>
         <div class="opp-details" style="display:none">
           <div class="flex-header" style="margin-top:var(--space-2)">
-            <span class="badge" style="background:${o.timing==='right_time'?'var(--accent-bg)':o.timing==='too_early'?'var(--accent-bg)':'var(--warning-bg)'};color:${timingColors[o.timing]||'var(--tx3)'}">${o.timing==='right_time'?'Bon timing':o.timing==='too_early'?'Trop tôt':'Se dépêcher'}</span>
-            <span class="badge" style="border:1px solid ${confidenceColors[o.confidence]||'var(--bd)'};color:${confidenceColors[o.confidence]||'var(--tx3)'}">Confiance: ${o.confidence}</span>
+            <span class="badge badge--neutral">${esc(timingLabel)}</span>
+            <span class="badge badge--neutral">Confiance : ${esc(o.confidence||'—')}</span>
           </div>
           <div class="opp-detail-grid">
             <div><span class="text-muted">Qui paie :</span> ${esc(o.who_pays||'')}</div>
-            <div><span class="text-muted">Marché :</span> ${o.market_size}</div>
-            <div><span class="text-muted">Effort :</span> ${effortLabels[o.effort_to_build]||o.effort_to_build}</div>
-            <div><span class="text-muted">Concurrence :</span> ${o.competition}</div>
+            <div><span class="text-muted">Marché :</span> ${esc(String(o.market_size||''))}</div>
+            <div><span class="text-muted">Effort :</span> ${esc(effortLabels[o.effort_to_build]||o.effort_to_build||'—')}</div>
+            <div><span class="text-muted">Concurrence :</span> ${esc(String(o.competition||''))}</div>
           </div>
           <div class="opp-why"><strong>Pourquoi toi :</strong> ${esc(o.relevance_why||'')}</div>
           <div class="opp-nextstep"><strong>Next step :</strong> ${esc(o.next_step||'')}</div>
           ${(o.source_articles||[]).length?`<div class="opp-sources">${o.source_articles.map(u=>`<a href="${esc(u)}" target="_blank">Article source →</a>`).join('')}</div>`:''}
           ${renderRelatedLinks(o.usecase_title,'opportunities')}
         </div>
-        <div style="display:flex;gap:var(--space-2);align-items:center;margin-top:var(--space-2)">
-          ${actionBtn('follow',o.id)}${jarvisBtn(o.usecase_title,'opportunite')}
-          <button class="card-expand" onclick="event.stopPropagation();const d=this.closest('.card').querySelector('.opp-details');const show=d.style.display==='none';d.style.display=show?'block':'none';this.textContent=show?'Réduire ▴':'Détails ▾'">Détails ▾</button>
+        <div class="opp-footer">
+          <span>Effort ${esc(effortLabels[o.effort_to_build]||o.effort_to_build||'—')}</span>
+          <span>${o.relevance_score||'—'}%</span>
         </div>
-      </div>`;
+        <div class="opp-cta-row">
+          ${actionBtn('follow',o.id)}${jarvisBtn(o.usecase_title,'opportunite')}
+          <button class="btn btn-ghost" onclick="event.stopPropagation();const d=this.closest('.opp-card').querySelector('.opp-details');const show=d.style.display==='none';d.style.display=show?'block':'none';this.textContent=show?'Réduire ▴':'Détails ▾'">Détails ▾</button>
+        </div>
+      </article>`;
+    }
+
+    // Hero meta
+    const metaEl=document.getElementById('opp-meta');
+    if(metaEl){
+      metaEl.innerHTML=[
+        `<span><strong>${opps.length}</strong> opportunités</span>`,
+        money.length?`<span class="dot">·</span><span><strong>${money.length}</strong> business</span>`:'',
+        life.length?`<span class="dot">·</span><span><strong>${life.length}</strong> mission</span>`:''
+      ].filter(Boolean).join('');
     }
 
     let html='';
     if(money.length){
       html+=`<div class="section-label" style="color:var(--accent-brand)"><svg class="icon" aria-hidden="true"><use href="#icon-trending-up"/></svg> Opportunités business — rapporter de l'argent</div>`;
-      html+=`<div class="opp-grid">
-        ${money.map(renderOpp).join('')}</div>`;
+      html+=`<div class="opp-grid">${money.map(renderOpp).join('')}</div>`;
     }
     if(life.length){
       html+=`<div class="section-label" style="color:var(--accent-brand)"><svg class="icon" aria-hidden="true"><use href="#icon-zap"/></svg> Simplifier ta vie — mission actuelle</div>`;
-      html+=`<div class="opp-grid">
-        ${life.map(renderOpp).join('')}</div>`;
+      html+=`<div class="opp-grid">${life.map(renderOpp).join('')}</div>`;
     }
 
     el.innerHTML=html;
     _restoreOppOrder();
     el.querySelectorAll('.opp-grid').forEach(_initOppDragDrop);
+    if(window.__renderModKeys)window.__renderModKeys();
     updateSidebarBadge('opportunities',opps,'created_at');
     oppsLoaded=true;
   }catch(e){console.error('loadOpportunities',e);showError('opportunities-content','Erreur de chargement des opportunités',()=>{oppsLoaded=false;loadOpportunities()})}
