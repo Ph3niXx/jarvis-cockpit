@@ -575,6 +575,40 @@ body.deep-work .count{display:none!important}
   font-family:var(--mono);font-size:var(--text-xs);color:var(--tx3);
 }
 
+/* ── FILTER BAR + PILLS ──────────────────────────────────── */
+.filter-bar{
+  position:sticky;top:41px; /* juste sous .page-header */
+  z-index:40;
+  background:color-mix(in srgb,var(--bg) 92%,transparent);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  padding:var(--space-3) var(--space-6);
+  border-bottom:1px solid var(--bd);
+  display:flex;gap:var(--space-2);overflow-x:auto;scrollbar-width:none;
+}
+.filter-bar::-webkit-scrollbar{display:none}
+
+.pill{
+  padding:7px 14px;
+  background:transparent;
+  border:1px solid var(--bd);
+  border-radius:var(--radius-full);
+  color:var(--tx2);
+  font-size:var(--text-sm);
+  font-family:var(--font);
+  font-weight:500;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:all var(--transition-fast);
+  display:inline-flex;align-items:center;gap:6px;
+}
+.pill:hover{border-color:var(--bd2);color:var(--tx)}
+.pill.active{
+  background:var(--accent-brand);
+  border-color:var(--accent-brand);
+  color:var(--bg3);
+}
+.pill .count{font-family:var(--mono);font-size:var(--text-xs);opacity:.75}
+
 /* ── ARTICLE CARDS ────────────────────────────────────────── */
 .cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bd);border:1px solid var(--bd);border-radius:var(--radius)}
 @media(max-width:900px){.cards-grid{grid-template-columns:1fr}}
