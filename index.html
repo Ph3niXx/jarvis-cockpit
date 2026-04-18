@@ -576,6 +576,38 @@ body.deep-work .count{display:none!important}
   font-family:var(--mono);font-size:var(--text-xs);color:var(--tx3);
 }
 
+/* ── SECTION HEADERS (réutilisable) ──────────────────────── */
+.section{margin-top:var(--space-10)}
+.section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--space-5);gap:var(--space-4)}
+.section-title{font-size:var(--text-xl);font-weight:600;letter-spacing:-.02em;color:var(--tx)}
+.section-kicker{font-family:var(--mono);font-size:var(--text-xs);color:var(--tx3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:var(--space-2)}
+
+/* ── TOP GRID ASYMÉTRIQUE (brief top 3) ──────────────────── */
+.top-grid{
+  display:grid;grid-template-columns:2fr 1fr;gap:var(--space-5);
+  margin-bottom:var(--space-5);
+}
+@media(max-width:900px){.top-grid{grid-template-columns:1fr}}
+.hero-article{
+  grid-row:span 2;
+  background:var(--bg3);border:1px solid var(--bd);
+  border-radius:16px;padding:var(--space-8);
+  box-shadow:var(--shadow-md);display:flex;flex-direction:column;
+  transition:box-shadow var(--transition-fast),transform var(--transition-fast);
+  cursor:pointer;
+}
+.hero-article:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.hero-article .meta{font-family:var(--mono);font-size:var(--text-xs);color:var(--tx3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:var(--space-3);display:flex;gap:var(--space-3)}
+.hero-article .meta .tag{color:var(--accent-text);font-weight:600}
+.hero-article .title{font-family:var(--display);font-size:var(--text-2xl);font-weight:400;letter-spacing:-.02em;line-height:1.15;color:var(--tx);margin-bottom:var(--space-4)}
+.hero-article .summary{font-size:var(--text-base);color:var(--tx2);line-height:1.65;margin-bottom:var(--space-5);flex:1}
+.hero-article .footer{display:flex;justify-content:space-between;padding-top:var(--space-4);border-top:1px solid var(--bd);font-family:var(--mono);font-size:var(--text-xs);color:var(--tx3)}
+.side-article{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--radius-lg);padding:var(--space-5);transition:border-color var(--transition-fast);cursor:pointer}
+.side-article:hover{border-color:var(--bd2)}
+.side-article .meta{font-family:var(--mono);font-size:0.6875rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:var(--space-2)}
+.side-article .title{font-size:var(--text-base);font-weight:500;color:var(--tx);letter-spacing:-.01em;line-height:1.35;margin-bottom:var(--space-2)}
+.side-article .summary{font-size:var(--text-sm);color:var(--tx2);line-height:1.5}
+
 /* ── FILTER BAR + PILLS ──────────────────────────────────── */
 .filter-bar{
   position:sticky;top:41px; /* juste sous .page-header */
@@ -756,14 +788,14 @@ body.deep-work .count{display:none!important}
   font-family:inherit;font-size:var(--text-sm);margin-bottom:var(--space-2);background:var(--bg3);
 }
 .idea-form textarea{height:60px;resize:vertical}
-.btn{
-  padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);font-size:var(--text-sm);font-weight:600;
-  cursor:pointer;border:1px solid var(--bd);background:var(--bg3);color:var(--tx);
-  transition:all .12s;
-}
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:10px var(--space-4);border-radius:var(--radius-sm);font-size:var(--text-sm);font-weight:500;transition:all var(--transition-fast);border:1px solid var(--bd);background:var(--bg3);color:var(--tx);cursor:pointer;font-family:inherit}
 .btn:hover{background:var(--bg2)}
-.btn-primary{background:var(--tx);color:var(--bg);border-color:var(--tx)}
-.btn-primary:hover{opacity:.85}
+.btn-primary{background:var(--accent-brand);color:var(--bg3);border-color:var(--accent-brand)}
+.btn-primary:hover{background:var(--accent-text);border-color:var(--accent-text)}
+.btn-secondary{background:var(--bg);border-color:var(--bd);color:var(--tx)}
+.btn-secondary:hover{border-color:var(--bd2);background:var(--bg2)}
+.btn-ghost{color:var(--tx2);background:transparent;border-color:transparent}
+.btn-ghost:hover{background:var(--bg2);color:var(--tx)}
 
 /* ── RTE TOOLBOX ──────────────────────────────────────────── */
 .rte-grid{display:flex;flex-direction:column;gap:var(--space-3)}
@@ -1459,13 +1491,38 @@ body.deep-work .count{display:none!important}
 
   <!-- BRIEF -->
   <div class="panel active" role="tabpanel" id="panel-brief">
-    <div class="page-header"><div class="page-title">Brief du jour<span class="brief-sparkline" id="brief-sparkline"></span></div><div class="page-subtitle">Synthèse macro + top 5 incontournables</div></div>
+    <div class="page-header">
+      <div class="breadcrumb">
+        <span>Cockpit</span>
+        <span class="sep">›</span>
+        <strong>Brief du jour</strong>
+      </div>
+      <div class="header-actions">
+        <span id="brief-date-header"></span>
+        <span class="kbd"><span class="mod-key">Ctrl</span> K</span>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero-kicker">Brief du jour · <span id="mb-period">Matin</span></div>
+      <h1 class="hero-title" id="mb-greeting-text">Bonjour Jean.</h1>
+      <div class="hero-meta" id="brief-meta"></div>
+      <div class="hero-actions">
+        <button class="btn btn-primary" id="brief-read-top">
+          Lire les incontournables
+          <svg class="icon" aria-hidden="true"><use href="#icon-arrow-right"/></svg>
+        </button>
+        <button class="btn btn-ghost" id="brief-mark-all">
+          Marquer tout comme lu
+          <span class="kbd">M</span>
+        </button>
+      </div>
+    </section>
+
     <div class="content">
+      <div id="since-last-visit"></div>
+
       <div id="morning-briefing" class="morning-briefing">
-        <div class="mb-greeting">
-          <svg class="mb-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-          <span id="mb-greeting-text">Bonjour Jean</span>
-        </div>
         <div class="mb-weather" id="mb-weather"></div>
         <div class="mb-stats" id="mb-stats"></div>
         <div id="mb-activity"></div>
@@ -1475,7 +1532,31 @@ body.deep-work .count{display:none!important}
           <button class="mb-btn mb-btn--skip" onclick="dismissBriefing()">Passer</button>
         </div>
       </div>
-      <div id="veille-score-widget"></div><div id="since-last-visit"></div><div class="brief-content" id="brief-content"></div>
+
+      <div id="veille-score-widget"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div>
+            <div class="section-kicker">Top du jour</div>
+            <h2 class="section-title">3 articles incontournables</h2>
+          </div>
+          <span class="brief-sparkline" id="brief-sparkline"></span>
+        </div>
+        <div class="top-grid" id="brief-top-grid"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div>
+            <div class="section-kicker">Veille du jour</div>
+            <h2 class="section-title">Tous les articles</h2>
+          </div>
+        </div>
+        <ul class="list-v2" id="brief-full-list"></ul>
+      </div>
+
+      <div class="brief-content" id="brief-content"></div>
     </div>
   </div>
 
@@ -2763,6 +2844,125 @@ function createSparkline(values,width=60,height=20){
   </svg>`;
 }
 
+// ── BRIEF V2 RENDERING ────────────────────────────────────
+function _periodLabel(){
+  const h=new Date().getHours();
+  if(h<6)return 'Nuit';
+  if(h<12)return 'Matin';
+  if(h<18)return 'Après-midi';
+  return 'Soir';
+}
+function _formatBriefDate(dateStr){
+  try{
+    const d=new Date(dateStr+'T00:00:00');
+    return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}).replace(/^./,c=>c.toUpperCase());
+  }catch{return dateStr;}
+}
+function renderBriefV2(dayArticles,dateStr){
+  // --- Kicker period ---
+  const periodEl=document.getElementById('mb-period');
+  if(periodEl)periodEl.textContent=_periodLabel();
+
+  // --- Date in header breadcrumb ---
+  const dateHeaderEl=document.getElementById('brief-date-header');
+  if(dateHeaderEl)dateHeaderEl.textContent=_formatBriefDate(dateStr);
+
+  const readMap=getReadArticles();
+  const unreadCount=dayArticles.filter(a=>!readMap[a.id]).length;
+  const topCount=Math.min(3,dayArticles.length);
+  const readingMin=Math.max(1,Math.round(dayArticles.length*1.5));
+
+  // --- Meta strip ---
+  const metaEl=document.getElementById('brief-meta');
+  if(metaEl){
+    metaEl.innerHTML=[
+      `<span>${_formatBriefDate(dateStr)}</span>`,
+      `<span class="dot">·</span>`,
+      `<strong>${dayArticles.length}</strong> articles`,
+      `<span class="dot">·</span>`,
+      `<strong>${topCount}</strong> incontournables`,
+      `<span class="dot">·</span>`,
+      `~${readingMin} min de lecture`
+    ].join('');
+  }
+
+  // --- Top grid (1 hero + 2 side) ---
+  const topGrid=document.getElementById('brief-top-grid');
+  if(topGrid){
+    if(!dayArticles.length){
+      topGrid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${eIcon('inbox')}</div>Aucun article aujourd'hui</div>`;
+    }else{
+      const top=dayArticles.slice(0,3);
+      const hero=top[0];
+      const sides=top.slice(1);
+      const heroHtml=`
+        <article class="hero-article" data-article-id="${hero.id}" onclick="window.open('${esc(hero.url)}','_blank');markAsRead('${hero.id}')">
+          <div class="meta">
+            <span class="tag">${esc(hero.section||'').toUpperCase()}</span>
+            <span>${esc(hero.source||'')}</span>
+            ${hero.date_published?`<span>${timeAgoTag(hero.date_published).replace(/<[^>]+>/g,'')}</span>`:''}
+          </div>
+          <h3 class="title">${esc(hero.title)}</h3>
+          <p class="summary">${esc(stripHtml(hero.summary||'').slice(0,280))}${(hero.summary||'').length>280?'…':''}</p>
+          <div class="footer">
+            <span>Incontournable</span>
+            <span>Lire →</span>
+          </div>
+        </article>`;
+      const sidesHtml=sides.map(a=>`
+        <article class="side-article" data-article-id="${a.id}" onclick="window.open('${esc(a.url)}','_blank');markAsRead('${a.id}')">
+          <div class="meta">${esc(a.section||'').toUpperCase()} · ${esc(a.source||'')}</div>
+          <h4 class="title">${esc(a.title)}</h4>
+          <p class="summary">${esc(stripHtml(a.summary||'').slice(0,140))}${(a.summary||'').length>140?'…':''}</p>
+        </article>`).join('');
+      topGrid.innerHTML=heroHtml+sidesHtml;
+    }
+  }
+
+  // --- Full list (list-v2) ---
+  const listEl=document.getElementById('brief-full-list');
+  if(listEl){
+    if(!dayArticles.length){
+      listEl.innerHTML='';
+    }else{
+      listEl.innerHTML=dayArticles.map((a,i)=>{
+        const unread=!readMap[a.id];
+        return `<li class="list-item${unread?' is-unread':''}" data-article-id="${a.id}" onclick="window.open('${esc(a.url)}','_blank');markAsRead('${a.id}');this.classList.remove('is-unread')">
+          <div class="list-item-rank">${String(i+1).padStart(2,'0')}</div>
+          <div class="list-item-body">
+            <div class="list-item-meta">
+              <span class="section-tag">${esc(a.section||'').toUpperCase()}</span>
+              <span>${esc(a.source||'')}</span>
+            </div>
+            <div class="list-item-title">${esc(a.title)}</div>
+            <div class="list-item-summary">${esc(stripHtml(a.summary||'').slice(0,200))}</div>
+          </div>
+          <div class="list-item-aside">${a.date_published?timeAgoTag(a.date_published).replace(/<[^>]+>/g,''):''}</div>
+        </li>`;
+      }).join('');
+    }
+  }
+
+  // --- Hero actions wiring ---
+  const readTopBtn=document.getElementById('brief-read-top');
+  if(readTopBtn){
+    readTopBtn.onclick=()=>{
+      const tg=document.getElementById('brief-top-grid');
+      if(tg)tg.scrollIntoView({behavior:'smooth',block:'start'});
+    };
+  }
+  const markAllBtn=document.getElementById('brief-mark-all');
+  if(markAllBtn){
+    markAllBtn.onclick=()=>{
+      SECTIONS.forEach(s=>markAllRead(s));
+      listEl&&listEl.querySelectorAll('.list-item.is-unread').forEach(el=>el.classList.remove('is-unread'));
+      renderSidebarProgress();
+    };
+  }
+
+  if(window.__renderModKeys)window.__renderModKeys();
+}
+
 // ── LOAD DAY DATA ──────────────────────────────────────────
 async function loadDay(dateStr){
   currentDate=dateStr;
@@ -2823,7 +3023,9 @@ async function loadDay(dateStr){
   }catch(e){console.error('loadDay',e);SECTIONS.forEach(s=>showError(`cards-${s}`,'Erreur de chargement des articles',()=>loadDay(currentDate)))}
   // Since last visit dashboard
   renderSinceLastVisit(dayArticles);
-  // Load brief
+  // Brief V2 rendering (hero meta, top-grid, full list)
+  renderBriefV2(dayArticles,dateStr);
+  // Load brief (legacy macro HTML from Gemini — preserved as .brief-content below the new primitives)
   try{
     const briefs=await fetchJSON(`${SUPABASE_URL}/rest/v1/daily_briefs?date=eq.${dateStr}&limit=1`);
     const el=document.getElementById('brief-content');
