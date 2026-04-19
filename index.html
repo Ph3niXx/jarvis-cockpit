@@ -21,11 +21,13 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .sb-link:focus-visible{background:var(--accent-bg);border-radius:var(--radius-sm)}
 .card-action:focus-visible,.card-related-link:focus-visible,.mb-btn:focus-visible,.myweek-nav-btn:focus-visible,.sb-theme-toggle:focus-visible,.sb-nav-btn:focus-visible,.deep-work-btn:focus-visible,.voice-btn:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px;box-shadow:0 0 0 4px var(--accent-bg)}
 :root{
-  --bg:#F7F3ED;--bg2:#EFE9DF;--bg3:#FDFBF7;
-  --tx:#2C2420;--tx2:#6E6159;--tx3:#A69E94;
-  --bd:#E0D8CB;--bd2:#C7BFB0;
-  --accent-brand:#5F7A5E;--accent-bg:#E6ECE1;--accent-text:#3F5A3E;
-  --danger:#B84B3C;--danger-bg:#F2DED9;
+  --bg:#F5EFE4;--bg2:#EDE5D6;--bg3:#FBF7EF;--surface:#FFFFFF;
+  --tx:#1F1815;--tx2:#5E524A;--tx3:#9A8D82;
+  --bd:#E0D5C0;--bd2:#C9BBA3;
+  --accent-brand:#C2410C;--accent-bg:#FBEADA;--accent-text:#7C2D12;
+  --brand:#C2410C;--brand-ink:#7C2D12;--brand-tint:#FBEADA;
+  --positive:#4D6A3A;--positive-tint:#E9EFDE;
+  --danger:#B54B3B;--danger-bg:#F4DDD6;
   --warning:#C08A4B;--warning-bg:#F2E7D4;
   --font:'Space Grotesk',system-ui,-apple-system,sans-serif;
   --mono:'JetBrains Mono','SF Mono','Fira Code',monospace;
@@ -50,10 +52,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 /* ── DARK PALETTE ────────────────────────────────────────── */
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#1E1C1A;--bg2:#252321;--bg3:#2E2B28;
+    --bg:#1E1C1A;--bg2:#252321;--bg3:#2E2B28;--surface:#2E2B28;
     --tx:#EDE7DC;--tx2:#B5AC9E;--tx3:#7A726A;
     --bd:#3A3633;--bd2:#504B45;
-    --accent-brand:#9BB59A;--accent-bg:#2C342C;--accent-text:#B5CBB4;
+    --accent-brand:#F29E6A;--accent-bg:#3A2620;--accent-text:#F5B99B;
+    --brand:#F29E6A;--brand-ink:#F5B99B;--brand-tint:#3A2620;
+    --positive:#9BB59A;--positive-tint:#2C342C;
     --danger:#E0806F;--danger-bg:#3A2622;
     --warning:#D8A96B;--warning-bg:#362B1C;
     --energy:#4ADE80;
@@ -174,6 +178,178 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
   .hero-actions{flex-direction:column;align-items:stretch}
   .hero-actions .btn{justify-content:center;min-height:44px}
 }
+
+/* ── DAWN HERO FRAME : macro + side stats ───────────────── */
+.hero--dawn{background:var(--bg);padding:44px var(--space-12) 40px}
+.hero-frame{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:56px;align-items:start}
+@media(max-width:1100px){.hero-frame{grid-template-columns:1fr;gap:32px}}
+.hero--dawn .hero-kicker{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  color:var(--brand);font-weight:600;margin-bottom:18px;
+}
+.hero--dawn .kicker-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--brand);
+  animation:hero-pulse 2s ease infinite;flex-shrink:0;
+}
+@keyframes hero-pulse{
+  0%,100%{box-shadow:0 0 0 0 var(--brand-tint)}
+  50%{box-shadow:0 0 0 8px transparent}
+}
+.hero--dawn .hero-kicker-sep{color:var(--tx3);opacity:.6}
+.hero--dawn .hero-kicker-meta{color:var(--tx3);font-weight:400;letter-spacing:.02em;text-transform:none;font-family:var(--font);font-size:12px}
+.hero--dawn .hero-title{
+  font-family:var(--display);
+  font-size:clamp(32px,4.2vw,54px);
+  font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.025em;
+  line-height:1.05;
+  margin-bottom:20px;
+  text-wrap:balance;
+}
+.hero-body{
+  font-size:16px;line-height:1.65;color:var(--tx2);
+  max-width:64ch;margin-bottom:26px;
+}
+
+/* KPI side panel (4 tiles) */
+.hero-stats{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--bd);border:1px solid var(--bd);
+  border-radius:var(--radius-lg);overflow:hidden;
+}
+.hs-item{padding:18px 16px;background:var(--surface);display:flex;flex-direction:column;gap:4px}
+.hs-label{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.hs-value{
+  font-family:var(--display);font-size:36px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  line-height:1;color:var(--tx);letter-spacing:-.03em;
+  font-feature-settings:"tnum";
+  display:flex;align-items:center;gap:8px;
+}
+.hs-value--flame svg{color:var(--brand);width:18px;height:18px}
+.hs-value--sm{font-size:20px}
+.hs-unit{font-size:11px;color:var(--tx3)}
+
+/* Primary/ghost buttons matching Dawn */
+.btn--primary-dawn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:var(--radius);
+  font-size:13px;font-weight:500;
+  background:var(--tx);color:var(--bg2);border:1px solid var(--tx);
+  transition:all 120ms;
+}
+.btn--primary-dawn:hover{background:var(--tx2);border-color:var(--tx2)}
+.btn--ghost-dawn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:var(--radius);
+  font-size:13px;font-weight:500;
+  background:transparent;color:var(--tx);border:1px solid var(--bd2);
+  transition:all 120ms;
+}
+.btn--ghost-dawn:hover{background:var(--bg2);border-color:var(--tx2)}
+
+/* Page header chips (Dawn) */
+.ph-chips{display:flex;align-items:center;gap:6px}
+.ph-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:999px;
+  border:1px solid var(--bd);background:var(--surface);
+  color:var(--tx2);font-size:12px;
+  transition:all 120ms;text-transform:none;letter-spacing:0;
+  font-family:var(--font);
+}
+.ph-chip:hover{border-color:var(--bd2);color:var(--tx);background:var(--bg2)}
+.ph-chip--primary{background:var(--tx);color:var(--bg2);border-color:var(--tx)}
+.ph-chip--primary:hover{background:var(--tx2);color:var(--bg2);border-color:var(--tx2)}
+.ph-chip svg{width:13px;height:13px;flex-shrink:0}
+
+/* ── EDITORIAL TOP-3 CARDS (Dawn) ─────────────────────── */
+.top-grid.top-grid--dawn{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  margin-bottom:var(--space-5);
+}
+@media(max-width:1100px){.top-grid.top-grid--dawn{grid-template-columns:1fr}}
+.top-card-dawn{
+  display:grid;grid-template-columns:60px 1fr;gap:16px;
+  padding:22px;
+  background:var(--surface);
+  border:1px solid var(--bd);border-radius:var(--radius-lg);
+  transition:all 160ms;cursor:pointer;
+  position:relative;overflow:hidden;
+  box-shadow:var(--shadow-xs);
+  text-align:left;
+}
+.top-card-dawn:hover{
+  border-color:var(--bd2);
+  box-shadow:var(--shadow-md);
+  transform:translateY(-2px);
+}
+.top-card-dawn--rank1{
+  border-color:var(--brand);
+  background:linear-gradient(180deg,var(--brand-tint) 0%,var(--surface) 40%);
+}
+.top-card-dawn--rank1:hover{border-color:var(--brand-ink)}
+.top-card-dawn.is-read{opacity:.5}
+
+.tcd-rail{display:flex;flex-direction:column;gap:16px;align-items:flex-start}
+.tcd-rank{
+  font-family:var(--display);font-size:40px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  line-height:1;color:var(--tx);
+  letter-spacing:-.04em;font-feature-settings:"tnum";
+}
+.top-card-dawn--rank1 .tcd-rank{color:var(--brand)}
+.tcd-score{
+  display:flex;flex-direction:column;gap:4px;
+  font-family:var(--mono);font-size:10px;color:var(--tx3);width:100%;
+}
+.tcd-score-bar{display:block;height:3px;background:var(--bd);border-radius:2px;overflow:hidden}
+.tcd-score-fill{display:block;height:100%;background:var(--brand);border-radius:2px}
+.tcd-score-num{font-weight:600;color:var(--tx2)}
+
+.tcd-body{min-width:0;display:flex;flex-direction:column}
+.tcd-meta{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--tx3);margin-bottom:10px;
+}
+.tcd-source{color:var(--tx);font-weight:600}
+.tcd-section{color:var(--brand);padding:1px 6px;background:var(--brand-tint);border-radius:3px}
+.tcd-unread{
+  width:7px;height:7px;border-radius:50%;background:var(--brand);margin-left:auto;
+}
+.tcd-title{
+  font-family:var(--display);font-size:19px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.015em;line-height:1.25;color:var(--tx);
+  margin-bottom:8px;text-wrap:balance;
+}
+.tcd-summary{
+  font-size:13.5px;line-height:1.55;color:var(--tx2);
+  flex:1;margin-bottom:16px;
+}
+.tcd-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;flex-wrap:wrap;
+  padding-top:14px;border-top:1px solid var(--bd);
+}
+.tcd-tags{display:flex;gap:8px;flex-wrap:wrap}
+.tcd-tag{font-family:var(--mono);font-size:10px;color:var(--tx3)}
+.tcd-actions{display:flex;gap:4px}
+.tcd-action{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 8px;border-radius:var(--radius);
+  border:1px solid var(--bd);color:var(--tx2);
+  font-family:var(--mono);font-size:10px;letter-spacing:.04em;
+  background:transparent;transition:all 120ms;
+}
+.tcd-action:hover{background:var(--bg2);color:var(--tx);border-color:var(--bd2)}
+.is-read .tcd-action{background:var(--positive-tint);border-color:var(--positive);color:var(--positive)}
+.tcd-action svg{width:12px;height:12px}
 
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
@@ -1535,36 +1711,82 @@ body.deep-work .count{display:none!important}
   <div class="panel active" role="tabpanel" id="panel-brief">
     <div class="page-header">
       <div class="breadcrumb">
-        <span>Cockpit</span>
-        <span class="sep">›</span>
+        <span id="brief-eyebrow" style="color:var(--brand);font-weight:600">—</span>
+        <span class="sep">/</span>
         <strong>Brief du jour</strong>
+        <span class="sep">·</span>
+        <span id="brief-date-header" style="text-transform:none;letter-spacing:.01em;font-family:var(--font);font-size:12px;color:var(--tx2)"></span>
       </div>
-      <div class="header-actions">
-        <span id="brief-date-header"></span>
-        <span class="kbd"><span class="mod-key">Ctrl</span> K</span>
+      <div class="header-actions ph-chips">
+        <button class="ph-chip" id="brief-dictate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          Dicter
+        </button>
+        <button class="ph-chip" id="brief-play-audio">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>
+          Lecture audio · 4 min
+        </button>
+        <button class="ph-chip ph-chip--primary" id="brief-mark-all-top">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Tout marquer lu
+        </button>
       </div>
     </div>
 
-    <section class="hero">
-      <div class="hero-kicker">Brief du jour · <span id="mb-period">Matin</span></div>
-      <h1 class="hero-title" id="mb-greeting-text">Bonjour Jean.</h1>
-      <div class="hero-meta" id="brief-meta"></div>
-      <div class="hero-actions">
-        <button class="btn btn-primary" id="brief-read-top">
-          Lire les incontournables
-          <svg class="icon" aria-hidden="true"><use href="#icon-arrow-right"/></svg>
-        </button>
-        <button class="btn btn-ghost" id="brief-mark-all">
-          Marquer tout comme lu
-          <span class="kbd">M</span>
-        </button>
+    <section class="hero hero--dawn">
+      <div class="hero-frame">
+        <div class="hero-col-main">
+          <div class="hero-kicker">
+            <span class="kicker-dot"></span>
+            <span id="hero-kicker-label">Synthèse du matin</span>
+            <span class="hero-kicker-sep">—</span>
+            <span class="hero-kicker-meta" id="hero-kicker-meta">— articles synthétisés · lecture ~ min</span>
+          </div>
+          <h1 class="hero-title" id="hero-title">—</h1>
+          <p class="hero-body" id="hero-body">—</p>
+          <div class="hero-actions">
+            <button class="btn--primary-dawn" id="brief-read-top">
+              Lire les 3 incontournables
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+            <button class="btn--ghost-dawn" id="brief-browse-all">
+              <span id="brief-browse-label">Parcourir tous les articles</span>
+            </button>
+          </div>
+        </div>
+        <div class="hero-col-side">
+          <div class="hero-stats">
+            <div class="hs-item">
+              <div class="hs-label">Depuis ta dernière visite</div>
+              <div class="hs-value" id="hs-articles">—</div>
+              <div class="hs-unit">articles</div>
+            </div>
+            <div class="hs-item">
+              <div class="hs-label">Signaux en hausse</div>
+              <div class="hs-value" id="hs-signals">—</div>
+              <div class="hs-unit">termes</div>
+            </div>
+            <div class="hs-item">
+              <div class="hs-label">Streak</div>
+              <div class="hs-value hs-value--flame" id="hs-streak"><span id="hs-streak-num">—</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+              </div>
+              <div class="hs-unit">jours</div>
+            </div>
+            <div class="hs-item">
+              <div class="hs-label">Prochain brief</div>
+              <div class="hs-value hs-value--sm" id="hs-next">demain 06:00</div>
+              <div class="hs-unit">automatique</div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
     <div class="content">
       <div id="since-last-visit"></div>
 
-      <div id="morning-briefing" class="morning-briefing">
+      <div id="morning-briefing" class="morning-briefing" style="display:none">
         <div class="mb-weather" id="mb-weather"></div>
         <div class="mb-stats" id="mb-stats"></div>
         <div id="mb-activity"></div>
@@ -1574,6 +1796,7 @@ body.deep-work .count{display:none!important}
           <button class="mb-btn mb-btn--skip" onclick="dismissBriefing()">Passer</button>
         </div>
       </div>
+      <div style="display:none"><span id="mb-greeting-text"></span><span id="mb-period"></span><span id="brief-meta"></span></div>
 
       <div id="veille-score-widget"></div>
 
@@ -1581,11 +1804,11 @@ body.deep-work .count{display:none!important}
         <div class="section-header">
           <div>
             <div class="section-kicker">Top du jour</div>
-            <h2 class="section-title">3 articles incontournables</h2>
+            <h2 class="section-title">3 incontournables, classés par l'agent</h2>
           </div>
           <span class="brief-sparkline" id="brief-sparkline"></span>
         </div>
-        <div class="top-grid" id="brief-top-grid"></div>
+        <div class="top-grid top-grid--dawn" id="brief-top-grid"></div>
       </div>
 
       <div class="section">
@@ -3007,12 +3230,51 @@ function _formatBriefDate(dateStr){
     return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}).replace(/^./,c=>c.toUpperCase());
   }catch{return dateStr;}
 }
+function _isoWeek(d){
+  const date=new Date(d.valueOf());
+  date.setHours(0,0,0,0);
+  date.setDate(date.getDate()+3-((date.getDay()+6)%7));
+  const wk1=new Date(date.getFullYear(),0,4);
+  return Math.round(((date-wk1)/86400000 - 3 + ((wk1.getDay()+6)%7))/7)+1;
+}
+function _dayOfYear(d){
+  const start=new Date(d.getFullYear(),0,0);
+  return Math.floor((d-start)/86400000);
+}
+function _extractMacro(dayArticles){
+  // Synthesize a kicker + title + body from the top articles
+  const top=dayArticles.slice(0,3);
+  if(!top.length){
+    return {
+      title:"Aucun article aujourd'hui.",
+      body:"Le pipeline n'a pas trouvé de contenu à synthétiser pour le moment. Reviens plus tard ou consulte l'historique.",
+    };
+  }
+  // Try to use an existing daily brief macro paragraph if present
+  const briefEl=document.querySelector('#brief-content .macro-text');
+  if(briefEl && briefEl.textContent.trim().length>40){
+    const sentences=briefEl.textContent.trim().split(/(?<=[.!?])\s+/);
+    const title=top[0].title.length<90?top[0].title:sentences[0];
+    const body=sentences.slice(0,3).join(' ').slice(0,420);
+    return {title,body};
+  }
+  const title=top[0].title;
+  const sources=[...new Set(top.map(a=>a.source).filter(Boolean))].slice(0,3).join(', ');
+  const body=`${top.length} incontournables sortis aujourd'hui, relayés par ${sources||'les principales sources'}. ${stripHtml(top[0].summary||'').slice(0,220)}`;
+  return {title,body};
+}
+
 function renderBriefV2(dayArticles,dateStr){
-  // --- Kicker period ---
+  // --- Kicker period (legacy) ---
   const periodEl=document.getElementById('mb-period');
   if(periodEl)periodEl.textContent=_periodLabel();
 
-  // --- Date in header breadcrumb ---
+  // --- Date & breadcrumb eyebrow ---
+  const d=new Date((dateStr||new Date().toISOString().split('T')[0])+'T00:00:00');
+  const wkLabel=`S${String(_isoWeek(d)).padStart(2,'0')}`;
+  const dayOfYear=`J+${_dayOfYear(d)}`;
+  const eyebrowEl=document.getElementById('brief-eyebrow');
+  if(eyebrowEl)eyebrowEl.textContent=`${wkLabel} · ${dayOfYear}`;
   const dateHeaderEl=document.getElementById('brief-date-header');
   if(dateHeaderEl)dateHeaderEl.textContent=_formatBriefDate(dateStr);
 
@@ -3021,50 +3283,99 @@ function renderBriefV2(dayArticles,dateStr){
   const topCount=Math.min(3,dayArticles.length);
   const readingMin=Math.max(1,Math.round(dayArticles.length*1.5));
 
-  // --- Meta strip ---
+  // --- Legacy meta strip (kept hidden for backwards compat) ---
   const metaEl=document.getElementById('brief-meta');
   if(metaEl){
-    metaEl.innerHTML=[
-      `<span>${_formatBriefDate(dateStr)}</span>`,
-      `<span class="dot">·</span>`,
-      `<strong>${dayArticles.length}</strong> articles`,
-      `<span class="dot">·</span>`,
-      `<strong>${topCount}</strong> incontournables`,
-      `<span class="dot">·</span>`,
-      `~${readingMin} min de lecture`
-    ].join('');
+    metaEl.innerHTML=`<strong>${dayArticles.length}</strong> articles · <strong>${topCount}</strong> incontournables · ~${readingMin} min`;
   }
 
-  // --- Top grid (1 hero + 2 side) ---
+  // --- Dawn hero: macro synthesis ---
+  const macro=_extractMacro(dayArticles);
+  const hkMeta=document.getElementById('hero-kicker-meta');
+  if(hkMeta)hkMeta.textContent=`${dayArticles.length} articles synthétisés · lecture ${readingMin} min`;
+  const hTitle=document.getElementById('hero-title');
+  if(hTitle)hTitle.textContent=macro.title;
+  const hBody=document.getElementById('hero-body');
+  if(hBody)hBody.textContent=macro.body;
+  const browseLabel=document.getElementById('brief-browse-label');
+  if(browseLabel)browseLabel.textContent=`Parcourir les ${dayArticles.length} articles`;
+
+  // --- Dawn hero: 4 KPI stats ---
+  const hsArticles=document.getElementById('hs-articles');
+  if(hsArticles)hsArticles.textContent=unreadCount||dayArticles.length;
+  const hsSignals=document.getElementById('hs-signals');
+  if(hsSignals && hsSignals.textContent==='—'){
+    // Lazy fetch: compute from signal_tracking if available, else fall back
+    fetchJSON(`${SUPABASE_URL}/rest/v1/signal_tracking?select=trend&order=week_start.desc&limit=200`)
+      .then(rows=>{
+        const rising=(rows||[]).filter(r=>r.trend==='rising'||r.trend==='new').length;
+        hsSignals.textContent=rising||'0';
+      }).catch(()=>{ hsSignals.textContent='0'; });
+  }
+  // Streak from read history
+  try{
+    const streak=_computeReadStreak();
+    const hsStreakNum=document.getElementById('hs-streak-num');
+    if(hsStreakNum)hsStreakNum.textContent=streak;
+  }catch{}
+  // Next brief: if before 06:00 UTC, today 06:00; else tomorrow 06:00
+  const hsNext=document.getElementById('hs-next');
+  if(hsNext){
+    const now=new Date();
+    const isWeekday=(now.getDay()>=1 && now.getDay()<=5);
+    const beforeBrief=now.getUTCHours()<6;
+    hsNext.textContent=beforeBrief && isWeekday?'aujourd\'hui 06:00':'demain 06:00';
+  }
+
+  // --- Top grid: 3 editorial rank cards (Dawn) ---
   const topGrid=document.getElementById('brief-top-grid');
   if(topGrid){
     if(!dayArticles.length){
       topGrid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${eIcon('inbox')}</div>Aucun article aujourd'hui</div>`;
     }else{
       const top=dayArticles.slice(0,3);
-      const hero=top[0];
-      const sides=top.slice(1);
-      const heroHtml=`
-        <article class="hero-article" data-article-id="${hero.id}" onclick="window.open('${esc(hero.url)}','_blank');markAsRead('${hero.id}')">
-          <div class="meta">
-            <span class="tag">${esc(hero.section||'').toUpperCase()}</span>
-            <span>${esc(hero.source||'')}</span>
-            ${hero.date_published?`<span>${timeAgoTag(hero.date_published).replace(/<[^>]+>/g,'')}</span>`:''}
+      topGrid.innerHTML=top.map((a,i)=>{
+        const rank=i+1;
+        const score=Math.max(60,94-i*6-(a.score?0:0));
+        const sectionLabel=(a.section||'').toUpperCase();
+        const ago=a.date_published?timeAgoTag(a.date_published).replace(/<[^>]+>/g,''):'';
+        const unread=!readMap[a.id];
+        const tags=(a.tags||[]).slice(0,3);
+        const summary=esc(stripHtml(a.summary||'').slice(0,220))+((a.summary||'').length>220?'…':'');
+        const tagsHtml=tags.length?tags.map(t=>`<span class="tcd-tag">#${esc(String(t).replace(/^#/,''))}</span>`).join(''):`<span class="tcd-tag">${esc(a.source||'')}</span>`;
+        return `<button type="button" class="top-card-dawn top-card-dawn--rank${rank}${unread?'':' is-read'}" data-article-id="${a.id}" data-rank="${rank}" onclick="_openArticle('${esc(a.url)}','${a.id}',this)">
+          <div class="tcd-rail">
+            <span class="tcd-rank">${String(rank).padStart(2,'0')}</span>
+            <span class="tcd-score" title="Score de pertinence">
+              <span class="tcd-score-bar"><span class="tcd-score-fill" style="width:${score}%"></span></span>
+              <span class="tcd-score-num">${score}</span>
+            </span>
           </div>
-          <h3 class="title">${esc(hero.title)}</h3>
-          <p class="summary">${esc(stripHtml(hero.summary||'').slice(0,280))}${(hero.summary||'').length>280?'…':''}</p>
-          <div class="footer">
-            <span>Incontournable</span>
-            <span>Lire →</span>
+          <div class="tcd-body">
+            <div class="tcd-meta">
+              <span class="tcd-source">${esc(a.source||'')}</span>
+              ${sectionLabel?`<span class="tcd-section">${esc(sectionLabel)}</span>`:''}
+              ${ago?`<span>${esc(ago)}</span>`:''}
+              ${unread?'<span class="tcd-unread"></span>':''}
+            </div>
+            <h3 class="tcd-title">${esc(a.title)}</h3>
+            <p class="tcd-summary">${summary}</p>
+            <div class="tcd-foot">
+              <div class="tcd-tags">${tagsHtml}</div>
+              <div class="tcd-actions">
+                <span class="tcd-action" onclick="event.stopPropagation();_toggleReadFromCard(this,'${a.id}')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>${unread?'Marquer lu':'Lu'}</span>
+                </span>
+                <span class="tcd-action">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                  <span>Garder</span>
+                </span>
+              </div>
+            </div>
           </div>
-        </article>`;
-      const sidesHtml=sides.map(a=>`
-        <article class="side-article" data-article-id="${a.id}" onclick="window.open('${esc(a.url)}','_blank');markAsRead('${a.id}')">
-          <div class="meta">${esc(a.section||'').toUpperCase()} · ${esc(a.source||'')}</div>
-          <h4 class="title">${esc(a.title)}</h4>
-          <p class="summary">${esc(stripHtml(a.summary||'').slice(0,140))}${(a.summary||'').length>140?'…':''}</p>
-        </article>`).join('');
-      topGrid.innerHTML=heroHtml+sidesHtml;
+        </button>`;
+      }).join('');
     }
   }
 
@@ -3100,16 +3411,65 @@ function renderBriefV2(dayArticles,dateStr){
       if(tg)tg.scrollIntoView({behavior:'smooth',block:'start'});
     };
   }
-  const markAllBtn=document.getElementById('brief-mark-all');
+  const browseAllBtn=document.getElementById('brief-browse-all');
+  if(browseAllBtn){
+    browseAllBtn.onclick=()=>{
+      const fl=document.getElementById('brief-full-list');
+      if(fl)fl.scrollIntoView({behavior:'smooth',block:'start'});
+    };
+  }
+  const markAllBtn=document.getElementById('brief-mark-all-top');
   if(markAllBtn){
     markAllBtn.onclick=()=>{
       SECTIONS.forEach(s=>markAllRead(s));
       listEl&&listEl.querySelectorAll('.list-item.is-unread').forEach(el=>el.classList.remove('is-unread'));
+      document.querySelectorAll('#brief-top-grid .top-card-dawn').forEach(el=>el.classList.add('is-read'));
       renderSidebarProgress();
     };
   }
+  const dictateBtn=document.getElementById('brief-dictate');
+  if(dictateBtn)dictateBtn.onclick=()=>{ if(typeof startVoiceSearch==='function')startVoiceSearch(); };
+  const playAudioBtn=document.getElementById('brief-play-audio');
+  if(playAudioBtn)playAudioBtn.onclick=()=>{ if(typeof toggleBriefingAudio==='function')toggleBriefingAudio(); };
 
   if(window.__renderModKeys)window.__renderModKeys();
+}
+
+// Helpers for Dawn top cards
+function _openArticle(url,id,el){
+  try{ window.open(url,'_blank'); if(typeof markAsRead==='function')markAsRead(id); if(el)el.classList.add('is-read'); }catch(e){console.error(e);}
+}
+function _toggleReadFromCard(actionEl,id){
+  const card=actionEl.closest('.top-card-dawn');
+  if(!card)return;
+  const willBeRead=!card.classList.contains('is-read');
+  card.classList.toggle('is-read',willBeRead);
+  const lbl=actionEl.querySelector('span');
+  if(lbl)lbl.textContent=willBeRead?'Lu':'Marquer lu';
+  const dot=card.querySelector('.tcd-unread');
+  if(dot && willBeRead)dot.remove();
+  if(willBeRead && typeof markAsRead==='function')markAsRead(id);
+}
+function _computeReadStreak(){
+  try{
+    const rm=getReadArticles()||{};
+    // Each entry's timestamp maps to a day — count consecutive days with at least one read, ending today or yesterday.
+    const days=new Set();
+    Object.values(rm).forEach(v=>{
+      const t=typeof v==='number'?v:(v&&v.ts?v.ts:null);
+      if(!t)return;
+      days.add(new Date(t).toISOString().split('T')[0]);
+    });
+    if(!days.size)return 0;
+    let streak=0;
+    const today=new Date(); today.setHours(0,0,0,0);
+    for(let i=0;i<400;i++){
+      const d=new Date(today); d.setDate(today.getDate()-i);
+      if(days.has(d.toISOString().split('T')[0]))streak++;
+      else if(i>0)break;
+    }
+    return streak;
+  }catch{ return 0; }
 }
 
 // ── VEILLE UNIFIED RENDERING (P11) ───────────────────────
