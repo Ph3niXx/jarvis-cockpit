@@ -1264,6 +1264,20 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
 .sb-link:hover{background:var(--bg2);color:var(--tx)}
 .sb-link.active{background:var(--bg2);color:var(--tx);font-weight:600;border-left:2px solid var(--tx)}
 .sb-link--empty{opacity:.3;pointer-events:none}
+.sb-link--soon{opacity:.65}
+.sb-link--soon:hover{opacity:.85}
+.sb-link--flash{animation:sb-flash .8s ease}
+@keyframes sb-flash{0%{background:var(--brand-tint)}100%{background:transparent}}
+.sb-soon{
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--tx3);padding:1px 5px;border-radius:3px;background:var(--bg2);
+  border:1px solid var(--bd);margin-left:auto;
+}
+.sb-section-label-flat{
+  padding:8px var(--space-3) 6px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;
+}
 .sb-link .icon{width:16px;height:16px;flex-shrink:0;opacity:.5}
 .sb-link.active .icon{opacity:.9}
 .icon{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;display:inline-block;vertical-align:middle}
@@ -2499,80 +2513,71 @@ body.deep-work .count{display:none!important}
 
   <div class="sb-progress" id="sb-progress"></div>
 
+  <!-- AUJOURD'HUI (flat, no collapse) -->
   <div class="sb-section" style="padding-bottom:0">
+    <div class="sb-section-label-flat">Aujourd'hui</div>
     <button class="sb-link active" data-panel="brief" role="tab" aria-selected="true"><svg class="icon" aria-hidden="true"><use href="#icon-zap"/></svg><span class="label">Brief du jour</span></button>
     <button class="sb-link" data-panel="top" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg><span class="label">Top du jour</span></button>
     <button class="sb-link" data-panel="myweek" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-calendar"/></svg><span class="label">Ma semaine</span></button>
     <button class="sb-link" data-panel="search" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg><span class="label">Recherche</span></button>
   </div>
 
-  <div class="sb-section" style="padding-bottom:0">
-    <button class="sb-link" data-panel="veille" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-sparkles"/></svg><span class="label">Veille</span><span class="count" id="c-veille-total">-</span></button>
-  </div>
-
-  <div class="sb-section" data-section="intelligence" role="tablist" aria-label="Intelligence">
-    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Intelligence<span class="sb-section-count" id="sc-intelligence"></span></button>
+  <!-- VEILLE -->
+  <div class="sb-section" data-section="veille" role="tablist" aria-label="Veille">
+    <button class="sb-section-label" aria-expanded="true"><span class="sb-section-chevron">&#9656;</span>Veille<span class="sb-section-count" id="sc-veille"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="wiki" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-library"/></svg><span class="label">Wiki IA</span></button>
-      <button class="sb-link" data-panel="signals" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-radio"/></svg><span class="label">Signaux faibles</span></button>
-      <button class="sb-link" data-panel="opportunities" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-trending-up"/></svg><span class="label">Opportunités</span></button>
+      <button class="sb-link" data-panel="veille" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-sparkles"/></svg><span class="label">Veille IA</span><span class="count" id="c-veille-total">-</span></button>
+      <button class="sb-link sb-link--soon" data-panel="sport" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-activity"/></svg><span class="label">Sport</span><span class="sb-soon">bientôt</span></button>
+      <button class="sb-link sb-link--soon" data-panel="gaming_news" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-gamepad-2"/></svg><span class="label">Gaming</span><span class="sb-soon">bientôt</span></button>
+      <button class="sb-link sb-link--soon" data-panel="anime" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-film"/></svg><span class="label">Anime / Ciné / Séries</span><span class="sb-soon">bientôt</span></button>
+      <button class="sb-link sb-link--soon" data-panel="news" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-newspaper"/></svg><span class="label">Actualités</span><span class="sb-soon">bientôt</span></button>
     </div>
   </div>
 
+  <!-- APPRENTISSAGE -->
   <div class="sb-section" data-section="apprentissage" role="tablist" aria-label="Apprentissage">
-    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Apprentissage<span class="sb-section-count" id="sc-apprentissage"></span></button>
+    <button class="sb-section-label" aria-expanded="true"><span class="sb-section-chevron">&#9656;</span>Apprentissage<span class="sb-section-count" id="sc-apprentissage"></span></button>
     <div class="sb-section-items">
       <button class="sb-link" data-panel="radar" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-target"/></svg><span class="label">Radar compétences</span></button>
       <button class="sb-link" data-panel="recos" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-book-open"/></svg><span class="label">Recommandations</span></button>
-      <button class="sb-link" data-panel="challenges" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg><span class="label">Défis</span></button>
+      <button class="sb-link" data-panel="challenges" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg><span class="label">Challenges</span></button>
+      <button class="sb-link" data-panel="wiki" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-library"/></svg><span class="label">Wiki IA</span></button>
+      <button class="sb-link" data-panel="signals" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-radio"/></svg><span class="label">Signaux faibles</span></button>
     </div>
   </div>
 
-  <div class="sb-section" data-section="incubateur" role="tablist" aria-label="Incubateur">
-    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Incubateur<span class="sb-section-count" id="sc-incubateur"></span></button>
+  <!-- BUSINESS -->
+  <div class="sb-section" data-section="business" role="tablist" aria-label="Business">
+    <button class="sb-section-label" aria-expanded="true"><span class="sb-section-chevron">&#9656;</span>Business<span class="sb-section-count" id="sc-business"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="ideas" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-lightbulb"/></svg><span class="label">Idées</span></button>
+      <button class="sb-link" data-panel="opportunities" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-trending-up"/></svg><span class="label">Opportunités</span></button>
+      <button class="sb-link" data-panel="ideas" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-lightbulb"/></svg><span class="label">Carnet d'idées</span></button>
       <button class="sb-link" data-panel="rte" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-train-front"/></svg><span class="label">Toolbox RTE</span></button>
     </div>
   </div>
 
-  <div class="sb-section" data-section="performance" role="tablist" aria-label="Performance">
-    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Performance<span class="sb-section-count" id="sc-performance"></span></button>
+  <!-- PERSONNEL -->
+  <div class="sb-section" data-section="personnel" role="tablist" aria-label="Personnel">
+    <button class="sb-section-label" aria-expanded="true"><span class="sb-section-chevron">&#9656;</span>Personnel<span class="sb-section-count" id="sc-personnel"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="perf-overview" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-activity"/></svg><span class="label">Performance</span></button>
-      <button class="sb-link" data-panel="perf-history" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-bar-chart-2"/></svg><span class="label">Historique</span></button>
-    </div>
-  </div>
-
-  <div class="sb-section" data-section="culture" role="tablist" aria-label="Culture">
-    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Culture<span class="sb-section-count" id="sc-culture"></span></button>
-    <div class="sb-section-items">
+      <button class="sb-link" data-panel="jarvis" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-bot"/></svg><span class="label">Jarvis</span></button>
+      <button class="sb-link" data-panel="profile" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-user"/></svg><span class="label">Mon profil</span></button>
+      <button class="sb-link" data-panel="perf-overview" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-activity"/></svg><span class="label">Forme</span></button>
       <button class="sb-link" data-panel="music-overview" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-music"/></svg><span class="label">Musique</span></button>
-    </div>
-  </div>
-
-  <div class="sb-section" data-section="gaming" role="tablist" aria-label="Gaming">
-    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Gaming<span class="sb-section-count" id="sc-gaming"></span></button>
-    <div class="sb-section-items">
       <button class="sb-link" data-panel="gaming-overview" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-gamepad-2"/></svg><span class="label">Gaming</span></button>
-      <button class="sb-link" data-panel="tft" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-target"/></svg><span class="label">TFT</span></button>
     </div>
   </div>
 
-  <div class="sb-section" data-section="assistant" role="tablist" aria-label="Assistant">
-    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Assistant<span class="sb-section-count" id="sc-assistant"></span></button>
+  <!-- SYSTÈME -->
+  <div class="sb-section" data-section="systeme" role="tablist" aria-label="Système">
+    <button class="sb-section-label" aria-expanded="true"><span class="sb-section-chevron">&#9656;</span>Système<span class="sb-section-count" id="sc-systeme"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link" data-panel="jarvis-project" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-rocket"/></svg><span class="label">Projet Jarvis</span></button>
-      <button class="sb-link" data-panel="jarvis" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-bot"/></svg><span class="label">Assistant</span></button>
-    </div>
-  </div>
-
-  <div class="sb-section" data-section="outils" role="tablist" aria-label="Outils">
-    <button class="sb-section-label" aria-expanded="false"><span class="sb-section-chevron">&#9656;</span>Outils<span class="sb-section-count" id="sc-outils"></span></button>
-    <div class="sb-section-items">
-      <button class="sb-link" data-panel="profile" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-user"/></svg><span class="label">Profil</span></button>
-      <button class="sb-link" data-panel="history" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-calendar"/></svg><span class="label">Journal</span></button>
+      <button class="sb-link sb-link--soon" data-panel="stacks" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-credit-card"/></svg><span class="label">Stacks &amp; Limits</span><span class="sb-soon">bientôt</span></button>
+      <button class="sb-link" data-panel="history" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-calendar"/></svg><span class="label">Historique</span></button>
       <button class="sb-link" data-panel="costs" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-credit-card"/></svg><span class="label">Coûts</span></button>
+      <button class="sb-link" data-panel="perf-history" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-bar-chart-2"/></svg><span class="label">Historique sport</span></button>
+      <button class="sb-link" data-panel="tft" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-target"/></svg><span class="label">TFT</span></button>
+      <button class="sb-link" data-panel="jarvis-project" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-rocket"/></svg><span class="label">Projet Jarvis</span></button>
     </div>
   </div>
 
@@ -3900,13 +3905,24 @@ function showSkeleton(id,type){
 }
 
 // ── NAVIGATION ─────────────────────────────────────────────
+const _SOON_PANELS=new Set(['sport','gaming_news','anime','news','stacks']);
 document.querySelectorAll('.sb-link').forEach(btn=>{
   btn.addEventListener('click',()=>{
+    const panel=btn.dataset.panel;
+    // Soon-panels: redirect to Veille with a soft flash; don't break nav
+    if(_SOON_PANELS.has(panel)){
+      btn.classList.add('sb-link--flash');
+      setTimeout(()=>btn.classList.remove('sb-link--flash'),800);
+      const veilleBtn=document.querySelector('[data-panel="veille"]');
+      if(veilleBtn && panel!=='stacks')veilleBtn.click();
+      return;
+    }
+    const targetPanel=document.getElementById(`panel-${panel}`);
+    if(!targetPanel)return;
     document.querySelectorAll('.sb-link').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false')});
     btn.classList.add('active');btn.setAttribute('aria-selected','true');
-    const panel=btn.dataset.panel;
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-    document.getElementById(`panel-${panel}`).classList.add('active');
+    targetPanel.classList.add('active');
     track('section_opened',{section:panel});
     // Load data on first visit
     if(panel==='wiki') loadWiki();
