@@ -745,25 +745,93 @@
         }
         return { profile: rows };
       }
-      case "perf":
-        return { activities: await T2.strava() };
-      case "music":
-        return {
-          scrobbles: await T2.music_scrobbles(),
-          stats: await T2.music_stats(),
-          top: await T2.music_top(),
-          loved: await T2.music_loved(),
-          genres: await T2.music_genres(),
-          insights: await T2.music_insights(),
-        };
-      case "gaming":
-        return {
-          snapshot: await T2.steam_snapshot(),
-          stats: await T2.steam_stats(),
-          achievements: await T2.steam_achievements(),
-        };
-      case "stacks":
-        return { weekly_analysis: await T2.weekly_analysis() };
+      case "perf": {
+        const activities = await T2.strava();
+        if (window.FORME_DATA && activities.length) {
+          const now = Date.now();
+          const seven = now - 7 * 24 * 3600 * 1000;
+          const thirty = now - 30 * 24 * 3600 * 1000;
+          const inRange = (iso, from) => new Date(iso).getTime() >= from;
+          const last7 = activities.filter(a => inRange(a.start_date, seven));
+          const last30 = activities.filter(a => inRange(a.start_date, thirty));
+          const sumKm = rows => rows.reduce((s, a) => s + (Number(a.distance_m) || 0) / 1000, 0);
+          const sumMin = rows => rows.reduce((s, a) => s + (Number(a.moving_time_s) || 0) / 60, 0);
+          window.FORME_DATA._raw = activities;
+          window.FORME_DATA._live = {
+            count_7d: last7.length,
+            count_30d: last30.length,
+            km_7d: Math.round(sumKm(last7)),
+            km_30d: Math.round(sumKm(last30)),
+            minutes_7d: Math.round(sumMin(last7)),
+            minutes_30d: Math.round(sumMin(last30)),
+            latest: activities[0] || null,
+          };
+        }
+        return { activities };
+      }
+      case "music": {
+        const [scrobbles, stats, top, loved, genres, insights] = await Promise.all([
+          T2.music_scrobbles(), T2.music_stats(), T2.music_top(),
+          T2.music_loved(), T2.music_genres(), T2.music_insights(),
+        ]);
+        if (window.MUSIC_DATA && (stats || []).length) {
+          const now = Date.now();
+          const seven = now - 7 * 24 * 3600 * 1000;
+          const thirty = now - 30 * 24 * 3600 * 1000;
+          const inRange = (d, from) => new Date(d + "T00:00:00").getTime() >= from;
+          const total7 = (stats || []).filter(s => inRange(s.stat_date, seven)).reduce((a, s) => a + (Number(s.scrobble_count) || 0), 0);
+          const total30 = (stats || []).filter(s => inRange(s.stat_date, thirty)).reduce((a, s) => a + (Number(s.scrobble_count) || 0), 0);
+          const totalAll = (stats || []).reduce((a, s) => a + (Number(s.scrobble_count) || 0), 0);
+          if (window.MUSIC_DATA.totals) {
+            window.MUSIC_DATA.totals.last7 = total7;
+            window.MUSIC_DATA.totals.last30 = total30;
+            window.MUSIC_DATA.totals.all180 = totalAll;
+          }
+          window.MUSIC_DATA._raw = { scrobbles, stats, top, loved, genres, insights };
+        }
+        return { scrobbles, stats, top, loved, genres, insights };
+      }
+      case "gaming": {
+        const [snapshot, stats, achievements] = await Promise.all([
+          T2.steam_snapshot(), T2.steam_stats(), T2.steam_achievements(),
+        ]);
+        if (window.GAMING_PERSO_DATA && snapshot) {
+          const now = Date.now();
+          const thirty = now - 30 * 24 * 3600 * 1000;
+          const totalMinutes30 = (stats || [])
+            .filter(s => new Date(s.stat_date + "T00:00:00").getTime() >= thirty)
+            .reduce((a, s) => a + (Number(s.total_playtime_minutes) || 0), 0);
+          const topGame = snapshot && snapshot[0] ? snapshot[0].name : null;
+          window.GAMING_PERSO_DATA._raw = { snapshot, stats, achievements };
+          window.GAMING_PERSO_DATA._live = {
+            library_size: (snapshot || []).length,
+            playtime_minutes_30d: totalMinutes30,
+            top_game: topGame,
+            achievements_recent: (achievements || []).slice(0, 10),
+          };
+        }
+        return { snapshot, stats, achievements };
+      }
+      case "stacks": {
+        const rows = await T2.weekly_analysis();
+        const now = new Date();
+        const monthKey = now.toISOString().slice(0, 7);
+        const monthCost = (rows || [])
+          .filter(r => (r.created_at || r.week_start || "").slice(0, 7) === monthKey)
+          .reduce((s, r) => s + Number(r.cost_eur || 0), 0);
+        // Project cost for full month
+        const dayOfMonth = now.getDate();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const projected = dayOfMonth > 0 ? (monthCost / dayOfMonth) * daysInMonth : monthCost;
+        if (window.STACKS_DATA && window.STACKS_DATA.totals) {
+          window.STACKS_DATA.totals.cost_mtd = monthCost;
+          window.STACKS_DATA.totals.cost_projected = projected;
+          window.STACKS_DATA.day_of_month = dayOfMonth;
+          window.STACKS_DATA.days_in_month = daysInMonth;
+          window.STACKS_DATA._raw = rows;
+        }
+        return { weekly_analysis: rows };
+      }
       case "history": {
         // 60-day window of articles + daily briefs → rebuild HISTORY_DATA
         const sixtyDaysAgo = new Date(); sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
