@@ -542,6 +542,40 @@
     return kv;
   }
 
+  // Build VEILLE_DATA.feed from real articles. Keeps headline/actors/
+  // prod_cases/trends from the fake (AI-curated content, no backend
+  // pipeline yet). Feed is the main list users scan, so it MUST be real.
+  const SECTION_TO_TYPE = {
+    updates: "Release", llm: "Release", agents: "Framework",
+    energy: "Analyse", finserv: "Deal", tools: "Framework",
+    biz: "Analyse", reg: "Régulation", papers: "Papier",
+  };
+  const SECTION_TO_ICON = {
+    updates: "sparkles", llm: "sparkles", agents: "bot",
+    energy: "sparkles", finserv: "bank", tools: "wrench",
+    biz: "sparkles", reg: "scale", papers: "book",
+  };
+  function transformVeilleFeed(articles){
+    const readMap = getReadMap();
+    return (articles || []).map(a => {
+      const dateH = Math.max(0, Math.round((Date.now() - new Date(a.date_published || a.date_fetched || Date.now()).getTime()) / 3600000));
+      return {
+        id: a.id,
+        actor: a.source || "—",
+        type: SECTION_TO_TYPE[a.section] || "Analyse",
+        date_h: dateH,
+        date_label: relTime(a.date_published || a.date_fetched),
+        title: a.title || "",
+        summary: stripHtml(a.summary || "").slice(0, 260),
+        tags: (a.tags || []).map(t => "#" + String(t).replace(/^#/, "")),
+        unread: !readMap[a.id],
+        starred: false,
+        icon: SECTION_TO_ICON[a.section] || "sparkles",
+        url: a.url,
+      };
+    });
+  }
+
   // Build HISTORY_DATA.days + totals from real articles + daily_briefs.
   // Shape: { days: [{ iso, days_ago, day_label, week, articles, signals_rising,
   // jarvis_calls, intensity, pinned, macro, top, signals }], totals: {...} }
@@ -615,13 +649,33 @@
   async function loadPanel(id){
     const raw = window.__COCKPIT_RAW || {};
     switch (id) {
-      case "updates":
+      case "updates": {
+        const articles = await T2.veille();
+        if (window.VEILLE_DATA && articles.length) {
+          window.VEILLE_DATA.feed = transformVeilleFeed(articles);
+          // Update hero headline with the freshest article
+          const fresh = articles[0];
+          if (fresh) {
+            window.VEILLE_DATA.headline = {
+              ...(window.VEILLE_DATA.headline || {}),
+              kicker: "Release · " + relTime(fresh.date_published),
+              actor: fresh.source || "—",
+              version: fresh.title || "",
+              tagline: stripHtml(fresh.summary || "").slice(0, 120),
+              body: stripHtml(fresh.summary || "").slice(0, 320),
+              tags: (fresh.tags || []).map(t => "#" + String(t).replace(/^#/, "")),
+            };
+          }
+        }
+        return { articles };
+      }
       case "sport":
       case "gaming_news":
       case "anime":
       case "news": {
-        const articles = await T2.veille();
-        return { articles };
+        // Non-AI verticals need articles.domain column + dedicated
+        // pipelines. Keep fake VEILLE_DATA corpora for now.
+        return { articles: [] };
       }
       case "wiki": {
         const concepts = await T2.wiki();
@@ -637,23 +691,29 @@
         const axes = raw.radarRows || [];
         if (window.APPRENTISSAGE_DATA) {
           if (axes.length) window.APPRENTISSAGE_DATA.radar = buildRadar(axes);
-          if (recos.length) window.APPRENTISSAGE_DATA.recos = transformRecos(recos, axes);
+          if (recos.length) {
+            window.APPRENTISSAGE_DATA.recos = transformRecos(recos, axes);
+          }
         }
         return { recos, axes };
       }
       case "challenges": {
         const challenges = await T2.challenges();
-        if (window.CHALLENGES_DATA && challenges.length) {
-          const theory = transformChallenges(challenges.filter(c => (c.kind || "theory") === "theory"));
-          const practice = transformChallenges(challenges.filter(c => c.kind === "practice"));
-          window.CHALLENGES_DATA.theory = theory.length ? theory : (window.CHALLENGES_DATA.theory || []);
-          window.CHALLENGES_DATA.practice = practice.length ? practice : (window.CHALLENGES_DATA.practice || []);
-          const done = challenges.filter(c => c.status === "completed");
-          window.CHALLENGES_DATA.stats = {
-            total_taken: done.length,
-            avg_score: done.length ? Math.round(done.reduce((s,c)=>s+Number(c.score_percent||70),0)/done.length) : 0,
-            total_xp: done.reduce((s,c)=>s+Number(c.score_reward||0),0),
-          };
+        // TheoryQuiz/PracticeExercise components read rich inner fields
+        // (questions[].choices[], brief_md, eval_criteria) that the
+        // weekly_challenges table doesn't carry. Keep fake shape, just
+        // update stats from real done challenges when present.
+        if (window.CHALLENGES_DATA) {
+          window.CHALLENGES_DATA._raw = challenges;
+          const done = (challenges || []).filter(c => c.status === "completed");
+          if (done.length) {
+            window.CHALLENGES_DATA.stats = {
+              ...(window.CHALLENGES_DATA.stats || {}),
+              total_taken: done.length,
+              avg_score: Math.round(done.reduce((s,c)=>s+Number(c.score_percent||70),0)/done.length),
+              total_xp: done.reduce((s,c)=>s+Number(c.score_reward||0),0),
+            };
+          }
         }
         return { challenges };
       }
