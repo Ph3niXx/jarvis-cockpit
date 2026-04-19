@@ -1954,6 +1954,118 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
 .idea-form--dawn textarea{grid-column:1/-1;min-height:72px;resize:vertical;font-family:var(--font)}
 .idea-form--dawn .btn--primary-dawn{align-self:end}
 
+/* ══════════════════════════════════════════════════════════
+   VERTICAL VEILLE — shared layout (sport/gaming/anime/news)
+   ══════════════════════════════════════════════════════════ */
+.vv-feed{display:flex;flex-direction:column;gap:0;margin-top:24px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);overflow:hidden}
+.vv-item{
+  display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:start;
+  padding:18px 22px;border-bottom:1px solid var(--bd);
+  cursor:pointer;transition:background 120ms;
+}
+.vv-item:last-child{border-bottom:none}
+.vv-item:hover{background:var(--bg2)}
+.vv-item-date{
+  width:54px;padding-top:4px;text-align:center;flex-shrink:0;
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.vv-item-date-big{
+  font-family:var(--display);font-size:22px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+  letter-spacing:-.02em;line-height:1;margin-bottom:2px;
+}
+.vv-item-body{min-width:0}
+.vv-item-meta{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);margin-bottom:6px;
+}
+.vv-item-cat{padding:2px 6px;border-radius:3px;font-weight:600}
+.vv-item-source{color:var(--tx);font-weight:600}
+.vv-item-title{
+  font-family:var(--display);font-size:18px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+  letter-spacing:-.015em;line-height:1.3;margin-bottom:6px;
+}
+.vv-item-summary{font-size:13.5px;line-height:1.55;color:var(--tx2);max-width:72ch}
+.vv-item-type{
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--tx3);text-align:right;
+  padding-top:4px;flex-shrink:0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   STACKS & LIMITS
+   ══════════════════════════════════════════════════════════ */
+.stacks-stats{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+  margin-top:28px;margin-bottom:28px;
+  border:1px solid var(--bd);border-radius:var(--radius-lg);overflow:hidden;
+  background:var(--surface);
+}
+@media(max-width:800px){.stacks-stats{grid-template-columns:repeat(2,1fr)}}
+.stacks-stat{padding:16px 20px;border-right:1px solid var(--bd);display:flex;flex-direction:column;gap:4px}
+.stacks-stat:last-child{border-right:none}
+.stacks-stat-val{
+  font-family:var(--display);font-size:28px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.02em;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.stacks-stat--spent .stacks-stat-val{color:var(--brand)}
+.stacks-stat--free .stacks-stat-val{color:var(--positive)}
+.stacks-stat-lbl{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;
+}
+.stacks-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;
+}
+.stack-card{
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  padding:18px 20px;display:flex;flex-direction:column;gap:12px;
+  transition:border-color 160ms;
+}
+.stack-card:hover{border-color:var(--bd2)}
+.stack-card--paid{border-left:3px solid var(--brand)}
+.stack-card--free{border-left:3px solid var(--positive)}
+.stack-head{display:flex;align-items:center;gap:10px}
+.stack-mark{
+  width:32px;height:32px;border-radius:var(--radius);
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:600;font-family:var(--mono);font-size:13px;flex-shrink:0;
+}
+.stack-meta{flex:1;min-width:0}
+.stack-name{
+  font-family:var(--display);font-size:15px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.01em;
+}
+.stack-provider{font-family:var(--mono);font-size:10px;color:var(--tx3);letter-spacing:.04em}
+.stack-status{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;padding:3px 7px;border-radius:3px;font-weight:600;
+}
+.stack-status--safe{background:var(--positive-tint);color:var(--positive)}
+.stack-status--warn{background:var(--warning-bg);color:var(--warning)}
+.stack-status--critical{background:var(--danger-bg);color:var(--danger)}
+.stack-status--free{background:var(--bg2);color:var(--tx2)}
+.stack-quota{display:flex;flex-direction:column;gap:6px}
+.stack-quota-row{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--mono);font-size:11px;color:var(--tx2);
+}
+.stack-quota-lbl{color:var(--tx3);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.stack-quota-bar{height:4px;background:var(--bd);border-radius:2px;overflow:hidden}
+.stack-quota-fill{display:block;height:100%;background:var(--brand);border-radius:2px;transition:width 400ms}
+.stack-quota-fill--warn{background:var(--warning)}
+.stack-quota-fill--critical{background:var(--danger)}
+.stack-quota-fill--safe{background:var(--positive)}
+.stack-foot{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:10px;border-top:1px solid var(--bd);
+  font-family:var(--mono);font-size:10px;color:var(--tx3);
+}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
@@ -3246,10 +3358,10 @@ body.deep-work .count{display:none!important}
     <button class="sb-section-label" aria-expanded="true"><span class="sb-section-chevron">&#9656;</span>Veille<span class="sb-section-count" id="sc-veille"></span></button>
     <div class="sb-section-items">
       <button class="sb-link" data-panel="veille" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-sparkles"/></svg><span class="label">Veille IA</span><span class="count" id="c-veille-total">-</span></button>
-      <button class="sb-link sb-link--soon" data-panel="sport" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-activity"/></svg><span class="label">Sport</span><span class="sb-soon">bientôt</span></button>
-      <button class="sb-link sb-link--soon" data-panel="gaming_news" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-gamepad-2"/></svg><span class="label">Gaming</span><span class="sb-soon">bientôt</span></button>
-      <button class="sb-link sb-link--soon" data-panel="anime" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-film"/></svg><span class="label">Anime / Ciné / Séries</span><span class="sb-soon">bientôt</span></button>
-      <button class="sb-link sb-link--soon" data-panel="news" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-newspaper"/></svg><span class="label">Actualités</span><span class="sb-soon">bientôt</span></button>
+      <button class="sb-link" data-panel="sport" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-activity"/></svg><span class="label">Sport</span></button>
+      <button class="sb-link" data-panel="gaming_news" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-gamepad-2"/></svg><span class="label">Gaming</span></button>
+      <button class="sb-link" data-panel="anime" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-film"/></svg><span class="label">Anime / Ciné / Séries</span></button>
+      <button class="sb-link" data-panel="news" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-newspaper"/></svg><span class="label">Actualités</span></button>
     </div>
   </div>
 
@@ -3291,7 +3403,7 @@ body.deep-work .count{display:none!important}
   <div class="sb-section" data-section="systeme" role="tablist" aria-label="Système">
     <button class="sb-section-label" aria-expanded="true"><span class="sb-section-chevron">&#9656;</span>Système<span class="sb-section-count" id="sc-systeme"></span></button>
     <div class="sb-section-items">
-      <button class="sb-link sb-link--soon" data-panel="stacks" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-credit-card"/></svg><span class="label">Stacks &amp; Limits</span><span class="sb-soon">bientôt</span></button>
+      <button class="sb-link" data-panel="stacks" role="tab" aria-selected="false" title="Panel à venir"><svg class="icon" aria-hidden="true"><use href="#icon-credit-card"/></svg><span class="label">Stacks &amp; Limits</span></button>
       <button class="sb-link" data-panel="history" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-calendar"/></svg><span class="label">Historique</span></button>
       <button class="sb-link" data-panel="costs" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-credit-card"/></svg><span class="label">Coûts</span></button>
       <button class="sb-link" data-panel="perf-history" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-bar-chart-2"/></svg><span class="label">Historique sport</span></button>
@@ -4040,6 +4152,73 @@ body.deep-work .count{display:none!important}
         <div class="cmdk-footer-item" style="margin-left:auto"><span class="cmdk-footer-brand">Cockpit</span></div>
       </div>
     </div>
+  </div>
+
+  <!-- VERTICAL VEILLE : SPORT -->
+  <div class="panel panel-page vv-panel" role="tabpanel" id="panel-sport">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow">Veille · Sport · Foot, e-sport, rugby, cyclisme, natation</div>
+      <h1 class="panel-hero-title">Ce qui bouge, <em>sur le terrain</em></h1>
+      <p class="panel-hero-sub" id="sport-hero-sub">Résultats, transferts, perfs athlètes, compèts majeures — classés par discipline.</p>
+    </div>
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-label">Discipline</span>
+      <div class="panel-toolbar-group" id="sport-cat-pills"></div>
+    </div>
+    <div class="vv-feed" id="sport-feed"></div>
+  </div>
+
+  <!-- VERTICAL VEILLE : GAMING NEWS -->
+  <div class="panel panel-page vv-panel" role="tabpanel" id="panel-gaming_news">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow">Veille · Gaming · Sorties, e-sport, industrie</div>
+      <h1 class="panel-hero-title">Ce qui sort, <em>ce qui arrive</em></h1>
+      <p class="panel-hero-sub" id="gaming_news-hero-sub">Releases, patches, events e-sport, annonces studios — regroupés par rubrique.</p>
+    </div>
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-label">Rubrique</span>
+      <div class="panel-toolbar-group" id="gaming_news-cat-pills"></div>
+    </div>
+    <div class="vv-feed" id="gaming_news-feed"></div>
+  </div>
+
+  <!-- VERTICAL VEILLE : ANIME / CINÉ / SÉRIES -->
+  <div class="panel panel-page vv-panel" role="tabpanel" id="panel-anime">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow">Veille · Anime / Ciné / Séries · Sorties, industrie</div>
+      <h1 class="panel-hero-title">Ce que tu <em>pourrais rater</em></h1>
+      <p class="panel-hero-sub" id="anime-hero-sub">Sorties récentes, à venir, annonces studios. Anime, films, séries mélangés.</p>
+    </div>
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-label">Statut</span>
+      <div class="panel-toolbar-group" id="anime-cat-pills"></div>
+    </div>
+    <div class="vv-feed" id="anime-feed"></div>
+  </div>
+
+  <!-- VERTICAL VEILLE : NEWS -->
+  <div class="panel panel-page vv-panel" role="tabpanel" id="panel-news">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow">Veille · Actualités · Paris, France, International</div>
+      <h1 class="panel-hero-title">Le monde, <em>en 15 lignes</em></h1>
+      <p class="panel-hero-sub" id="news-hero-sub">Politique, économie, diplomatie, société — trois zones, même grammaire.</p>
+    </div>
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-label">Zone</span>
+      <div class="panel-toolbar-group" id="news-cat-pills"></div>
+    </div>
+    <div class="vv-feed" id="news-feed"></div>
+  </div>
+
+  <!-- STACKS & LIMITS -->
+  <div class="panel panel-page" role="tabpanel" id="panel-stacks">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow">Système · Stacks &amp; Limits · Budget API</div>
+      <h1 class="panel-hero-title">Tes <em>intégrations</em>, en un coup d'œil</h1>
+      <p class="panel-hero-sub" id="stacks-hero-sub">Services connectés, quotas, statuts. Le budget IA + les pipelines gratuits qui tournent en tâche de fond.</p>
+    </div>
+    <div class="stacks-stats" id="stacks-stats"></div>
+    <div class="stacks-grid" id="stacks-grid"></div>
   </div>
 
   <!-- HISTORY -->
@@ -4838,7 +5017,7 @@ function showSkeleton(id,type){
 }
 
 // ── NAVIGATION ─────────────────────────────────────────────
-const _SOON_PANELS=new Set(['sport','gaming_news','anime','news','stacks']);
+const _SOON_PANELS=new Set();
 document.querySelectorAll('.sb-link').forEach(btn=>{
   btn.addEventListener('click',()=>{
     const panel=btn.dataset.panel;
@@ -4879,6 +5058,8 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='music-overview') loadMusicOverview();
     if(panel==='gaming-overview') loadGamingOverview();
     if(panel==='top') renderTopOfDay();
+    if(panel==='sport'||panel==='gaming_news'||panel==='anime'||panel==='news') _renderVVPanel(panel);
+    if(panel==='stacks') _renderStacks();
     // Close mobile sidebar
     if(window.innerWidth<=900) toggleSidebar();
   });
@@ -6232,6 +6413,200 @@ async function renderVeille(forceFilter){
 }
 // Invalidate cache when day changes — called from loadDay
 function _invalidateVeilleCache(){_veilleCache=[];}
+
+// ── VERTICAL VEILLE PANELS (Sport / Gaming / Anime / News) ────
+// Mock corpora — to be replaced when dedicated pipelines land.
+const _VV_CORPUS={
+  sport:{
+    categories:[{id:'foot',label:'Football',color:'#004170'},{id:'esport',label:'E-sport',color:'#0ac7ff'},{id:'rugby',label:'Rugby',color:'#1a3a6c'},{id:'cyclisme',label:'Cyclisme',color:'#d8a93a'},{id:'natation',label:'Natation',color:'#e67040'}],
+    items:[
+      {id:'sp1',title:'PSG arrache la Ligue 1 à la dernière journée',source:'L\'Équipe',category:'foot',type:'Match',date:'il y a 2h',summary:'Mbappé absent, Donnarumma héroïque, 2-1 contre Nice au Parc. Titre validé.'},
+      {id:'sp2',title:'Karmine Corp qualifié pour les Worlds 2026',source:'LEC',category:'esport',type:'Compétition',date:'il y a 6h',summary:'Victoire 3-1 contre G2 Esports en finale régionale — retour au sommet.'},
+      {id:'sp3',title:'Pogačar domine la Flèche Wallonne',source:'Eurosport',category:'cyclisme',type:'Course',date:'hier',summary:'Attaque au Mur de Huy à 200m, aucun rival derrière. 4e victoire de la saison.'},
+      {id:'sp4',title:'Léon Marchand bat son record sur 400m 4 nages',source:'FINA',category:'natation',type:'Performance',date:'hier',summary:'4:02.34 au Mare Nostrum Barcelone. 0.8s sous son précédent record du monde.'},
+      {id:'sp5',title:'XV de France : Galthié convoque 4 nouveaux pour la tournée d\'été',source:'FFR',category:'rugby',type:'Transfert',date:'il y a 2j',summary:'Focus sur le renouvellement du pack. Ntamack capitaine pour la série.'},
+      {id:'sp6',title:'Transfert : Wirtz vers le Real Madrid confirmé',source:'Le Parisien',category:'foot',type:'Transfert',date:'il y a 3j',summary:'130M€, contrat 6 ans. Ancelotti le voulait depuis 2 ans.'},
+      {id:'sp7',title:'T1 Faker signe pour une saison supplémentaire',source:'Korizon',category:'esport',type:'Transfert',date:'il y a 4j',summary:'Le GOAT continue — 15 ans au plus haut niveau, record intouchable.'},
+      {id:'sp8',title:'Tour d\'Italie : victoire surprise de Pidcock sur le Zoncolan',source:'RAI',category:'cyclisme',type:'Course',date:'il y a 5j',summary:'Pidcock part à 40 km de l\'arrivée, Roglič explose à 8 km. Maglia rosa.'},
+    ]
+  },
+  gaming_news:{
+    categories:[{id:'releases',label:'Sorties récentes',color:'#3a2a1a'},{id:'upcoming',label:'À venir',color:'#006fcd'},{id:'esport',label:'E-sport',color:'#d13639'},{id:'industry',label:'Industrie',color:'#555'}],
+    items:[
+      {id:'g1',title:'Elden Ring Nightreign : test — le roguelike que personne n\'attendait',source:'Gamekult',category:'releases',type:'Test',date:'hier',summary:'FromSoftware ose le co-op 3 joueurs sur cartes procédurales. Addictif et dense.'},
+      {id:'g2',title:'GTA VI : date de sortie confirmée pour septembre 2026',source:'Rockstar',category:'upcoming',type:'Annonce',date:'il y a 3h',summary:'Fenêtre Q3 2026. Trailer 3 prévu en juin. Les actions Take-Two s\'envolent.'},
+      {id:'g3',title:'Valve annonce Deadlock 1.0 pour juin',source:'Valve',category:'upcoming',type:'Annonce',date:'hier',summary:'Après un an d\'accès anticipé, le MOBA-shooter passe en sortie officielle. Cross-play.'},
+      {id:'g4',title:'Worlds LoL 2026 : Paris hôte officiel, finale à la Défense Arena',source:'Riot Games',category:'esport',type:'Compétition',date:'il y a 2j',summary:'Retour du LAN mondial en France après 2019. 45 000 places, tickets en juillet.'},
+      {id:'g5',title:'Nintendo Direct : Metroid Prime 4 en octobre, date confirmée',source:'Nintendo',category:'upcoming',type:'Annonce',date:'il y a 3j',summary:'La date la plus attendue — 8 ans après l\'annonce. Switch + Switch 2.'},
+      {id:'g6',title:'Larian (Baldur\'s Gate 3) lance le dev du prochain jeu',source:'Larian Studios',category:'industry',type:'Annonce',date:'il y a 4j',summary:'Nouveau projet AAA non-lié à Baldur\'s. Sven Vincke confirme une équipe de 200.'},
+      {id:'g7',title:'Sony annonce PlayStation 6 Pro pour 2027',source:'Sony',category:'industry',type:'Annonce',date:'il y a 5j',summary:'Upgrade majeur côté ray-tracing et IA générative intégrée.'},
+    ]
+  },
+  anime:{
+    categories:[{id:'released',label:'Sorties récentes',color:'#1f1f1f'},{id:'upcoming',label:'À venir prochainement',color:'#2e6a4f'},{id:'industry',label:'Industrie',color:'#555'}],
+    items:[
+      {id:'a1',title:'Attack on Titan Final Season : le film — bande annonce finale',source:'MAPPA',category:'upcoming',type:'Film',date:'il y a 4h',summary:'Sortie japonaise le 12 novembre 2026. International 3 mois plus tard.'},
+      {id:'a2',title:'Shogun saison 2 : casting et scénario confirmés',source:'FX',category:'upcoming',type:'Série',date:'hier',summary:'Toranaga revient, tournage au Japon à partir de septembre.'},
+      {id:'a3',title:'Dune : Part 3 — Villeneuve annonce la fin de la trilogie',source:'Warner Bros',category:'upcoming',type:'Film',date:'hier',summary:'Adaptation de Dune Messiah. Sortie automne 2027. Zendaya et Chalamet confirmés.'},
+      {id:'a4',title:'Severance saison 3 : trailer officiel, retour en mars',source:'Apple TV+',category:'upcoming',type:'Série',date:'il y a 2j',summary:'Ben Stiller confirme 10 épisodes. Le mystère s\'épaissit.'},
+      {id:'a5',title:'Frieren saison 2 : annonce officielle',source:'Madhouse',category:'upcoming',type:'Anime',date:'il y a 3j',summary:'Ninth Class Mage arc confirmé. Diffusion Q4 2026.'},
+      {id:'a6',title:'Studio Ghibli acquis par Nippon TV — changement de cap',source:'Nippon TV',category:'industry',type:'Industrie',date:'il y a 4j',summary:'Miyazaki reste en consultant. Stratégie de préservation du catalogue.'},
+      {id:'a7',title:'Oscar 2026 : La Zone d\'intérêt remporte meilleur film',source:'Variety',category:'released',type:'Évènement',date:'il y a 1sem',summary:'Jonathan Glazer sacré. Première victoire britannique depuis 2017.'},
+    ]
+  },
+  news:{
+    categories:[{id:'paris',label:'Paris',color:'#1a5f3f'},{id:'france',label:'France',color:'#1e3a8a'},{id:'international',label:'International',color:'#bf0a30'}],
+    items:[
+      {id:'n1',title:'BCE : taux directeurs maintenus à 3.25%',source:'Reuters',category:'international',type:'Économie',date:'il y a 3h',summary:'Lagarde maintient la prudence face à l\'inflation core stabilisée à 2.3%.'},
+      {id:'n2',title:'Élysée : nouveau plan IA de 5 milliards pour 2027',source:'Le Monde',category:'france',type:'Politique',date:'il y a 6h',summary:'Mistral bénéficiaire principal. Focus sur la souveraineté compute et les talents.'},
+      {id:'n3',title:'Paris 2024 : le vélo électrique rembourse finalement — décret CGT',source:'Le Parisien',category:'paris',type:'Société',date:'hier',summary:'Aide jusqu\'à 400€ pour les résidents, conditions de revenus assouplies.'},
+      {id:'n4',title:'Ukraine : cessez-le-feu partiel proposé, sommet à Genève fin mai',source:'AFP',category:'international',type:'Diplomatie',date:'hier',summary:'ONU relance les négociations après 3 ans. Trump et Zelensky confirmés.'},
+      {id:'n5',title:'Région IDF : budget transports +8% voté hier',source:'Le Parisien',category:'paris',type:'Politique',date:'il y a 2j',summary:'Ligne 18 accélérée, ligne 15 Sud en 2027. Financement Grand Paris Express.'},
+      {id:'n6',title:'Europe Élections : la droite prend l\'avantage en Bavière',source:'Reuters',category:'international',type:'Politique',date:'il y a 3j',summary:'CSU 38%, AfD 22%. Coalition à former. Sarre observe pour sa propre élection.'},
+      {id:'n7',title:'Grève SNCF évitée — accord signé in extremis',source:'Le Figaro',category:'france',type:'Société',date:'il y a 4j',summary:'4% augmentation sur 18 mois + prime exceptionnelle de 600€. Syndicats satisfaits.'},
+      {id:'n8',title:'Maison Blanche : nouveau plan tariffaire contre la Chine',source:'NYT',category:'international',type:'Économie',date:'il y a 5j',summary:'+25% sur les semi-conducteurs, +15% sur les véhicules électriques.'},
+    ]
+  }
+};
+
+function _renderVVPanel(panelId){
+  const cfg=_VV_CORPUS[panelId];
+  if(!cfg)return;
+  // Init filter state per panel
+  if(!window._vvState)window._vvState={};
+  if(!window._vvState[panelId])window._vvState[panelId]={cat:'all'};
+  const state=window._vvState[panelId];
+
+  // Category pills
+  const pillsEl=document.getElementById(`${panelId}-cat-pills`);
+  if(pillsEl){
+    const total=cfg.items.length;
+    const pills=[{id:'all',label:'Tous',count:total,color:null}, ...cfg.categories.map(c=>({id:c.id,label:c.label,count:cfg.items.filter(i=>i.category===c.id).length,color:c.color}))];
+    pillsEl.innerHTML=pills.map(p=>{
+      const active=state.cat===p.id;
+      const style=p.color&&active?`style="background:${p.color};color:#fff;border-color:${p.color}"`:'';
+      return `<button class="pill${active?' is-active':''}" data-cat="${esc(p.id)}" ${style}><span>${esc(p.label)}</span><span class="pill-count">${p.count}</span></button>`;
+    }).join('');
+    pillsEl.querySelectorAll('.pill').forEach(b=>{
+      b.onclick=()=>{state.cat=b.dataset.cat;_renderVVPanel(panelId);};
+    });
+  }
+
+  // Feed
+  const feedEl=document.getElementById(`${panelId}-feed`);
+  if(feedEl){
+    const filtered=state.cat==='all'?cfg.items:cfg.items.filter(i=>i.category===state.cat);
+    if(!filtered.length){
+      feedEl.innerHTML=`<div class="vl-empty" style="grid-column:1/-1"><div class="vl-empty-title">Rien à afficher dans cette catégorie pour le moment</div><div style="color:var(--tx3);font-size:13px">Pipeline dédié à venir — sources fictives pour l'instant.</div></div>`;
+      return;
+    }
+    feedEl.innerHTML=filtered.map(item=>{
+      const cat=cfg.categories.find(c=>c.id===item.category);
+      const catColor=cat?cat.color:'var(--brand)';
+      // Parse date — use "J" + day number style if we can
+      const daysAgo={'il y a':0}; // simple fallback
+      const dateShort=item.date.includes('il y a 1sem')?'1 sem':item.date.replace('il y a ','').replace(' ','\n');
+      return `<article class="vv-item">
+        <div class="vv-item-date">
+          <div class="vv-item-date-big">${dateShort.split('\n')[0]}</div>
+          <div>${dateShort.split('\n')[1]||''}</div>
+        </div>
+        <div class="vv-item-body">
+          <div class="vv-item-meta">
+            <span class="vv-item-cat" style="background:${catColor}20;color:${catColor}">${esc(cat?cat.label:item.category)}</span>
+            <span class="vl-feed-sep">·</span>
+            <span class="vv-item-source">${esc(item.source)}</span>
+          </div>
+          <h3 class="vv-item-title">${esc(item.title)}</h3>
+          <p class="vv-item-summary">${esc(item.summary)}</p>
+        </div>
+        <div class="vv-item-type">${esc(item.type)}</div>
+      </article>`;
+    }).join('');
+  }
+}
+
+// ── STACKS & LIMITS ──────────────────────────────────────────
+function _renderStacks(){
+  const statsEl=document.getElementById('stacks-stats');
+  const gridEl=document.getElementById('stacks-grid');
+  if(!statsEl||!gridEl)return;
+
+  // Fetch live data
+  (async()=>{
+    let monthCost=0, tftMatches=0, musicScrobbles=0;
+    try{
+      const now=new Date();
+      const iso=now.toISOString().slice(0,7);
+      const [runs,tft,music]=await Promise.all([
+        fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_analysis?select=cost_eur,created_at&created_at=gte.${iso}-01&order=created_at.desc&limit=20`).catch(()=>[]),
+        fetchJSON(`${SUPABASE_URL}/rest/v1/tft_matches?select=id&limit=1000`).catch(()=>[]),
+        fetchJSON(`${SUPABASE_URL}/rest/v1/music_scrobbles?select=id&limit=10000`).catch(()=>[]),
+      ]);
+      monthCost=(runs||[]).reduce((s,r)=>s+(Number(r.cost_eur)||0),0);
+      tftMatches=tft.length;
+      musicScrobbles=music.length;
+    }catch{}
+
+    statsEl.innerHTML=`
+      <div class="stacks-stat stacks-stat--spent">
+        <div class="stacks-stat-val">${monthCost.toFixed(2).replace('.',',')} €</div>
+        <div class="stacks-stat-lbl">Ce mois · Claude</div>
+      </div>
+      <div class="stacks-stat">
+        <div class="stacks-stat-val">3,00 €</div>
+        <div class="stacks-stat-lbl">Budget max mensuel</div>
+      </div>
+      <div class="stacks-stat stacks-stat--free">
+        <div class="stacks-stat-val">6</div>
+        <div class="stacks-stat-lbl">Pipelines gratuits</div>
+      </div>
+      <div class="stacks-stat">
+        <div class="stacks-stat-val">${Math.round((monthCost/3)*100)}%</div>
+        <div class="stacks-stat-lbl">Budget consommé</div>
+      </div>`;
+
+    // Service cards
+    const claudePct=Math.min(100,(monthCost/3)*100);
+    const claudeStatus=claudePct>85?'critical':claudePct>60?'warn':'safe';
+    const services=[
+      {name:'Claude Haiku',provider:'Anthropic',type:'paid',color:'#d97757',mark:'CL',status:claudeStatus,statusLabel:claudeStatus==='safe'?'ok':claudeStatus==='warn'?'attention':'critique',quotaLabel:'Budget mensuel',quotaUsed:monthCost.toFixed(2),quotaLimit:'3.00 €',quotaPct:claudePct,note:'Run hebdo + chat cloud'},
+      {name:'Gemini Flash-Lite',provider:'Google AI',type:'free',color:'#4285f4',mark:'GM',status:'free',statusLabel:'gratuit',quotaLabel:'Requêtes quotidiennes',quotaUsed:'~50',quotaLimit:'1 000',quotaPct:5,note:'Pipeline quotidien'},
+      {name:'Supabase',provider:'Supabase',type:'free',color:'#3ecf8e',mark:'SB',status:'free',statusLabel:'free tier',quotaLabel:'Stockage DB',quotaUsed:'~120',quotaLimit:'500 MB',quotaPct:24,note:'Toutes les tables'},
+      {name:'Strava',provider:'Strava',type:'free',color:'#fc4c02',mark:'ST',status:'free',statusLabel:'gratuit',quotaLabel:'Requêtes API / 15 min',quotaUsed:'~20',quotaLimit:'200',quotaPct:10,note:'Sync quotidienne 4h30'},
+      {name:'Last.fm',provider:'Last.fm',type:'free',color:'#c3000d',mark:'LF',status:'free',statusLabel:'gratuit',quotaLabel:'Scrobbles trackés',quotaUsed:musicScrobbles.toLocaleString('fr-FR'),quotaLimit:'illimité',quotaPct:0,note:'Sync quotidienne 5h'},
+      {name:'Steam Web API',provider:'Valve',type:'free',color:'#1b2838',mark:'SM',status:'free',statusLabel:'gratuit',quotaLabel:'Requêtes / jour',quotaUsed:'~5',quotaLimit:'100 000',quotaPct:0,note:'Sync quotidienne 5h30'},
+      {name:'Riot Games',provider:'Riot',type:'free',color:'#d13639',mark:'RT',status:'free',statusLabel:'dev key',quotaLabel:'Matchs TFT archivés',quotaUsed:tftMatches.toLocaleString('fr-FR'),quotaLimit:'illimité',quotaPct:0,note:'Sync toutes les 2h'},
+      {name:'Gmail SMTP',provider:'Google',type:'free',color:'#ea4335',mark:'GM',status:'free',statusLabel:'gratuit',quotaLabel:'Emails / jour',quotaUsed:'1',quotaLimit:'500',quotaPct:0,note:'Notification brief quotidien'},
+      {name:'GitHub Actions',provider:'GitHub',type:'free',color:'#24292e',mark:'GH',status:'free',statusLabel:'free tier',quotaLabel:'Minutes utilisées',quotaUsed:'~120',quotaLimit:'2 000',quotaPct:6,note:'Tous les pipelines cron'},
+      {name:'LM Studio',provider:'Local',type:'free',color:'#6e56cf',mark:'LM',status:'free',statusLabel:'local',quotaLabel:'VRAM consommée',quotaUsed:'~7',quotaLimit:'12 Go',quotaPct:58,note:'Qwen3.5 9B + embeddings'},
+    ];
+
+    gridEl.innerHTML=services.map(s=>{
+      const fillCls=s.quotaPct>85?'stack-quota-fill--critical':s.quotaPct>60?'stack-quota-fill--warn':'stack-quota-fill--safe';
+      return `<div class="stack-card stack-card--${s.type}">
+        <div class="stack-head">
+          <span class="stack-mark" style="background:${s.color}">${esc(s.mark)}</span>
+          <div class="stack-meta">
+            <div class="stack-name">${esc(s.name)}</div>
+            <div class="stack-provider">${esc(s.provider)}</div>
+          </div>
+          <span class="stack-status stack-status--${s.status}">${esc(s.statusLabel)}</span>
+        </div>
+        <div class="stack-quota">
+          <div class="stack-quota-row">
+            <span class="stack-quota-lbl">${esc(s.quotaLabel)}</span>
+            <span>${esc(s.quotaUsed)} / ${esc(s.quotaLimit)}</span>
+          </div>
+          ${s.quotaPct>0?`<div class="stack-quota-bar"><div class="stack-quota-fill ${fillCls}" style="width:${Math.min(100,s.quotaPct)}%"></div></div>`:''}
+        </div>
+        <div class="stack-foot">
+          <span>${esc(s.note)}</span>
+        </div>
+      </div>`;
+    }).join('');
+  })();
+}
 
 // ── LOAD DAY DATA ──────────────────────────────────────────
 async function loadDay(dateStr){
