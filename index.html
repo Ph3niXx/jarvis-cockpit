@@ -1515,6 +1515,167 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
   font-variant-numeric:tabular-nums;
 }
 
+/* ══════════════════════════════════════════════════════════
+   PANEL : RECOMMANDATIONS — flux priorisé
+   ══════════════════════════════════════════════════════════ */
+.reco-budget{
+  display:inline-flex;align-items:baseline;gap:6px;
+  padding:6px 12px;border-left:1px solid var(--bd);
+  font-family:var(--mono);font-size:11px;color:var(--tx2);
+}
+.reco-budget-val{
+  font-family:var(--display);font-size:18px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+  letter-spacing:-.01em;
+}
+.reco-budget-label{color:var(--tx3)}
+.reco-wrap{
+  display:grid;grid-template-columns:260px 1fr;gap:32px;
+  padding:32px 0 48px;min-width:0;
+}
+@media(max-width:1000px){.reco-wrap{grid-template-columns:1fr}}
+.reco-aside{display:flex;flex-direction:column;gap:12px;min-width:0}
+.reco-aside-title{
+  font-family:var(--display);font-size:20px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+  letter-spacing:-.015em;margin-bottom:4px;
+}
+.reco-axis-list{list-style:none;display:flex;flex-direction:column;gap:4px;padding:0}
+.reco-axis{
+  display:grid;grid-template-columns:1fr 60px 30px;gap:8px;align-items:center;
+  padding:8px 10px;width:100%;text-align:left;
+  background:transparent;border:none;cursor:pointer;transition:all 120ms;
+  border-radius:var(--radius);color:inherit;font-family:inherit;
+}
+.reco-axis:hover{background:var(--bg2)}
+.reco-axis.is-active{background:var(--brand-tint);color:var(--brand)}
+.reco-axis-label{
+  font-size:12.5px;color:var(--tx);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.reco-axis.is-active .reco-axis-label{color:var(--brand);font-weight:600}
+.reco-axis-bar{height:3px;background:var(--bd);border-radius:2px;overflow:hidden}
+.reco-axis-bar-fill{display:block;height:100%;background:var(--brand);border-radius:2px}
+.reco-axis-score{
+  font-family:var(--mono);font-size:11px;color:var(--tx3);
+  font-variant-numeric:tabular-nums;text-align:right;
+}
+
+.reco-main{min-width:0;display:flex;flex-direction:column;gap:36px}
+.reco-section{display:flex;flex-direction:column;gap:14px}
+.reco-section-head{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+  padding-bottom:10px;border-bottom:1px solid var(--bd);
+}
+.reco-section-head .section-title em{font-style:italic;color:var(--brand);font-weight:500}
+.reco-section-meta{font-family:var(--mono);font-size:11px;color:var(--tx3)}
+
+.reco-cards--big{display:flex;flex-direction:column;gap:14px}
+.reco-big{
+  background:var(--surface);border:1px solid var(--bd);
+  border-radius:var(--radius-lg);padding:22px 24px;
+  display:flex;flex-direction:column;gap:14px;
+  transition:all 160ms;
+}
+.reco-big:hover{border-color:var(--brand);box-shadow:var(--shadow-md)}
+.reco-big.is-unread{border-left:3px solid var(--brand)}
+.reco-big-head{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.reco-type{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 6px;background:var(--brand-tint);color:var(--brand);
+  border-radius:3px;font-weight:600;
+}
+.reco-type--paper,.reco-type--papier{background:var(--bg2);color:var(--tx2)}
+.reco-type--video{background:var(--danger-bg);color:var(--danger)}
+.reco-source{color:var(--tx);font-weight:600}
+.reco-sep{opacity:.4}
+.reco-dot{width:7px;height:7px;border-radius:50%;background:var(--brand);margin-left:auto}
+.reco-big-title{
+  font-family:var(--display);font-size:22px;font-weight:500;
+  font-variation-settings:"opsz" 144;letter-spacing:-.02em;line-height:1.25;
+  color:var(--tx);text-wrap:balance;
+}
+.reco-big-why{
+  padding:12px 16px;background:var(--bg2);border-left:3px solid var(--brand);
+  border-radius:0 var(--radius) var(--radius) 0;margin:0;
+  display:flex;flex-direction:column;gap:4px;
+}
+.reco-big-why-mark{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--brand);font-weight:600;
+}
+.reco-big-why-text{font-family:var(--display);font-style:italic;font-size:14.5px;line-height:1.5;color:var(--tx)}
+.reco-big-meta{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.reco-big-axis{display:flex;flex-direction:column;gap:4px}
+.reco-big-axis-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.reco-big-axis-score-wrap{display:inline-flex;align-items:baseline;gap:6px}
+.reco-big-axis-score{
+  font-family:var(--display);font-size:20px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.02em;
+}
+.reco-big-axis-arrow{color:var(--tx3);font-size:14px}
+.reco-big-axis-target{
+  font-family:var(--display);font-size:15px;color:var(--brand);font-weight:500;
+  font-variation-settings:"opsz" 144;
+}
+.reco-big-actions{display:inline-flex;align-items:center;gap:8px}
+.reco-big-xp{font-family:var(--mono);font-size:11px;color:var(--positive);font-weight:600;letter-spacing:.06em}
+
+.reco-cards--med{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.reco-med{
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  padding:16px 18px;display:flex;flex-direction:column;gap:10px;transition:all 160ms;
+}
+.reco-med:hover{border-color:var(--bd2);box-shadow:var(--shadow-sm)}
+.reco-med.is-unread{border-left:3px solid var(--brand)}
+.reco-med-head{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.reco-med-title{
+  font-family:var(--display);font-size:15.5px;font-weight:500;
+  font-variation-settings:"opsz" 144;letter-spacing:-.01em;line-height:1.3;
+  color:var(--tx);text-wrap:balance;
+}
+.reco-med-why{font-size:12.5px;color:var(--tx2);line-height:1.5;display:flex;gap:6px}
+.reco-med-why-mark{color:var(--brand);flex-shrink:0}
+.reco-med-foot{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:8px;border-top:1px solid var(--bd);
+  font-family:var(--mono);font-size:10.5px;color:var(--tx3);
+}
+.reco-med-axis strong{color:var(--tx)}
+.reco-med-xp{color:var(--positive);font-weight:600}
+
+.reco-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:2px}
+.reco-row{
+  display:grid;grid-template-columns:30px 1fr 70px;gap:12px;align-items:center;
+  padding:10px 12px;border-radius:var(--radius);cursor:pointer;transition:background 120ms;
+}
+.reco-row:hover{background:var(--bg2)}
+.reco-row .reco-type{padding:3px 6px}
+.reco-row-main{min-width:0}
+.reco-row-title{
+  font-family:var(--display);font-size:14px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.01em;
+  margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.reco-row-meta{
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--tx3);
+  display:flex;gap:6px;flex-wrap:wrap;
+}
+.reco-row-xp{font-family:var(--mono);font-size:11px;color:var(--positive);font-weight:600;text-align:right}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
@@ -3343,9 +3504,40 @@ body.deep-work .count{display:none!important}
   </div>
 
   <!-- RECOMMANDATIONS -->
-  <div class="panel" role="tabpanel" id="panel-recos">
-    <div class="page-header"><div class="page-title">Recommandations</div><div class="page-subtitle">Contenu ciblé sur tes axes faibles — généré chaque semaine</div></div>
-    <div class="content"><div id="recos-content"><div class="loading">Chargement…</div></div></div>
+  <div class="panel panel-page" role="tabpanel" id="panel-recos">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow"><span id="recos-eyebrow">Apprentissage · Recommandations</span></div>
+      <h1 class="panel-hero-title">Ce que <em>tu devrais lire</em> cette semaine,<br>trié pour ton niveau</h1>
+      <p class="panel-hero-sub" id="recos-hero-sub">Jarvis sélectionne chaque semaine des lectures alignées sur ton radar compétences. Priorité calculée sur 3 axes : écart au niveau cible, actualité, pertinence métier.</p>
+    </div>
+
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-label">Niveau</span>
+      <div class="panel-toolbar-group" id="recos-level-group">
+        <button class="pill is-active" data-level="Tous">Tous</button>
+        <button class="pill" data-level="beginner">Débutant</button>
+        <button class="pill" data-level="intermediate">Intermédiaire</button>
+        <button class="pill" data-level="advanced">Avancé</button>
+      </div>
+      <span class="panel-toolbar-divider"></span>
+      <span class="panel-toolbar-label">Durée</span>
+      <div class="panel-toolbar-group" id="recos-time-group">
+        <button class="pill is-active" data-time="all">Toute durée</button>
+        <button class="pill" data-time="short">&lt; 20 min</button>
+        <button class="pill" data-time="medium">20–60 min</button>
+        <button class="pill" data-time="long">&gt; 1h</button>
+      </div>
+      <div class="reco-budget" id="recos-budget" style="margin-left:auto"></div>
+    </div>
+
+    <div class="reco-wrap" id="recos-wrap">
+      <aside class="reco-aside">
+        <div class="section-kicker">Par axe de compétence</div>
+        <h3 class="reco-aside-title">Ton radar</h3>
+        <ul class="reco-axis-list" id="recos-axis-list"></ul>
+      </aside>
+      <div class="reco-main" id="recos-main"></div>
+    </div>
   </div>
 
   <!-- CHALLENGES -->
@@ -7047,37 +7239,241 @@ async function saveAllProfile(){
   setTimeout(()=>status.textContent='',3000);
 }
 
-// ── RECOMMANDATIONS ────────────────────────────────────────
+// ── RECOMMANDATIONS (Dawn) ────────────────────────────────
 let recosLoaded=false;
+const _RECO_TYPE_LABEL={paper:'Paper',papier:'Paper',article:'Article',video:'Vidéo',course:'Cours',tutorial:'Tuto'};
+const _RECOS_STATE={level:'Tous',time:'all',axis:null,_cache:[],_axes:[]};
+
+function _estRecoMinutes(r){
+  if(r.duration_min)return r.duration_min;
+  if(r.reading_time_min)return r.reading_time_min;
+  const t=(r.resource_type||r.type||'article');
+  if(t==='course')return 240;if(t==='video')return 45;if(t==='paper')return 30;return 15;
+}
+function _estRecoXp(r){
+  const dur=_estRecoMinutes(r);
+  const lvl=r.difficulty||r.level||'intermediate';
+  const mult=lvl.toLowerCase().includes('avance')||lvl==='advanced'?1.4:lvl.toLowerCase().includes('debu')||lvl==='beginner'?0.7:1;
+  return Math.round(Math.min(200,Math.max(40,dur*3))*mult);
+}
+function _recoPriority(r,axes){
+  const axisId=r.target_axis||r.axis;
+  const ax=axes.find(a=>a.axis===axisId);
+  const score=ax?(Number(ax.score)<=10?Number(ax.score)*10:Number(ax.score)):50;
+  if(score<50)return 'must';
+  if(score<70)return 'should';
+  return 'nice';
+}
+
+function _recoFiltered(){
+  const {level,time,axis,_cache}=_RECOS_STATE;
+  return _cache.filter(r=>{
+    if(level!=='Tous'){
+      const lvl=(r.difficulty||r.level||'').toLowerCase();
+      const want={beginner:'beginner',intermediate:'intermediate',advanced:'advanced'}[level]||level;
+      if(!lvl.includes(want))return false;
+    }
+    if(time!=='all'){
+      const m=_estRecoMinutes(r);
+      if(time==='short' && m>20)return false;
+      if(time==='medium' && (m<=20 || m>60))return false;
+      if(time==='long' && m<=60)return false;
+    }
+    if(axis && (r.target_axis||r.axis)!==axis)return false;
+    return true;
+  });
+}
+
+function _renderRecoAxisSidebar(){
+  const el=document.getElementById('recos-axis-list');
+  if(!el)return;
+  const {_axes,axis}=_RECOS_STATE;
+  const normScore=a=>{const s=Number(a.score||0);return s<=10?s*10:Math.min(100,s);};
+  const html=`<li><button class="reco-axis ${axis===null?'is-active':''}" data-axis=""><span class="reco-axis-label">Tous les axes</span></button></li>` +
+    _axes.map(a=>`<li><button class="reco-axis ${axis===a.axis?'is-active':''}" data-axis="${esc(a.axis)}">
+      <span class="reco-axis-label">${esc(a.axis_label||a.axis)}</span>
+      <span class="reco-axis-bar"><span class="reco-axis-bar-fill" style="width:${normScore(a)}%"></span></span>
+      <span class="reco-axis-score">${Math.round(normScore(a))}</span>
+    </button></li>`).join('');
+  el.innerHTML=html;
+  el.querySelectorAll('.reco-axis').forEach(b=>{
+    b.onclick=()=>{_RECOS_STATE.axis=b.dataset.axis||null;_renderRecoAxisSidebar();_renderRecoContent();};
+  });
+}
+
+function _renderRecoCardBig(r,axes){
+  const axisId=r.target_axis||r.axis;
+  const ax=axes.find(a=>a.axis===axisId);
+  const normScore=a=>a?(Number(a.score)<=10?Number(a.score)*10:Math.min(100,Number(a.score))):0;
+  const normTarget=a=>a?(Number(a.target||85)<=10?Number(a.target||85)*10:Math.min(100,Number(a.target||85))):85;
+  const type=(r.resource_type||r.type||'article').toLowerCase();
+  const mins=_estRecoMinutes(r);
+  const xp=_estRecoXp(r);
+  const unread=!r.completed;
+  const why=r.why||r.description||'';
+  return `<article class="reco-big ${unread?'is-unread':''}">
+    <div class="reco-big-head">
+      <span class="reco-type reco-type--${esc(type)}">${esc(_RECO_TYPE_LABEL[type]||type)}</span>
+      <span class="reco-sep">·</span>
+      <span class="reco-source">${esc(r.source||r.resource_source||'—')}</span>
+      <span class="reco-sep">·</span>
+      <span class="reco-duration">${mins} min</span>
+      ${unread?'<span class="reco-dot"></span>':''}
+    </div>
+    <h3 class="reco-big-title">${esc(r.title||'')}</h3>
+    ${why?`<blockquote class="reco-big-why">
+      <span class="reco-big-why-mark">Pourquoi</span>
+      <span class="reco-big-why-text">${esc(why.slice(0,260))}${why.length>260?'…':''}</span>
+    </blockquote>`:''}
+    <div class="reco-big-meta">
+      <div class="reco-big-axis">
+        <span class="reco-big-axis-label">${esc(ax?.axis_label||axisId||'—')}</span>
+        <span class="reco-big-axis-score-wrap">
+          <span class="reco-big-axis-score">${Math.round(normScore(ax))}</span>
+          <span class="reco-big-axis-arrow">→</span>
+          <span class="reco-big-axis-target">${Math.round(normTarget(ax))}</span>
+        </span>
+      </div>
+      <div class="reco-big-actions">
+        ${r.resource_url?`<a class="btn--primary-dawn" style="padding:7px 12px;font-size:12px" href="${esc(r.resource_url)}" target="_blank">Ouvrir</a>`:''}
+        <span class="reco-big-xp">+${xp} XP</span>
+      </div>
+    </div>
+  </article>`;
+}
+
+function _renderRecoCardMed(r,axes){
+  const axisId=r.target_axis||r.axis;
+  const ax=axes.find(a=>a.axis===axisId);
+  const normScore=a=>a?(Number(a.score)<=10?Number(a.score)*10:Math.min(100,Number(a.score))):0;
+  const type=(r.resource_type||r.type||'article').toLowerCase();
+  const mins=_estRecoMinutes(r);
+  const xp=_estRecoXp(r);
+  const unread=!r.completed;
+  const whyShort=(r.why_short||r.description||'').slice(0,140);
+  return `<article class="reco-med ${unread?'is-unread':''}"${r.resource_url?` onclick="window.open('${esc(r.resource_url)}','_blank')"`:''}>
+    <div class="reco-med-head">
+      <span class="reco-type reco-type--${esc(type)}">${esc(_RECO_TYPE_LABEL[type]||type)}</span>
+      <span class="reco-sep">·</span>
+      <span class="reco-source">${esc(r.source||r.resource_source||'—')}</span>
+      <span class="reco-sep">·</span>
+      <span>${mins} min</span>
+    </div>
+    <h3 class="reco-med-title">${esc(r.title||'')}</h3>
+    ${whyShort?`<p class="reco-med-why"><span class="reco-med-why-mark">→</span> ${esc(whyShort)}${(r.why_short||r.description||'').length>140?'…':''}</p>`:''}
+    <footer class="reco-med-foot">
+      <span class="reco-med-axis">${esc(ax?.axis_label||axisId||'—')} · <strong>${Math.round(normScore(ax))}</strong>/100</span>
+      <span class="reco-med-xp">+${xp} XP</span>
+    </footer>
+  </article>`;
+}
+
+function _renderRecoRow(r){
+  const type=(r.resource_type||r.type||'article').toLowerCase();
+  const mins=_estRecoMinutes(r);
+  const xp=_estRecoXp(r);
+  return `<li class="reco-row"${r.resource_url?` onclick="window.open('${esc(r.resource_url)}','_blank')"`:''}>
+    <span class="reco-type reco-type--${esc(type)}">${esc(_RECO_TYPE_LABEL[type]||type.charAt(0).toUpperCase())}</span>
+    <div class="reco-row-main">
+      <h4 class="reco-row-title">${esc(r.title||'')}</h4>
+      <div class="reco-row-meta">
+        <span>${esc(r.source||r.resource_source||'')}</span>
+        <span class="reco-sep">·</span>
+        <span>${mins} min</span>
+      </div>
+    </div>
+    <span class="reco-row-xp">+${xp} XP</span>
+  </li>`;
+}
+
+function _renderRecoContent(){
+  const mainEl=document.getElementById('recos-main');
+  const budgetEl=document.getElementById('recos-budget');
+  if(!mainEl)return;
+  const {_axes,_cache}=_RECOS_STATE;
+  const filtered=_recoFiltered();
+  if(!filtered.length){
+    mainEl.innerHTML=`<div class="vl-empty"><div class="vl-empty-title">Aucune reco ne matche tes filtres</div><button class="btn--ghost-dawn btn--sm" style="padding:6px 12px;font-size:12px" onclick="_RECOS_STATE.level='Tous';_RECOS_STATE.time='all';_RECOS_STATE.axis=null;document.querySelectorAll('#recos-level-group .pill').forEach(p=>p.classList.toggle('is-active',p.dataset.level==='Tous'));document.querySelectorAll('#recos-time-group .pill').forEach(p=>p.classList.toggle('is-active',p.dataset.time==='all'));_renderRecoAxisSidebar();_renderRecoContent();">Réinitialiser</button></div>`;
+    if(budgetEl)budgetEl.innerHTML='';
+    return;
+  }
+  // Group by priority
+  const withPri=filtered.map(r=>({...r,_pri:_recoPriority(r,_axes)}));
+  const musts=withPri.filter(x=>x._pri==='must');
+  const shoulds=withPri.filter(x=>x._pri==='should');
+  const nices=withPri.filter(x=>x._pri==='nice');
+
+  // Budget
+  const totalMin=filtered.reduce((s,r)=>s+_estRecoMinutes(r),0);
+  const totalXp=filtered.reduce((s,r)=>s+_estRecoXp(r),0);
+  if(budgetEl){
+    budgetEl.innerHTML=`<span class="reco-budget-val">${Math.floor(totalMin/60)}h${String(totalMin%60).padStart(2,'0')}</span>
+      <span class="reco-budget-label">· ${totalXp} XP · ${filtered.length} reco${filtered.length>1?'s':''}</span>`;
+  }
+
+  let html='';
+  if(musts.length){
+    html+=`<section class="reco-section">
+      <header class="reco-section-head">
+        <div><div class="section-kicker">Priorité 1</div><h2 class="section-title"><em>Ne passe pas</em> à côté</h2></div>
+        <span class="reco-section-meta">${musts.length} item${musts.length>1?'s':''}</span>
+      </header>
+      <div class="reco-cards--big">${musts.map(r=>_renderRecoCardBig(r,_axes)).join('')}</div>
+    </section>`;
+  }
+  if(shoulds.length){
+    html+=`<section class="reco-section">
+      <header class="reco-section-head">
+        <div><div class="section-kicker">Priorité 2</div><h2 class="section-title">Tu devrais <em>creuser ça</em></h2></div>
+        <span class="reco-section-meta">${shoulds.length} items</span>
+      </header>
+      <div class="reco-cards--med">${shoulds.map(r=>_renderRecoCardMed(r,_axes)).join('')}</div>
+    </section>`;
+  }
+  if(nices.length){
+    html+=`<section class="reco-section">
+      <header class="reco-section-head">
+        <div><div class="section-kicker">Priorité 3</div><h2 class="section-title">Si tu as <em>du temps</em></h2></div>
+        <span class="reco-section-meta">${nices.length} items</span>
+      </header>
+      <ul class="reco-list">${nices.map(r=>_renderRecoRow(r)).join('')}</ul>
+    </section>`;
+  }
+  mainEl.innerHTML=html;
+}
+
 async function loadRecos(){
   if(recosLoaded)return;
-  showSkeleton('recos-grid','list');
   try{
-    const recos=await fetchJSON(`${SUPABASE_URL}/rest/v1/learning_recommendations?order=week_start.desc,target_axis&limit=20`);
-    const el=document.getElementById('recos-content');
-    if(!recos.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('book-open')}</div>Les recommandations seront générées par le run hebdomadaire Claude</div>`;return;}
-    cockpitData.recos=recos;
-
-    const axisColors={llm_fundamentals:'var(--accent-brand)',prompt_engineering:'var(--accent-brand)',agents:'var(--accent-brand)',rag_data:'var(--warning)',mlops:'var(--warning)',ethics:'var(--danger)',business:'var(--accent-brand)',code_integration:'var(--tx2)'};
-    const typeIcons={article:'<svg class="icon" aria-hidden="true"><use href="#icon-file-text"/></svg>',tutorial:'<svg class="icon" aria-hidden="true"><use href="#icon-hammer"/></svg>',video:'<svg class="icon" aria-hidden="true"><use href="#icon-film"/></svg>',paper:'<svg class="icon" aria-hidden="true"><use href="#icon-files"/></svg>',course:'<svg class="icon" aria-hidden="true"><use href="#icon-graduation-cap"/></svg>'};
-
-    el.innerHTML=`<div class="recos-grid">${recos.map(r=>`
-      <div class="card card--reco${r.completed?' completed':''}${newCls(r.created_at||r.week_start)}" data-item-id="${r.id}" style="border-left:3px solid ${axisColors[r.target_axis]||'var(--bd)'};cursor:pointer" onclick="openCardFocus(this,event)">
-        <div class="flex-header-sm">
-          <span class="text-icon">${typeIcons[r.resource_type]||'<svg class="icon" aria-hidden="true"><use href="#icon-file-text"/></svg>'}</span>
-          <span class="badge badge--neutral">${r.target_axis}</span>
-          <span class="badge" style="background:${r.difficulty==='beginner'?'var(--accent-bg)':r.difficulty==='advanced'?'var(--danger-bg)':'var(--warning-bg)'};color:${r.difficulty==='beginner'?'var(--accent-brand)':r.difficulty==='advanced'?'var(--danger)':'var(--warning)'}">${r.difficulty}</span>
-          ${r.completed?'<span class="text-icon">✅</span>':''}
-        </div>
-        <div class="text-sm-title">${esc(r.title)}</div>
-        <div class="text-desc" style="margin-bottom:8px">${esc(r.description||'')}</div>
-        ${r.resource_url?`<a href="${esc(r.resource_url)}" target="_blank" style="font-size:12px">Voir la ressource →</a>`:''}
-        ${jarvisBtn(r.title,'reco')}
-        ${renderRelatedLinks(r.title,'recos')}
-      </div>`).join('')}</div>`;
+    const [recos,axes]=await Promise.all([
+      fetchJSON(`${SUPABASE_URL}/rest/v1/learning_recommendations?order=week_start.desc,target_axis&limit=30`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/skill_radar?order=axis`).catch(()=>[]),
+    ]);
+    _RECOS_STATE._cache=recos||[];
+    _RECOS_STATE._axes=axes||[];
+    const subEl=document.getElementById('recos-hero-sub');
+    if(subEl)subEl.innerHTML=`Jarvis sélectionne chaque semaine <strong>${recos.length} recommandation${recos.length>1?'s':''}</strong> alignée${recos.length>1?'s':''} sur ton radar compétences. Priorité calculée sur 3 axes : écart au niveau cible, actualité, pertinence métier.`;
+    if(!recos.length){
+      document.getElementById('recos-main').innerHTML=`<div class="vl-empty"><div class="vl-empty-title">Pas encore de recommandations</div><div style="color:var(--tx3);font-size:13px">Le run hebdomadaire Claude les génère tous les dimanches soir.</div></div>`;
+      document.getElementById('recos-budget').innerHTML='';
+      _renderRecoAxisSidebar();
+      recosLoaded=true;return;
+    }
+    _renderRecoAxisSidebar();
+    _renderRecoContent();
+    // Wire toolbar pills
+    document.querySelectorAll('#recos-level-group .pill').forEach(p=>{
+      p.onclick=()=>{document.querySelectorAll('#recos-level-group .pill').forEach(x=>x.classList.remove('is-active'));p.classList.add('is-active');_RECOS_STATE.level=p.dataset.level;_renderRecoContent();};
+    });
+    document.querySelectorAll('#recos-time-group .pill').forEach(p=>{
+      p.onclick=()=>{document.querySelectorAll('#recos-time-group .pill').forEach(x=>x.classList.remove('is-active'));p.classList.add('is-active');_RECOS_STATE.time=p.dataset.time;_renderRecoContent();};
+    });
     updateSidebarBadge('recos',recos,'created_at');
     recosLoaded=true;
-  }catch(e){console.error('loadRecos',e);showError('recos-content','Erreur de chargement des recommandations',()=>{recosLoaded=false;loadRecos()})}
+  }catch(e){
+    console.error('loadRecos',e);
+    document.getElementById('recos-main').innerHTML=`<div class="vl-empty"><div class="vl-empty-title">Erreur de chargement</div></div>`;
+  }
 }
 
 // ── DIAGNOSTIC QUIZ ────────────────────────────────────────
