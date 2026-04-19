@@ -49,42 +49,46 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   --shadow-hero:0 12px 40px rgba(44,36,32,.12),0 4px 12px rgba(44,36,32,.08);
   --overlay-bg:rgba(0,0,0,.2);--voice-overlay-bg:rgba(15,15,20,.88);--red-ring:rgba(220,38,38,.4);
 }
-/* ── DARK PALETTE ────────────────────────────────────────── */
+/* ── OBSIDIAN (dark) — terminal/mission control, cyan mint accent ── */
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#1E1C1A;--bg2:#252321;--bg3:#2E2B28;--surface:#2E2B28;
-    --tx:#EDE7DC;--tx2:#B5AC9E;--tx3:#7A726A;
-    --bd:#3A3633;--bd2:#504B45;
-    --accent-brand:#F29E6A;--accent-bg:#3A2620;--accent-text:#F5B99B;
-    --brand:#F29E6A;--brand-ink:#F5B99B;--brand-tint:#3A2620;
-    --positive:#9BB59A;--positive-tint:#2C342C;
-    --danger:#E0806F;--danger-bg:#3A2622;
-    --warning:#D8A96B;--warning-bg:#362B1C;
-    --energy:#4ADE80;
-    --rising-bg:#1A2E1A;--rising-tx:#4ADE80;
-    --shadow-xs:0 1px 2px rgba(0,0,0,.4);
-    --shadow-sm:0 1px 2px rgba(0,0,0,.3);
-    --shadow-md:0 2px 8px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.2);
-    --shadow-lg:0 8px 24px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.25);
-    --shadow-hero:0 12px 40px rgba(0,0,0,.45),0 4px 12px rgba(0,0,0,.3);
-    --overlay-bg:rgba(0,0,0,.55);--voice-overlay-bg:rgba(0,0,0,.92);
+    --bg:#0B0D0F;--bg2:#13161A;--bg3:#1A1E23;--surface:#13161A;
+    --tx:#E8ECEF;--tx2:#9AA3AD;--tx3:#5C6670;
+    --bd:#23282E;--bd2:#353C43;
+    --accent-brand:#60E0D4;--accent-bg:rgba(96,224,212,0.12);--accent-text:#60E0D4;
+    --brand:#60E0D4;--brand-ink:#2CB3A4;--brand-tint:rgba(96,224,212,0.12);
+    --positive:#9FE870;--positive-tint:rgba(159,232,112,0.12);
+    --danger:#F97366;--danger-bg:rgba(249,115,102,0.12);
+    --warning:#F5B544;--warning-bg:rgba(245,181,68,0.12);
+    --energy:#9FE870;
+    --rising-bg:rgba(159,232,112,0.12);--rising-tx:#9FE870;
+    --grid-line:rgba(255,255,255,0.04);
+    --shadow-xs:0 1px 0 rgba(0,0,0,.4);
+    --shadow-sm:0 1px 0 rgba(0,0,0,.4);
+    --shadow-md:0 8px 24px rgba(0,0,0,.5);
+    --shadow-lg:0 24px 60px rgba(0,0,0,.6);
+    --shadow-hero:0 24px 60px rgba(0,0,0,.6),0 4px 12px rgba(0,0,0,.4);
+    --overlay-bg:rgba(0,0,0,.7);--voice-overlay-bg:rgba(0,0,0,.92);
   }
 }
 [data-theme="dark"]{
-  --bg:#1E1C1A;--bg2:#252321;--bg3:#2E2B28;
-  --tx:#EDE7DC;--tx2:#B5AC9E;--tx3:#7A726A;
-  --bd:#3A3633;--bd2:#504B45;
-  --accent-brand:#9BB59A;--accent-bg:#2C342C;--accent-text:#B5CBB4;
-  --danger:#E0806F;--danger-bg:#3A2622;
-  --warning:#D8A96B;--warning-bg:#362B1C;
-  --energy:#4ADE80;
-  --rising-bg:#1A2E1A;--rising-tx:#4ADE80;
-  --shadow-xs:0 1px 2px rgba(0,0,0,.4);
-  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
-  --shadow-md:0 2px 8px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.2);
-  --shadow-lg:0 8px 24px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.25);
-  --shadow-hero:0 12px 40px rgba(0,0,0,.45),0 4px 12px rgba(0,0,0,.3);
-  --overlay-bg:rgba(0,0,0,.55);--voice-overlay-bg:rgba(0,0,0,.92);
+  --bg:#0B0D0F;--bg2:#13161A;--bg3:#1A1E23;--surface:#13161A;
+  --tx:#E8ECEF;--tx2:#9AA3AD;--tx3:#5C6670;
+  --bd:#23282E;--bd2:#353C43;
+  --accent-brand:#60E0D4;--accent-bg:rgba(96,224,212,0.12);--accent-text:#60E0D4;
+  --brand:#60E0D4;--brand-ink:#2CB3A4;--brand-tint:rgba(96,224,212,0.12);
+  --positive:#9FE870;--positive-tint:rgba(159,232,112,0.12);
+  --danger:#F97366;--danger-bg:rgba(249,115,102,0.12);
+  --warning:#F5B544;--warning-bg:rgba(245,181,68,0.12);
+  --energy:#9FE870;
+  --rising-bg:rgba(159,232,112,0.12);--rising-tx:#9FE870;
+  --grid-line:rgba(255,255,255,0.04);
+  --shadow-xs:0 1px 0 rgba(0,0,0,.4);
+  --shadow-sm:0 1px 0 rgba(0,0,0,.4);
+  --shadow-md:0 8px 24px rgba(0,0,0,.5);
+  --shadow-lg:0 24px 60px rgba(0,0,0,.6);
+  --shadow-hero:0 24px 60px rgba(0,0,0,.6),0 4px 12px rgba(0,0,0,.4);
+  --overlay-bg:rgba(0,0,0,.7);--voice-overlay-bg:rgba(0,0,0,.92);
 }
 html{font-size:15px;scroll-behavior:smooth;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
 body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.6;min-height:100vh;font-feature-settings:'ss01','ss02';letter-spacing:-.01em}
@@ -350,6 +354,224 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
 .tcd-action:hover{background:var(--bg2);color:var(--tx);border-color:var(--bd2)}
 .is-read .tcd-action{background:var(--positive-tint);border-color:var(--positive);color:var(--positive)}
 .tcd-action svg{width:12px;height:12px}
+
+/* ── BLOCK TWO (signals + radar) ─────────────────────── */
+.block--two{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+  border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);
+  margin:0 calc(var(--space-12) * -1);
+}
+.block--two .col{padding:40px var(--space-12)}
+.block--two .col--signals{border-right:1px solid var(--bd)}
+@media(max-width:1100px){
+  .block--two{grid-template-columns:1fr}
+  .block--two .col--signals{border-right:none;border-bottom:1px solid var(--bd)}
+}
+.link-more{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--tx2);
+  padding:6px 10px;border-radius:var(--radius);
+  background:transparent;border:none;cursor:pointer;
+  transition:all 120ms;font-family:var(--font);
+}
+.link-more:hover{color:var(--brand);background:var(--brand-tint)}
+
+/* Signal cards (preview) */
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:720px){.sig-grid{grid-template-columns:1fr}}
+.sig-card{
+  background:var(--surface);border:1px solid var(--bd);
+  border-radius:var(--radius-lg);padding:16px;
+  display:flex;flex-direction:column;gap:10px;
+  transition:border-color 160ms,box-shadow 160ms;
+}
+.sig-card:hover{border-color:var(--bd2);box-shadow:var(--shadow-sm)}
+.sig-card--rising{border-left:3px solid var(--positive)}
+.sig-card--new{border-left:3px solid var(--brand)}
+.sig-card--declining{border-left:3px solid var(--danger)}
+.sig-card--stable{border-left:3px solid var(--bd2)}
+.sig-card-head{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.sig-card-rank{color:var(--tx3);font-weight:600}
+.sig-card-badge{padding:2px 6px;border-radius:3px;font-weight:700;font-size:9px;letter-spacing:.12em}
+.sig-card-badge--rising{background:var(--positive-tint);color:var(--positive)}
+.sig-card-badge--new{background:var(--brand-tint);color:var(--brand)}
+.sig-card-badge--declining{background:var(--danger-bg);color:var(--danger)}
+.sig-card-badge--stable{background:var(--bg2);color:var(--tx3)}
+.sig-card-cat{color:var(--tx3);margin-left:auto}
+.sig-card-term{
+  font-family:var(--display);font-size:18px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.015em;line-height:1.2;color:var(--tx);
+}
+.sig-card-context{font-size:12.5px;line-height:1.5;color:var(--tx2);flex:1}
+.sig-card-foot{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
+  padding-top:10px;border-top:1px solid var(--bd);
+}
+.sig-card-stats{display:flex;align-items:baseline;gap:6px}
+.sig-card-count{
+  font-family:var(--display);font-size:24px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.02em;color:var(--tx);font-feature-settings:"tnum";line-height:1;
+}
+.sig-card-count-label{font-family:var(--mono);font-size:9px;color:var(--tx3);line-height:1.15}
+.sig-card-spark{display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:90px}
+.sig-card-spark svg{width:80px;height:28px}
+.sig-card-delta{
+  display:flex;align-items:center;gap:4px;
+  font-family:var(--mono);font-size:10px;font-weight:600;
+}
+.sig-card-delta-up{color:var(--positive)}
+.sig-card-delta-down{color:var(--danger)}
+.sig-card-delta-flat{color:var(--tx3)}
+.sig-card-delta-new{color:var(--brand);font-weight:700;letter-spacing:.04em}
+.sig-card-delta-window{color:var(--tx3);font-weight:400;margin-left:4px}
+.sl-rising{stroke:var(--positive);fill:none}
+.sl-declining{stroke:var(--danger);fill:none}
+.sl-new{stroke:var(--brand);fill:none}
+.sl-stable{stroke:var(--tx3);fill:none}
+.sl-rising circle,.sl-declining circle,.sl-new circle,.sl-stable circle{stroke:none}
+.sl-rising circle{fill:var(--positive)}
+.sl-declining circle{fill:var(--danger)}
+.sl-new circle{fill:var(--brand)}
+.sl-stable circle{fill:var(--tx3)}
+
+/* Radar box (preview) */
+.radar-box{
+  display:grid;grid-template-columns:230px 1fr;gap:24px;align-items:center;
+  padding:24px;background:var(--surface);
+  border:1px solid var(--bd);border-radius:var(--radius-lg);
+}
+@media(max-width:1100px){.radar-box{grid-template-columns:1fr}}
+.radar-svg-wrap{display:flex;align-items:center;justify-content:center}
+.radar-svg-wrap svg{max-width:230px;width:100%;height:auto}
+.radar-ring{fill:none;stroke:var(--bd);stroke-width:1}
+.radar-spoke{stroke:var(--bd);stroke-width:1}
+.radar-shape{fill:var(--brand-tint);stroke:var(--brand);stroke-width:1.5}
+.radar-pt{fill:var(--brand)}
+.radar-pt--gap{fill:var(--danger);stroke:var(--surface);stroke-width:2}
+.radar-label{
+  font-family:var(--mono);font-size:9px;fill:var(--tx2);
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.radar-next{display:flex;flex-direction:column;gap:10px}
+.radar-next-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--danger);font-weight:600;
+  align-self:flex-start;
+}
+.radar-next-dot{width:6px;height:6px;border-radius:50%;background:var(--danger)}
+.radar-next-axis{
+  font-family:var(--display);font-size:28px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  line-height:1.1;letter-spacing:-.02em;color:var(--tx);
+}
+.radar-next-reason{font-size:13.5px;line-height:1.55;color:var(--tx2)}
+.radar-next .btn--primary-dawn{align-self:flex-start;margin-top:4px;padding:7px 12px;font-size:12px}
+
+/* ── WEEK STRIP (preview on home) ───────────────────── */
+.block-week{padding:32px 0;border-top:1px solid var(--bd)}
+.block-week .section-header{margin-bottom:18px}
+.hwk-wrap{
+  display:grid;grid-template-columns:1fr 260px;gap:0;
+  background:var(--surface);border:1px solid var(--bd);
+  border-radius:var(--radius-lg);overflow:hidden;
+}
+@media(max-width:900px){
+  .hwk-wrap{grid-template-columns:1fr}
+  .hwk-kpi{border-left:none !important;border-top:1px solid var(--bd);flex-direction:row !important}
+  .hwk-kpi-card{flex:1;border-bottom:none !important;border-right:1px solid var(--bd)}
+  .hwk-kpi-card:last-child{border-right:none !important}
+}
+.hwk{padding:24px 28px 40px;min-width:0}
+.hwk-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px}
+.hwk-head-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.hwk-head-avg{font-family:var(--mono);font-size:11px;color:var(--tx2);font-variant-numeric:tabular-nums}
+.hwk-grid{position:relative;height:220px;padding-left:28px;margin-bottom:28px}
+.hwk-tick{position:absolute;left:0;right:0;height:1px;pointer-events:none}
+.hwk-tick-label{
+  position:absolute;left:0;top:50%;transform:translateY(-50%);
+  font-family:var(--mono);font-size:9.5px;color:var(--tx3);opacity:.7;
+  width:22px;text-align:right;font-variant-numeric:tabular-nums;
+}
+.hwk-tick-line{position:absolute;left:28px;right:0;top:0;height:1px;background:var(--bd);opacity:.55}
+.hwk-tick:first-child .hwk-tick-line{opacity:1;background:var(--tx3)}
+.hwk-bars{
+  position:absolute;top:0;bottom:0;left:28px;right:0;
+  display:grid;grid-template-columns:repeat(7,1fr);gap:6px;
+  align-items:end;z-index:1;
+}
+.hwk-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+.hwk-bar-wrap{
+  width:100%;max-width:56px;flex:1;
+  display:flex;flex-direction:column;justify-content:flex-end;align-items:center;
+  position:relative;min-height:0;
+}
+.hwk-val{
+  font-family:var(--display);font-size:14px;font-weight:500;
+  color:var(--tx2);font-variant-numeric:tabular-nums;
+  margin-bottom:6px;letter-spacing:-.01em;
+}
+.hwk-col.is-today .hwk-val,.hwk-col.is-peak .hwk-val{color:var(--brand);font-weight:600}
+.hwk-bar{
+  width:100%;background:var(--tx2);opacity:.22;
+  border-radius:var(--radius-xs) var(--radius-xs) 0 0;
+  min-height:3px;
+  transition:height 400ms cubic-bezier(.2,.8,.2,1),opacity 200ms;
+}
+.hwk-col:hover .hwk-bar{opacity:.45}
+.hwk-col.is-today .hwk-bar,.hwk-col.is-peak .hwk-bar{background:var(--brand);opacity:1}
+.hwk-label{
+  position:absolute;bottom:-24px;left:0;right:0;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);text-align:center;
+}
+.hwk-col.is-today .hwk-label{color:var(--brand);font-weight:600}
+.hwk-kpi{display:flex;flex-direction:column;border-left:1px solid var(--bd)}
+.hwk-kpi-card{
+  flex:1;padding:20px 24px;
+  display:flex;flex-direction:column;gap:6px;
+  border-bottom:1px solid var(--bd);min-width:0;
+}
+.hwk-kpi-card:last-child{border-bottom:none}
+.hwk-kpi-card-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.hwk-kpi-card-val{
+  font-family:var(--display);font-size:38px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.03em;color:var(--tx);line-height:1;
+  font-variant-numeric:tabular-nums;
+  display:flex;align-items:baseline;gap:4px;
+}
+.hwk-kpi-card-val--flame{color:var(--brand);align-items:center;gap:6px}
+.hwk-kpi-card-val--flame svg{width:20px;height:20px}
+.hwk-kpi-card-unit{font-size:18px;font-weight:400;color:var(--tx3);margin-left:2px}
+.hwk-kpi-card-delta{
+  font-family:var(--mono);font-size:10.5px;color:var(--tx3);
+  font-variant-numeric:tabular-nums;
+}
+.hwk-kpi-card-delta.is-up{color:var(--positive)}
+.hwk-kpi-card-delta.is-up::before{content:"↑ "}
+
+/* ── HOME FOOTER ────────────────────────────────────── */
+.home-foot{
+  padding:18px 0;margin-top:32px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  color:var(--tx3);
+  border-top:1px solid var(--bd);
+}
 
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
@@ -1811,6 +2033,62 @@ body.deep-work .count{display:none!important}
         <div class="top-grid top-grid--dawn" id="brief-top-grid"></div>
       </div>
 
+      <section class="block--two">
+        <div class="col col--signals">
+          <div class="section-header">
+            <div>
+              <div class="section-kicker">Signaux faibles · <span id="sig-prev-week">S—</span></div>
+              <h2 class="section-title">Ce qui émerge<br>cette semaine</h2>
+            </div>
+            <button class="link-more" onclick="document.querySelector('[data-panel=\'signals\']')?.click()">Voir tous →</button>
+          </div>
+          <div class="sig-grid" id="sig-prev-grid"></div>
+        </div>
+        <div class="col col--radar">
+          <div class="section-header">
+            <div>
+              <div class="section-kicker">Radar compétences</div>
+              <h2 class="section-title">Ton prochain gap à combler</h2>
+            </div>
+          </div>
+          <div class="radar-box">
+            <div class="radar-svg-wrap" id="radar-prev-svg"></div>
+            <div class="radar-next">
+              <div class="radar-next-tag">
+                <span class="radar-next-dot"></span>
+                Gap prioritaire
+              </div>
+              <div class="radar-next-axis" id="radar-prev-axis">—</div>
+              <p class="radar-next-reason" id="radar-prev-reason">Chargement du radar en cours…</p>
+              <button class="btn--primary-dawn btn--sm" onclick="document.querySelector('[data-panel=\'radar\']')?.click()">
+                Ouvrir le radar
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="block-week">
+        <div class="section-header">
+          <div>
+            <div class="section-kicker">Ma semaine</div>
+            <h2 class="section-title" id="week-prev-title">Activité de lecture</h2>
+          </div>
+          <button class="link-more" onclick="document.querySelector('[data-panel=\'myweek\']')?.click()">Ouvrir ma semaine →</button>
+        </div>
+        <div class="hwk-wrap">
+          <div class="hwk">
+            <div class="hwk-head">
+              <span class="hwk-head-label">Articles lus</span>
+              <span class="hwk-head-avg" id="hwk-prev-avg">moy. —/jour</span>
+            </div>
+            <div class="hwk-grid" id="hwk-prev-grid"></div>
+          </div>
+          <div class="hwk-kpi" id="hwk-prev-kpi"></div>
+        </div>
+      </section>
+
       <div class="section">
         <div class="section-header">
           <div>
@@ -1822,6 +2100,11 @@ body.deep-work .count{display:none!important}
       </div>
 
       <div class="brief-content" id="brief-content"></div>
+
+      <footer class="home-foot">
+        <span>Brief généré par Gemini Flash-Lite · synthèse hebdo par Claude Haiku</span>
+        <span id="home-foot-cost">—</span>
+      </footer>
     </div>
   </div>
 
@@ -3432,6 +3715,9 @@ function renderBriefV2(dayArticles,dateStr){
   const playAudioBtn=document.getElementById('brief-play-audio');
   if(playAudioBtn)playAudioBtn.onclick=()=>{ if(typeof toggleBriefingAudio==='function')toggleBriefingAudio(); };
 
+  // --- Home preview blocks (signals + radar + week strip + footer) ---
+  try{ _renderBriefHomeBlocks(); }catch(e){ console.error('Home blocks',e); }
+
   if(window.__renderModKeys)window.__renderModKeys();
 }
 
@@ -3470,6 +3756,222 @@ function _computeReadStreak(){
     }
     return streak;
   }catch{ return 0; }
+}
+
+// ── BRIEF HOME PREVIEW BLOCKS ─────────────────────────
+function _sparklinePath(values, w=80, h=28){
+  if(!values||!values.length)return'';
+  const max=Math.max(...values,1);
+  const min=Math.min(...values);
+  const step=w/Math.max(values.length-1,1);
+  const pts=values.map((v,i)=>`${i*step},${h-((v-min)/Math.max(max-min,1))*(h-4)-2}`).join(' ');
+  const lastX=(values.length-1)*step;
+  const lastY=h-((values[values.length-1]-min)/Math.max(max-min,1))*(h-4)-2;
+  return `<polyline points="${pts}" fill="none" stroke-width="1.5" stroke-linecap="round"/><circle cx="${lastX}" cy="${lastY}" r="2.5"/>`;
+}
+
+async function _renderSignalsPreview(){
+  const grid=document.getElementById('sig-prev-grid');
+  const wkEl=document.getElementById('sig-prev-week');
+  if(!grid)return;
+  try{
+    const now=new Date();
+    if(wkEl)wkEl.textContent=`S${String(_isoWeek(now)).padStart(2,'0')}`;
+    const rows=await fetchJSON(`${SUPABASE_URL}/rest/v1/signal_tracking?order=mention_count.desc&limit=60`);
+    if(!rows||!rows.length){ grid.innerHTML=`<div class="empty" style="grid-column:1/-1;color:var(--tx3);font-size:13px">Pas de signaux cette semaine</div>`; return; }
+    // Dedupe by term — keep latest week per term
+    const byTerm={};
+    rows.forEach(r=>{
+      if(!byTerm[r.term] || (byTerm[r.term].week_start||'')<(r.week_start||'')) byTerm[r.term]=r;
+    });
+    const ordered=Object.values(byTerm)
+      .sort((a,b)=>{
+        const rank=t=>({rising:0,new:1,stable:2,declining:3}[t]??9);
+        return rank(a.trend)-rank(b.trend) || (b.mention_count||0)-(a.mention_count||0);
+      }).slice(0,4);
+    grid.innerHTML=ordered.map((s,i)=>{
+      const trend=s.trend||'stable';
+      const trendLabel={rising:'EN HAUSSE',new:'NOUVEAU',declining:'EN BAISSE',stable:'STABLE'}[trend]||'STABLE';
+      const history=Array.isArray(s.history)?s.history:(typeof s.history==='string'?(JSON.parse(s.history||'[]')):[s.mention_count||0]);
+      const hist=history.length?history:[1,2,3,4,5,6,7,s.mention_count||0];
+      const delta=s.delta!=null?s.delta:(hist.length>1?hist[hist.length-1]-hist[hist.length-2]:0);
+      const spark=_sparklinePath(hist,80,28);
+      const deltaHtml=trend==='new'
+        ? `<span class="sig-card-delta-new">nouveau signal</span>`
+        : (delta>0?`<span class="sig-card-delta-up">+${delta}</span>`
+          :delta<0?`<span class="sig-card-delta-down">${delta}</span>`
+          :`<span class="sig-card-delta-flat">stable</span>`);
+      return `<article class="sig-card sig-card--${trend}">
+        <div class="sig-card-head">
+          <span class="sig-card-rank">#${String(i+1).padStart(2,'0')}</span>
+          <span class="sig-card-badge sig-card-badge--${trend}">${trendLabel}</span>
+          <span class="sig-card-cat">${esc((s.category||'').toUpperCase())}</span>
+        </div>
+        <h3 class="sig-card-term">${esc(s.term||'—')}</h3>
+        <p class="sig-card-context">${esc(s.context||'')||''}</p>
+        <div class="sig-card-foot">
+          <div class="sig-card-stats">
+            <span class="sig-card-count">${s.mention_count||0}</span>
+            <span class="sig-card-count-label">mentions<br>cette semaine</span>
+          </div>
+          <div class="sig-card-spark">
+            <svg class="sparkline sl-${trend}" viewBox="0 0 80 28" preserveAspectRatio="none">${spark}</svg>
+            <div class="sig-card-delta">${deltaHtml}<span class="sig-card-delta-window">8 sem.</span></div>
+          </div>
+        </div>
+      </article>`;
+    }).join('');
+  }catch(e){
+    console.error('_renderSignalsPreview',e);
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1;color:var(--tx3);font-size:13px">Erreur de chargement des signaux</div>`;
+  }
+}
+
+function _buildRadarSVG(axes,size=230){
+  if(!axes||!axes.length)return'';
+  const cx=size/2, cy=size/2, radius=size/2-30, n=axes.length;
+  const angle=(i)=>(Math.PI*2*i)/n - Math.PI/2;
+  const rings=[0.25,0.5,0.75,1].map(r=>{
+    const pts=axes.map((_,j)=>{
+      const rr=r*radius;
+      return `${cx+Math.cos(angle(j))*rr},${cy+Math.sin(angle(j))*rr}`;
+    }).join(' ');
+    return `<polygon points="${pts}" class="radar-ring"/>`;
+  }).join('');
+  const spokes=axes.map((_,i)=>`<line x1="${cx}" y1="${cy}" x2="${cx+Math.cos(angle(i))*radius}" y2="${cy+Math.sin(angle(i))*radius}" class="radar-spoke"/>`).join('');
+  const pts=axes.map((a,i)=>{
+    const r=(Math.min(100,Math.max(0,(a.score||0)*(a.score>10?1:10)))/100)*radius;
+    return [cx+Math.cos(angle(i))*r, cy+Math.sin(angle(i))*r];
+  });
+  const shape=`<polygon points="${pts.map(p=>p.join(',')).join(' ')}" class="radar-shape"/>`;
+  const dots=pts.map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="${axes[i].gap?5:3.5}" class="radar-pt${axes[i].gap?' radar-pt--gap':''}"/>`).join('');
+  const labels=axes.map((a,i)=>{
+    const r=radius+16;
+    const x=cx+Math.cos(angle(i))*r;
+    const y=cy+Math.sin(angle(i))*r;
+    const anchor=Math.abs(Math.cos(angle(i)))<0.2?'middle':(Math.cos(angle(i))>0?'start':'end');
+    return `<text x="${x}" y="${y}" class="radar-label" text-anchor="${anchor}" dominant-baseline="middle">${esc((a.axis_label||a.name||a.axis||'').slice(0,14))}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${size} ${size}" width="100%" style="max-width:${size}px">${rings}${spokes}${shape}${dots}${labels}</svg>`;
+}
+
+async function _renderRadarPreview(){
+  const svgEl=document.getElementById('radar-prev-svg');
+  const axisEl=document.getElementById('radar-prev-axis');
+  const reasonEl=document.getElementById('radar-prev-reason');
+  if(!svgEl)return;
+  try{
+    const axes=await fetchJSON(`${SUPABASE_URL}/rest/v1/skill_radar?order=axis`);
+    if(!axes||!axes.length){
+      if(reasonEl)reasonEl.textContent="Fais le diagnostic radar pour voir ton prochain gap.";
+      return;
+    }
+    // Normalize scores (some rows are /10, others /100)
+    const norm=axes.map(a=>({...a, scoreN:(a.score||0)*(a.score>10?1:10)}));
+    const withGap=norm.map(a=>({...a, gap: a.scoreN<50}));
+    svgEl.innerHTML=_buildRadarSVG(withGap,230);
+    // Find biggest gap
+    const gap=[...withGap].sort((a,b)=>(a.scoreN||0)-(b.scoreN||0))[0];
+    if(gap){
+      if(axisEl)axisEl.textContent=gap.axis_label||gap.axis||'—';
+      if(reasonEl)reasonEl.textContent=gap.gaps||gap.context||`Score bloqué à ${Math.round(gap.scoreN)}/100. C'est ton plus gros delta avec l'expert — prochain pas recommandé.`;
+    }
+  }catch(e){
+    console.error('_renderRadarPreview',e);
+    if(reasonEl)reasonEl.textContent='Impossible de charger le radar.';
+  }
+}
+
+async function _renderWeekStripPreview(){
+  const grid=document.getElementById('hwk-prev-grid');
+  const kpi=document.getElementById('hwk-prev-kpi');
+  const avg=document.getElementById('hwk-prev-avg');
+  const title=document.getElementById('week-prev-title');
+  if(!grid||!kpi)return;
+  try{
+    const counts=await getWeeklyArticleCounts();
+    const total=counts.reduce((a,b)=>a+b,0);
+    const avgVal=(total/7).toFixed(1);
+    const max=Math.max(...counts,1);
+    const maxTick=Math.max(5,Math.ceil(max/5)*5);
+    const todayIdx=(new Date().getDay()+6)%7; // Mon=0
+    const peakIdx=counts.indexOf(max);
+    const dayLabels=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+    // Reading this week — derive from read map across week range
+    const readMap=getReadArticles()||{};
+    const todayD=new Date(); todayD.setHours(0,0,0,0);
+    const mon=new Date(todayD); mon.setDate(todayD.getDate()-((todayD.getDay()+6)%7));
+    let readThisWeek=0, keptThisWeek=0;
+    Object.values(readMap).forEach(v=>{
+      const t=typeof v==='number'?v:(v&&v.ts?v.ts:null);
+      if(!t)return;
+      if(t>=mon.getTime()){ readThisWeek++; if(v&&v.kept)keptThisWeek++; }
+    });
+    const streak=_computeReadStreak();
+    if(title)title.textContent=`${total} articles cette semaine, ${streak} jour${streak>1?'s':''} d'affilée`;
+    if(avg)avg.textContent=`moy. ${avgVal}/jour`;
+    // Ticks (0, 25%, 50%, 75%, 100% of maxTick)
+    const ticks=[0, Math.round(maxTick*0.25), Math.round(maxTick*0.5), Math.round(maxTick*0.75), maxTick]
+      .filter((t,i,a)=>a.indexOf(t)===i);
+    const ticksHtml=ticks.map(t=>`<div class="hwk-tick" style="bottom:${(t/maxTick)*100}%">
+      <span class="hwk-tick-label">${t}</span>
+      <span class="hwk-tick-line"></span>
+    </div>`).join('');
+    const barsHtml=`<div class="hwk-bars">${counts.map((c,i)=>{
+      const isToday=i===todayIdx;
+      const isPeak=i===peakIdx && max>0;
+      return `<div class="hwk-col${isToday?' is-today':''}${isPeak&&!isToday?' is-peak':''}">
+        <div class="hwk-bar-wrap">
+          <div class="hwk-val">${c}</div>
+          <div class="hwk-bar" style="height:${(c/maxTick)*100}%"></div>
+        </div>
+        <div class="hwk-label">${dayLabels[i]}</div>
+      </div>`;
+    }).join('')}</div>`;
+    grid.innerHTML=ticksHtml+barsHtml;
+    kpi.innerHTML=`
+      <div class="hwk-kpi-card">
+        <div class="hwk-kpi-card-label">Articles de la semaine</div>
+        <div class="hwk-kpi-card-val">${total}</div>
+        <div class="hwk-kpi-card-delta">sur ${Math.round(avgVal*7)} en moyenne</div>
+      </div>
+      <div class="hwk-kpi-card">
+        <div class="hwk-kpi-card-label">Lus cette semaine</div>
+        <div class="hwk-kpi-card-val">${readThisWeek}</div>
+        <div class="hwk-kpi-card-delta">${total?Math.round((readThisWeek/total)*100):0}% du flux</div>
+      </div>
+      <div class="hwk-kpi-card">
+        <div class="hwk-kpi-card-label">Streak veille</div>
+        <div class="hwk-kpi-card-val hwk-kpi-card-val--flame">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+          ${streak}<span class="hwk-kpi-card-unit">j</span>
+        </div>
+        <div class="hwk-kpi-card-delta">${streak>=7?'en feu !':'continue'}</div>
+      </div>
+    `;
+  }catch(e){
+    console.error('_renderWeekStripPreview',e);
+    grid.innerHTML='<div style="color:var(--tx3);padding:20px;text-align:center;font-size:13px">Erreur de chargement</div>';
+  }
+}
+
+async function _renderHomeFoot(){
+  const el=document.getElementById('home-foot-cost');
+  if(!el)return;
+  try{
+    const now=new Date();
+    const iso=now.toISOString().slice(0,7); // YYYY-MM
+    const rows=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_analysis?select=tokens_used,cost_eur,created_at&created_at=gte.${iso}-01&order=created_at.desc&limit=10`);
+    const spent=(rows||[]).reduce((s,r)=>s+(Number(r.cost_eur)||0),0);
+    el.textContent=`${spent.toFixed(2).replace('.',',')} € / 3,00 € ce mois`;
+  }catch{ el.textContent=''; }
+}
+
+function _renderBriefHomeBlocks(){
+  _renderSignalsPreview();
+  _renderRadarPreview();
+  _renderWeekStripPreview();
+  _renderHomeFoot();
 }
 
 // ── VEILLE UNIFIED RENDERING (P11) ───────────────────────
