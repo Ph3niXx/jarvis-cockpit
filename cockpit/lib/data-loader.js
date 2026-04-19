@@ -206,20 +206,26 @@
       const s = Number(r.score || 0);
       return s <= 10 ? s * 10 : Math.min(100, s);
     };
-    const axes = rows.map(r => ({
-      id: r.axis,
-      name: r.axis_label || r.axis,
-      score: Math.round(norm(r)),
-      gap: norm(r) < 50,
-      target: Number(r.target || 85),
-      delta_30d: 0,
-      axis: r.axis,
-      axis_label: r.axis_label || r.axis,
-      strengths: r.strengths || "",
-      gaps: r.gaps || "",
-      level: norm(r) >= 75 ? "Avancé" : norm(r) >= 50 ? "Intermédiaire" : "Débutant",
-      note: r.gaps || r.strengths || "",
-    }));
+    const axes = rows.map(r => {
+      const label = r.axis_label || r.axis;
+      return {
+        id: r.axis,
+        // Keep BOTH name and label — home.jsx/RadarSVG reads .name,
+        // panel-radar.jsx reads .label. Same value, both aliases.
+        name: label,
+        label: label,
+        score: Math.round(norm(r)),
+        gap: norm(r) < 50,
+        target: Number(r.target || 85),
+        delta_30d: 0,
+        axis: r.axis,
+        axis_label: label,
+        strengths: r.strengths || "",
+        gaps: r.gaps || "",
+        level: norm(r) >= 75 ? "Avancé" : norm(r) >= 50 ? "Intermédiaire" : "Débutant",
+        note: r.gaps || r.strengths || "",
+      };
+    });
     const lowest = axes.slice().sort((a, b) => a.score - b.score)[0];
     return {
       axes,

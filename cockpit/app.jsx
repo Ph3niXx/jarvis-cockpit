@@ -1,6 +1,40 @@
 // App root — theme switcher + router
 const { useState, useEffect } = React;
 
+// Error boundary — prevents a single panel crash from taking down the
+// whole app. Shows a recoverable error card in place of the panel.
+class PanelErrorBoundary extends React.Component {
+  constructor(props){ super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(err){ return { err }; }
+  componentDidCatch(err, info){
+    console.error("[PanelErrorBoundary]", err, info?.componentStack);
+    try { window.track && window.track("error_shown", { context: "panel:" + (this.props.panelId || "unknown"), message: String(err).slice(0, 200) }); } catch {}
+  }
+  componentDidUpdate(prev){
+    // Reset the error when the panel changes (user navigated away).
+    if (prev.panelId !== this.props.panelId && this.state.err) this.setState({ err: null });
+  }
+  render(){
+    if (this.state.err) {
+      return (
+        <div style={{ padding: "80px 40px", maxWidth: 640, margin: "0 auto", fontFamily: "var(--font-body, Inter)" }}>
+          <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--tx3)", marginBottom: 12 }}>
+            Erreur de rendu — panel {this.props.panelId}
+          </div>
+          <h2 style={{ fontFamily: "var(--font-display, serif)", fontSize: 22, color: "var(--tx)", marginBottom: 12 }}>
+            Ce panel n'a pas pu s'afficher
+          </h2>
+          <pre style={{ fontSize: 12, color: "var(--tx2)", background: "var(--bg2)", padding: "10px 14px", borderRadius: 6, overflow: "auto", maxHeight: 160 }}>
+            {String(this.state.err).slice(0, 400)}
+          </pre>
+          <button className="btn btn--ghost" style={{ marginTop: 16 }} onClick={() => this.setState({ err: null })}>Réessayer</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function Stub({ id, theme, onBack }) {
   return (
     <div className="stub">
@@ -166,7 +200,7 @@ function App() {
             </button>
           </div>
         )}
-        {content}
+        <PanelErrorBoundary panelId={activePanel}>{content}</PanelErrorBoundary>
       </main>
     </div>
   );
