@@ -557,9 +557,10 @@
       }
       case "wiki": {
         const concepts = await T2.wiki();
-        if (window.WIKI_DATA && concepts.length) {
-          patchObject(window.WIKI_DATA, transformWiki(concepts));
-        }
+        // Expose real rows under _raw without overwriting the rich
+        // fake WIKI_DATA shape (categories, entries with content_md,
+        // etc.) that panel-wiki.jsx depends on.
+        if (window.WIKI_DATA) window.WIKI_DATA._raw = concepts;
         return { concepts };
       }
       case "radar":
@@ -590,24 +591,29 @@
       }
       case "opps": {
         const opps = await T2.opps();
-        if (window.OPPORTUNITIES_DATA && opps.length) {
-          window.OPPORTUNITIES_DATA.opportunities = transformOpportunities(opps);
-        }
+        // Expose real rows under _raw — OPPORTUNITIES_DATA has a very
+        // rich shape (week/updated + opportunities with nested window
+        // objects, urgency, opens, closes_iso, closes_in…) that the
+        // weekly_opportunities table can't reproduce 1:1 without a
+        // dedicated pipeline.
+        if (window.OPPORTUNITIES_DATA) window.OPPORTUNITIES_DATA._raw = opps;
         return { opportunities: opps };
       }
       case "ideas": {
         const ideas = await T2.ideas();
-        if (window.IDEAS_DATA && ideas.length) {
-          window.IDEAS_DATA.ideas = transformIdeas(ideas);
-        }
+        // Same pattern — IDEAS_DATA expects Kanban stages, signals,
+        // category colors. Keep fake shape, expose real rows under _raw.
+        if (window.IDEAS_DATA) window.IDEAS_DATA._raw = ideas;
         return { ideas };
       }
       case "profile": {
         const rows = raw.profileRows || await q("user_profile", "order=key");
+        // PROFILE_DATA has identity/commitments/contract/uncomfortable_last
+        // — too structured to reproduce from a flat user_profile kv table.
+        // Expose real kv under _values; keep fake rendering intact.
         if (window.PROFILE_DATA) {
-          const kv = transformProfile(rows);
-          window.PROFILE_DATA.values = kv;
-          Object.assign(window.PROFILE_DATA, kv);
+          window.PROFILE_DATA._values = transformProfile(rows);
+          window.PROFILE_DATA._raw = rows;
         }
         return { profile: rows };
       }
@@ -644,18 +650,23 @@
   // Hydrate globals with real data on boot (Tier 1 already fetched the
   // radar rows, profile rows, signals — use them to seed the globals
   // so the first render never shows fake data when real is available).
+  //
+  // For rich-shape globals (PROFILE_DATA), we DON'T overwrite the fake
+  // — we store real rows under _raw / _values so panels can access them
+  // without us having to reproduce every nested field the React panel
+  // reads. Only shapes we fully own (radar) get replaced wholesale.
   function hydrateGlobalsFromTier1(){
     const raw = window.__COCKPIT_RAW || {};
     if (window.APPRENTISSAGE_DATA && raw.radarRows?.length) {
       window.APPRENTISSAGE_DATA.radar = buildRadar(raw.radarRows);
     }
     if (window.PROFILE_DATA && raw.profileRows?.length) {
-      const kv = transformProfile(raw.profileRows);
-      window.PROFILE_DATA.values = kv;
-      Object.assign(window.PROFILE_DATA, kv);
+      window.PROFILE_DATA._values = transformProfile(raw.profileRows);
+      window.PROFILE_DATA._raw = raw.profileRows;
     }
     if (window.SIGNALS_DATA && raw.signals?.length) {
-      window.SIGNALS_DATA.signals = buildSignals(raw.signals);
+      // SIGNALS_DATA may have a richer shape too — expose real under _raw
+      window.SIGNALS_DATA._raw = raw.signals;
     }
   }
 
