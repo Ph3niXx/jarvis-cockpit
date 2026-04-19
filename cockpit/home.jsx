@@ -2,6 +2,45 @@
 // but the theme's vibe tokens (dividerStyle, accentShape, etc.)
 // meaningfully reshape the layout feel.
 
+// Audio brief — reads the macro title + body via Web Speech API.
+// No external provider: uses the browser's built-in French voice.
+function AudioBriefChip({ macro }) {
+  const [state, setState] = React.useState("idle"); // idle | speaking
+  const est = Math.max(1, Math.round((macro.body || "").length / 280));
+  const label = state === "speaking" ? "Arrêter" : `Lecture audio · ${est} min`;
+  const iconName = state === "speaking" ? "check" : "play";
+
+  function speak(){
+    if (!("speechSynthesis" in window)) return;
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const text = (macro.title ? macro.title + ". " : "") + (macro.body || "");
+    if (!text.trim()) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "fr-FR";
+    u.rate = 1.02;
+    u.pitch = 1;
+    const voices = synth.getVoices();
+    const fr = voices.find(v => /^fr/i.test(v.lang));
+    if (fr) u.voice = fr;
+    u.onend = () => setState("idle");
+    u.onerror = () => setState("idle");
+    synth.speak(u);
+    setState("speaking");
+  }
+  function stop(){
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    setState("idle");
+  }
+  React.useEffect(() => () => stop(), []);
+
+  return (
+    <button className="ph-chip" onClick={state === "speaking" ? stop : speak}>
+      <Icon name={iconName} size={10} stroke={2} /> {label}
+    </button>
+  );
+}
+
 function TrendArrow({ trend, delta }) {
   if (trend === "new") return <span className="pill-badge pill-badge--new">NEW</span>;
   if (trend === "rising") return (
@@ -133,8 +172,7 @@ function Home({ theme, data, onNavigate }) {
           <span className="ph-date">{date.long}</span>
         </div>
         <div className="ph-right">
-          <button className="ph-chip"><Icon name="mic" size={13} stroke={2} /> Dicter</button>
-          <button className="ph-chip"><Icon name="play" size={10} stroke={2} /> Lecture audio · 4 min</button>
+          <AudioBriefChip macro={macro} />
           <button className="ph-chip ph-chip--primary"><Icon name="check" size={13} stroke={2.5} /> Tout marqué lu</button>
         </div>
       </header>

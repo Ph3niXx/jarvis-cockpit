@@ -91,5 +91,14 @@
 <!-- Bootstrap: sets __cockpitBootstrapPending so app.jsx defers mount until we say go -->
 <script src="cockpit/lib/bootstrap.js?v=1"></script>
 <script type="text/babel" src="cockpit/app.jsx?v=20"></script>
+
+<!-- PWA service worker (best-effort: no-op if unsupported or file:// protocol) -->
+<script>
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>
