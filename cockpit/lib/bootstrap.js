@@ -41,6 +41,8 @@ window.__cockpitBootstrapPending = true;
     // Phase 2: run Tier 1 loader — overrides window.COCKPIT_DATA with real data.
     try {
       await window.cockpitDataLoader.bootTier1();
+      // Propagate Tier 1 rows into globals used by panels (APPRENTISSAGE_DATA.radar, etc.)
+      window.cockpitDataLoader.hydrateGlobalsFromTier1();
     } catch (e) {
       console.error("[bootstrap] Tier 1 failed, keeping fake data", e);
     }

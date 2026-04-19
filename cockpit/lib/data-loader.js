@@ -417,25 +417,194 @@
     async weekly_analysis(){ return once("weekly_analysis_all", () => loadWeeklyAnalysis(30)); },
   };
 
-  // Lazy panel data — returns the raw rows so panels can reshape as needed.
+  // ── Tier 2 transformers — rebuild window.*_DATA globals ──
+  // Each transformer MERGES real data over the fake shape so the panel
+  // never loses the fields its JSX depends on.
+  function patchObject(target, partial){
+    if (!target || typeof target !== "object") return partial;
+    Object.assign(target, partial);
+    return target;
+  }
+
+  function transformRecos(rows, axes){
+    return (rows || []).map((r, i) => {
+      const axisId = r.target_axis || r.axis || "prompting";
+      const ax = (axes || []).find(a => (a.axis || a.id) === axisId);
+      const duration_min = r.duration_min || (r.resource_type === "course" ? 240 : r.resource_type === "video" ? 45 : r.resource_type === "paper" ? 30 : 15);
+      const lvl = (r.difficulty || r.level || "intermediate").toLowerCase();
+      const level = lvl.startsWith("avance") || lvl === "advanced" ? "Avancé" : lvl.startsWith("debu") || lvl === "beginner" ? "Débutant" : "Intermédiaire";
+      const why = r.why || r.description || "";
+      return {
+        id: r.id || ("r" + i),
+        type: r.resource_type || r.type || "article",
+        priority: r.priority || (ax && Number(ax.score || 0) < 50 ? "must" : ax && Number(ax.score || 0) < 70 ? "should" : "nice"),
+        title: r.title || "",
+        source: r.source || r.resource_source || "—",
+        date_label: r.date_label || relTime(r.created_at) || "—",
+        date_h: r.date_h || 6,
+        duration_min,
+        level,
+        axis: axisId,
+        axis_label: ax ? (ax.axis_label || ax.label || axisId) : axisId,
+        why,
+        why_short: r.why_short || (why ? stripHtml(why).slice(0, 120) : ""),
+        xp: r.xp || Math.max(40, Math.min(200, duration_min * 3)),
+        tags: r.tags || [],
+        unread: !r.completed,
+        momentum: r.momentum || "standard",
+      };
+    });
+  }
+
+  function transformChallenges(rows){
+    return (rows || []).map((c, i) => ({
+      id: c.id || ("c" + i),
+      status: c.status === "completed" ? "done" : (c.status === "open" ? "open" : "recommended"),
+      title: c.title || "",
+      description: c.description || "",
+      axis: c.target_axis || "prompting",
+      axis_label: c.target_axis || "Défi",
+      difficulty: c.difficulty || "Intermédiaire",
+      duration: c.duration || "~1h",
+      xp: c.score_reward || 100,
+      score_percent: c.score_percent || null,
+      questions: c.questions || [],
+    }));
+  }
+
+  function transformWiki(rows){
+    const entries = (rows || []).map(c => ({
+      id: c.slug || c.id,
+      slug: c.slug,
+      title: c.name || c.slug,
+      category: c.category || "Autres",
+      kind: c.source && c.source.includes("perso") ? "perso" : "auto",
+      pinned: false,
+      tags: c.tags || [],
+      excerpt: stripHtml(c.summary_beginner || c.summary_intermediate || "").slice(0, 180),
+      updated: relTime(c.last_mentioned || c.updated_at),
+      read_count: c.mention_count || 0,
+      content_md: c.summary_intermediate || c.summary_beginner || "",
+    }));
+    const auto = entries.filter(e => e.kind === "auto").length;
+    const perso = entries.length - auto;
+    const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+    const updated_this_week = (rows || []).filter(c => {
+      const d = new Date(c.last_mentioned || c.updated_at || 0).getTime();
+      return d && d >= weekAgo;
+    }).length;
+    return {
+      entries,
+      stats: { total: entries.length, auto, perso, updated_this_week },
+    };
+  }
+
+  function transformOpportunities(rows){
+    return (rows || []).map((o, i) => ({
+      id: o.id || ("o" + i),
+      title: o.usecase_title || o.title || "",
+      description: o.description || "",
+      scope: o.scope || "business",
+      urgency: o.urgency || "right_time",
+      effort: o.effort || "1m",
+      competition: o.competition || "med",
+      window: o.closes_at ? { closes_iso: o.closes_at, closes_in: relTime(o.closes_at) } : null,
+      followed: !!o.followed,
+      actor: o.source_actor || null,
+      next_step: o.next_step || "",
+      score: o.score || 0,
+      sources: o.sources || [],
+    }));
+  }
+
+  function transformIdeas(rows){
+    return (rows || []).map((i, idx) => ({
+      id: i.id || ("idea" + idx),
+      title: i.title || "",
+      description: i.description || "",
+      stage: i.stage || "seed",
+      category: i.sector || i.category || "business",
+      captured_at: i.created_at || new Date().toISOString(),
+      signals: i.signals || [],
+      notes: i.notes || "",
+    }));
+  }
+
+  function transformProfile(rows){
+    const kv = {};
+    (rows || []).forEach(r => { if (r.key) kv[r.key] = r.value; });
+    return kv;
+  }
+
+  // Lazy panel data — returns the raw rows AND mutates the matching
+  // window.*_DATA global so the React panel sees real data on render.
   async function loadPanel(id){
+    const raw = window.__COCKPIT_RAW || {};
     switch (id) {
       case "updates":
       case "sport":
       case "gaming_news":
       case "anime":
-      case "news":
-        return { articles: await T2.veille() };
-      case "wiki":
-        return { concepts: await T2.wiki() };
-      case "recos":
-        return { recos: await T2.recos() };
-      case "challenges":
-        return { challenges: await T2.challenges() };
-      case "opps":
-        return { opportunities: await T2.opps() };
-      case "ideas":
-        return { ideas: await T2.ideas() };
+      case "news": {
+        const articles = await T2.veille();
+        return { articles };
+      }
+      case "wiki": {
+        const concepts = await T2.wiki();
+        if (window.WIKI_DATA && concepts.length) {
+          patchObject(window.WIKI_DATA, transformWiki(concepts));
+        }
+        return { concepts };
+      }
+      case "radar":
+      case "recos": {
+        const [recos] = await Promise.all([T2.recos()]);
+        const axes = raw.radarRows || [];
+        if (window.APPRENTISSAGE_DATA) {
+          if (axes.length) window.APPRENTISSAGE_DATA.radar = buildRadar(axes);
+          if (recos.length) window.APPRENTISSAGE_DATA.recos = transformRecos(recos, axes);
+        }
+        return { recos, axes };
+      }
+      case "challenges": {
+        const challenges = await T2.challenges();
+        if (window.CHALLENGES_DATA && challenges.length) {
+          const theory = transformChallenges(challenges.filter(c => (c.kind || "theory") === "theory"));
+          const practice = transformChallenges(challenges.filter(c => c.kind === "practice"));
+          window.CHALLENGES_DATA.theory = theory.length ? theory : (window.CHALLENGES_DATA.theory || []);
+          window.CHALLENGES_DATA.practice = practice.length ? practice : (window.CHALLENGES_DATA.practice || []);
+          const done = challenges.filter(c => c.status === "completed");
+          window.CHALLENGES_DATA.stats = {
+            total_taken: done.length,
+            avg_score: done.length ? Math.round(done.reduce((s,c)=>s+Number(c.score_percent||70),0)/done.length) : 0,
+            total_xp: done.reduce((s,c)=>s+Number(c.score_reward||0),0),
+          };
+        }
+        return { challenges };
+      }
+      case "opps": {
+        const opps = await T2.opps();
+        if (window.OPPORTUNITIES_DATA && opps.length) {
+          window.OPPORTUNITIES_DATA.opportunities = transformOpportunities(opps);
+        }
+        return { opportunities: opps };
+      }
+      case "ideas": {
+        const ideas = await T2.ideas();
+        if (window.IDEAS_DATA && ideas.length) {
+          window.IDEAS_DATA.ideas = transformIdeas(ideas);
+        }
+        return { ideas };
+      }
+      case "profile": {
+        const rows = raw.profileRows || await q("user_profile", "order=key");
+        if (window.PROFILE_DATA) {
+          const kv = transformProfile(rows);
+          window.PROFILE_DATA.values = kv;
+          Object.assign(window.PROFILE_DATA, kv);
+        }
+        return { profile: rows };
+      }
       case "perf":
         return { activities: await T2.strava() };
       case "music":
@@ -457,14 +626,37 @@
         return { weekly_analysis: await T2.weekly_analysis() };
       case "history":
         return { recent: await T2.veille() };
+      case "signals": {
+        // SIGNALS_DATA may not exist; COCKPIT_DATA.signals holds Tier 1 data
+        return { signals: raw.signals || [] };
+      }
       default:
         return {};
+    }
+  }
+
+  // Hydrate globals with real data on boot (Tier 1 already fetched the
+  // radar rows, profile rows, signals — use them to seed the globals
+  // so the first render never shows fake data when real is available).
+  function hydrateGlobalsFromTier1(){
+    const raw = window.__COCKPIT_RAW || {};
+    if (window.APPRENTISSAGE_DATA && raw.radarRows?.length) {
+      window.APPRENTISSAGE_DATA.radar = buildRadar(raw.radarRows);
+    }
+    if (window.PROFILE_DATA && raw.profileRows?.length) {
+      const kv = transformProfile(raw.profileRows);
+      window.PROFILE_DATA.values = kv;
+      Object.assign(window.PROFILE_DATA, kv);
+    }
+    if (window.SIGNALS_DATA && raw.signals?.length) {
+      window.SIGNALS_DATA.signals = buildSignals(raw.signals);
     }
   }
 
   window.cockpitDataLoader = {
     bootTier1,
     loadPanel,
+    hydrateGlobalsFromTier1,
     T2,
     cache,
     // shape builders re-exported for panels that want to rebuild parts live

@@ -23,6 +23,9 @@ function App() {
     return "brief";
   });
   const [historicalDay, setHistoricalDay] = useState(null);
+  // Incremented when a Tier 2 loadPanel resolves — used as part of the
+  // panel key so React re-mounts the panel after real data hydrates.
+  const [dataVersion, setDataVersion] = useState(0);
   const [themeId, setThemeId] = useState(() => {
     try {
       const stored = localStorage.getItem("cockpit-theme");
@@ -46,10 +49,11 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     try { window.location.hash = id; } catch {}
     try { window.track && window.track("section_opened", { section: id }); } catch {}
-    // Tier 2 lazy load for the panel we're entering (fire-and-forget).
+    // Tier 2 lazy load for the panel we're entering — bump dataVersion on
+    // resolve so the panel re-mounts and re-reads window.*_DATA.
     try {
       if (window.cockpitDataLoader && typeof window.cockpitDataLoader.loadPanel === "function") {
-        window.cockpitDataLoader.loadPanel(id).catch(() => {});
+        window.cockpitDataLoader.loadPanel(id).then(() => setDataVersion(v => v + 1)).catch(() => {});
       }
     } catch {}
   };
@@ -87,29 +91,32 @@ function App() {
     return () => document.removeEventListener("click", onClick);
   }, [activePanel]);
 
+  // Panel key — remount on activePanel or dataVersion change so panels
+  // pick up the latest window.*_DATA after Tier 2 hydration.
+  const panelKey = activePanel + ":" + dataVersion;
   let content;
-  if (activePanel === "brief") content = <Home theme={theme} data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "top") content = <PanelTop data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "signals") content = <PanelSignals data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "radar") content = <PanelRadar data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "recos") content = <PanelRecos data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "challenges") content = <PanelChallenges data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "wiki") content = <PanelWiki data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "opps") content = <PanelOpportunities data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "ideas") content = <PanelIdeas data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "week") content = <PanelWeek data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "jarvis") content = <PanelJarvis data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "profile") content = <PanelProfile data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "perf") content = <PanelForme data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "music") content = <PanelMusique data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "gaming") content = <PanelGaming data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "stacks") content = <PanelStacks data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "history") content = <PanelHistory data={data} onNavigate={handleNavigate} onLoadDay={setHistoricalDay} historicalDay={historicalDay} />;
-  else if (activePanel === "search") content = <PanelSearch data={data} onNavigate={handleNavigate} />;
+  if (activePanel === "brief") content = <Home key={panelKey} theme={theme} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "top") content = <PanelTop key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "signals") content = <PanelSignals key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "radar") content = <PanelRadar key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "recos") content = <PanelRecos key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "challenges") content = <PanelChallenges key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "wiki") content = <PanelWiki key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "opps") content = <PanelOpportunities key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "ideas") content = <PanelIdeas key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "week") content = <PanelWeek key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "jarvis") content = <PanelJarvis key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "profile") content = <PanelProfile key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "perf") content = <PanelForme key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "music") content = <PanelMusique key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "gaming") content = <PanelGaming key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "stacks") content = <PanelStacks key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "history") content = <PanelHistory key={panelKey} data={data} onNavigate={handleNavigate} onLoadDay={setHistoricalDay} historicalDay={historicalDay} />;
+  else if (activePanel === "search") content = <PanelSearch key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "updates")
-    content = <PanelVeille data={data} onNavigate={handleNavigate} corpus="VEILLE_DATA" title="Veille IA" actorsLabel="labos + éditeurs" prodSection={{ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }} />;
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="VEILLE_DATA" title="Veille IA" actorsLabel="labos + éditeurs" prodSection={{ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }} />;
   else if (activePanel === "sport")
-    content = <PanelVeille data={data} onNavigate={handleNavigate} corpus="SPORT_DATA" title="Sport" showActors={false} categoryLabel="Discipline" typeLabel="Format" categories={[
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="SPORT_DATA" title="Sport" showActors={false} categoryLabel="Discipline" typeLabel="Format" categories={[
       { id: "foot", label: "Football", color: "#004170" },
       { id: "esport", label: "E-sport", color: "#0ac7ff" },
       { id: "rugby", label: "Rugby", color: "#1a3a6c" },
@@ -117,20 +124,20 @@ function App() {
       { id: "natation", label: "Natation", color: "#e67040" },
     ]} prodSection={{ kicker: "Compétitions à venir", title: "Ce qu'il ne faut pas rater cette année" }} />;
   else if (activePanel === "gaming_news")
-    content = <PanelVeille data={data} onNavigate={handleNavigate} corpus="GAMING_DATA" title="Gaming" showActors={false} categoryLabel="Rubrique" typeLabel="Format" categories={[
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="GAMING_DATA" title="Gaming" showActors={false} categoryLabel="Rubrique" typeLabel="Format" categories={[
       { id: "releases", label: "Sorties récentes", color: "#3a2a1a" },
       { id: "upcoming", label: "À venir", color: "#006fcd" },
       { id: "esport", label: "E-sport", color: "#d13639" },
       { id: "industry", label: "Industrie", color: "#555" },
     ]} prodSection={{ kicker: "Sorties attendues", title: "Les jeux sur ton radar pour les prochains mois" }} />;
   else if (activePanel === "anime")
-    content = <PanelVeille data={data} onNavigate={handleNavigate} corpus="ANIME_DATA" title="Anime / Ciné / Séries" showActors={false} categoryLabel="Statut" typeLabel="Format" categories={[
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="ANIME_DATA" title="Anime / Ciné / Séries" showActors={false} categoryLabel="Statut" typeLabel="Format" categories={[
       { id: "released", label: "Sorties récentes", color: "#1f1f1f" },
       { id: "upcoming", label: "À venir prochainement", color: "#2e6a4f" },
       { id: "industry", label: "Industrie", color: "#555" },
     ]} prodSection={{ kicker: "Sorties majeures", title: "Ce qui arrive au cinéma, en série, en anime" }} />;
   else if (activePanel === "news")
-    content = <PanelVeille data={data} onNavigate={handleNavigate} corpus="NEWS_DATA" title="Actualités" showActors={false} categoryLabel="Zone" typeLabel="Rubrique" categories={[
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="NEWS_DATA" title="Actualités" showActors={false} categoryLabel="Zone" typeLabel="Rubrique" categories={[
       { id: "paris", label: "Paris", color: "#1a5f3f" },
       { id: "france", label: "France", color: "#1e3a8a" },
       { id: "international", label: "International", color: "#bf0a30" },
@@ -167,8 +174,13 @@ function App() {
 
 // Deferred mount — the bootstrap script (cockpit/lib/bootstrap.js) awaits
 // auth + Tier 1 data, then calls window.__cockpitMount().
+// Idempotent: reuse the existing root if mount is called twice.
+let __cockpitRoot = null;
 window.__cockpitMount = function(){
-  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  const container = document.getElementById("root");
+  if (!container) return;
+  if (!__cockpitRoot) __cockpitRoot = ReactDOM.createRoot(container);
+  __cockpitRoot.render(<App />);
 };
 // Fallback: if no bootstrap script is present (e.g. running the raw
 // migration-package locally), mount immediately so the fake-data maquette
