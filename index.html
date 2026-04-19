@@ -1676,6 +1676,114 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
 }
 .reco-row-xp{font-family:var(--mono);font-size:11px;color:var(--positive);font-weight:600;text-align:right}
 
+/* ══════════════════════════════════════════════════════════
+   PANEL : CHALLENGES — salle d'examen
+   ══════════════════════════════════════════════════════════ */
+.chal-stats{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:0;
+  margin:32px 0 28px;
+  border:1px solid var(--bd);border-radius:var(--radius-lg);overflow:hidden;
+  background:var(--surface);
+}
+@media(max-width:1100px){.chal-stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.chal-stats{grid-template-columns:repeat(2,1fr)}}
+.chal-stat{padding:18px 20px;border-right:1px solid var(--bd);display:flex;flex-direction:column;gap:4px}
+.chal-stat:last-child{border-right:none}
+.chal-stat--weak{background:var(--brand-tint)}
+.chal-stat-val{
+  font-family:var(--display);font-size:30px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+  letter-spacing:-.03em;line-height:1;
+  display:flex;align-items:baseline;gap:2px;font-variant-numeric:tabular-nums;
+}
+.chal-stat-unit{font-size:14px;color:var(--tx3);font-family:var(--mono)}
+.chal-stat-lbl{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;
+}
+.chal-stat-lbl--top{margin-bottom:4px}
+.chal-stat-axis{
+  font-family:var(--display);font-size:17px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--brand);
+  letter-spacing:-.015em;
+}
+.chal-stat-axis-sub{font-family:var(--mono);font-size:10px;color:var(--tx3)}
+
+.chal-modes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px}
+@media(max-width:900px){.chal-modes{grid-template-columns:1fr}}
+.chal-mode{
+  display:grid;grid-template-columns:44px 1fr;gap:16px;
+  padding:20px 22px;text-align:left;
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  cursor:pointer;transition:all 160ms;font-family:inherit;color:inherit;
+}
+.chal-mode:hover{border-color:var(--bd2);box-shadow:var(--shadow-sm)}
+.chal-mode.is-active{border-color:var(--brand);background:var(--brand-tint)}
+.chal-mode-icon{
+  width:44px;height:44px;border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg2);color:var(--tx2);
+}
+.chal-mode.is-active .chal-mode-icon{background:var(--brand);color:var(--bg2)}
+.chal-mode-kicker{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);margin-bottom:4px;font-weight:600;
+}
+.chal-mode-title{
+  font-family:var(--display);font-size:17px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+  letter-spacing:-.015em;margin-bottom:6px;
+}
+.chal-mode-desc{font-size:12.5px;line-height:1.5;color:var(--tx2);margin-bottom:10px}
+.chal-mode-meta{font-family:var(--mono);font-size:10.5px;color:var(--tx3);letter-spacing:.04em}
+
+.chal-reco-banner{
+  background:linear-gradient(135deg,var(--brand-tint) 0%,var(--surface) 80%);
+  border:1px solid var(--brand);border-radius:var(--radius-lg);
+  padding:22px 26px;margin-bottom:28px;
+  display:flex;flex-direction:column;gap:10px;align-items:flex-start;
+}
+.chal-reco-banner-kicker{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--brand);font-weight:600;
+}
+.chal-reco-banner-title{
+  font-family:var(--display);font-size:20px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.015em;
+}
+.chal-reco-banner-body{font-size:13.5px;line-height:1.55;color:var(--tx2);max-width:60ch}
+
+.chal-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:18px}
+.chal-card{
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  padding:18px 20px;display:flex;flex-direction:column;gap:10px;
+  cursor:pointer;transition:all 160ms;
+}
+.chal-card:hover{border-color:var(--bd2);box-shadow:var(--shadow-sm);transform:translateY(-2px)}
+.chal-card--done{opacity:.7;border-left:3px solid var(--positive)}
+.chal-card--open{border-left:3px solid var(--brand)}
+.chal-card-head{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.chal-card-axis{color:var(--brand);padding:2px 6px;background:var(--brand-tint);border-radius:3px;font-weight:600}
+.chal-card-status{margin-left:auto;font-weight:600}
+.chal-card-status--done{color:var(--positive)}
+.chal-card-title{
+  font-family:var(--display);font-size:16px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+  letter-spacing:-.01em;line-height:1.3;
+}
+.chal-card-body{font-size:12.5px;line-height:1.55;color:var(--tx2)}
+.chal-card-foot{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:10px;border-top:1px solid var(--bd);
+  font-family:var(--mono);font-size:10.5px;color:var(--tx3);
+}
+.chal-card-xp{color:var(--positive);font-weight:600}
+.chal-card-diff{color:var(--tx2)}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
@@ -3541,17 +3649,59 @@ body.deep-work .count{display:none!important}
   </div>
 
   <!-- CHALLENGES -->
-  <div class="panel" role="tabpanel" id="panel-challenges">
-    <div class="page-header">
-      <div class="breadcrumb"><span>Apprentissage</span><span class="sep">›</span><strong>Défis</strong></div>
-      <div class="header-actions"><span class="kbd"><span class="mod-key">Ctrl</span> K</span></div>
+  <div class="panel panel-page" role="tabpanel" id="panel-challenges">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow"><span id="chal-eyebrow">Apprentissage · Challenges · Salle d'examen</span></div>
+      <h1 class="panel-hero-title">Ce que tu <em>sais vraiment</em>,<br>Jarvis va te le demander.</h1>
+      <p class="panel-hero-sub">Pas de case à cocher, pas de tâche à confirmer. Tu te lances, tu réponds, Jarvis juge. Deux modes : <strong>théorie</strong> pour tester tes connaissances, <strong>pratique</strong> pour construire quelque chose et le faire évaluer.</p>
     </div>
-    <section class="hero">
-      <div class="hero-kicker">Apprentissage · En cours</div>
-      <h1 class="hero-title">Tes défis actuels.</h1>
-      <div class="hero-meta" id="challenges-meta"></div>
-    </section>
-    <div class="content"><div id="challenges-content"><div class="loading">Chargement…</div></div></div>
+
+    <div class="chal-stats" id="chal-stats"></div>
+
+    <div class="chal-modes">
+      <button class="chal-mode is-active" data-mode="all">
+        <div class="chal-mode-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+        </div>
+        <div class="chal-mode-body">
+          <div class="chal-mode-kicker">Tous les challenges</div>
+          <h3 class="chal-mode-title">Ce que Jarvis a généré cette semaine</h3>
+          <p class="chal-mode-desc">Exercices et quiz pour muscler tes axes faibles du radar. Tu ouvres, tu bosses dessus, Jarvis vérifie.</p>
+          <div class="chal-mode-meta" id="chal-mode-meta-all">—</div>
+        </div>
+      </button>
+      <button class="chal-mode" data-mode="done">
+        <div class="chal-mode-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        </div>
+        <div class="chal-mode-body">
+          <div class="chal-mode-kicker">Historique</div>
+          <h3 class="chal-mode-title">Challenges terminés</h3>
+          <p class="chal-mode-desc">Tes anciens challenges, scores et XP cumulés. Retente-en un pour consolider.</p>
+          <div class="chal-mode-meta" id="chal-mode-meta-done">—</div>
+        </div>
+      </button>
+    </div>
+
+    <div class="chal-reco-banner" id="chal-reco-banner" style="display:none">
+      <div class="chal-reco-banner-kicker">Recommandé cette semaine</div>
+      <h3 class="chal-reco-banner-title" id="chal-reco-title">—</h3>
+      <p class="chal-reco-banner-body" id="chal-reco-body">—</p>
+      <button class="btn--primary-dawn" id="chal-reco-btn">
+        Lancer <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+
+    <div class="panel-toolbar" style="margin-top:28px">
+      <span class="panel-toolbar-label">Filtre</span>
+      <div class="panel-toolbar-group" id="chal-filter-group">
+        <button class="pill is-active" data-filter="open">Ouverts</button>
+        <button class="pill" data-filter="done">Réussis</button>
+        <button class="pill" data-filter="all">Tous</button>
+      </div>
+    </div>
+
+    <div class="chal-cards" id="chal-cards"></div>
   </div>
 
   <!-- OPPORTUNITIES -->
@@ -6563,50 +6713,118 @@ async function loadRadar(){
 
 // ── CHALLENGES ─────────────────────────────────────────────
 let challengesLoaded=false;
+const _CHAL_STATE={filter:'open',_cache:[],_axes:[]};
 async function loadChallenges(){
   if(challengesLoaded)return;
-  showSkeleton('challenges-content','list');
   try{
-    const challenges=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_challenges?order=week_start.desc&limit=10`);
-    const el=document.getElementById('challenges-content');
-    const metaEl=document.getElementById('challenges-meta');
-    if(!challenges.length){
-      if(metaEl)metaEl.innerHTML='';
-      el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('trophy')}</div>Les défis seront générés par le run hebdomadaire Claude.</div>`;
-      return;
-    }
+    const [challenges,axes]=await Promise.all([
+      fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_challenges?order=week_start.desc&limit=20`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/skill_radar?order=axis`).catch(()=>[]),
+    ]);
+    _CHAL_STATE._cache=challenges||[];
+    _CHAL_STATE._axes=axes||[];
     cockpitData.challenges=challenges;
-    const done=challenges.filter(c=>c.status==='completed').length;
+
+    // Stats bar
+    const done=challenges.filter(c=>c.status==='completed');
     const total=challenges.length;
-    if(metaEl){
-      metaEl.innerHTML=[
-        `<span><strong>${total}</strong> défis</span>`,
-        `<span class="dot">·</span>`,
-        `<strong>${done}</strong> terminé${done>1?'s':''}`,
-        `<span class="dot">·</span>`,
-        `<strong>${total-done}</strong> en cours`
-      ].join('');
+    const totalXp=done.reduce((s,c)=>s+(Number(c.score_reward)||0),0);
+    const streak=getStreak();
+    const avgScore=done.length?Math.round(done.reduce((s,c)=>s+(Number(c.score_percent||c.score_reward||70)),0)/done.length):0;
+    // Weak axis
+    const normScore=a=>{const s=Number(a.score||0);return s<=10?s*10:Math.min(100,s);};
+    const weakAxis=axes.length?axes.slice().sort((a,b)=>normScore(a)-normScore(b))[0]:null;
+    document.getElementById('chal-stats').innerHTML=`
+      <div class="chal-stat"><div class="chal-stat-val">${done.length}</div><div class="chal-stat-lbl">Challenges passés</div></div>
+      <div class="chal-stat"><div class="chal-stat-val">${avgScore||'—'}<span class="chal-stat-unit">%</span></div><div class="chal-stat-lbl">Score moyen</div></div>
+      <div class="chal-stat"><div class="chal-stat-val">${totalXp}</div><div class="chal-stat-lbl">XP accumulés</div></div>
+      <div class="chal-stat"><div class="chal-stat-val">${streak}<span class="chal-stat-unit">j</span></div><div class="chal-stat-lbl">Streak cockpit</div></div>
+      <div class="chal-stat chal-stat--weak">
+        <div class="chal-stat-lbl chal-stat-lbl--top">Axe à travailler</div>
+        <div class="chal-stat-axis">${weakAxis?esc(weakAxis.axis_label||weakAxis.axis):'—'}</div>
+        <div class="chal-stat-axis-sub">${weakAxis?Math.round(normScore(weakAxis))+'/100 · focus recommandé':'Radar à initialiser'}</div>
+      </div>`;
+
+    // Mode meta
+    const openC=challenges.filter(c=>c.status!=='completed').length;
+    const metaAllEl=document.getElementById('chal-mode-meta-all');
+    if(metaAllEl)metaAllEl.textContent=`${total} challenge${total>1?'s':''} · ${openC} à faire`;
+    const metaDoneEl=document.getElementById('chal-mode-meta-done');
+    if(metaDoneEl)metaDoneEl.textContent=`${done.length} terminé${done.length>1?'s':''} · ${totalXp} XP`;
+
+    // Recommended banner — take first open challenge
+    const reco=challenges.find(c=>c.status!=='completed');
+    const banner=document.getElementById('chal-reco-banner');
+    if(reco && banner){
+      banner.style.display='flex';
+      document.getElementById('chal-reco-title').textContent=reco.title||'—';
+      document.getElementById('chal-reco-body').textContent=stripHtml(reco.description||'').slice(0,180)+((reco.description||'').length>180?'…':'');
+      const btn=document.getElementById('chal-reco-btn');
+      if(btn)btn.onclick=()=>{
+        if(typeof navigateToPanel==='function')navigateToPanel('jarvis');
+        setTimeout(()=>{const i=document.getElementById('jarvis-input');if(i){i.value=`Aide-moi à faire ce challenge: ${reco.title}`;i.focus();}},200);
+      };
     }
-    el.innerHTML=`<div class="opp-grid">${challenges.map(c=>{
-      const isDone=c.status==='completed';
-      return `<article class="opp-card${isDone?' is-done':''}${newCls(c.created_at||c.week_start)}" data-item-id="${c.id}" tabindex="0" role="button" style="cursor:pointer" onclick="openCardFocus(this,event)">
-        <div class="opp-kicker">${esc(c.target_axis||'Défi')}</div>
-        <h3 class="opp-title">${esc(c.title)}</h3>
-        <p class="opp-body">${esc(c.description||'')}</p>
-        <div class="opp-footer">
-          <span>+${c.score_reward||0} pts · ${esc(c.difficulty||'—')}</span>
-          <span>${isDone?'Terminé':'En cours'}</span>
-        </div>
-        <div class="opp-cta-row">
-          ${actionBtn('done',c.id)}${jarvisBtn(c.title,'challenge')}
-        </div>
-        ${renderRelatedLinks(c.title,'challenges')}
-      </article>`;
-    }).join('')}</div>`;
-    if(window.__renderModKeys)window.__renderModKeys();
+
+    // Filter bar
+    document.querySelectorAll('#chal-filter-group .pill').forEach(p=>{
+      p.onclick=()=>{
+        document.querySelectorAll('#chal-filter-group .pill').forEach(x=>x.classList.remove('is-active'));
+        p.classList.add('is-active');
+        _CHAL_STATE.filter=p.dataset.filter;
+        _renderChalCards();
+      };
+    });
+    document.querySelectorAll('.chal-mode').forEach(m=>{
+      m.onclick=()=>{
+        document.querySelectorAll('.chal-mode').forEach(x=>x.classList.remove('is-active'));
+        m.classList.add('is-active');
+        const mode=m.dataset.mode;
+        _CHAL_STATE.filter=mode==='done'?'done':'open';
+        document.querySelectorAll('#chal-filter-group .pill').forEach(p=>p.classList.toggle('is-active',p.dataset.filter===_CHAL_STATE.filter));
+        _renderChalCards();
+      };
+    });
+
+    _renderChalCards();
     updateSidebarBadge('challenges',challenges,'created_at');
+    if(window.__renderModKeys)window.__renderModKeys();
     challengesLoaded=true;
-  }catch(e){console.error('loadChallenges',e);showError('challenges-content','Erreur de chargement des défis',()=>{challengesLoaded=false;loadChallenges()})}
+  }catch(e){
+    console.error('loadChallenges',e);
+    document.getElementById('chal-cards').innerHTML=`<div class="vl-empty" style="grid-column:1/-1"><div class="vl-empty-title">Erreur de chargement</div></div>`;
+  }
+}
+
+function _renderChalCards(){
+  const el=document.getElementById('chal-cards');
+  if(!el)return;
+  const {filter,_cache}=_CHAL_STATE;
+  let filtered=_cache;
+  if(filter==='open')filtered=_cache.filter(c=>c.status!=='completed');
+  else if(filter==='done')filtered=_cache.filter(c=>c.status==='completed');
+  if(!filtered.length){
+    const emptyTitle=filter==='done'?'Aucun challenge terminé pour l\u2019instant':'Pas de challenge ouvert';
+    const emptyBody=filter==='done'?'Retente-en un pour consolider.':'Le run hebdomadaire Claude les génère tous les dimanches.';
+    el.innerHTML=`<div class="vl-empty" style="grid-column:1/-1"><div class="vl-empty-title">${emptyTitle}</div><div style="color:var(--tx3);font-size:13px">${emptyBody}</div></div>`;
+    return;
+  }
+  el.innerHTML=filtered.map(c=>{
+    const isDone=c.status==='completed';
+    const xp=c.score_reward||0;
+    return `<article class="chal-card chal-card--${isDone?'done':'open'}">
+      <div class="chal-card-head">
+        <span class="chal-card-axis">${esc(c.target_axis||'Défi')}</span>
+        <span class="chal-card-status ${isDone?'chal-card-status--done':''}">${isDone?'✓ Terminé':'À faire'}</span>
+      </div>
+      <h3 class="chal-card-title">${esc(c.title||'')}</h3>
+      <p class="chal-card-body">${esc(stripHtml(c.description||'').slice(0,160))}${(c.description||'').length>160?'…':''}</p>
+      <div class="chal-card-foot">
+        <span class="chal-card-diff">${esc(c.difficulty||'Intermédiaire')}</span>
+        <span class="chal-card-xp">+${xp} XP</span>
+      </div>
+    </article>`;
+  }).join('');
 }
 
 // ── OPPORTUNITIES (with drag & drop) ──────────────────────
