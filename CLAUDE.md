@@ -20,7 +20,7 @@ Cockpit IA personnel pour un manager en transformation digitale qui veut :
 ## Architecture technique
 
 ### Stack
-- **Site** : GitHub Pages (HTML/CSS/JS vanilla, un seul `index.html`)
+- **Site** : GitHub Pages — React 18 + `@babel/standalone` via unpkg (SRI pinnés), no build step. Coquille `index.html` + dossier `cockpit/` (React handoff Dawn/Obsidian/Atlas)
 - **Base de données** : Supabase PostgreSQL (free tier, projet `mrmgptqpflzyavdfqwwv`)
 - **Pipeline quotidien** : `main.py` via GitHub Actions (cron lun-ven 6h UTC)
   - Gemini 2.5 Flash-Lite (gratuit) pour RSS + web search + brief
@@ -42,7 +42,23 @@ Cockpit IA personnel pour un manager en transformation digitale qui veut :
 main.py                              # Pipeline quotidien Gemini
 weekly_analysis.py                   # Pipeline hebdomadaire Claude
 tft_pipeline.py                      # Pipeline TFT (Riot API → Supabase)
-index.html                           # Site cockpit complet (vanilla JS)
+index.html                           # Coquille React — charge React/Babel + cockpit/*
+cockpit/                             # Handoff React maquette (Dawn/Obsidian/Atlas)
+cockpit/app.jsx                      # Router + theme switcher + panel keys
+cockpit/sidebar.jsx                  # Sidebar collapsible + 6 groupes
+cockpit/home.jsx                     # Brief du jour (hero + top 3 + signaux + radar + week)
+cockpit/panel-*.jsx                  # 19 panels dédiés
+cockpit/styles.css + styles-*.css    # Shell + stylesheets par domaine
+cockpit/themes.js                    # THEMES = {dawn, obsidian, atlas}
+cockpit/icons.jsx                    # <Icon name=... /> système commun
+cockpit/data.js + data-*.js          # Schémas de référence (override à runtime)
+cockpit/lib/supabase.js              # Client + REST wrappers + JWT rotation
+cockpit/lib/auth.js                  # Google OAuth overlay + waitForAuth()
+cockpit/lib/telemetry.js             # track() best-effort → usage_events
+cockpit/lib/data-loader.js           # bootTier1 (Home sync) + loadPanel (Tier 2 lazy)
+cockpit/lib/bootstrap.js             # Entrypoint : auth → Tier 1 → mount React
+sw.js                                # Service worker PWA (cache-first shell, network-only API)
+manifest.json                        # PWA manifest (theme rouille Dawn)
 requirements.txt                     # feedparser, google-generativeai, openai, requests
 sql/tft_migration.sql                # Migration Supabase pour les tables TFT
 sql/005_rls_lockdown.sql             # RLS: restriction anon (SELECT only, pas de DELETE)
@@ -165,9 +181,18 @@ Tables existantes :
 | Recherche | articles (full-text ilike) | Temps réel |
 | Historique | articles (groupé par fetch_date) | Quotidien |
 
+### Data layer front
+
+Les panels ne voient jamais la fake data quand la vraie est disponible :
+
+- **Tier 1 (bloquant, avant mount React)** — `cockpit/lib/data-loader.js::bootTier1()` fetch en parallèle : `articles` du jour, `daily_briefs`, `skill_radar`, `signal_tracking`, `user_profile`, `articles` 30j récents, `weekly_analysis` 8 sem. Construit `window.COCKPIT_DATA` exactement au shape attendu par `home.jsx` + hydrate `APPRENTISSAGE_DATA.radar`, `PROFILE_DATA`, `SIGNALS_DATA` avant le mount.
+- **Tier 2 (lazy, au clic sidebar)** — `loadPanel(id)` fetch le corpus du panel visité, mute le `window.X_DATA` correspondant (WIKI_DATA, CHALLENGES_DATA, OPPORTUNITIES_DATA, IDEAS_DATA, etc.) et résout la promesse.
+- **Re-render après hydration** — `cockpit/app.jsx` incrémente `dataVersion` à la résolution de `loadPanel`. Le `panelKey = activePanel + ":" + dataVersion` force React à remount le panel, qui relit le global muté.
+- **Mémoïsation** — chaque loader Tier 2 est wrappé dans `once()` → une seule requête par session. Cache invalidé à la déconnexion (reload).
+
 ## Sécurité
 
-- **Authentification** : Google OAuth via Supabase Auth. Le cockpit affiche un login overlay au chargement, `checkAuth()` vérifie la session avant d'appeler `init()`. Le token JWT est injecté dans les headers REST pour chaque appel Supabase frontend.
+- **Authentification** : Google OAuth via Supabase Auth. `cockpit/lib/bootstrap.js` attend `cockpitAuth.waitForAuth()` AVANT tout mount React — React n'est jamais rendu sans session valide. Le token JWT est injecté dans les headers REST pour chaque appel Supabase frontend, rotation auto sur `TOKEN_REFRESHED`.
 - **RLS** : Migration `sql/006_rls_authenticated.sql` — toutes les tables exigent `authenticated`. Les pipelines backend utilisent `SUPABASE_SERVICE_KEY` (obligatoire, `start_jarvis.bat` refuse de démarrer sans).
 - **XSS** : DOMPurify sanitize tout le HTML injecté dynamiquement via `safe()` helper.
 - **CSP** : Meta tag Content-Security-Policy restrictif (`frame-src: none`, `object-src: none`, whitelist explicite pour scripts/connect).
@@ -181,19 +206,22 @@ Table `usage_events` — append-only, pas de UPDATE/DELETE (enforcé par RLS). L
 
 | event_type | payload | Point d'instrumentation |
 |---|---|---|
-| `section_opened` | `{section}` | Clic sidebar `.sb-link` |
-| `search_performed` | `{query_length, results_count}` | `doSearch()` après fetch |
-| `link_clicked` | `{url, section}` | Event delegation `a[target="_blank"]` |
-| `pipeline_triggered` | `{pipeline, mode}` | `jarvisSend()` avant fetch |
-| `error_shown` | `{context, message}` | `showError()` en entrée |
+| `section_opened` | `{section}` | `handleNavigate()` dans `cockpit/app.jsx` |
+| `search_performed` | `{query_length, results_count}` | `cockpit/panel-search.jsx` après fetch |
+| `link_clicked` | `{url, section}` | Event delegation globale `a[target="_blank"]` dans `app.jsx` |
+| `pipeline_triggered` | `{pipeline, mode}` | `cockpit/panel-jarvis.jsx` avant `jarvisSend()` |
+| `error_shown` | `{context, message}` | Wrapper `showError()` dans `cockpit/lib/` |
 
 **Règle** : ajouter un nouvel event_type nécessite de mettre à jour ce tableau AVANT le commit.
 
 ## Conventions
 
-- Le `index.html` est un fichier unique vanilla JS — pas de framework, pas de build
-- La publishable key Supabase est en dur dans `index.html` (c'est une clé publique)
-- Les appels Supabase côté front utilisent le SDK `@supabase/supabase-js` (chargé via CDN) pour l'auth, et l'API REST directe pour les données
+- Le site est en React 18 + `@babel/standalone` via CDN unpkg — no build step, ouvrable directement en file:// pour itérer
+- Les composants vivent dans `cockpit/` (jsx compilés en browser via Babel `type="text/babel"`). Chaque composant s'expose sur `window.X` pour être visible des autres scripts (pas d'imports ES modules — incompatible avec Babel standalone)
+- L'entrée est `cockpit/lib/bootstrap.js` → waitForAuth → bootTier1 → `window.__cockpitMount()` monte `<App/>` dans `#root`
+- Les panels consomment `window.COCKPIT_DATA.*` (Tier 1, rempli avant mount) et les globals `window.X_DATA` (Tier 2, mutés à la navigation)
+- La publishable key Supabase est en dur dans `cockpit/lib/supabase.js` (c'est une clé publique)
+- CSP requiert `'unsafe-eval'` pour Babel standalone — c'est le coût du build-less
 - Le main.py utilise Gemini Flash-Lite (gratuit, 1000 req/jour)
 - Le weekly_analysis.py utilise Claude Haiku 4.5 avec un budget max de 1$/run
 - Le CostTracker dans weekly_analysis.py arrête le pipeline si le budget est dépassé
