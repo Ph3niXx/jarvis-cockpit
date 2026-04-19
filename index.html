@@ -1812,6 +1812,126 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
 .wiki-search-clear:hover{background:var(--bd);color:var(--tx)}
 .wiki-create-btn{padding:11px 18px;font-size:13px}
 
+/* ══════════════════════════════════════════════════════════
+   PANEL : SIGNAUX FAIBLES — détecteur
+   ══════════════════════════════════════════════════════════ */
+.signals-stats{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+  margin:28px 0 8px;
+  border:1px solid var(--bd);border-radius:var(--radius-lg);overflow:hidden;
+  background:var(--surface);
+}
+@media(max-width:800px){.signals-stats{grid-template-columns:repeat(2,1fr)}}
+.signals-stat{
+  padding:16px 20px;border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;gap:4px;
+}
+.signals-stat:last-child{border-right:none}
+.signals-stat-val{
+  font-family:var(--display);font-size:28px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.02em;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.signals-stat--rising .signals-stat-val{color:var(--positive)}
+.signals-stat--new .signals-stat-val{color:var(--brand)}
+.signals-stat--declining .signals-stat-val{color:var(--danger)}
+.signals-stat-lbl{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;
+}
+
+.signals-priority{margin-top:32px;margin-bottom:40px}
+.signals-priority-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
+@media(max-width:1100px){.signals-priority-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.signals-priority-grid{grid-template-columns:1fr}}
+
+.sig-prio-card{
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  padding:16px 18px;display:flex;flex-direction:column;gap:10px;
+  transition:all 160ms;position:relative;overflow:hidden;
+  cursor:pointer;
+}
+.sig-prio-card:hover{border-color:var(--bd2);box-shadow:var(--shadow-sm);transform:translateY(-2px)}
+.sig-prio-card--rising{border-left:3px solid var(--positive)}
+.sig-prio-card--new{border-left:3px solid var(--brand)}
+.sig-prio-card--declining{border-left:3px solid var(--danger)}
+.sig-prio-card--stable{border-left:3px solid var(--tx3)}
+.sig-prio-head{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;
+}
+.sig-prio-badge{padding:1px 6px;border-radius:3px}
+.sig-prio-badge--rising{background:var(--positive-tint);color:var(--positive)}
+.sig-prio-badge--new{background:var(--brand-tint);color:var(--brand)}
+.sig-prio-badge--declining{background:var(--danger-bg);color:var(--danger)}
+.sig-prio-badge--stable{background:var(--bg2);color:var(--tx3)}
+.sig-prio-term{
+  font-family:var(--display);font-size:18px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.015em;
+  line-height:1.2;
+}
+.sig-prio-context{font-size:12.5px;line-height:1.5;color:var(--tx2);flex:1}
+.sig-prio-foot{
+  display:flex;justify-content:space-between;align-items:flex-end;gap:12px;
+  padding-top:10px;border-top:1px solid var(--bd);
+}
+.sig-prio-count{
+  font-family:var(--display);font-size:22px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.02em;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.sig-prio-count-lbl{font-family:var(--mono);font-size:9px;color:var(--tx3);line-height:1.15}
+.sig-prio-spark{display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:100px}
+.sig-prio-spark svg{width:100px;height:28px}
+.sig-prio-delta{font-family:var(--mono);font-size:10px;font-weight:600}
+.sig-prio-delta--up{color:var(--positive)}
+.sig-prio-delta--down{color:var(--danger)}
+.sig-prio-delta--new{color:var(--brand)}
+.sig-prio-delta--flat{color:var(--tx3)}
+
+.signals-group{margin-bottom:32px}
+.signals-group-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bd);
+}
+.signals-group-title{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;
+}
+.signals-group-count{font-family:var(--mono);font-size:11px;color:var(--tx2)}
+
+.signals-rows{background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);overflow:hidden}
+.sig-row{
+  display:grid;grid-template-columns:1fr 110px 70px 140px;gap:14px;
+  align-items:center;padding:14px 18px;
+  border-bottom:1px solid var(--bd);cursor:pointer;transition:background 120ms;
+}
+.sig-row:last-child{border-bottom:none}
+.sig-row:hover{background:var(--bg2)}
+.sig-row-term{
+  font-family:var(--display);font-size:15.5px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.01em;
+}
+.sig-row-context{font-size:12px;color:var(--tx2);margin-top:3px;line-height:1.5}
+.sig-row-spark svg{width:100px;height:24px;display:block}
+.sig-row-count{
+  font-family:var(--display);font-size:18px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.02em;
+  text-align:right;font-variant-numeric:tabular-nums;
+}
+.sig-row-count-delta{
+  font-family:var(--mono);font-size:10px;letter-spacing:.04em;
+  text-align:right;color:var(--tx3);
+}
+.sig-row-count-delta--up{color:var(--positive);font-weight:600}
+.sig-row-count-delta--down{color:var(--danger);font-weight:600}
+.sig-row-count-delta--new{color:var(--brand);font-weight:700;text-transform:uppercase}
+@media(max-width:700px){
+  .sig-row{grid-template-columns:1fr 60px}
+  .sig-row-spark,.sig-row-count-delta{display:none}
+}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
@@ -3601,9 +3721,45 @@ body.deep-work .count{display:none!important}
   </div>
 
   <!-- SIGNALS -->
-  <div class="panel" role="tabpanel" id="panel-signals">
-    <div class="page-header"><div class="page-title">Signaux faibles</div><div class="page-subtitle">Termes en hausse sur 7 jours — détection précoce</div></div>
-    <div class="content"><div class="signal-list" id="signal-list"><div class="loading">Chargement…</div></div></div>
+  <div class="panel panel-page" role="tabpanel" id="panel-signals">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow"><span id="signals-eyebrow">Apprentissage · Signaux faibles · Détecteur d'opportunités</span></div>
+      <h1 class="panel-hero-title">Ce qui monte <em>avant le mainstream</em></h1>
+      <p class="panel-hero-sub" id="signals-hero-sub">Termes et sujets qui émergent dans la veille IA, détectés par Jarvis avant qu'ils explosent. Suivis sur 8 semaines, regroupés par catégorie.</p>
+    </div>
+
+    <div class="signals-stats" id="signals-stats"></div>
+
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-label">Tendance</span>
+      <div class="panel-toolbar-group" id="signals-trend-group">
+        <button class="pill is-active" data-trend="all">Tous</button>
+        <button class="pill" data-trend="rising">En hausse</button>
+        <button class="pill" data-trend="new">Nouveaux</button>
+        <button class="pill" data-trend="declining">En baisse</button>
+      </div>
+      <span class="panel-toolbar-divider"></span>
+      <span class="panel-toolbar-label">Période</span>
+      <div class="panel-toolbar-group" id="signals-period-group">
+        <button class="pill" data-period="4">4 sem.</button>
+        <button class="pill is-active" data-period="8">8 sem.</button>
+        <button class="pill" data-period="12">12 sem.</button>
+      </div>
+    </div>
+
+    <!-- Priority section -->
+    <section class="signals-priority">
+      <div class="vl-section-head">
+        <div>
+          <div class="section-kicker">À surveiller cette semaine</div>
+          <h2 class="section-title" id="signals-priority-title">Les 4 termes qui bougent le plus</h2>
+        </div>
+      </div>
+      <div class="signals-priority-grid" id="signals-priority-grid"></div>
+    </section>
+
+    <!-- Groups by category -->
+    <div id="signals-groups"></div>
   </div>
 
   <!-- RADAR -->
@@ -6520,108 +6676,149 @@ function sendToJarvis(btn){
   },300);
 }
 
+const _SIG_STATE={trend:'all',period:8,_cache:[]};
+function _sigHistory(s,weeks){
+  const raw=Array.isArray(s.history)?s.history:(typeof s.history==='string'?JSON.parse(s.history||'[]'):[]);
+  const h=raw.length?raw:[s.mention_count||0];
+  return h.slice(-weeks);
+}
+function _sigSparkSvg(history,trend,w=100,h=28){
+  if(!history||!history.length)return '';
+  const max=Math.max(...history,1);
+  const n=history.length;
+  const step=w/Math.max(n-1,1);
+  const y=v=>h*(1-v/max);
+  const pts=history.map((v,i)=>`${i*step},${y(v)}`).join(' ');
+  const color=trend==='rising'?'var(--positive)':trend==='new'?'var(--brand)':trend==='declining'?'var(--danger)':'var(--tx3)';
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" style="overflow:visible">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="${(n-1)*step}" cy="${y(history[n-1])}" r="2.8" fill="${color}" stroke="var(--surface)" stroke-width="1.5"/>
+  </svg>`;
+}
+
 async function loadSignals(){
   if(signalsLoaded)return;
-  showSkeleton('signal-list','signals');
   try{
-    const signals=await fetchJSON(`${SUPABASE_URL}/rest/v1/signal_tracking?order=mention_count.desc&limit=50`);
-    const el=document.getElementById('signal-list');
-    if(!signals.length){el.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('radio')}</div>Les signaux se construisent au fil des jours</div>`;return;}
-    cockpitData.signals=signals;
+    const signals=await fetchJSON(`${SUPABASE_URL}/rest/v1/signal_tracking?order=mention_count.desc&limit=100`);
+    if(!signals.length){
+      document.getElementById('signals-groups').innerHTML=`<div class="vl-empty"><div class="vl-empty-title">Les signaux se construisent au fil des jours</div><div style="color:var(--tx3);font-size:13px">Le pipeline quotidien compte les termes émergents dans les articles.</div></div>`;
+      document.getElementById('signals-stats').innerHTML='';
+      return;
+    }
+    // Dedupe by term — keep most recent
+    const byTerm={};
+    signals.forEach(s=>{if(!byTerm[s.term] || (byTerm[s.term].week_start||'')<(s.week_start||''))byTerm[s.term]=s;});
+    const all=Object.values(byTerm);
+    _SIG_STATE._cache=all;
+    cockpitData.signals=all;
 
-    // Fetch weekly analysis for the summary
-    const analyses=await fetchJSON(`${SUPABASE_URL}/rest/v1/weekly_analysis?order=week_start.desc&limit=1&select=signals_summary`);
-    const summary=analyses.length?analyses[0].signals_summary:'';
+    // Hero sub
+    const rising=all.filter(s=>s.trend==='rising').length;
+    const news=all.filter(s=>s.trend==='new').length;
+    const stable=all.filter(s=>s.trend==='stable').length;
+    const decl=all.filter(s=>s.trend==='declining').length;
+    const sub=document.getElementById('signals-hero-sub');
+    if(sub)sub.innerHTML=`<strong>${all.length} termes</strong> suivis ce mois. <strong>${rising+news}</strong> en émergence, dont <strong>${news}</strong> nouveau${news>1?'x':''}. Regroupés par catégorie et triés par momentum.`;
 
-    const trendIcons={rising:'<svg class="icon" aria-hidden="true"><use href="#icon-trending-up"/></svg>',new:'<svg class="icon" aria-hidden="true"><use href="#icon-sparkles"/></svg>',stable:'<svg class="icon" aria-hidden="true"><use href="#icon-arrow-right"/></svg>',declining:'<svg class="icon" aria-hidden="true"><use href="#icon-trending-down"/></svg>'};
-    const trendExplain={
-      rising:'En forte hausse cette semaine — tendance à surveiller de près',
-      new:'Apparu pour la première fois — potentiel signal émergent',
-      stable:'Revient régulièrement — sujet établi dans l\'écosystème',
-      declining:'Moins mentionné — le hype retombe ou le sujet est devenu mainstream'
-    };
+    // Stats bar
+    document.getElementById('signals-stats').innerHTML=`
+      <div class="signals-stat signals-stat--rising"><div class="signals-stat-val">${rising}</div><div class="signals-stat-lbl">En hausse</div></div>
+      <div class="signals-stat signals-stat--new"><div class="signals-stat-val">${news}</div><div class="signals-stat-lbl">Nouveaux</div></div>
+      <div class="signals-stat"><div class="signals-stat-val">${stable}</div><div class="signals-stat-lbl">Stables</div></div>
+      <div class="signals-stat signals-stat--declining"><div class="signals-stat-val">${decl}</div><div class="signals-stat-lbl">En baisse</div></div>`;
 
-    // Separate by trend
-    const risingNew=signals.filter(s=>s.trend==='rising'||s.trend==='new');
-    const stable=signals.filter(s=>s.trend==='stable');
-    const declining=signals.filter(s=>s.trend==='declining');
+    // Toolbar
+    document.querySelectorAll('#signals-trend-group .pill').forEach(p=>{
+      p.onclick=()=>{_SIG_STATE.trend=p.dataset.trend;document.querySelectorAll('#signals-trend-group .pill').forEach(x=>x.classList.remove('is-active'));p.classList.add('is-active');_renderSignalsContent();};
+    });
+    document.querySelectorAll('#signals-period-group .pill').forEach(p=>{
+      p.onclick=()=>{_SIG_STATE.period=Number(p.dataset.period);document.querySelectorAll('#signals-period-group .pill').forEach(x=>x.classList.remove('is-active'));p.classList.add('is-active');_renderSignalsContent();};
+    });
 
-    let html='';
+    _renderSignalsContent();
+    updateSidebarBadge('signals',all,'updated_at');
+    signalsLoaded=true;
+  }catch(e){
+    console.error('loadSignals',e);
+    document.getElementById('signals-groups').innerHTML=`<div class="vl-empty"><div class="vl-empty-title">Erreur de chargement</div></div>`;
+  }
+}
 
-    // Guide
-    html+=`<div class="signal-guide">
-      <div class="signal-guide-title">Comment lire les signaux</div>
-      <div class="signal-guide-text">
-        <svg class="icon" aria-hidden="true"><use href="#icon-trending-up"/></svg> <strong>Rising</strong> : mentions en hausse de +50% vs semaine dernière — le signal le plus important<br>
-        <svg class="icon" aria-hidden="true"><use href="#icon-sparkles"/></svg> <strong>New</strong> : première apparition cette semaine — peut être du bruit ou un vrai signal émergent<br>
-        <svg class="icon" aria-hidden="true"><use href="#icon-arrow-right"/></svg> <strong>Stable</strong> : sujet récurrent, établi dans l'écosystème<br>
-        <svg class="icon" aria-hidden="true"><use href="#icon-trending-down"/></svg> <strong>Declining</strong> : en baisse — le hype retombe ou c'est devenu mainstream
+function _renderSignalsContent(){
+  const {trend,period,_cache}=_SIG_STATE;
+  const filtered=trend==='all'?_cache:_cache.filter(s=>s.trend===trend);
+
+  // Priority 4 (top rising + new by momentum)
+  const priority=_cache.filter(s=>s.trend==='rising'||s.trend==='new').slice().sort((a,b)=>{
+    const rank=t=>({new:0,rising:1})[t]??9;
+    return rank(a.trend)-rank(b.trend) || (b.mention_count||0)-(a.mention_count||0);
+  }).slice(0,4);
+  const prioGrid=document.getElementById('signals-priority-grid');
+  const prioTitle=document.getElementById('signals-priority-title');
+  if(prioTitle)prioTitle.textContent=priority.length?`Les ${priority.length} terme${priority.length>1?'s':''} qui bouge${priority.length>1?'nt':''} le plus`:'Aucun terme en émergence cette semaine';
+  if(prioGrid){
+    if(!priority.length){prioGrid.innerHTML=`<div style="grid-column:1/-1;padding:24px;color:var(--tx3);font-size:13px;text-align:center">Pas de signaux rising/new cette semaine — reviens demain.</div>`;}
+    else{
+      const trendLabel={rising:'EN HAUSSE',new:'NOUVEAU',declining:'EN BAISSE',stable:'STABLE'};
+      prioGrid.innerHTML=priority.map(s=>{
+        const hist=_sigHistory(s,period);
+        const delta=hist.length>1?hist[hist.length-1]-hist[hist.length-2]:0;
+        const deltaHtml=s.trend==='new'?`<span class="sig-prio-delta sig-prio-delta--new">nouveau</span>`:(delta>0?`<span class="sig-prio-delta sig-prio-delta--up">+${delta}/sem</span>`:delta<0?`<span class="sig-prio-delta sig-prio-delta--down">${delta}/sem</span>`:`<span class="sig-prio-delta sig-prio-delta--flat">stable</span>`);
+        return `<article class="sig-prio-card sig-prio-card--${s.trend}">
+          <div class="sig-prio-head">
+            <span class="sig-prio-badge sig-prio-badge--${s.trend}">${trendLabel[s.trend]||''}</span>
+            <span>${esc(s.category||'—')}</span>
+          </div>
+          <h3 class="sig-prio-term">${esc(s.term||'')}</h3>
+          <p class="sig-prio-context">${esc(s.context||'')||'—'}</p>
+          <div class="sig-prio-foot">
+            <div><div class="sig-prio-count">${s.mention_count||0}</div><div class="sig-prio-count-lbl">mentions<br>${period} sem</div></div>
+            <div class="sig-prio-spark">${_sigSparkSvg(hist,s.trend)}${deltaHtml}</div>
+          </div>
+        </article>`;
+      }).join('');
+    }
+  }
+
+  // Groups by category
+  const groupsEl=document.getElementById('signals-groups');
+  if(!groupsEl)return;
+  if(!filtered.length){
+    groupsEl.innerHTML=`<div class="vl-empty"><div class="vl-empty-title">Aucun signal ne matche tes filtres</div></div>`;
+    return;
+  }
+  const byCat={};
+  filtered.forEach(s=>{const c=s.category||'Autres';if(!byCat[c])byCat[c]=[];byCat[c].push(s);});
+  // Sort groups by count desc
+  const groups=Object.entries(byCat).sort((a,b)=>b[1].length-a[1].length);
+  groupsEl.innerHTML=groups.map(([cat,items])=>{
+    const sorted=items.slice().sort((a,b)=>{
+      const rank=t=>({new:0,rising:1,stable:2,declining:3})[t]??9;
+      return rank(a.trend)-rank(b.trend) || (b.mention_count||0)-(a.mention_count||0);
+    });
+    return `<div class="signals-group">
+      <div class="signals-group-head">
+        <span class="signals-group-title">${esc(cat)}</span>
+        <span class="signals-group-count">${items.length} signal${items.length>1?'s':''}</span>
+      </div>
+      <div class="signals-rows">
+        ${sorted.map(s=>{
+          const hist=_sigHistory(s,period);
+          const delta=hist.length>1?hist[hist.length-1]-hist[hist.length-2]:0;
+          const deltaHtml=s.trend==='new'?`<span class="sig-row-count-delta sig-row-count-delta--new">nouveau</span>`:(delta>0?`<span class="sig-row-count-delta sig-row-count-delta--up">↑ +${delta}</span>`:delta<0?`<span class="sig-row-count-delta sig-row-count-delta--down">↓ ${delta}</span>`:`<span class="sig-row-count-delta">stable</span>`);
+          return `<div class="sig-row" data-id="${esc(s.id||s.term)}">
+            <div>
+              <div class="sig-row-term">${esc(s.term||'')}</div>
+              ${s.context?`<div class="sig-row-context">${esc((s.context||'').slice(0,100))}${(s.context||'').length>100?'…':''}</div>`:''}
+            </div>
+            <div class="sig-row-spark">${_sigSparkSvg(hist,s.trend,100,24)}</div>
+            <div class="sig-row-count">${s.mention_count||0}</div>
+            <div>${deltaHtml}</div>
+          </div>`;
+        }).join('')}
       </div>
     </div>`;
-
-    // Notification opt-in banner
-    if('Notification' in window && Notification.permission==='default'){
-      html+=`<div style="background:var(--accent-bg);border-radius:var(--radius);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-3)">
-        <span><svg class="icon" aria-hidden="true"><use href="#icon-bell"/></svg></span>
-        <span style="flex:1;font-size:var(--text-sm)">Active les notifications pour être alerté des signaux rising</span>
-        <button class="btn btn-primary" onclick="Notification.requestPermission().then(()=>this.closest('div').remove())" style="font-size:var(--text-xs)">Activer</button>
-      </div>`;
-    }
-
-    // Weekly analysis summary from Claude
-    if(summary){
-      html+=`<div class="signal-analysis">
-        <div class="signal-analysis-title">Analyse hebdo Claude</div>
-        <div class="signal-analysis-text">${mdToHtml(summary)}</div>
-      </div>`;
-    }
-
-    // Rising & New — highlighted
-    if(risingNew.length){
-      html+=`<div class="section-label" style="color:var(--accent-brand)">Signaux à surveiller</div>`;
-      html+=risingNew.map(s=>`
-        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" tabindex="0" role="button" style="border-left:3px solid var(--accent-brand);cursor:pointer" onclick="openCardFocus(this,event)">
-          <span class="signal-trend">${trendIcons[s.trend]}</span>
-          <div style="flex:1">
-            <span class="signal-name">${esc(s.term)}</span>
-            <div class="signal-explain">${trendExplain[s.trend]}</div>
-            ${(s.sources||[]).length?`<div class="signal-sources">${s.sources.slice(0,2).map(u=>`<a href="${esc(u)}" target="_blank">source</a>`).join('')}</div>`:''}
-            ${actionBtn('dig',s.id||s.term)}${jarvisBtn(s.term,'signal')}
-            ${renderRelatedLinks(s.term,'signals')}
-          </div>
-          <span class="signal-count">${s.mention_count}x</span>
-          <span class="signal-badge ${s.trend}">${s.trend}</span>
-        </div>`).join('');
-    }
-
-    // Stable
-    if(stable.length){
-      html+=`<div class="section-label" style="margin-top:20px">Sujets établis</div>`;
-      html+=stable.map(s=>`
-        <div class="signal-item${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" tabindex="0" role="button" style="cursor:pointer" onclick="openCardFocus(this,event)">
-          <span class="signal-trend">${trendIcons[s.trend]}</span>
-          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${jarvisBtn(s.term,'signal')}${renderRelatedLinks(s.term,'signals')}</div>
-          <span class="signal-count">${s.mention_count}x</span>
-          <span class="signal-badge ${s.trend}">${s.trend}</span>
-        </div>`).join('');
-    }
-
-    // Declining
-    if(declining.length){
-      html+=`<div class="section-label" style="margin-top:20px">En déclin</div>`;
-      html+=declining.map(s=>`
-        <div class="signal-item signal-declining${newCls(s.updated_at||s.week_start)}" data-item-id="${esc(s.id||s.term)}" tabindex="0" role="button" style="cursor:pointer" onclick="openCardFocus(this,event)">
-          <span class="signal-trend">${trendIcons[s.trend]}</span>
-          <div style="flex:1"><span class="signal-name">${esc(s.term)}</span>${actionBtn('dig',s.id||s.term)}${jarvisBtn(s.term,'signal')}${renderRelatedLinks(s.term,'signals')}</div>
-          <span class="signal-count">${s.mention_count}x</span>
-          <span class="signal-badge ${s.trend}">${s.trend}</span>
-        </div>`).join('');
-    }
-
-    el.innerHTML=html;
-    updateSidebarBadge('signals',signals,'updated_at');
-    signalsLoaded=true;
-  }catch(e){console.error('loadSignals',e);showError('signal-list','Erreur de chargement des signaux',()=>{signalsLoaded=false;loadSignals()})}
+  }).join('');
 }
 
 // ── RADAR ──────────────────────────────────────────────────
