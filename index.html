@@ -1235,6 +1235,176 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
 .cmdk-footer-item{display:inline-flex;align-items:center;gap:4px}
 .cmdk-footer-brand{letter-spacing:.14em;text-transform:uppercase}
 
+/* ══════════════════════════════════════════════════════════
+   PANEL : VEILLE IA — editorial feed
+   ══════════════════════════════════════════════════════════ */
+.vl-panel{display:flex;flex-direction:column;gap:0}
+.vl-hero{
+  display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:48px;
+  padding:44px 0 36px;border-bottom:1px solid var(--bd);
+  background:var(--bg);align-items:start;
+}
+@media(max-width:1100px){.vl-hero{grid-template-columns:1fr;gap:28px}}
+.vl-hero-left{min-width:0}
+.vl-hero-kicker{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--brand);font-weight:600;margin-bottom:18px;
+}
+.vl-hero-dot{width:8px;height:8px;border-radius:50%;background:var(--brand);animation:hero-pulse 2s ease infinite}
+.vl-hero-sep{color:var(--tx3);opacity:.6}
+.vl-hero-actor{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.vl-actor-mark{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:32px;height:32px;border-radius:50%;color:#fff;font-weight:600;
+  background:var(--tx3);flex-shrink:0;font-family:var(--mono);font-size:13px;
+  text-transform:uppercase;
+}
+.vl-actor-mark--neutral{background:var(--bd2);color:var(--tx)}
+.vl-hero-actor-name{font-family:var(--display);font-size:18px;font-weight:500;font-variation-settings:"opsz" 144;color:var(--tx);letter-spacing:-.01em}
+.vl-hero-actor-version{font-family:var(--mono);font-size:11px;color:var(--tx3);letter-spacing:.04em}
+.vl-hero-title{
+  font-family:var(--display);font-size:clamp(30px,4vw,46px);
+  font-weight:500;font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.025em;line-height:1.12;color:var(--tx);
+  margin-bottom:16px;text-wrap:balance;
+}
+.vl-hero-title em{font-style:italic;color:var(--brand);font-weight:500}
+.vl-hero-body{font-size:15px;line-height:1.6;color:var(--tx2);margin-bottom:22px;max-width:58ch}
+.vl-hero-cta{display:flex;gap:10px;flex-wrap:wrap}
+.vl-hero-right{
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  padding:20px 22px;
+}
+.vl-hero-metrics-label{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);margin-bottom:14px;font-weight:600;
+}
+.vl-hero-metrics{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.vl-metric{display:flex;flex-direction:column;gap:3px}
+.vl-metric-label{font-family:var(--mono);font-size:10px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase}
+.vl-metric-value{
+  font-family:var(--display);font-size:22px;font-weight:500;
+  font-variation-settings:"opsz" 144;letter-spacing:-.02em;
+  color:var(--tx);font-variant-numeric:tabular-nums;line-height:1;
+}
+.vl-metric-delta{font-family:var(--mono);font-size:10px;color:var(--tx3);font-variant-numeric:tabular-nums}
+.vl-metric-delta.is-up{color:var(--positive)}
+.vl-metric-delta.is-flat{color:var(--tx3)}
+
+.vl-section{padding:40px 0;border-bottom:1px solid var(--bd)}
+.vl-section:last-child{border-bottom:none}
+.vl-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px}
+.vl-section-kicker{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);margin-bottom:6px;
+}
+.vl-section-title{
+  font-family:var(--display);font-size:22px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.02em;line-height:1.2;color:var(--tx);
+}
+.vl-section-title-sub{color:var(--tx3);font-size:14px;font-weight:400;font-style:italic}
+
+/* Actors grid */
+.vl-actors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.vl-actor-card{
+  background:var(--surface);border:1px solid var(--bd);
+  border-radius:var(--radius-lg);padding:14px 16px;
+  display:flex;flex-direction:column;gap:10px;
+  cursor:pointer;transition:all 160ms;text-align:left;
+  font-family:inherit;color:inherit;
+}
+.vl-actor-card:hover{border-color:var(--brand);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.vl-actor-card.is-active{border-color:var(--brand);background:var(--brand-tint)}
+.vl-actor-head{display:flex;align-items:center;gap:10px}
+.vl-actor-meta{flex:1;min-width:0}
+.vl-actor-name{font-family:var(--display);font-size:14px;font-weight:500;font-variation-settings:"opsz" 144;color:var(--tx)}
+.vl-actor-momentum{font-family:var(--mono);font-size:10px;color:var(--tx3);letter-spacing:.04em}
+.vl-actor-last-time{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--tx3);margin-bottom:2px}
+.vl-actor-last-title{font-size:12.5px;line-height:1.4;color:var(--tx2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vl-actor-foot{display:flex;align-items:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--bd);margin-top:auto}
+.vl-pulse{display:flex;align-items:flex-end;gap:1.5px;height:18px;flex:1}
+.vl-pulse-bar{flex:1;background:var(--brand);border-radius:1px;min-height:2px;opacity:.6}
+.vl-actor-foot-label{font-family:var(--mono);font-size:9px;color:var(--tx3);letter-spacing:.08em}
+
+/* Filters */
+.vl-filters{
+  display:flex;flex-direction:column;gap:10px;
+  padding:14px 18px;margin-bottom:18px;
+  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--radius-lg);
+}
+.vl-filter-group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vl-filter-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);min-width:62px;font-weight:600;
+}
+.vl-filter-pills{display:flex;gap:5px;flex-wrap:wrap}
+.vl-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 11px;border-radius:999px;
+  border:1px solid var(--bd);background:var(--surface);
+  color:var(--tx2);font-size:11.5px;transition:all 120ms;
+  font-family:var(--font);cursor:pointer;
+}
+.vl-pill:hover{border-color:var(--bd2);color:var(--tx)}
+.vl-pill.is-active{background:var(--tx);color:var(--bg2);border-color:var(--tx)}
+.vl-pill-dot{width:6px;height:6px;border-radius:50%;background:var(--brand)}
+.vl-pill-count{font-family:var(--mono);font-size:9.5px;opacity:.7}
+
+/* Feed */
+.vl-feed{display:flex;flex-direction:column;gap:0;background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);overflow:hidden}
+.vl-feed-item{
+  display:grid;grid-template-columns:50px 1fr auto;gap:16px;
+  padding:18px 22px;border-bottom:1px solid var(--bd);
+  cursor:pointer;transition:background 120ms;
+  align-items:start;
+}
+.vl-feed-item:last-child{border-bottom:none}
+.vl-feed-item:hover{background:var(--bg2)}
+.vl-feed-item.is-read{opacity:.6}
+.vl-feed-rail{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:2px}
+.vl-feed-unread-dot{width:6px;height:6px;border-radius:50%;background:var(--brand)}
+.vl-feed-body{min-width:0}
+.vl-feed-meta{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);margin-bottom:8px;
+}
+.vl-feed-actor{color:var(--tx);font-weight:600}
+.vl-feed-sep{opacity:.4}
+.vl-feed-type{
+  padding:2px 6px;border-radius:3px;
+  background:var(--brand-tint);color:var(--brand);font-weight:600;
+}
+.vl-feed-type--reg{background:var(--danger-bg);color:var(--danger)}
+.vl-feed-type--papier,.vl-feed-type--recherche{background:var(--bg);color:var(--tx2)}
+.vl-feed-title{
+  font-family:var(--display);font-size:18px;font-weight:500;
+  font-variation-settings:"opsz" 144;letter-spacing:-.015em;
+  line-height:1.3;color:var(--tx);margin-bottom:8px;
+}
+.vl-feed-summary{font-size:13.5px;line-height:1.55;color:var(--tx2);margin-bottom:10px;max-width:72ch}
+.vl-feed-tags{display:flex;gap:6px;flex-wrap:wrap}
+.vl-tag{font-family:var(--mono);font-size:10px;color:var(--tx3)}
+.vl-feed-actions-col{display:flex;flex-direction:column;gap:4px;opacity:0;transition:opacity 160ms}
+.vl-feed-item:hover .vl-feed-actions-col{opacity:1}
+.vl-iconbtn{
+  width:28px;height:28px;border-radius:var(--radius);
+  border:1px solid var(--bd);background:var(--surface);
+  display:inline-flex;align-items:center;justify-content:center;
+  color:var(--tx2);cursor:pointer;transition:all 120ms;
+}
+.vl-iconbtn:hover{border-color:var(--bd2);background:var(--bg2);color:var(--tx)}
+.vl-iconbtn svg{width:13px;height:13px}
+
+.vl-empty{
+  padding:60px 20px;text-align:center;
+  background:var(--surface);border:1px dashed var(--bd2);border-radius:var(--radius-lg);
+  color:var(--tx3);
+}
+.vl-empty-title{font-family:var(--display);font-size:18px;margin:12px 0 16px;color:var(--tx)}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
@@ -2871,38 +3041,82 @@ body.deep-work .count{display:none!important}
   </div>
 
   <!-- VEILLE UNIFIÉE (P11) -->
-  <div class="panel" role="tabpanel" id="panel-veille">
-    <div class="page-header">
-      <div class="breadcrumb">
-        <span>Cockpit</span>
-        <span class="sep">›</span>
-        <strong>Veille</strong>
+  <div class="panel panel-page vl-panel" role="tabpanel" id="panel-veille">
+    <!-- HERO -->
+    <div class="vl-hero" id="vl-hero">
+      <div class="vl-hero-left">
+        <div class="vl-hero-kicker">
+          <span class="vl-hero-dot"></span>
+          <span id="vl-hero-kicker-text">Veille IA · Release majeure</span>
+          <span class="vl-hero-sep">·</span>
+          <span id="vl-hero-unread">— non lus</span>
+        </div>
+        <div class="vl-hero-actor" id="vl-hero-actor">
+          <span class="vl-actor-mark" style="width:40px;height:40px;font-size:18px">—</span>
+          <div>
+            <div class="vl-hero-actor-name" id="vl-hero-actor-name">—</div>
+            <div class="vl-hero-actor-version" id="vl-hero-actor-version">—</div>
+          </div>
+        </div>
+        <h1 class="vl-hero-title" id="vl-hero-title">La veille IA du jour, <em>triée pour toi</em></h1>
+        <p class="vl-hero-body" id="vl-hero-body">Releases de modèles, cas d'usage en production, papiers de recherche et régulation — tout ce qui bouge sur ton radar, centralisé et classé par acteur.</p>
+        <div class="vl-hero-cta">
+          <button class="btn--primary-dawn" id="vl-hero-read"><span>Lire l'article phare</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+          <button class="btn--ghost-dawn" id="vl-mark-all"><span>Tout marquer lu</span></button>
+        </div>
       </div>
-      <div class="header-actions">
-        <span class="kbd"><span class="mod-key">Ctrl</span> K</span>
+      <div class="vl-hero-right">
+        <div class="vl-hero-metrics-label">Cette semaine</div>
+        <div class="vl-hero-metrics" id="vl-hero-metrics"></div>
       </div>
     </div>
 
-    <section class="hero">
-      <div class="hero-kicker">Veille · Flux unifié</div>
-      <h1 class="hero-title">Tout ce qu'il faut savoir aujourd'hui.</h1>
-      <div class="hero-meta" id="veille-meta"></div>
+    <!-- ACTEURS SUIVIS -->
+    <section class="vl-section" id="vl-actors-section">
+      <div class="vl-section-head">
+        <div>
+          <div class="vl-section-kicker">Acteurs suivis</div>
+          <h2 class="vl-section-title" id="vl-actors-title">Les sources qui reviennent le plus sur ton flux</h2>
+        </div>
+      </div>
+      <div class="vl-actors-grid" id="vl-actors-grid"></div>
     </section>
 
-    <div class="filter-bar" role="tablist" aria-label="Catégories de veille">
-      <button class="pill active" data-filter="all">Tous <span class="count" id="f-all">-</span></button>
-      <button class="pill" data-filter="hot">Hot <span class="count" id="f-hot">-</span></button>
-      <button class="pill" data-filter="models">Modèles &amp; agents <span class="count" id="f-models">-</span></button>
-      <button class="pill" data-filter="eco">Écosystème <span class="count" id="f-eco">-</span></button>
-      <button class="pill" data-filter="energy">Énergie <span class="count" id="f-energy">-</span></button>
-      <button class="pill" data-filter="finserv">Finance <span class="count" id="f-finserv">-</span></button>
-      <button class="pill" data-filter="reg">Régulation <span class="count" id="f-reg">-</span></button>
-      <button class="pill" data-filter="research">Recherche <span class="count" id="f-research">-</span></button>
-    </div>
+    <!-- FEED + FILTRES -->
+    <section class="vl-section">
+      <div class="vl-section-head">
+        <div>
+          <div class="vl-section-kicker">Feed chronologique</div>
+          <h2 class="vl-section-title" id="vl-feed-title">— articles</h2>
+        </div>
+        <div class="vl-feed-actions">
+          <button class="btn--ghost-dawn btn--sm" id="vl-mark-all-sub" style="padding:6px 10px;font-size:12px">Tout marquer lu</button>
+        </div>
+      </div>
 
-    <div class="content">
-      <ul class="list-v2" id="veille-list"></ul>
-    </div>
+      <div class="vl-filters">
+        <div class="vl-filter-group">
+          <span class="vl-filter-label">Acteur</span>
+          <div class="vl-filter-pills" id="vl-actor-pills"></div>
+        </div>
+        <div class="vl-filter-group">
+          <span class="vl-filter-label">Section</span>
+          <div class="vl-filter-pills" id="vl-section-pills"></div>
+        </div>
+        <div class="vl-filter-group">
+          <span class="vl-filter-label">Période</span>
+          <div class="vl-filter-pills" id="vl-period-pills">
+            <button class="vl-pill" data-period="24h">24h</button>
+            <button class="vl-pill is-active" data-period="7j">7 jours</button>
+            <button class="vl-pill" data-period="30j">30 jours</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="vl-feed" id="vl-feed"></div>
+    </section>
   </div>
 
   <!-- TOP DU JOUR -->
@@ -5019,92 +5233,282 @@ function _renderBriefHomeBlocks(){
   _renderHomeFoot();
 }
 
-// ── VEILLE UNIFIED RENDERING (P11) ───────────────────────
-const _VEILLE_SECTION_LABEL={updates:'Modèles',llm:'Modèles',agents:'Modèles',energy:'Énergie',finserv:'Finance',tools:'Écosystème',biz:'Écosystème',reg:'Régulation',papers:'Recherche'};
-function _mapSectionToFilter(section){
-  return ({updates:'models',llm:'models',agents:'models',energy:'energy',finserv:'finserv',tools:'eco',biz:'eco',reg:'reg',papers:'research'})[section]||'eco';
+// ── VEILLE UNIFIED RENDERING (Dawn) ──────────────────────
+const _VEILLE_SECTION_LABEL={updates:'Modèles',llm:'Modèles',agents:'Agents',energy:'Énergie',finserv:'FinServ',tools:'Outils',biz:'Business',reg:'Régulation',papers:'Recherche'};
+// Map Supabase sections → feed types (Dawn design)
+const _VEILLE_TYPE_FROM_SECTION={updates:'Release',llm:'Release',agents:'Agents',energy:'Analyse',finserv:'Cas prod',tools:'Framework',biz:'Deal',reg:'Régulation',papers:'Papier'};
+// Color per source (deterministic from name hash)
+function _veilleActorColor(name){
+  if(!name)return '#888';
+  const colors=['#C2410C','#1E3A8A','#4D6A3A','#7C2D12','#5E524A','#B91C1C','#047857','#0369A1','#5B21B6','#9F1239','#A16207','#065F46'];
+  let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))%colors.length;
+  return colors[Math.abs(h)];
 }
+function _veilleActorMark(name){
+  if(!name)return '?';
+  const parts=name.replace(/[\u2019\u2018']/g,'').split(/\s+/).filter(Boolean);
+  if(parts.length===1)return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0]+parts[1][0]).toUpperCase();
+}
+function _veilleHoursAgo(iso){
+  if(!iso)return 9999;
+  try{ return (Date.now()-new Date(iso).getTime())/3600000; }catch{return 9999;}
+}
+
 let _veilleCache=[];
-function _renderVeilleListItem(a,idx){
+let _veilleState={actorFilter:'all', sectionFilter:'all', period:'7j'};
+
+const _VEILLE_PERIOD_H={'24h':24,'7j':24*7,'30j':24*30};
+
+function _veilleComputeFiltered(){
   const readMap=getReadArticles();
-  const unread=!readMap[a.id];
-  const label=_VEILLE_SECTION_LABEL[a.section]||(a.section||'').toUpperCase();
-  return `<li class="list-item${unread?' is-unread':''}" data-article-id="${a.id}" onclick="window.open('${esc(a.url)}','_blank');markAsRead('${a.id}');this.classList.remove('is-unread')">
-    <div class="list-item-rank">${String((idx||0)+1).padStart(2,'0')}</div>
-    <div class="list-item-body">
-      <div class="list-item-meta">
-        <span class="section-tag">${esc(label)}</span>
-        <span>${esc(a.source||'')}</span>
+  const maxH=_VEILLE_PERIOD_H[_veilleState.period]||(24*7);
+  return _veilleCache.filter(a=>{
+    if(_veilleState.actorFilter!=='all' && a.source!==_veilleState.actorFilter)return false;
+    if(_veilleState.sectionFilter!=='all' && a.section!==_veilleState.sectionFilter)return false;
+    if(_veilleHoursAgo(a.date_published||a.date_fetched)>maxH)return false;
+    return true;
+  });
+}
+
+function _veilleRenderHero(){
+  const readMap=getReadArticles();
+  const top=_veilleCache.filter(a=>!readMap[a.id]).sort((a,b)=>new Date(b.date_published||0)-new Date(a.date_published||0))[0] || _veilleCache[0];
+  const unreadCount=_veilleCache.filter(a=>!readMap[a.id]).length;
+  const unreadEl=document.getElementById('vl-hero-unread');
+  if(unreadEl)unreadEl.textContent=`${unreadCount} non lu${unreadCount>1?'s':''}`;
+  const kickerEl=document.getElementById('vl-hero-kicker-text');
+  const label=top?(_VEILLE_SECTION_LABEL[top.section]||top.section||'actu'):'actu';
+  if(kickerEl)kickerEl.textContent=`Veille IA · ${label} · il y a ${Math.round(_veilleHoursAgo(top?.date_published))}h`;
+  if(top){
+    const actorEl=document.getElementById('vl-hero-actor');
+    if(actorEl){
+      const src=top.source||'—';
+      actorEl.innerHTML=`<span class="vl-actor-mark" style="width:40px;height:40px;font-size:15px;background:${_veilleActorColor(src)}">${esc(_veilleActorMark(src))}</span>
+        <div>
+          <div class="vl-hero-actor-name">${esc(src)}</div>
+          <div class="vl-hero-actor-version">${esc(_VEILLE_TYPE_FROM_SECTION[top.section]||'Actu')}</div>
+        </div>`;
+    }
+    const titleEl=document.getElementById('vl-hero-title');
+    if(titleEl)titleEl.innerHTML=`<em>${esc(top.title||'—')}</em>`;
+    const bodyEl=document.getElementById('vl-hero-body');
+    if(bodyEl)bodyEl.textContent=stripHtml(top.summary||'').slice(0,260)+((top.summary||'').length>260?'…':'');
+    const readBtn=document.getElementById('vl-hero-read');
+    if(readBtn)readBtn.onclick=()=>{window.open(top.url||'#','_blank');markAsRead(top.id);renderVeille();};
+  }
+  // Metrics
+  const metricsEl=document.getElementById('vl-hero-metrics');
+  if(metricsEl){
+    const sections={};_veilleCache.forEach(a=>{if(a.section)sections[a.section]=(sections[a.section]||0)+1;});
+    const topSections=Object.entries(sections).sort((a,b)=>b[1]-a[1]).slice(0,4);
+    metricsEl.innerHTML=topSections.map(([s,c])=>`
+      <div class="vl-metric">
+        <div class="vl-metric-label">${esc(_VEILLE_SECTION_LABEL[s]||s)}</div>
+        <div class="vl-metric-value">${c}</div>
+        <div class="vl-metric-delta ${c>5?'is-up':''}">${c>5?'actif':'stable'}</div>
+      </div>`).join('');
+  }
+}
+
+function _veilleRenderActors(){
+  const grid=document.getElementById('vl-actors-grid');
+  if(!grid)return;
+  // Count by source, take top 8
+  const counts={};
+  _veilleCache.forEach(a=>{const s=a.source;if(!s)return;if(!counts[s])counts[s]={count:0,last:a,pulse:new Array(8).fill(0)};counts[s].count++;
+    // Pulse: ~8 weeks based on fetch_date
+    const daysAgo=_veilleHoursAgo(a.date_fetched||a.date_published)/24;
+    const weekIdx=Math.min(7,Math.floor(daysAgo/7));
+    counts[s].pulse[7-weekIdx]++;
+    if(!counts[s].last || new Date(a.date_published||0)>new Date(counts[s].last.date_published||0))counts[s].last=a;
+  });
+  const top=Object.entries(counts).sort((a,b)=>b[1].count-a[1].count).slice(0,8);
+  const titleEl=document.getElementById('vl-actors-title');
+  if(titleEl)titleEl.textContent=`${top.length} source${top.length>1?'s':''} dominantes sur ton flux`;
+  grid.innerHTML=top.map(([src,info])=>{
+    const ago=Math.round(_veilleHoursAgo(info.last.date_published||info.last.date_fetched));
+    const agoLabel=ago<1?'à l\'instant':ago<24?`il y a ${Math.round(ago)}h`:`il y a ${Math.round(ago/24)}j`;
+    const color=_veilleActorColor(src);
+    const isActive=_veilleState.actorFilter===src;
+    const maxPulse=Math.max(...info.pulse,1);
+    return `<button class="vl-actor-card ${isActive?'is-active':''}" data-actor="${esc(src)}">
+      <div class="vl-actor-head">
+        <span class="vl-actor-mark" style="background:${color}">${esc(_veilleActorMark(src))}</span>
+        <div class="vl-actor-meta">
+          <div class="vl-actor-name">${esc(src)}</div>
+          <div class="vl-actor-momentum">${info.count} article${info.count>1?'s':''}</div>
+        </div>
       </div>
-      <div class="list-item-title">${esc(a.title)}</div>
-      <div class="list-item-summary">${esc(stripHtml(a.summary||'').slice(0,200))}</div>
-    </div>
-    <div class="list-item-aside">${a.date_published?timeAgoTag(a.date_published).replace(/<[^>]+>/g,''):''}</div>
-  </li>`;
-}
-function _veilleFilterArticles(articles,filter){
-  if(filter==='all')return articles;
-  if(filter==='hot'){
-    // Hot = non-lus, sources premium OR section=updates
-    const readMap=getReadArticles();
-    return articles.filter(a=>!readMap[a.id]&&(a.section==='updates'||a.section==='biz'));
-  }
-  return articles.filter(a=>_mapSectionToFilter(a.section)===filter);
-}
-function _updateVeilleCounts(articles){
-  const all=articles.length;
-  const byFilter={all,hot:_veilleFilterArticles(articles,'hot').length};
-  ['models','eco','energy','finserv','reg','research'].forEach(f=>{
-    byFilter[f]=articles.filter(a=>_mapSectionToFilter(a.section)===f).length;
-  });
-  Object.entries(byFilter).forEach(([k,v])=>{
-    const el=document.getElementById(`f-${k}`);
-    if(el)el.textContent=v;
-  });
-  const totalEl=document.getElementById('c-veille-total');
-  if(totalEl)totalEl.textContent=all||'-';
-  const metaEl=document.getElementById('veille-meta');
-  if(metaEl){
-    const readMap=getReadArticles();
-    const unread=articles.filter(a=>!readMap[a.id]).length;
-    metaEl.innerHTML=[
-      `<strong>${all}</strong> articles`,
-      `<span class="dot">·</span>`,
-      `<strong>${unread}</strong> non lus`,
-      `<span class="dot">·</span>`,
-      `~${Math.max(1,Math.round(all*1.5))} min`
-    ].join('');
-  }
-}
-function _bindVeilleFilterBar(){
-  document.querySelectorAll('#panel-veille .filter-bar .pill').forEach(p=>{
-    p.onclick=()=>{
-      document.querySelectorAll('#panel-veille .filter-bar .pill').forEach(x=>x.classList.remove('active'));
-      p.classList.add('active');
-      const filtered=_veilleFilterArticles(_veilleCache,p.dataset.filter);
-      const listEl=document.getElementById('veille-list');
-      if(listEl)listEl.innerHTML=filtered.map((a,i)=>_renderVeilleListItem(a,i)).join('');
+      <div>
+        <div class="vl-actor-last-time">${agoLabel}</div>
+        <div class="vl-actor-last-title">${esc(info.last.title||'')}</div>
+      </div>
+      <div class="vl-actor-foot">
+        <div class="vl-pulse">${info.pulse.map(v=>`<span class="vl-pulse-bar" style="height:${(v/maxPulse)*100}%;background:${color}"></span>`).join('')}</div>
+        <span class="vl-actor-foot-label">8 sem.</span>
+      </div>
+    </button>`;
+  }).join('');
+  grid.querySelectorAll('.vl-actor-card').forEach(b=>{
+    b.onclick=()=>{
+      const actor=b.dataset.actor;
+      _veilleState.actorFilter=_veilleState.actorFilter===actor?'all':actor;
+      _veilleRenderFilters();_veilleRenderFeed();_veilleRenderActors();
     };
   });
 }
+
+function _veilleRenderFilters(){
+  // Actor pills (top 8 + "Tous")
+  const actorPillsEl=document.getElementById('vl-actor-pills');
+  const counts={};
+  _veilleCache.forEach(a=>{if(a.source)counts[a.source]=(counts[a.source]||0)+1;});
+  const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if(actorPillsEl){
+    const pills=[['all', _veilleCache.length], ...top];
+    actorPillsEl.innerHTML=pills.map(([id,count])=>{
+      const label=id==='all'?'Tous':id;
+      const active=_veilleState.actorFilter===id;
+      return `<button class="vl-pill${active?' is-active':''}" data-actor="${esc(id)}">
+        <span>${esc(label)}</span><span class="vl-pill-count">${count}</span>
+      </button>`;
+    }).join('');
+    actorPillsEl.querySelectorAll('.vl-pill').forEach(p=>{
+      p.onclick=()=>{_veilleState.actorFilter=p.dataset.actor;_veilleRenderFilters();_veilleRenderFeed();_veilleRenderActors();};
+    });
+  }
+  // Section pills
+  const secPillsEl=document.getElementById('vl-section-pills');
+  if(secPillsEl){
+    const secs={};_veilleCache.forEach(a=>{if(a.section)secs[a.section]=(secs[a.section]||0)+1;});
+    const secsSorted=Object.entries(secs).sort((a,b)=>b[1]-a[1]);
+    const pills=[['all',_veilleCache.length], ...secsSorted];
+    secPillsEl.innerHTML=pills.map(([id,count])=>{
+      const label=id==='all'?'Toutes':(_VEILLE_SECTION_LABEL[id]||id);
+      const active=_veilleState.sectionFilter===id;
+      return `<button class="vl-pill${active?' is-active':''}" data-section="${esc(id)}">
+        <span>${esc(label)}</span><span class="vl-pill-count">${count}</span>
+      </button>`;
+    }).join('');
+    secPillsEl.querySelectorAll('.vl-pill').forEach(p=>{
+      p.onclick=()=>{_veilleState.sectionFilter=p.dataset.section;_veilleRenderFilters();_veilleRenderFeed();};
+    });
+  }
+  // Period pills
+  document.querySelectorAll('#vl-period-pills .vl-pill').forEach(p=>{
+    p.classList.toggle('is-active',p.dataset.period===_veilleState.period);
+    p.onclick=()=>{_veilleState.period=p.dataset.period;_veilleRenderFilters();_veilleRenderFeed();};
+  });
+}
+
+function _veilleRenderFeed(){
+  const feedEl=document.getElementById('vl-feed');
+  const titleEl=document.getElementById('vl-feed-title');
+  if(!feedEl)return;
+  const readMap=getReadArticles();
+  const filtered=_veilleComputeFiltered();
+  if(titleEl){
+    const parts=[`${filtered.length} article${filtered.length>1?'s':''}`];
+    if(_veilleState.actorFilter!=='all')parts.push(`<span class="vl-section-title-sub"> · filtré sur ${esc(_veilleState.actorFilter)}</span>`);
+    if(_veilleState.sectionFilter!=='all')parts.push(`<span class="vl-section-title-sub"> · ${esc(_VEILLE_SECTION_LABEL[_veilleState.sectionFilter]||_veilleState.sectionFilter)}</span>`);
+    titleEl.innerHTML=parts.join('');
+  }
+  if(!filtered.length){
+    feedEl.innerHTML=`<div class="vl-empty" style="grid-column:1/-1">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/></svg>
+      <div class="vl-empty-title">Aucune actu ne matche tes filtres</div>
+      <button class="btn--ghost-dawn btn--sm" style="padding:6px 12px;font-size:12px" onclick="_veilleResetFilters()">Réinitialiser</button>
+    </div>`;
+    return;
+  }
+  feedEl.innerHTML=filtered.map(a=>{
+    const unread=!readMap[a.id];
+    const src=a.source||'—';
+    const color=_veilleActorColor(src);
+    const type=_VEILLE_TYPE_FROM_SECTION[a.section]||'Actu';
+    const typeCls=type.toLowerCase().replace(/[é]/g,'e').replace(/\s/g,'-');
+    const ago=_veilleHoursAgo(a.date_published);
+    const agoLabel=ago<1?'à l\'instant':ago<24?`il y a ${Math.round(ago)}h`:`il y a ${Math.round(ago/24)}j`;
+    const summary=stripHtml(a.summary||'').slice(0,200);
+    return `<article class="vl-feed-item ${unread?'is-unread':'is-read'}" data-id="${a.id}">
+      <div class="vl-feed-rail">
+        <span class="vl-actor-mark" style="background:${color};width:30px;height:30px;font-size:12px">${esc(_veilleActorMark(src))}</span>
+        ${unread?'<span class="vl-feed-unread-dot"></span>':''}
+      </div>
+      <div class="vl-feed-body">
+        <div class="vl-feed-meta">
+          <span class="vl-feed-actor">${esc(src)}</span>
+          <span class="vl-feed-sep">·</span>
+          <span class="vl-feed-type vl-feed-type--${esc(typeCls)}">${esc(type)}</span>
+          <span class="vl-feed-sep">·</span>
+          <span class="vl-feed-date">${agoLabel}</span>
+        </div>
+        <h3 class="vl-feed-title">${esc(a.title||'')}</h3>
+        <p class="vl-feed-summary">${esc(summary)}${(a.summary||'').length>200?'…':''}</p>
+      </div>
+      <div class="vl-feed-actions-col">
+        <button class="vl-iconbtn" title="${unread?'Marquer lu':'Marquer non-lu'}" data-act="read">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <button class="vl-iconbtn" title="Ouvrir" data-act="open">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+    </article>`;
+  }).join('');
+  feedEl.querySelectorAll('.vl-feed-item').forEach(el=>{
+    const id=el.dataset.id;
+    const a=_veilleCache.find(x=>x.id===id);
+    el.onclick=(e)=>{
+      const btn=e.target.closest('.vl-iconbtn');
+      if(btn && btn.dataset.act==='read'){
+        e.stopPropagation();markAsRead(id);el.classList.remove('is-unread');el.classList.add('is-read');
+        el.querySelector('.vl-feed-unread-dot')?.remove();
+        _veilleRenderHero();
+        return;
+      }
+      if(a && a.url){window.open(a.url,'_blank');markAsRead(id);el.classList.remove('is-unread');el.classList.add('is-read');}
+    };
+  });
+}
+
+function _veilleResetFilters(){
+  _veilleState={actorFilter:'all',sectionFilter:'all',period:'30j'};
+  _veilleRenderFilters();_veilleRenderFeed();
+}
+
 async function renderVeille(forceFilter){
-  const listEl=document.getElementById('veille-list');
-  if(!listEl)return;
   if(!_veilleCache.length){
     try{
       const date=currentDate||new Date().toISOString().split('T')[0];
-      _veilleCache=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?fetch_date=eq.${date}&order=date_fetched.desc&limit=200`);
-    }catch(e){console.error('renderVeille',e);listEl.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('inbox')}</div>Erreur de chargement</div>`;return;}
+      // Fetch last 30 days of articles for richer context
+      const thirtyDaysAgo=new Date();thirtyDaysAgo.setDate(thirtyDaysAgo.getDate()-30);
+      const fromDate=thirtyDaysAgo.toISOString().split('T')[0];
+      _veilleCache=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?fetch_date=gte.${fromDate}&order=date_published.desc.nullslast&limit=300`);
+    }catch(e){
+      console.error('renderVeille',e);
+      document.getElementById('vl-feed').innerHTML=`<div class="vl-empty"><div class="vl-empty-title">Erreur de chargement</div></div>`;
+      return;
+    }
   }
-  _updateVeilleCounts(_veilleCache);
-  _bindVeilleFilterBar();
-  // Active filter
-  const filter=forceFilter||'all';
-  document.querySelectorAll('#panel-veille .filter-bar .pill').forEach(p=>{
-    p.classList.toggle('active',p.dataset.filter===filter);
+  const totalEl=document.getElementById('c-veille-total');
+  if(totalEl)totalEl.textContent=_veilleCache.length||'-';
+  // Legacy "forceFilter" from old sub-panels maps to section filter
+  if(forceFilter && forceFilter!=='all' && forceFilter!=='hot'){
+    const mapBack={models:'updates',eco:'tools',finserv:'finserv',energy:'energy',reg:'reg',research:'papers'};
+    _veilleState.sectionFilter=mapBack[forceFilter]||forceFilter;
+  }
+  _veilleRenderHero();
+  _veilleRenderActors();
+  _veilleRenderFilters();
+  _veilleRenderFeed();
+  // Mark-all-read
+  const markAllBtns=[document.getElementById('vl-mark-all'),document.getElementById('vl-mark-all-sub')].filter(Boolean);
+  markAllBtns.forEach(b=>b.onclick=()=>{
+    _veilleCache.forEach(a=>markAsRead(a.id));
+    _veilleRenderHero();_veilleRenderFeed();
   });
-  const filtered=_veilleFilterArticles(_veilleCache,filter);
-  listEl.innerHTML=filtered.map((a,i)=>_renderVeilleListItem(a,i)).join('');
   if(window.__renderModKeys)window.__renderModKeys();
 }
 // Invalidate cache when day changes — called from loadDay
