@@ -2018,6 +2018,7 @@ body.deep-work .count{display:none!important}
 
   <div class="sb-section" style="padding-bottom:0">
     <button class="sb-link active" data-panel="brief" role="tab" aria-selected="true"><svg class="icon" aria-hidden="true"><use href="#icon-zap"/></svg><span class="label">Brief du jour</span></button>
+    <button class="sb-link" data-panel="top" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg><span class="label">Top du jour</span></button>
     <button class="sb-link" data-panel="myweek" role="tab" aria-selected="false"><svg class="icon" aria-hidden="true"><use href="#icon-calendar"/></svg><span class="label">Ma semaine</span></button>
   </div>
 
@@ -3318,6 +3319,7 @@ document.querySelectorAll('.sb-link').forEach(btn=>{
     if(panel==='perf-history') loadPerfHistory();
     if(panel==='music-overview') loadMusicOverview();
     if(panel==='gaming-overview') loadGamingOverview();
+    if(panel==='top') renderTopOfDay();
     // Close mobile sidebar
     if(window.innerWidth<=900) toggleSidebar();
   });
@@ -6605,7 +6607,8 @@ function escProse(s){
 // ── KEYBOARD SHORTCUTS ────────────────────────────────────────
 function navigateToPanel(panelId){
   // Backcompat routing : legacy Veille sub-panels → #panel-veille + auto-filter
-  const _legacyVeille={top:'hot',updates:'models',llm:'models',agents:'models',energy:'energy',finserv:'finserv',tools:'eco',biz:'eco',reg:'reg',papers:'research'};
+  // (top has its own dedicated panel now, so it's excluded from the hijack)
+  const _legacyVeille={updates:'models',llm:'models',agents:'models',energy:'energy',finserv:'finserv',tools:'eco',biz:'eco',reg:'reg',papers:'research'};
   if(panelId in _legacyVeille){
     const btn=document.querySelector('.sb-link[data-panel="veille"]');
     if(btn){btn.click();setTimeout(()=>renderVeille(_legacyVeille[panelId]),50);return;}
