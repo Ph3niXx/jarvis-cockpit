@@ -1405,6 +1405,116 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
 }
 .vl-empty-title{font-family:var(--display);font-size:18px;margin:12px 0 16px;color:var(--tx)}
 
+/* ══════════════════════════════════════════════════════════
+   PANEL : RADAR COMPÉTENCES
+   ══════════════════════════════════════════════════════════ */
+.radar-toolbar-stats{display:flex;gap:28px;flex-wrap:wrap;align-items:center}
+.radar-tb-stat{display:flex;flex-direction:column;gap:2px;min-width:0}
+.radar-tb-stat-label{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;
+}
+.radar-tb-stat-val{
+  font-family:var(--display);font-size:18px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+  letter-spacing:-.01em;
+}
+.radar-tb-stat-val--gain{color:var(--positive)}
+.radar-tb-stat-val--weak{color:var(--danger)}
+
+.radar-wrap{
+  display:grid;grid-template-columns:260px 1fr 280px;gap:32px;
+  padding:32px 0 48px;min-width:0;
+}
+@media(max-width:1300px){.radar-wrap{grid-template-columns:1fr;gap:28px}}
+
+.radar-aside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.radar-aside-title{
+  font-family:var(--display);font-size:20px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+  letter-spacing:-.015em;line-height:1.25;margin-bottom:8px;
+}
+.radar-aside-title em{font-style:italic;color:var(--brand);font-weight:500}
+.radar-narrative{display:flex;flex-direction:column;gap:14px}
+.radar-narrative-item{
+  background:var(--surface);border:1px solid var(--bd);
+  border-left:3px solid var(--brand);
+  border-radius:var(--radius);padding:12px 14px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.radar-narrative-item--warn{border-left-color:var(--danger)}
+.radar-narrative-item--gain{border-left-color:var(--positive)}
+.radar-narrative-label{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;
+}
+.radar-narrative-body{font-size:13px;line-height:1.55;color:var(--tx2)}
+.radar-narrative-body strong{color:var(--tx);font-weight:600}
+
+.radar-center{
+  display:flex;flex-direction:column;align-items:center;gap:18px;
+  min-width:0;
+}
+.radar-svg-container{width:100%;max-width:680px}
+.radar-svg{width:100%;height:auto;display:block}
+.radar-ring{fill:none;stroke:var(--bd)}
+.radar-spoke{stroke:var(--bd)}
+.radar-dot{fill:var(--brand);stroke:var(--surface);stroke-width:2;cursor:pointer;transition:r 160ms}
+.radar-dot.is-selected{stroke:var(--brand-ink)}
+.radar-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;fill:var(--tx2);font-weight:600;
+}
+.radar-label.is-selected{fill:var(--brand)}
+.radar-label-score{
+  font-family:var(--display);font-size:14px;fill:var(--tx);
+  font-variation-settings:"opsz" 144,"wght" 500;font-weight:600;
+  letter-spacing:-.02em;
+}
+.radar-ring-label{
+  font-family:var(--mono);font-size:10px;fill:var(--tx3);
+}
+
+.radar-legend{
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10.5px;color:var(--tx3);
+  letter-spacing:.04em;
+}
+.radar-legend-item{display:inline-flex;align-items:center;gap:6px}
+.radar-legend-swatch{width:14px;height:6px;border-radius:2px}
+.radar-legend-swatch--current{background:var(--brand)}
+.radar-legend-swatch--target{background:transparent;border:1px dashed var(--tx3)}
+.radar-legend-hint{color:var(--tx3);font-style:italic;margin-left:auto}
+
+.radar-axis-list{list-style:none;display:flex;flex-direction:column;gap:6px;padding:0}
+.radar-axis-item{
+  display:grid;grid-template-columns:1fr 40px;gap:10px;align-items:center;
+  padding:10px 12px;border:1px solid var(--bd);border-radius:var(--radius);
+  background:var(--surface);cursor:pointer;transition:all 120ms;
+}
+.radar-axis-item:hover{border-color:var(--bd2);background:var(--bg2)}
+.radar-axis-item.is-selected{border-color:var(--brand);background:var(--brand-tint)}
+.radar-axis-row{display:flex;flex-direction:column;gap:4px;min-width:0}
+.radar-axis-label{
+  font-size:12.5px;color:var(--tx);font-weight:500;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.radar-axis-bar{
+  height:3px;background:var(--bd);border-radius:2px;overflow:hidden;
+  position:relative;
+}
+.radar-axis-bar-fill{display:block;height:100%;background:var(--brand);border-radius:2px}
+.radar-axis-bar-target{
+  position:absolute;top:0;bottom:0;width:1px;
+  background:var(--tx3);opacity:.6;
+}
+.radar-axis-score{
+  font-family:var(--display);font-size:17px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+  text-align:right;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;
+}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
@@ -3173,65 +3283,62 @@ body.deep-work .count{display:none!important}
   </div>
 
   <!-- RADAR -->
-  <div class="panel" role="tabpanel" id="panel-radar">
-    <div class="page-header">
-      <div class="breadcrumb">
-        <span>Apprentissage</span>
-        <span class="sep">›</span>
-        <strong>Radar compétences</strong>
-      </div>
-      <div class="header-actions">
-        <span id="radar-updated-at"></span>
-        <span class="kbd"><span class="mod-key">Ctrl</span> K</span>
+  <div class="panel panel-page" role="tabpanel" id="panel-radar">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow"><span id="radar-hero-eyebrow">Apprentissage · Radar compétences</span></div>
+      <h1 class="panel-hero-title">Ton niveau IA, <em>axe par axe</em></h1>
+      <p class="panel-hero-sub" id="radar-hero-sub">Moyenne générale, niveau global et position vs ton réseau. Score calculé sur tes lectures, challenges complétés et auto-évaluation.</p>
+    </div>
+
+    <div class="panel-toolbar">
+      <div class="radar-toolbar-stats" id="radar-toolbar-stats">
+        <span class="radar-tb-stat">
+          <span class="radar-tb-stat-label">Moyenne</span>
+          <span class="radar-tb-stat-val" id="radar-tb-avg">—</span>
+        </span>
+        <span class="radar-tb-stat">
+          <span class="radar-tb-stat-label">Plus forte progression</span>
+          <span class="radar-tb-stat-val radar-tb-stat-val--gain" id="radar-tb-gain">—</span>
+        </span>
+        <span class="radar-tb-stat">
+          <span class="radar-tb-stat-label">Axe faible</span>
+          <span class="radar-tb-stat-val radar-tb-stat-val--weak" id="radar-tb-weak">—</span>
+        </span>
       </div>
     </div>
 
-    <section class="hero">
-      <div class="hero-kicker">Apprentissage · Prochain pas</div>
-      <h1 class="hero-title">Ton prochain gap.</h1>
-      <div class="hero-meta" id="radar-hero-meta"></div>
-    </section>
+    <div id="radar-diagnostic"></div>
 
-    <div class="content">
-      <div id="radar-diagnostic" style="margin-bottom:24px"></div>
+    <div class="radar-wrap" id="radar-wrap">
+      <!-- Left: narrative stats -->
+      <aside class="radar-aside">
+        <div class="section-kicker">Ce qui ressort ce mois</div>
+        <h3 class="radar-aside-title">En <em>trois coups d'œil</em></h3>
+        <div class="radar-narrative" id="radar-narrative"></div>
+      </aside>
 
-      <div class="radar-hero-grid">
-        <div class="radar-narrative">
-          <div class="next-gap-kicker">Compétence qui décroche</div>
-          <h2 class="next-gap-title" id="radar-gap-name">—</h2>
-          <p class="next-gap-body" id="radar-gap-body"></p>
-          <div class="next-gap-actions">
-            <button class="btn btn-primary" id="radar-reco-btn">
-              Voir la recommandation
-              <svg class="icon" aria-hidden="true"><use href="#icon-arrow-right"/></svg>
-            </button>
-            <button class="btn btn-secondary" id="radar-start-btn">
-              Marquer "en cours"
-            </button>
-          </div>
-        </div>
-        <div class="radar-viz" id="radar-svg-container"></div>
-      </div>
-
-      <div class="section">
-        <div class="section-header">
-          <div>
-            <div class="section-kicker">Vue détaillée</div>
-            <h2 class="section-title">Tous les axes</h2>
-          </div>
-        </div>
-        <div class="radar-table" id="radar-table">
-          <div class="radar-row radar-row-head">
-            <div>Axe</div>
-            <div>Niveau</div>
-            <div style="text-align:right">Δ 30j</div>
-            <div>Action</div>
-          </div>
+      <!-- Center: spider -->
+      <div class="radar-center">
+        <div class="radar-svg-container" id="radar-svg-container"></div>
+        <div class="radar-legend">
+          <span class="radar-legend-item">
+            <span class="radar-legend-swatch radar-legend-swatch--current"></span>
+            Ton niveau actuel
+          </span>
+          <span class="radar-legend-item">
+            <span class="radar-legend-swatch radar-legend-swatch--target"></span>
+            Ta cible 12 mois
+          </span>
+          <span class="radar-legend-hint">Clique sur un axe pour le détail</span>
         </div>
       </div>
 
-      <!-- Conservé pour rétrocompat : ancien container (caché si non utilisé) -->
-      <div class="radar-container" id="radar-container" style="display:none"></div>
+      <!-- Right: axis list / detail -->
+      <aside class="radar-aside radar-aside--right">
+        <div class="section-kicker">Les axes</div>
+        <h3 class="radar-aside-title">Détail complet</h3>
+        <ul class="radar-axis-list" id="radar-axis-list"></ul>
+      </aside>
     </div>
   </div>
 
@@ -6078,101 +6185,188 @@ function _renderRadarSVG(axes,gapAxis){
   </svg>`;
 }
 
+// Build Dawn-style spider radar SVG (10 axes, 0-100 scale)
+function _renderDawnRadarSVG(axes,selectedAxis){
+  const W=680, H=520, CX=W/2, CY=H/2, R=H*0.34;
+  const n=axes.length;
+  const angle=i=>-Math.PI/2+(i*2*Math.PI)/n;
+  const pt=(i,r)=>[CX+Math.cos(angle(i))*r, CY+Math.sin(angle(i))*r];
+  // Normalize score (some rows /5 or /10, we assume /100; fallback scale up)
+  const normScore=a=>{
+    const s=Number(a.score||0);
+    if(s<=10)return s*10; // assume /10
+    return Math.min(100,s);
+  };
+  const normTarget=a=>{
+    const t=Number(a.target||85);
+    return t<=10?t*10:Math.min(100,t);
+  };
+  const rings=[0.25,0.5,0.75,1].map((f,i)=>{
+    const pts=axes.map((_,j)=>pt(j,R*f).join(',')).join(' ');
+    return `<polygon class="radar-ring" points="${pts}" fill="${i===1?'var(--bg2)':'none'}" opacity="${i===3?0.7:0.4}"/>`;
+  }).join('');
+  const spokes=axes.map((_,i)=>{
+    const [x,y]=pt(i,R);
+    return `<line class="radar-spoke" x1="${CX}" y1="${CY}" x2="${x}" y2="${y}" opacity="0.4"/>`;
+  }).join('');
+  const targetPts=axes.map((a,i)=>pt(i,(R*normTarget(a))/100).join(',')).join(' ');
+  const currentPts=axes.map((a,i)=>pt(i,(R*normScore(a))/100).join(',')).join(' ');
+  const dots=axes.map((a,i)=>{
+    const [px,py]=pt(i,(R*normScore(a))/100);
+    const [lx,ly]=pt(i,R+30);
+    const anchor=lx<CX-4?'end':lx>CX+4?'start':'middle';
+    const isSelected=selectedAxis===a.axis;
+    const label=(a.axis_label||a.axis||'').toUpperCase();
+    const parts=label.split(/ \/ | & /);
+    const line1=parts[0], line2=parts.slice(1).join(label.includes(' / ')?' / ':' & ');
+    return `<g class="radar-axis-g" data-axis="${esc(a.axis)}" style="cursor:pointer">
+      <circle class="radar-dot${isSelected?' is-selected':''}" cx="${px}" cy="${py}" r="${isSelected?7:4.5}"/>
+      <text class="radar-label${isSelected?' is-selected':''}" x="${lx}" y="${ly-6}" text-anchor="${anchor}">${esc(line1)}</text>
+      ${line2?`<text class="radar-label${isSelected?' is-selected':''}" x="${lx}" y="${ly+5}" text-anchor="${anchor}">${esc(line2)}</text>`:''}
+      <text class="radar-label-score" x="${lx}" y="${ly+(line2?19:9)}" text-anchor="${anchor}">${Math.round(normScore(a))}</text>
+    </g>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" class="radar-svg">
+    ${rings}${spokes}
+    <text class="radar-ring-label" x="${CX+4}" y="${CY-R+4}">100</text>
+    <polygon points="${targetPts}" fill="none" stroke="var(--tx3)" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>
+    <polygon points="${currentPts}" fill="var(--brand)" fill-opacity="0.16" stroke="var(--brand)" stroke-width="2" stroke-linejoin="round"/>
+    ${dots}
+  </svg>`;
+}
+
+let _radarState={selectedAxis:null};
+
+function _renderRadarAxisList(axes){
+  const listEl=document.getElementById('radar-axis-list');
+  if(!listEl)return;
+  const normScore=a=>{const s=Number(a.score||0);return s<=10?s*10:Math.min(100,s);};
+  const normTarget=a=>{const t=Number(a.target||85);return t<=10?t*10:Math.min(100,t);};
+  listEl.innerHTML=axes.map(a=>{
+    const s=normScore(a);
+    const t=normTarget(a);
+    const selected=_radarState.selectedAxis===a.axis;
+    return `<li class="radar-axis-item${selected?' is-selected':''}" data-axis="${esc(a.axis)}">
+      <div class="radar-axis-row">
+        <span class="radar-axis-label">${esc(a.axis_label||a.axis||'')}</span>
+        <span class="radar-axis-bar">
+          <span class="radar-axis-bar-fill" style="width:${s}%"></span>
+          <span class="radar-axis-bar-target" style="left:${t}%"></span>
+        </span>
+      </div>
+      <span class="radar-axis-score">${Math.round(s)}</span>
+    </li>`;
+  }).join('');
+  listEl.querySelectorAll('.radar-axis-item').forEach(li=>{
+    li.onclick=()=>{
+      _radarState.selectedAxis=_radarState.selectedAxis===li.dataset.axis?null:li.dataset.axis;
+      _renderRadarAxisList(axes);
+      const vizEl=document.getElementById('radar-svg-container');
+      if(vizEl)vizEl.innerHTML=_renderDawnRadarSVG(axes,_radarState.selectedAxis);
+      _wireRadarSvgClicks(axes);
+    };
+  });
+}
+
+function _wireRadarSvgClicks(axes){
+  document.querySelectorAll('.radar-axis-g').forEach(g=>{
+    g.onclick=()=>{
+      const ax=g.dataset.axis;
+      _radarState.selectedAxis=_radarState.selectedAxis===ax?null:ax;
+      _renderRadarAxisList(axes);
+      const vizEl=document.getElementById('radar-svg-container');
+      if(vizEl)vizEl.innerHTML=_renderDawnRadarSVG(axes,_radarState.selectedAxis);
+      _wireRadarSvgClicks(axes);
+    };
+  });
+}
+
 async function loadRadar(){
   if(radarLoaded)return;
   try{
     const axes=await fetchJSON(`${SUPABASE_URL}/rest/v1/skill_radar?order=axis`);
     if(!axes.length){
-      const t=document.getElementById('radar-table');
-      if(t)t.innerHTML=`<div class="empty">Radar non initialisé</div>`;
+      const w=document.getElementById('radar-wrap');
+      if(w)w.innerHTML=`<div class="vl-empty" style="grid-column:1/-1"><div class="vl-empty-title">Radar non initialisé</div></div>`;
       return;
     }
-
-    // Handle all-zero diagnostic state
     if(axes.every(a=>Number(a.score)===0)){showDiagnostic();radarLoaded=true;return;}
 
-    // --- Hero meta ---
-    const avg=(axes.reduce((s,a)=>s+Number(a.score||0),0)/axes.length).toFixed(1);
-    const avg30=axes.reduce((s,a)=>s+Number(a.score_30d_ago||a.score||0),0)/axes.length;
-    const delta30=Number(avg)-avg30;
-    const hasHistory=axes.some(a=>a.score_30d_ago!=null);
-    const metaEl=document.getElementById('radar-hero-meta');
-    if(metaEl){
-      metaEl.innerHTML=[
-        `<span>${axes.length} axes suivis</span>`,
-        `<span class="dot">·</span>`,
-        `<span>Niveau moyen <strong>${avg} / 5</strong></span>`,
-        hasHistory?`<span class="dot">·</span>`:'',
-        hasHistory?`<span>${delta30>=0?'+':''}${delta30.toFixed(1)} sur 30 jours</span>`:''
-      ].filter(Boolean).join('');
+    // Normalize
+    const normScore=a=>{const s=Number(a.score||0);return s<=10?s*10:Math.min(100,s);};
+    const scores=axes.map(a=>normScore(a));
+    const avg=Math.round(scores.reduce((s,v)=>s+v,0)/scores.length);
+    const sorted=axes.slice().sort((a,b)=>normScore(a)-normScore(b));
+    const weakest=sorted[0];
+    const strongest=sorted[sorted.length-1];
+    // 30-day delta per axis
+    const delta=a=>{
+      const s=normScore(a);
+      const prev=a.score_30d_ago!=null?Number(a.score_30d_ago):null;
+      if(prev==null)return null;
+      return s-(prev<=10?prev*10:Math.min(100,prev));
+    };
+    const deltas=axes.map(a=>({axis:a,delta:delta(a)})).filter(x=>x.delta!=null);
+    const biggestGain=deltas.sort((a,b)=>b.delta-a.delta)[0];
+    const biggestDrop=deltas[deltas.length-1];
+
+    // Eyebrow + sub
+    const eyebrow=document.getElementById('radar-hero-eyebrow');
+    if(eyebrow){
+      const wk=`S${String(_isoWeek(new Date())).padStart(2,'0')}`;
+      eyebrow.textContent=`Apprentissage · Radar compétences · ${wk}`;
     }
-    const updatedEl=document.getElementById('radar-updated-at');
-    if(updatedEl){
-      const latest=axes.map(a=>a.updated_at||a.created_at).filter(Boolean).sort().pop();
-      if(latest){
-        try{const d=new Date(latest);updatedEl.textContent='Maj '+d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});}catch{}
+    const sub=document.getElementById('radar-hero-sub');
+    if(sub){
+      const level=avg>=75?'Avancé':avg>=50?'Intermédiaire +':avg>=30?'Débutant +':'Débutant';
+      sub.innerHTML=`Moyenne générale <strong>${avg}/100</strong>, <strong>${level}</strong>. Score calculé sur tes lectures, challenges complétés et auto-évaluation sur ${axes.length} axes.`;
+    }
+
+    // Toolbar stats
+    document.getElementById('radar-tb-avg').textContent=`${avg}/100`;
+    document.getElementById('radar-tb-gain').textContent=biggestGain?`+${biggestGain.delta} ${esc((biggestGain.axis.axis_label||'').split(/\s|\//)[0])}`:'—';
+    document.getElementById('radar-tb-weak').textContent=esc(weakest.axis_label||weakest.axis);
+
+    // Narrative
+    const narr=document.getElementById('radar-narrative');
+    if(narr){
+      const items=[];
+      items.push(`<div class="radar-narrative-item radar-narrative-item--gain">
+        <span class="radar-narrative-label">Ton arme</span>
+        <p class="radar-narrative-body">Tu domines sur <strong>${esc(strongest.axis_label||strongest.axis)}</strong> (${Math.round(normScore(strongest))}/100). ${strongest.strengths?esc(strongest.strengths).slice(0,120):'Maintien le rythme.'}</p>
+      </div>`);
+      items.push(`<div class="radar-narrative-item radar-narrative-item--warn">
+        <span class="radar-narrative-label">Ton angle mort</span>
+        <p class="radar-narrative-body"><strong>${esc(weakest.axis_label||weakest.axis)}</strong> reste à ${Math.round(normScore(weakest))}/100. ${weakest.gaps?esc(weakest.gaps).slice(0,120):'Focus recommandé sur cet axe.'}</p>
+      </div>`);
+      if(biggestGain && biggestGain.delta>0){
+        items.push(`<div class="radar-narrative-item">
+          <span class="radar-narrative-label">La vague qui monte</span>
+          <p class="radar-narrative-body"><strong>${esc(biggestGain.axis.axis_label||biggestGain.axis.axis)}</strong> : +${biggestGain.delta} points ce mois. Continue sur la lancée.</p>
+        </div>`);
       }
+      if(biggestDrop && biggestDrop.delta<0){
+        items.push(`<div class="radar-narrative-item radar-narrative-item--warn">
+          <span class="radar-narrative-label">Attention</span>
+          <p class="radar-narrative-body"><strong>${esc(biggestDrop.axis.axis_label||biggestDrop.axis.axis)}</strong> perd ${Math.abs(biggestDrop.delta)} point${Math.abs(biggestDrop.delta)>1?'s':''}. À relancer.</p>
+        </div>`);
+      }
+      narr.innerHTML=items.join('');
     }
 
-    // --- Next gap = axe le plus bas ---
-    const gap=axes.slice().sort((a,b)=>Number(a.score)-Number(b.score))[0];
-    const otherMin=axes.filter(a=>a.axis!==gap.axis).reduce((m,a)=>Math.min(m,Number(a.score||5)),5);
-    const gapNameEl=document.getElementById('radar-gap-name');
-    if(gapNameEl)gapNameEl.textContent=(gap.axis_label||gap.axis)+'.';
-    const gapBodyEl=document.getElementById('radar-gap-body');
-    if(gapBodyEl){
-      gapBodyEl.innerHTML=`Tu es à <strong>${gap.score} / 5</strong> sur "${esc(gap.axis_label||gap.axis)}" alors que tes autres piliers sont à <strong>${otherMin}+</strong>. ${gap.gaps?esc(gap.gaps):'Cet axe mérite un focus pour équilibrer ton radar.'}`;
-    }
-
-    // --- Hero actions wiring ---
-    const recoBtn=document.getElementById('radar-reco-btn');
-    if(recoBtn)recoBtn.onclick=()=>{
-      navigateToPanel('recos');
-      window._radarFocusAxis=gap.axis;
-    };
-    const startBtn=document.getElementById('radar-start-btn');
-    if(startBtn)startBtn.onclick=()=>{
-      try{
-        const key='radar-in-progress';
-        const state=JSON.parse(localStorage.getItem(key)||'{}');
-        state[gap.axis]=!state[gap.axis];
-        localStorage.setItem(key,JSON.stringify(state));
-        startBtn.textContent=state[gap.axis]?'En cours ✓':'Marquer "en cours"';
-      }catch{}
-    };
-    try{
-      const state=JSON.parse(localStorage.getItem('radar-in-progress')||'{}');
-      if(state[gap.axis]&&startBtn)startBtn.textContent='En cours ✓';
-    }catch{}
-
-    // --- Radar SVG ---
+    // Radar SVG + axis list
     const vizEl=document.getElementById('radar-svg-container');
-    if(vizEl)vizEl.innerHTML=_renderRadarSVG(axes,gap.axis);
-
-    // --- Table Δ 30j ---
-    const tableEl=document.getElementById('radar-table');
-    if(tableEl){
-      const head=`<div class="radar-row radar-row-head"><div>Axe</div><div>Niveau</div><div style="text-align:right">Δ 30j</div><div>Action</div></div>`;
-      const rows=axes.map(a=>{
-        const score=Number(a.score||0);
-        const prev=a.score_30d_ago!=null?Number(a.score_30d_ago):null;
-        const delta=prev!=null?(score-prev):null;
-        const deltaClass=delta==null?'zero':delta>0?'pos':delta<0?'neg':'zero';
-        const deltaStr=delta==null?'—':delta>0?`+${delta}`:String(delta);
-        const isGap=a.axis===gap.axis;
-        return `<div class="radar-row">
-          <div class="radar-axis-name">${esc(a.axis_label||a.axis)}</div>
-          <div class="radar-bar-track"><div class="radar-bar-fill${isGap?' is-gap':''}" style="width:${Math.min(100,(score/5)*100)}%"></div></div>
-          <div class="radar-delta ${deltaClass}">${deltaStr}</div>
-          <div class="radar-action${isGap?' highlight':''}">${isGap?'▶ recommandé':'—'}</div>
-        </div>`;
-      }).join('');
-      tableEl.innerHTML=head+rows;
-    }
+    if(vizEl)vizEl.innerHTML=_renderDawnRadarSVG(axes,_radarState.selectedAxis);
+    _wireRadarSvgClicks(axes);
+    _renderRadarAxisList(axes);
 
     if(window.__renderModKeys)window.__renderModKeys();
     radarLoaded=true;
-  }catch(e){console.error('loadRadar',e);showError('radar-table','Erreur de chargement du radar',()=>{radarLoaded=false;loadRadar()})}
+  }catch(e){
+    console.error('loadRadar',e);
+    const w=document.getElementById('radar-wrap');
+    if(w)w.innerHTML=`<div class="vl-empty" style="grid-column:1/-1"><div class="vl-empty-title">Erreur de chargement</div></div>`;
+  }
 }
 
 // ── CHALLENGES ─────────────────────────────────────────────
