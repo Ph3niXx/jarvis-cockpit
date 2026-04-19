@@ -542,6 +542,74 @@
     return kv;
   }
 
+  // Build HISTORY_DATA.days + totals from real articles + daily_briefs.
+  // Shape: { days: [{ iso, days_ago, day_label, week, articles, signals_rising,
+  // jarvis_calls, intensity, pinned, macro, top, signals }], totals: {...} }
+  function transformHistory(articles, briefs){
+    const DAYS_FR = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+    const MONTHS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+    // Group by date
+    const byDate = {};
+    (articles || []).forEach(a => {
+      const d = a.fetch_date;
+      if (!d) return;
+      if (!byDate[d]) byDate[d] = [];
+      byDate[d].push(a);
+    });
+    const briefByDate = {};
+    (briefs || []).forEach(b => {
+      const d = (b.created_at || "").slice(0, 10);
+      if (d) briefByDate[d] = b;
+    });
+    const today = new Date(); today.setHours(0,0,0,0);
+    const isoToday = today.toISOString().slice(0,10);
+    // Last 60 days
+    const days = [];
+    let streak = 0, stillStreak = true, totalArticles = 0;
+    let peak = { iso: isoToday, articles: 0, day_label: "—" };
+    for (let i = 0; i < 60; i++) {
+      const d = new Date(today); d.setDate(today.getDate() - i);
+      const iso = d.toISOString().slice(0,10);
+      const arts = byDate[iso] || [];
+      const count = arts.length;
+      totalArticles += count;
+      if (stillStreak) { if (count > 0) streak++; else if (i > 0) stillStreak = false; }
+      if (count > peak.articles) peak = { iso, articles: count, day_label: DAYS_FR[d.getDay()] + " " + d.getDate() + " " + MONTHS_FR[d.getMonth()] };
+      const brief = briefByDate[iso];
+      const top = arts.slice(0, 3).map(a => ({
+        source: a.source || "—",
+        section: a.section || "",
+        title: a.title || "",
+      }));
+      days.push({
+        iso,
+        days_ago: i,
+        day_label: DAYS_FR[d.getDay()] + " " + d.getDate() + " " + MONTHS_FR[d.getMonth()] + " " + d.getFullYear(),
+        week: "S" + String(isoWeek(d)).padStart(2, "0"),
+        articles: count,
+        signals_rising: 0, // signal_tracking is keyed per week, not per day
+        jarvis_calls: 0,   // needs usage_events aggregation — skip for now
+        intensity: count >= 12 ? 3 : count >= 6 ? 2 : count >= 1 ? 1 : 0,
+        pinned: false,
+        macro: {
+          title: brief?.title || (top[0]?.title || "Pas de brief pour ce jour"),
+          body: (brief?.summary || "").slice(0, 280) || (arts.length ? arts.length + " articles ce jour-là." : ""),
+          tag: top[0]?.section || "veille",
+        },
+        top,
+        signals: [],
+      });
+    }
+    return {
+      days,
+      totals: {
+        total_articles: totalArticles,
+        streak_days: streak,
+        peak_day: peak,
+      },
+    };
+  }
+
   // Lazy panel data — returns the raw rows AND mutates the matching
   // window.*_DATA global so the React panel sees real data on render.
   async function loadPanel(id){
@@ -636,8 +704,21 @@
         };
       case "stacks":
         return { weekly_analysis: await T2.weekly_analysis() };
-      case "history":
-        return { recent: await T2.veille() };
+      case "history": {
+        // 60-day window of articles + daily briefs → rebuild HISTORY_DATA
+        const sixtyDaysAgo = new Date(); sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+        const fromDate = sixtyDaysAgo.toISOString().split("T")[0];
+        const [arts60, briefs] = await Promise.all([
+          q("articles", `fetch_date=gte.${fromDate}&select=id,title,fetch_date,section,source,url,summary&order=fetch_date.desc&limit=2000`).catch(() => []),
+          q("daily_briefs", `created_at=gte.${fromDate}&select=title,summary,created_at&order=created_at.desc&limit=60`).catch(() => []),
+        ]);
+        if (window.HISTORY_DATA && arts60.length) {
+          const shape = transformHistory(arts60, briefs);
+          window.HISTORY_DATA.days = shape.days;
+          window.HISTORY_DATA.totals = shape.totals;
+        }
+        return { articles: arts60, briefs };
+      }
       case "signals": {
         // SIGNALS_DATA may not exist; COCKPIT_DATA.signals holds Tier 1 data
         return { signals: raw.signals || [] };

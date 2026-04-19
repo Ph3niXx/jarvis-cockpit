@@ -69,7 +69,11 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
       if (items.length === 0) return;
       if (e.key === "ArrowDown") { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, items.length - 1)); }
       if (e.key === "ArrowUp") { e.preventDefault(); setSelectedIdx((i) => Math.max(i - 1, 0)); }
-      if (e.key === "Enter") { e.preventDefault(); /* would open result */ }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const sel = items[selectedIdx];
+        if (sel && sel.url) window.open(sel.url, "_blank");
+      }
       // Toggle AI mode with Ctrl+I / Cmd+I
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
         e.preventDefault(); setAiMode((m) => !m);
@@ -77,7 +81,7 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [query, filtered, aiMode, onClose, setSelectedIdx, setAiMode]);
+  }, [query, filtered, aiMode, selectedIdx, onClose, setSelectedIdx, setAiMode]);
 
   return (
     <div className="cmdk-modal" onClick={(e) => e.stopPropagation()}>
@@ -174,7 +178,12 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
               </div>
             )}
             {filtered.slice(0, 6).map((r, i) => (
-              <button key={r.id} className={`cmdk-item cmdk-item--result ${i === selectedIdx ? "is-selected" : ""}`}>
+              <button
+                key={r.id}
+                className={`cmdk-item cmdk-item--result ${i === selectedIdx ? "is-selected" : ""}`}
+                onClick={() => { if (r.url) window.open(r.url, "_blank"); }}
+                onMouseEnter={() => setSelectedIdx(i)}
+              >
                 <Icon name={r.icon} size={14} stroke={1.75} />
                 <div className="cmdk-item-body">
                   <div className="cmdk-item-title-row">
@@ -225,17 +234,57 @@ function PanelSearch({ data, onNavigate }) {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const filtered = useMemoSearch(() => {
-    if (!query) return [];
-    const q = query.toLowerCase();
-    return CORPUS.filter((c) =>
-      c.title.toLowerCase().includes(q) ||
-      c.snippet.toLowerCase().includes(q) ||
-      c.tags.some((t) => t.includes(q))
-    );
+  // ── Live Supabase search ──────────────────────────────────
+  const [liveResults, setLiveResults] = useStateSearch([]);
+  const searchAbortRef = useRefSearch({ last: null, timer: null });
+  useEffectSearch(() => {
+    if (!query || query.trim().length < 2) { setLiveResults([]); return; }
+    const q = query.trim();
+    clearTimeout(searchAbortRef.current.timer);
+    searchAbortRef.current.timer = setTimeout(async () => {
+      const token = Math.random();
+      searchAbortRef.current.last = token;
+      try {
+        const encoded = encodeURIComponent(q);
+        const url = window.SUPABASE_URL + "/rest/v1/articles?or=(title.ilike.*" + encoded + "*,summary.ilike.*" + encoded + "*,source.ilike.*" + encoded + "*)&order=date_fetched.desc&limit=20";
+        const rows = await window.sb.fetchJSON(url);
+        if (searchAbortRef.current.last !== token) return;
+        setLiveResults((rows || []).map((a, i) => ({
+          id: a.id || ("sr" + i),
+          type: "article",
+          scope: (a.section || "Veille IA").toUpperCase(),
+          title: a.title || "—",
+          source: a.source || "—",
+          date: a.date_published ? new Date(a.date_published).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "",
+          snippet: (function(s){ const d=document.createElement("div"); d.innerHTML=String(s||""); return (d.textContent||"").slice(0, 180); })(a.summary),
+          tags: a.tags || [],
+          icon: "sparkles",
+          url: a.url,
+        })));
+        try { window.track && window.track("search_performed", { query_length: q.length, results_count: rows.length }); } catch {}
+      } catch (e) {
+        if (searchAbortRef.current.last !== token) return;
+        console.error("[search]", e);
+        setLiveResults([]);
+      }
+    }, 220);
+    return () => clearTimeout(searchAbortRef.current.timer);
   }, [query]);
 
-  const close = () => { setOpen(false); setQuery(""); setAiMode(false); setSelectedIdx(0); };
+  // Live results win when available; short queries (<2 chars) fall back
+  // to the in-memory demo corpus so typing feedback stays instant.
+  const filtered = useMemoSearch(() => {
+    if (!query) return [];
+    if (query.trim().length >= 2) return liveResults;
+    const q = query.toLowerCase();
+    return CORPUS.filter(c =>
+      c.title.toLowerCase().includes(q) ||
+      c.snippet.toLowerCase().includes(q) ||
+      c.tags.some(t => t.includes(q))
+    );
+  }, [query, liveResults]);
+
+  const close = () => { setOpen(false); setQuery(""); setAiMode(false); setSelectedIdx(0); setLiveResults([]); };
 
   return (
     <div className="panel-page">
