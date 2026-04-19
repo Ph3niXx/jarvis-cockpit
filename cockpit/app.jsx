@@ -1,0 +1,116 @@
+// App root — theme switcher + router
+const { useState, useEffect } = React;
+
+function Stub({ id, theme, onBack }) {
+  return (
+    <div className="stub">
+      <span className="stub-kicker">Panel {id}</span>
+      <h2 className="stub-title">Ce panel reste à designer</h2>
+      <p className="stub-body">
+        Cette itération se concentre sur le Brief du jour (la home). Les autres panels garderont la même grammaire visuelle — même hiérarchie, mêmes composants — une fois qu'on aura validé la direction.
+      </p>
+      <button className="btn btn--ghost stub-back" onClick={onBack}>← Retour au Brief</button>
+    </div>
+  );
+}
+
+function App() {
+  const [activePanel, setActivePanel] = useState("brief");
+  const [historicalDay, setHistoricalDay] = useState(null);
+  const [themeId, setThemeId] = useState(() => {
+    try { return localStorage.getItem("cockpit-theme") || "dawn"; } catch { return "dawn"; }
+  });
+  const theme = THEMES[themeId] || THEMES.dawn;
+  const data = COCKPIT_DATA;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    Object.entries(theme.vars).forEach(([k, v]) => root.style.setProperty(k, v));
+    root.setAttribute("data-theme", themeId);
+    try { localStorage.setItem("cockpit-theme", themeId); } catch {}
+  }, [themeId, theme]);
+
+  const handleNavigate = (id) => {
+    setActivePanel(id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  let content;
+  if (activePanel === "brief") content = <Home theme={theme} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "top") content = <PanelTop data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "signals") content = <PanelSignals data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "radar") content = <PanelRadar data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "recos") content = <PanelRecos data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "challenges") content = <PanelChallenges data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "wiki") content = <PanelWiki data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "opps") content = <PanelOpportunities data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "ideas") content = <PanelIdeas data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "week") content = <PanelWeek data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "jarvis") content = <PanelJarvis data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "profile") content = <PanelProfile data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "perf") content = <PanelForme data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "music") content = <PanelMusique data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "gaming") content = <PanelGaming data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "stacks") content = <PanelStacks data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "history") content = <PanelHistory data={data} onNavigate={handleNavigate} onLoadDay={setHistoricalDay} historicalDay={historicalDay} />;
+  else if (activePanel === "search") content = <PanelSearch data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "updates")
+    content = <PanelVeille data={data} onNavigate={handleNavigate} corpus="VEILLE_DATA" title="Veille IA" actorsLabel="labos + éditeurs" prodSection={{ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }} />;
+  else if (activePanel === "sport")
+    content = <PanelVeille data={data} onNavigate={handleNavigate} corpus="SPORT_DATA" title="Sport" showActors={false} categoryLabel="Discipline" typeLabel="Format" categories={[
+      { id: "foot", label: "Football", color: "#004170" },
+      { id: "esport", label: "E-sport", color: "#0ac7ff" },
+      { id: "rugby", label: "Rugby", color: "#1a3a6c" },
+      { id: "cyclisme", label: "Cyclisme", color: "#d8a93a" },
+      { id: "natation", label: "Natation", color: "#e67040" },
+    ]} prodSection={{ kicker: "Compétitions à venir", title: "Ce qu'il ne faut pas rater cette année" }} />;
+  else if (activePanel === "gaming_news")
+    content = <PanelVeille data={data} onNavigate={handleNavigate} corpus="GAMING_DATA" title="Gaming" showActors={false} categoryLabel="Rubrique" typeLabel="Format" categories={[
+      { id: "releases", label: "Sorties récentes", color: "#3a2a1a" },
+      { id: "upcoming", label: "À venir", color: "#006fcd" },
+      { id: "esport", label: "E-sport", color: "#d13639" },
+      { id: "industry", label: "Industrie", color: "#555" },
+    ]} prodSection={{ kicker: "Sorties attendues", title: "Les jeux sur ton radar pour les prochains mois" }} />;
+  else if (activePanel === "anime")
+    content = <PanelVeille data={data} onNavigate={handleNavigate} corpus="ANIME_DATA" title="Anime / Ciné / Séries" showActors={false} categoryLabel="Statut" typeLabel="Format" categories={[
+      { id: "released", label: "Sorties récentes", color: "#1f1f1f" },
+      { id: "upcoming", label: "À venir prochainement", color: "#2e6a4f" },
+      { id: "industry", label: "Industrie", color: "#555" },
+    ]} prodSection={{ kicker: "Sorties majeures", title: "Ce qui arrive au cinéma, en série, en anime" }} />;
+  else if (activePanel === "news")
+    content = <PanelVeille data={data} onNavigate={handleNavigate} corpus="NEWS_DATA" title="Actualités" showActors={false} categoryLabel="Zone" typeLabel="Rubrique" categories={[
+      { id: "paris", label: "Paris", color: "#1a5f3f" },
+      { id: "france", label: "France", color: "#1e3a8a" },
+      { id: "international", label: "International", color: "#bf0a30" },
+    ]} prodSection={{ kicker: "Échéances à surveiller", title: "Les dates qui vont marquer les prochains mois" }} />;
+  else content = <Stub id={activePanel} theme={theme} onBack={() => setActivePanel("brief")} />;
+
+  return (
+    <div className="app">
+      <Sidebar theme={theme} activeId={activePanel} onSelect={handleNavigate} data={data} onThemeChange={setThemeId} />
+      <main className="main">
+        {historicalDay && activePanel !== "history" && (
+          <div style={{
+            position: "sticky", top: 0, zIndex: 20,
+            background: "var(--tx)", color: "var(--bg)",
+            padding: "10px 24px", display: "flex",
+            justifyContent: "space-between", alignItems: "center",
+            fontSize: 13, fontFamily: "var(--font-sans)",
+          }}>
+            <span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", opacity: 0.7, marginRight: 12 }}>Mode historique</span>
+              Cockpit rechargé pour le <strong style={{ fontFamily: "var(--font-serif)", fontSize: 15, fontWeight: 500 }}>{historicalDay.long}</strong>
+            </span>
+            <button onClick={() => setHistoricalDay(null)}
+              style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--bg)", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", padding: "6px 12px", borderRadius: 2, cursor: "pointer", letterSpacing: "0.04em" }}>
+              Revenir à aujourd'hui →
+            </button>
+          </div>
+        )}
+        {content}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);

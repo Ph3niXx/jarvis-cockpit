@@ -1,0 +1,95 @@
+// Gaming — corpus : sorties, patches, esport, studios
+window.GAMING_DATA = {
+  headline: {
+    kicker: "Sortie · il y a 5h",
+    actor: "FromSoftware",
+    version: "Elden Ring : Nightreign",
+    tagline: "FromSoft réinvente le souls-like en coop — et ça marche",
+    body: "Sortie surprise ce matin du standalone Nightreign. Mode coop 3 joueurs obligatoire, runs de 40 min, structure roguelike. Les testeurs parlent du meilleur compromis entre Elden Ring et un live-service depuis Monster Hunter. 91 sur Metacritic à J+5.",
+    metrics: [
+      { label: "Metacritic", value: "91", delta: "+5" },
+      { label: "Joueurs pic Steam", value: "680k", delta: "+420k" },
+      { label: "Prix", value: "39.99€", delta: "-" },
+      { label: "Durée run", value: "~40 min", delta: "=" },
+    ],
+    tags: ["#sortie", "#fromsoft", "#soulslike", "#coop"],
+  },
+
+  actors: [
+    { id: "fromsoftware", name: "FromSoftware", mark: "F", color: "#3a2a1a", followed: true, last_activity: "il y a 5h", last_title: "Nightreign · sortie surprise", momentum: "2 sorties majeures · 90j", pulse: [1, 0, 2, 1, 2, 3, 4, 3], note: "Studio que tu suis depuis Dark Souls." },
+    { id: "nintendo", name: "Nintendo", mark: "N", color: "#e60012", followed: true, last_activity: "il y a 1j", last_title: "Switch 2 dépasse 18M ventes", momentum: "Hype Mario Kart 10", pulse: [3, 2, 4, 3, 5, 4, 5, 6], note: "Écosystème Switch 2 en pleine forme." },
+    { id: "valve", name: "Valve", mark: "V", color: "#1b2838", followed: true, last_activity: "il y a 8h", last_title: "Deadlock sort du early access", momentum: "Steam records", pulse: [2, 1, 3, 2, 2, 4, 3, 4], note: "Deadlock déjà dans ton backlog." },
+    { id: "larian", name: "Larian Studios", mark: "L", color: "#a0282a", followed: true, last_activity: "il y a 3j", last_title: "Teaser prochain projet post-BG3", momentum: "Attente communauté", pulse: [0, 1, 0, 1, 2, 1, 2, 3], note: "Suivi depuis Divinity." },
+    { id: "riot", name: "Riot Games", mark: "R", color: "#d13639", followed: false, last_activity: "il y a 2j", last_title: "Valorant mobile global launch", momentum: "Expansion mobile", pulse: [2, 3, 2, 4, 3, 2, 3, 2], note: "Pas encore suivi — à ajouter ?" },
+    { id: "sony", name: "Sony PlayStation", mark: "PS", color: "#006fcd", followed: true, last_activity: "il y a 6h", last_title: "State of Play mai — 14 annonces", momentum: "Line-up PS5 2026 costaud", pulse: [2, 3, 3, 4, 3, 5, 4, 5], note: "PS5 Pro dans ton setup." },
+  ],
+
+  feed: [
+    { id: "g1", actor: "FromSoftware", category: "releases", type: "Sortie", date_h: 5, date_label: "il y a 5h", title: "Elden Ring Nightreign sort aujourd'hui — 91 Metacritic", summary: "Standalone coop 3 joueurs. Structure roguelike, 8 bosses rotatifs, 5 classes. Pic Steam à 680k concurrents. Miyazaki en showcase sur la refonte du lore.", tags: ["#fromsoft", "#sortie", "#coop"], unread: true, starred: true, icon: "star" },
+    { id: "g2", actor: "Sony PlayStation", category: "upcoming", type: "Annonce", date_h: 6, date_label: "il y a 6h", title: "State of Play : 14 jeux annoncés, dont le prochain Team Asobi", summary: "Astro Bot 2 confirmé pour novembre. Nouveau IP de Sucker Punch dévoilé. Gran Turismo 8 en 2027. Pas de trace du prochain God of War.", tags: ["#sony", "#ps5", "#annonce"], unread: true, starred: true, icon: "sparkles" },
+    { id: "g3", actor: "Valve", category: "releases", type: "Sortie", date_h: 8, date_label: "il y a 8h", title: "Deadlock quitte l'early access — 1.0 dispo", summary: "Hero-shooter MOBA de Valve. 450k pic Steam au lancement. Battle pass gratuit. Crossplay PC/Mac. Pas de version console prévue.", tags: ["#valve", "#deadlock", "#moba"], unread: true, starred: false, icon: "flag" },
+    { id: "g4", actor: "Nintendo", category: "industry", type: "Ventes", date_h: 24, date_label: "hier", title: "Switch 2 dépasse 18M de ventes en 8 mois", summary: "Nintendo communique des chiffres record. Mario Kart 10 annoncé pour septembre. Zelda Echoes of the Sky la surprise du Direct d'avril.", tags: ["#nintendo", "#switch2", "#ventes"], unread: true, starred: false, icon: "check" },
+    { id: "g5", actor: "Larian Studios", category: "upcoming", type: "Teaser", date_h: 72, date_label: "il y a 3j", title: "Larian tease son prochain projet : ce ne sera pas BG4", summary: "Swen Vincke en interview : nouveau IP CRPG, univers original, sortie pas avant 2028. 'On veut pas rester prisonnier de D&D pour toujours'.", tags: ["#larian", "#crpg", "#teaser"], unread: true, starred: true, icon: "paper" },
+    { id: "g6", actor: "Riot Games", category: "releases", type: "Lancement", date_h: 48, date_label: "il y a 2j", title: "Valorant Mobile sort mondial — 20M téléchargements en 48h", summary: "Version complète du PC, cross-progression compte. Comparée favorablement à CODM. Monétisation identique au PC.", tags: ["#valorant", "#mobile", "#riot"], unread: false, starred: false, icon: "sparkles" },
+    { id: "g7", actor: "FromSoftware", category: "industry", type: "Interview", date_h: 96, date_label: "il y a 4j", title: "Miyazaki explique le pivot coop de Nightreign", summary: "Interview 4Gamer traduit. 'On voulait que Elden Ring touche les joueurs solo qui n'osent pas le PvP.' Next project déjà en production.", tags: ["#fromsoft", "#interview", "#miyazaki"], unread: false, starred: false, icon: "paper" },
+    { id: "g8", actor: "Valve", category: "releases", type: "Patch", date_h: 120, date_label: "il y a 5j", title: "Counter-Strike 2 patch majeur — nouvelle map Train", summary: "Remake complet de de_train avec le niveau de détail CS2. Anti-cheat VACnet 3.0 déployé. 12 pros interrogés sur l'équilibrage.", tags: ["#cs2", "#valve", "#patch"], unread: false, starred: false, icon: "wrench" },
+    { id: "g9", actor: "Sony PlayStation", category: "industry", type: "Rumeur", date_h: 168, date_label: "il y a 7j", title: "Rumeur : PS5 Pro baisse à 599€ cet été", summary: "Sources Bloomberg. Ventes inférieures aux attentes malgré le catalogue. Ajustement pour préparer un line-up 2027 chargé.", tags: ["#sony", "#ps5pro", "#prix"], unread: false, starred: false, icon: "alert" },
+    { id: "g10", actor: "Nintendo", category: "upcoming", type: "Annonce", date_h: 144, date_label: "il y a 6j", title: "Mario Kart 10 dévoile son roster — 64 personnages", summary: "Plus gros roster de la série. Retour de Funky Kong, Petey Piranha, R.O.B. Cross-play entre Switch 2 et Switch original en local.", tags: ["#nintendo", "#mariokart", "#switch2"], unread: false, starred: true, icon: "star" },
+    { id: "g11", actor: "Larian Studios", category: "industry", type: "Analyse", date_h: 240, date_label: "il y a 10j", title: "BG3 dépasse 18M ventes — retour sur le modèle Larian", summary: "Pas de monétisation post-launch, patchs gratuits, mods officiels. Étude Ampere analyse pourquoi ce modèle n'est pas plus copié.", tags: ["#larian", "#bg3", "#analyse"], unread: false, starred: false, icon: "paper" },
+    { id: "g12", actor: "Riot Games", category: "industry", type: "Controverse", date_h: 192, date_label: "il y a 8j", title: "League of Legends : la polémique Vanguard revient", summary: "Anti-cheat kernel toujours contesté 18 mois après. Nouveau rapport d'un chercheur sécurité souligne des risques. Riot répond.", tags: ["#lol", "#vanguard", "#securite"], unread: false, starred: false, icon: "alert" },
+  ],
+
+  // Jeux à surveiller / très attendus
+  prod_cases: [
+    { company: "GTA VI", logo_mark: "GTA", color: "#fcaf17", scale: "Rockstar · 10+ ans dev", model: "PS5/Xbox/PC", domain: "Open world", when: "Automne 2026", headline: "Fenêtre de sortie confirmée. Trailer 2 diffusé au Summer Game Fest.", impact: "Jeu le plus attendu de la décennie" },
+    { company: "Hollow Knight : Silksong", logo_mark: "HK", color: "#d8a93a", scale: "Team Cherry · 6 ans dev", model: "Tout support", domain: "Metroidvania", when: "Été 2026", headline: "Sortie confirmée après 6 ans d'attente. Shown au Summer Game Fest.", impact: "Retour de la hype" },
+    { company: "Switch 2 — année complète", logo_mark: "S2", color: "#e60012", scale: "18M+ consoles", model: "Ecosystème", domain: "Console Nintendo", when: "2026", headline: "Mario Kart 10, Zelda Echoes, Smash Ultimate Deluxe. Line-up dense.", impact: "Année Nintendo majeure" },
+  ],
+
+  trends: [
+    {
+      id: "tg-coop-revival",
+      label: "Retour du coop local/online",
+      kicker: "Tendance game design",
+      momentum: "+145% · 90j",
+      pulse: [2, 3, 3, 5, 6, 8, 10, 12],
+      articles_count: 9,
+      summary: "Split Fiction, It Takes Two, Nightreign : les jeux coop 2-4 joueurs explosent. Réponse à la fatigue live-service solo. Rentables avec des équipes plus petites.",
+      actors_involved: ["Hazelight", "FromSoftware", "Rare"],
+      status: "rising",
+    },
+    {
+      id: "tg-live-fatigue",
+      label: "Fatigue des live-services",
+      kicker: "Tendance marché",
+      momentum: "+80% · 30j",
+      pulse: [3, 4, 5, 6, 5, 6, 7, 8],
+      articles_count: 7,
+      summary: "Concord, Suicide Squad, XDefiant : les flops s'enchaînent. Éditeurs pivotent vers le premium + DLC. EA et Ubisoft annoncent des réorientations.",
+      actors_involved: ["EA", "Ubisoft", "Warner Bros"],
+      status: "rising",
+    },
+    {
+      id: "tg-steamdeck-clones",
+      label: "Handhelds PC — la guerre est lancée",
+      kicker: "Segment hardware",
+      momentum: "+55% · 30j",
+      pulse: [2, 2, 3, 3, 4, 4, 5, 6],
+      articles_count: 5,
+      summary: "Steam Deck OLED 2, ROG Ally X, Legion Go S, MSI Claw 8. Windows handheld mode officiel en preview. Valve domine mais la concurrence s'organise.",
+      actors_involved: ["Valve", "Asus", "Lenovo", "MSI"],
+      status: "stable",
+    },
+    {
+      id: "tg-ai-npcs",
+      label: "IA générative dans les NPCs",
+      kicker: "Tech émergente",
+      momentum: "+195% · 90j",
+      pulse: [1, 1, 2, 3, 4, 6, 9, 11],
+      articles_count: 6,
+      summary: "Nvidia ACE déployé dans 4 titres AAA. Inworld s'impose comme standard indé. Débat sur l'authoring créatif et la qualité d'écriture.",
+      actors_involved: ["Nvidia", "Inworld", "Ubisoft"],
+      status: "debated",
+    },
+  ],
+};

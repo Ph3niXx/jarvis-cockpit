@@ -1,0 +1,349 @@
+// Home — Brief du jour. Three theme variants share this component
+// but the theme's vibe tokens (dividerStyle, accentShape, etc.)
+// meaningfully reshape the layout feel.
+
+function TrendArrow({ trend, delta }) {
+  if (trend === "new") return <span className="pill-badge pill-badge--new">NEW</span>;
+  if (trend === "rising") return (
+    <span className="delta delta--up">
+      <Icon name="arrow_up" size={12} stroke={2.5} />+{delta}
+    </span>
+  );
+  if (trend === "declining") return (
+    <span className="delta delta--down">
+      <Icon name="arrow_down" size={12} stroke={2.5} />{delta}
+    </span>
+  );
+  return <span className="delta delta--flat">—</span>;
+}
+
+function RadarSVG({ axes, size = 260 }) {
+  const cx = size / 2, cy = size / 2;
+  const radius = size / 2 - 30;
+  const n = axes.length;
+  const angle = (i) => (Math.PI * 2 * i) / n - Math.PI / 2;
+  const points = axes.map((a, i) => {
+    const r = (a.score / 100) * radius;
+    return [cx + Math.cos(angle(i)) * r, cy + Math.sin(angle(i)) * r];
+  });
+  const rings = [0.25, 0.5, 0.75, 1];
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} width="100%" style={{ maxWidth: size }}>
+      {rings.map((r, i) => {
+        const pts = axes.map((_, j) => {
+          const rr = r * radius;
+          return `${cx + Math.cos(angle(j)) * rr},${cy + Math.sin(angle(j)) * rr}`;
+        }).join(" ");
+        return <polygon key={i} points={pts} className="radar-ring" />;
+      })}
+      {axes.map((_, i) => (
+        <line key={i} x1={cx} y1={cy}
+          x2={cx + Math.cos(angle(i)) * radius}
+          y2={cy + Math.sin(angle(i)) * radius}
+          className="radar-spoke" />
+      ))}
+      <polygon points={points.map(p => p.join(",")).join(" ")} className="radar-shape" />
+      {points.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r={axes[i].gap ? 5 : 3.5}
+          className={axes[i].gap ? "radar-pt radar-pt--gap" : "radar-pt"} />
+      ))}
+      {axes.map((a, i) => {
+        const r = radius + 16;
+        const x = cx + Math.cos(angle(i)) * r;
+        const y = cy + Math.sin(angle(i)) * r;
+        return <text key={i} x={x} y={y} className="radar-label"
+          textAnchor={Math.abs(Math.cos(angle(i))) < 0.2 ? "middle" : (Math.cos(angle(i)) > 0 ? "start" : "end")}
+          dominantBaseline="middle">{a.name}</text>;
+      })}
+    </svg>
+  );
+}
+
+function Sparkbar({ values, max }) {
+  const m = max || Math.max(...values);
+  return (
+    <div className="sparkbar">
+      {values.map((v, i) => (
+        <span key={i} className="sparkbar-tick" style={{ height: `${(v / m) * 100}%` }} />
+      ))}
+    </div>
+  );
+}
+
+function Sparkline({ values, trend }) {
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values);
+  const w = 100, h = 32;
+  const step = w / (values.length - 1);
+  const pts = values.map((v, i) => `${i * step},${h - ((v - min) / Math.max(max - min, 1)) * (h - 4) - 2}`).join(" ");
+  const cls = trend === "rising" ? "sl-rising" : trend === "declining" ? "sl-declining" : trend === "new" ? "sl-new" : "sl-stable";
+  return (
+    <svg className={`sparkline ${cls}`} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <polyline points={pts} fill="none" strokeWidth="1.5" />
+      <circle cx={(values.length - 1) * step} cy={h - ((values[values.length-1] - min) / Math.max(max - min, 1)) * (h - 4) - 2} r="2.5" />
+    </svg>
+  );
+}
+
+function SignalCard({ signal, rank }) {
+  const trendLabel = { rising: "EN HAUSSE", new: "NOUVEAU", declining: "EN BAISSE", stable: "STABLE" }[signal.trend];
+  return (
+    <article className={`sig-card sig-card--${signal.trend}`}>
+      <div className="sig-card-head">
+        <span className="sig-card-rank">#{String(rank + 1).padStart(2, "0")}</span>
+        <span className={`sig-card-badge sig-card-badge--${signal.trend}`}>{trendLabel}</span>
+        <span className="sig-card-cat">{signal.category}</span>
+      </div>
+      <h3 className="sig-card-term">{signal.name}</h3>
+      <p className="sig-card-context">{signal.context}</p>
+      <div className="sig-card-foot">
+        <div className="sig-card-stats">
+          <span className="sig-card-count">{signal.count}</span>
+          <span className="sig-card-count-label">mentions<br/>cette semaine</span>
+        </div>
+        <div className="sig-card-spark">
+          <Sparkline values={signal.history} trend={signal.trend} />
+          <div className="sig-card-delta">
+            {signal.trend === "new" ? <span className="sig-card-delta-new">nouveau signal</span>
+              : signal.delta > 0 ? <span className="sig-card-delta-up"><Icon name="arrow_up" size={10} stroke={2.5} />+{signal.delta}</span>
+              : signal.delta < 0 ? <span className="sig-card-delta-down"><Icon name="arrow_down" size={10} stroke={2.5} />{signal.delta}</span>
+              : <span className="sig-card-delta-flat">stable</span>}
+            <span className="sig-card-delta-window">8 sem.</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function Home({ theme, data, onNavigate }) {
+  const { macro, top, signals, stats, date, user, radar, week } = data;
+  const [readTop, setReadTop] = React.useState({});
+  const toggleRead = (rank) => setReadTop({ ...readTop, [rank]: !readTop[rank] });
+
+  return (
+    <div className="home" data-theme-vibe={theme.id}>
+      {/* PAGE HEADER */}
+      <header className="ph">
+        <div className="ph-left">
+          <span className="ph-eyebrow">{date.week} · {date.day_of_year}</span>
+          <span className="ph-sep">/</span>
+          <strong className="ph-title">Brief du jour</strong>
+          <span className="ph-sep">·</span>
+          <span className="ph-date">{date.long}</span>
+        </div>
+        <div className="ph-right">
+          <button className="ph-chip"><Icon name="mic" size={13} stroke={2} /> Dicter</button>
+          <button className="ph-chip"><Icon name="play" size={10} stroke={2} /> Lecture audio · 4 min</button>
+          <button className="ph-chip ph-chip--primary"><Icon name="check" size={13} stroke={2.5} /> Tout marqué lu</button>
+        </div>
+      </header>
+
+      {/* ── HERO : the macro synthesis ─────────────────────────── */}
+      <section className="hero">
+        <div className="hero-frame">
+          <div className="hero-col-main">
+            <div className="hero-kicker">
+              <span className="kicker-dot" />
+              {macro.kicker}
+              <span className="hero-kicker-sep">—</span>
+              <span className="hero-kicker-meta">{macro.articles_summarized} articles synthétisés · lecture {macro.reading_time}</span>
+            </div>
+            <h1 className="hero-title">{macro.title}</h1>
+            <p className="hero-body">{macro.body}</p>
+            <div className="hero-actions">
+              <button className="btn btn--primary">Lire les 3 incontournables <Icon name="arrow_right" size={14} stroke={2} /></button>
+              <button className="btn btn--ghost">Parcourir les 47 articles</button>
+            </div>
+          </div>
+
+          <div className="hero-col-side">
+            <div className="hero-stats">
+              <div className="hs-item">
+                <div className="hs-label">Depuis ta dernière visite</div>
+                <div className="hs-value">{stats.articles_today}</div>
+                <div className="hs-unit">articles</div>
+              </div>
+              <div className="hs-item">
+                <div className="hs-label">Signaux en hausse</div>
+                <div className="hs-value">{stats.signals_rising}</div>
+                <div className="hs-unit">termes</div>
+              </div>
+              <div className="hs-item">
+                <div className="hs-label">Streak</div>
+                <div className="hs-value hs-value--flame">
+                  {stats.streak}<Icon name="flame" size={18} stroke={1.5} />
+                </div>
+                <div className="hs-unit">jours</div>
+              </div>
+              <div className="hs-item">
+                <div className="hs-label">Prochain brief</div>
+                <div className="hs-value hs-value--sm">{stats.next_brief}</div>
+                <div className="hs-unit">automatique</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── TOP 3 INCONTOURNABLES ───────────────────────────── */}
+      <section className="block">
+        <div className="block-head">
+          <div>
+            <div className="section-kicker">Top du jour</div>
+            <h2 className="section-title">3 incontournables, classés par l'agent</h2>
+          </div>
+          <button className="link-more" onClick={() => onNavigate("top")}>
+            Tous les incontournables <Icon name="arrow_right" size={12} stroke={2} />
+          </button>
+        </div>
+
+        <div className="top-grid">
+          {top.map((t) => (
+            <article key={t.rank} className={`top-card ${readTop[t.rank] ? "is-read" : t.unread ? "is-unread" : ""} top-card--rank${t.rank}`}>
+              <div className="top-card-rail">
+                <span className="top-rank">{String(t.rank).padStart(2, "0")}</span>
+                <span className="top-score" title="Score de pertinence">
+                  <span className="top-score-bar"><span className="top-score-fill" style={{ width: `${t.score}%` }} /></span>
+                  <span className="top-score-num">{t.score}</span>
+                </span>
+              </div>
+              <div className="top-card-body">
+                <div className="top-meta">
+                  <span className="top-source">{t.source}</span>
+                  <span className="top-section">{t.section}</span>
+                  <span className="top-date">{t.date}</span>
+                  {t.unread && !readTop[t.rank] && <span className="top-unread-dot" />}
+                </div>
+                <h3 className="top-title">{t.title}</h3>
+                <p className="top-summary">{t.summary}</p>
+                <div className="top-card-foot">
+                  <div className="top-tags">
+                    {t.tags.map(tag => <span key={tag} className="top-tag">{tag}</span>)}
+                  </div>
+                  <div className="top-actions">
+                    <button className="card-action" onClick={() => toggleRead(t.rank)}>
+                      <Icon name="check" size={12} stroke={2.5} />
+                      {readTop[t.rank] ? "Lu" : "Marquer lu"}
+                    </button>
+                    <button className="card-action"><Icon name="bookmark" size={12} stroke={2} /> Garder</button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 2-COL : Signaux + Radar gap ─────────────────────── */}
+      <section className="block block--two">
+        <div className="col col--signals">
+          <div className="block-head">
+            <div>
+              <div className="section-kicker">Signaux faibles · S17</div>
+              <h2 className="section-title">Ce qui émerge<br/>cette semaine</h2>
+            </div>
+            <button className="link-more" onClick={() => onNavigate("signals")}>
+              Voir tous <Icon name="arrow_right" size={12} stroke={2} />
+            </button>
+          </div>
+          <div className="sig-grid">
+            {signals.slice(0, 4).map((s, i) => <SignalCard key={s.name} signal={s} rank={i} />)}
+          </div>
+        </div>
+
+        <div className="col col--radar">
+          <div className="block-head">
+            <div>
+              <div className="section-kicker">Radar compétences</div>
+              <h2 className="section-title">Ton prochain gap à combler</h2>
+            </div>
+          </div>
+          <div className="radar-box">
+            <div className="radar-svg-wrap">
+              <RadarSVG axes={radar.axes} size={230} />
+            </div>
+            <div className="radar-next">
+              <div className="radar-next-tag">
+                <span className="radar-next-dot" />
+                Gap prioritaire
+              </div>
+              <div className="radar-next-axis">{radar.next_gap.axis}</div>
+              <p className="radar-next-reason">{radar.next_gap.reason}</p>
+              <button className="btn btn--primary btn--sm" onClick={() => onNavigate("challenges")}>
+                {radar.next_gap.action} <Icon name="arrow_right" size={12} stroke={2} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Ma semaine strip ─────────────────────────────────── */}
+      <section className="block">
+        <div className="block-head">
+          <div>
+            <div className="section-kicker">Ma semaine</div>
+            <h2 className="section-title">{week.total_read} articles lus, {week.streak} jours d'affilée</h2>
+          </div>
+          <button className="link-more" onClick={() => onNavigate("week")}>
+            Ouvrir ma semaine <Icon name="arrow_right" size={12} stroke={2} />
+          </button>
+        </div>
+        <div className="hwk-wrap">
+          <div className="hwk">
+            <div className="hwk-head">
+              <span className="hwk-head-label">Articles lus</span>
+              <span className="hwk-head-avg">moy. {(week.total_read / 7).toFixed(1)}/jour</span>
+            </div>
+            <div className="hwk-grid">
+              {[0, 5, 10, 15].map(tick => (
+                <div key={tick} className="hwk-tick" style={{ bottom: `${(tick / 16) * 100}%` }}>
+                  <span className="hwk-tick-label">{tick}</span>
+                  <span className="hwk-tick-line" />
+                </div>
+              ))}
+              <div className="hwk-bars">
+                {week.days.map((d, i) => {
+                  const max = 16;
+                  return (
+                    <div key={d.day} className={`hwk-col ${i === 1 ? "is-today" : ""} ${d.read === Math.max(...week.days.map(x=>x.read)) ? "is-peak" : ""}`}>
+                      <div className="hwk-bar-wrap">
+                        <div className="hwk-val">{d.read}</div>
+                        <div className="hwk-bar" style={{ height: `${(d.read / max) * 100}%` }} />
+                      </div>
+                      <div className="hwk-label">{d.day}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="hwk-kpi">
+            <div className="hwk-kpi-card">
+              <div className="hwk-kpi-card-label">Articles lus</div>
+              <div className="hwk-kpi-card-val">{week.total_read}</div>
+              <div className="hwk-kpi-card-delta is-up">+{week.compare_last.read.this - week.compare_last.read.last} vs S-1</div>
+            </div>
+            <div className="hwk-kpi-card">
+              <div className="hwk-kpi-card-label">Gardés</div>
+              <div className="hwk-kpi-card-val">{week.total_marked}</div>
+              <div className="hwk-kpi-card-delta">{Math.round((week.total_marked / week.total_read) * 100)}% du flux</div>
+            </div>
+            <div className="hwk-kpi-card">
+              <div className="hwk-kpi-card-label">Streak veille</div>
+              <div className="hwk-kpi-card-val hwk-kpi-card-val--flame"><Icon name="flame" size={20} stroke={1.8} /> {week.streak}<span className="hwk-kpi-card-unit">j</span></div>
+              <div className="hwk-kpi-card-delta">record depuis janvier</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="home-foot">
+        <span>Brief généré par Gemini Flash-Lite · synthèse hebdo par Claude Haiku</span>
+        <span>{stats.cost_month} / {stats.cost_budget} ce mois</span>
+      </footer>
+    </div>
+  );
+}
+
+window.Home = Home;

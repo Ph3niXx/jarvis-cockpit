@@ -1,0 +1,617 @@
+/* ═══════════════════════════════════════════════════════════════
+   PROFILE v2 — Contrat système
+   Terminal/monospace dominante. Accents color uniquement pour
+   fresh (vert) / drift (amber) / critical (red).
+   ═══════════════════════════════════════════════════════════════ */
+
+.pf2-wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 28px 48px 80px;
+  color: var(--tx);
+  background: var(--bg);
+  font-family: var(--font-sans);
+}
+
+/* ── Status colors ─────────────────────────────── */
+.pf2-wrap {
+  --fresh: #2d7a4e;
+  --drift: #b8862f;
+  --critical: #b43a3a;
+  --muted: var(--tx3);
+}
+
+/* ══ HEADER compact ══════════════════════════════ */
+.pf2-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--bd);
+  align-items: end;
+}
+.pf2-head-main { min-width: 0; }
+.pf2-head-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx2);
+  margin-bottom: 8px;
+}
+.pf2-head-name {
+  font-family: var(--font-serif);
+  font-size: 38px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--tx);
+  margin: 0 0 4px;
+}
+.pf2-head-role {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--tx2);
+  font-style: italic;
+}
+.pf2-head-stats {
+  display: flex;
+  gap: 28px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--tx2);
+  letter-spacing: 0.02em;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.pf2-head-stats strong { color: var(--tx); font-weight: 500; }
+.pf2-head-energy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  background: var(--bg2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+.pf2-head-energy-bar {
+  width: 90px; height: 3px;
+  background: var(--bd);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.pf2-head-energy-bar div { height: 100%; background: var(--fresh); }
+.pf2-head-energy strong { color: var(--tx); font-family: var(--font-sans); font-size: 13px; text-transform: none; letter-spacing: 0; }
+
+/* ── Dernière uncomfortable question ───────────── */
+.pf2-last-uq {
+  margin-top: 20px;
+  padding: 18px 22px;
+  border: 1px solid var(--bd);
+  background: var(--bg2);
+  border-left: 3px solid var(--brand);
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+.pf2-last-uq-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+.pf2-last-uq-date { color: var(--tx3); font-size: 10px; margin-top: 4px; }
+.pf2-last-uq-target { color: var(--brand); margin-top: 4px; font-size: 10px; }
+.pf2-last-uq-q {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-style: italic;
+  color: var(--tx);
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  margin-bottom: 12px;
+  text-wrap: pretty;
+}
+.pf2-last-uq-a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--tx);
+  line-height: 1.5;
+  padding-left: 14px;
+  border-left: 1px solid var(--bd);
+}
+.pf2-last-uq-a::before { content: "→ "; color: var(--tx3); }
+.pf2-last-uq-resolution {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--fresh);
+  margin-top: 8px;
+  padding-left: 14px;
+}
+
+/* ══ ZONE HEADER shared ══════════════════════════ */
+.pf2-zone { padding: 44px 0; border-bottom: 1px solid var(--bd); }
+.pf2-zone:last-of-type { border-bottom: none; }
+.pf2-zone-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 20px;
+  align-items: baseline;
+  margin-bottom: 20px;
+}
+.pf2-zone-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--tx3);
+}
+.pf2-zone-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--tx);
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.pf2-zone-title em { font-style: italic; color: var(--brand); font-weight: 400; }
+.pf2-zone-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--tx2);
+  letter-spacing: 0.03em;
+}
+.pf2-zone-intro {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--tx2);
+  line-height: 1.5;
+  max-width: 640px;
+  margin: 0 0 24px;
+  text-wrap: pretty;
+}
+
+/* ══ ZONE 1 — CONTRACT (terminal) ════════════════ */
+.pf2-toggle {
+  display: inline-flex;
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background: var(--bg);
+}
+.pf2-toggle-btn {
+  padding: 7px 14px;
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--tx2);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 120ms;
+}
+.pf2-toggle-btn + .pf2-toggle-btn { border-left: 1px solid var(--bd); }
+.pf2-toggle-btn.is-active {
+  background: var(--tx);
+  color: var(--bg);
+}
+
+.pf2-terminal {
+  background: #0e1013;
+  color: #c8d0c6;
+  border-radius: 6px;
+  padding: 22px 26px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.65;
+  overflow-x: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+[data-theme="obsidian"] .pf2-terminal { background: #080a0d; border: 1px solid #1a2028; }
+
+.pf2-term-line {
+  display: grid;
+  grid-template-columns: 180px 1fr auto auto;
+  gap: 16px;
+  padding: 6px 0;
+  align-items: baseline;
+  border-bottom: 1px dotted rgba(200, 208, 198, 0.06);
+}
+.pf2-term-line:last-child { border-bottom: none; }
+.pf2-term-key { color: #7fb3a8; white-space: nowrap; }
+.pf2-term-value {
+  color: #d8dfd4;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.pf2-term-tokens { color: #6a7a6e; text-align: right; font-size: 11px; white-space: nowrap; }
+.pf2-term-status {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-align: center;
+  padding: 2px 7px;
+  border-radius: 2px;
+  white-space: nowrap;
+  align-self: center;
+}
+.pf2-term-status[data-s="fresh"] { color: #7fd99a; background: rgba(127, 217, 154, 0.1); }
+.pf2-term-status[data-s="stable"] { color: #6a7a6e; background: rgba(200, 208, 198, 0.04); }
+.pf2-term-status[data-s="stale"] { color: #e0a05a; background: rgba(224, 160, 90, 0.12); }
+
+.pf2-term-line.is-excluded { opacity: 0.35; text-decoration: line-through; text-decoration-color: #e0a05a; }
+
+.pf2-term-divider {
+  border-top: 1px dashed #2a3138;
+  margin: 12px 0;
+  padding-top: 10px;
+  color: #6a7a6e;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.pf2-term-foot {
+  border-top: 1px solid #1e2429;
+  margin-top: 16px;
+  padding-top: 12px;
+  color: #8a9488;
+  font-size: 11.5px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.pf2-term-foot strong { color: #d8dfd4; font-weight: 500; }
+.pf2-term-foot .ok { color: #7fd99a; }
+
+/* ══ ZONE 2 — TRIANGULATION ══════════════════════ */
+.pf2-tri-head {
+  display: grid;
+  grid-template-columns: 1.5fr 1.3fr 1.3fr 1.3fr;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+.pf2-tri-head span:not(:first-child) { padding-left: 10px; border-left: 1px solid var(--bd); }
+.pf2-tri {
+  border: 1px solid var(--bd);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  background: var(--bg);
+}
+.pf2-tri-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1.3fr 1.3fr 1.3fr;
+  gap: 16px;
+  padding: 16px 14px;
+  border-top: 1px solid var(--bd);
+  align-items: start;
+  transition: background 120ms;
+  cursor: pointer;
+}
+.pf2-tri-row:first-child { border-top: none; }
+.pf2-tri-row:hover { background: var(--bg2); }
+
+.pf2-tri-field {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--tx);
+  letter-spacing: -0.01em;
+}
+.pf2-tri-field-age {
+  font-size: 10px;
+  color: var(--tx3);
+  margin-top: 4px;
+  display: block;
+}
+.pf2-tri-level {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.pf2-tri-level[data-l="aligned"] { color: var(--fresh); background: color-mix(in srgb, var(--fresh) 10%, transparent); }
+.pf2-tri-level[data-l="drift"] { color: var(--drift); background: color-mix(in srgb, var(--drift) 14%, transparent); }
+.pf2-tri-level[data-l="critical"] { color: var(--critical); background: color-mix(in srgb, var(--critical) 12%, transparent); }
+
+.pf2-tri-col {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--tx);
+  line-height: 1.5;
+  padding-left: 12px;
+  border-left: 1px solid var(--bd);
+}
+.pf2-tri-col.is-divergent {
+  color: var(--drift);
+  position: relative;
+}
+.pf2-tri-col.is-critical {
+  color: var(--critical);
+}
+.pf2-tri-col.is-muted { color: var(--tx3); font-style: italic; }
+
+.pf2-tri-action {
+  grid-column: 1 / -1;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--tx);
+  padding: 10px 14px 0;
+  margin-top: 4px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-top: 1px dashed var(--bd);
+}
+.pf2-tri-action::before {
+  content: "↪";
+  color: var(--tx3);
+  font-family: var(--font-mono);
+}
+.pf2-tri-action.is-resolved { color: var(--fresh); }
+.pf2-tri-action.is-resolved::before { content: "✓"; color: var(--fresh); }
+.pf2-tri-action button {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--brand) 40%, var(--bd));
+  background: transparent;
+  color: var(--brand);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 120ms;
+}
+.pf2-tri-action button:hover { background: var(--brand); color: #fff; }
+
+.pf2-tri-foot {
+  padding: 10px 14px;
+  border-top: 1px solid var(--bd);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--tx2);
+  letter-spacing: 0.03em;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--bg2);
+}
+.pf2-tri-foot strong { color: var(--tx); }
+.pf2-tri-foot .crit { color: var(--critical); font-weight: 500; }
+.pf2-tri-foot .drift-c { color: var(--drift); font-weight: 500; }
+
+/* ══ ZONE 3 — COMMITMENTS ════════════════════════ */
+.pf2-cm-head, .pf2-cm-row {
+  display: grid;
+  grid-template-columns: 2fr 130px 2fr 140px 90px;
+  gap: 16px;
+  padding: 12px 14px;
+  align-items: center;
+}
+.pf2-cm-head {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx2);
+  border: 1px solid var(--bd);
+  border-bottom: none;
+  background: var(--bg2);
+  border-radius: 4px 4px 0 0;
+}
+.pf2-cm {
+  border: 1px solid var(--bd);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+}
+.pf2-cm-row {
+  border-top: 1px solid var(--bd);
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.pf2-cm-row:first-child { border-top: none; }
+.pf2-cm-row:hover { background: var(--bg2); }
+
+.pf2-cm-label {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tx);
+  letter-spacing: -0.005em;
+}
+.pf2-cm-deadline { color: var(--tx); }
+.pf2-cm-deadline small { color: var(--tx3); display: block; font-size: 10px; margin-top: 2px; }
+.pf2-cm-action {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--tx);
+  font-style: italic;
+  line-height: 1.4;
+}
+.pf2-cm-move { color: var(--muted); font-size: 11px; }
+.pf2-cm-move.is-fresh { color: var(--fresh); }
+.pf2-cm-move.is-stale { color: var(--drift); }
+.pf2-cm-status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  text-align: center;
+  width: fit-content;
+}
+.pf2-cm-status[data-s="on-track"] { color: var(--fresh); background: color-mix(in srgb, var(--fresh) 10%, transparent); }
+.pf2-cm-status[data-s="at-risk"] { color: var(--drift); background: color-mix(in srgb, var(--drift) 14%, transparent); }
+.pf2-cm-status[data-s="stale"] { color: var(--critical); background: color-mix(in srgb, var(--critical) 10%, transparent); }
+.pf2-cm-status[data-s="done"] { color: var(--muted); background: var(--bg2); }
+
+/* ══ ZONE 4 — DRAWER + HISTORY ═══════════════════ */
+.pf2-z4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+@media (max-width: 720px) { .pf2-z4 { grid-template-columns: 1fr; } }
+
+.pf2-drawer {
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  background: var(--bg);
+}
+.pf2-drawer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bd);
+  background: var(--bg2);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tx2);
+  user-select: none;
+}
+.pf2-drawer-head strong { color: var(--tx); font-weight: 500; }
+.pf2-drawer-head::after {
+  content: "+";
+  font-size: 16px;
+  color: var(--tx2);
+  transition: transform 200ms;
+}
+.pf2-drawer.is-open .pf2-drawer-head::after { transform: rotate(45deg); }
+
+.pf2-drawer-body {
+  padding: 16px;
+  display: none;
+}
+.pf2-drawer.is-open .pf2-drawer-body { display: block; }
+
+.pf2-field {
+  display: grid;
+  grid-template-columns: 160px 1fr auto;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--bd);
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.pf2-field:last-child { border-bottom: none; }
+.pf2-field-key { color: var(--tx2); letter-spacing: 0.02em; }
+.pf2-field-value {
+  color: var(--tx);
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+.pf2-field-updated {
+  color: var(--tx3);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* History timeline */
+.pf2-history {
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  background: var(--bg);
+}
+.pf2-history-head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bd);
+  background: var(--bg2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tx2);
+  display: flex;
+  justify-content: space-between;
+}
+.pf2-history-head strong { color: var(--tx); font-weight: 500; }
+.pf2-hist-item {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px dashed var(--bd);
+  align-items: start;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.pf2-hist-item:last-child { border-bottom: none; }
+.pf2-hist-item:hover { background: var(--bg2); }
+.pf2-hist-date { color: var(--tx3); font-size: 10.5px; }
+.pf2-hist-body { display: flex; flex-direction: column; gap: 2px; }
+.pf2-hist-field { color: var(--tx); font-weight: 500; }
+.pf2-hist-source {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 2px;
+  width: fit-content;
+  margin-top: 4px;
+}
+.pf2-hist-source[data-s="self"] { color: var(--brand); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+.pf2-hist-source[data-s="nightly_learner"] { color: var(--fresh); background: color-mix(in srgb, var(--fresh) 10%, transparent); }
+.pf2-hist-diff {
+  display: none;
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--bg2);
+  border-radius: 3px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.pf2-hist-item.is-open .pf2-hist-diff { display: block; }
+.pf2-hist-diff-from { color: var(--critical); text-decoration: line-through; }
+.pf2-hist-diff-to { color: var(--fresh); margin-top: 4px; display: block; }
+.pf2-hist-diff-to::before { content: "+ "; }
+.pf2-hist-diff-from::before { content: "- "; text-decoration: none; display: inline; }
+
+/* Responsive */
+@media (max-width: 720px) {
+  .pf2-wrap { padding: 20px 20px 60px; }
+  .pf2-head { grid-template-columns: 1fr; }
+  .pf2-last-uq { grid-template-columns: 1fr; gap: 12px; }
+  .pf2-tri-head, .pf2-tri-row { grid-template-columns: 1fr; gap: 8px; }
+  .pf2-tri-head span { display: none; }
+  .pf2-tri-col { border-left: none; padding-left: 0; }
+  .pf2-cm-head, .pf2-cm-row { grid-template-columns: 1fr; gap: 6px; padding: 14px; }
+  .pf2-cm-head { display: none; }
+  .pf2-term-line { grid-template-columns: 140px 1fr; }
+  .pf2-term-line .pf2-term-tokens, .pf2-term-line .pf2-term-status { grid-column: 2; justify-self: start; }
+}

@@ -1,0 +1,699 @@
+/* ═══════════════════════════════════════════════════════════════
+   JARVIS — La conversation unique
+   ─────────────────────────────────────────────
+   Layout : split vertical 2/3 chat infini · 1/3 mémoire
+   Visual : typographie éditoriale comme le reste du cockpit, mais
+   avec des respirations généreuses et des séparateurs temporels qui
+   donnent l'impression d'une relation qui dure depuis des mois.
+   Pas de bulles colorées bordées — la distinction user/jarvis passe
+   par le rail latéral et la texture.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Layout principal ──────────────────────────────────── */
+.jv-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  height: calc(100vh - 41px); /* match app shell height */
+  min-height: 720px;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 880px) {
+  .jv-wrap { grid-template-columns: minmax(0, 1fr) !important; }
+  .jv-wrap .jv-memory { display: none !important; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   CHAT COLUMN
+   ══════════════════════════════════════════════════════════ */
+.jv-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* critical for flex children to scroll */
+  border-right: 1px solid var(--bd);
+}
+
+/* ── Chat header ─────────────────────────────────────────── */
+.jv-header {
+  flex-shrink: 0;
+  padding: 16px 36px 14px;
+  border-bottom: 1px solid var(--bd);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--bg);
+}
+.jv-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.jv-header-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tx2);
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+.jv-header-eyebrow::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--positive);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--positive) 18%, transparent);
+  animation: jv-pulse 2.4s ease-in-out infinite;
+}
+@keyframes jv-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.jv-header-title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--tx);
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.2;
+}
+.jv-header-title em {
+  font-style: italic;
+  color: var(--brand);
+}
+.jv-header-meta {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--tx2);
+  letter-spacing: 0.02em;
+}
+.jv-header-meta strong {
+  color: var(--tx);
+  font-weight: 500;
+}
+.jv-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.jv-iconbtn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--bd);
+  background: var(--bg);
+  color: var(--tx2);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 140ms;
+}
+.jv-iconbtn:hover {
+  color: var(--tx);
+  border-color: var(--tx2);
+}
+
+/* ── Scroll area ────────────────────────────────────────── */
+.jv-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 28px 0 20px;
+  scroll-behavior: smooth;
+}
+.jv-scroll::-webkit-scrollbar { width: 10px; }
+.jv-scroll::-webkit-scrollbar-track { background: transparent; }
+.jv-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--tx3) 40%, transparent);
+  border-radius: 10px;
+  border: 3px solid var(--bg);
+}
+
+.jv-feed {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 36px;
+}
+
+/* ── Temporal stamp (séparateur de jour) ─────────────────── */
+.jv-stamp {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 38px 0 28px;
+  padding: 0 4px;
+}
+.jv-stamp:first-child { margin-top: 0; }
+.jv-stamp-line {
+  flex: 1;
+  height: 1px;
+  background: var(--bd);
+}
+.jv-stamp-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx3);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Messages ────────────────────────────────────────────── */
+.jv-msg {
+  margin: 0 0 22px;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 16px;
+  align-items: flex-start;
+}
+.jv-msg--user .jv-avatar {
+  background: var(--tx);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.jv-msg--jarvis .jv-avatar {
+  background: transparent;
+  color: var(--brand);
+  border: 1px solid var(--brand);
+}
+.jv-msg--aside {
+  opacity: 0.85;
+}
+.jv-msg--aside .jv-bubble {
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+  border-left: 2px solid var(--brand);
+  padding: 14px 16px;
+  font-style: italic;
+  color: var(--tx2);
+  margin-left: 0;
+}
+
+.jv-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.jv-avatar svg { width: 15px; height: 15px; }
+
+.jv-bubble {
+  min-width: 0;
+  padding: 4px 0 8px;
+  color: var(--tx);
+  font-size: 15px;
+  line-height: 1.6;
+  font-family: var(--font-sans);
+  letter-spacing: -0.002em;
+}
+.jv-bubble p {
+  margin: 0 0 10px;
+}
+.jv-bubble p:last-child { margin-bottom: 0; }
+.jv-bubble strong {
+  font-weight: 600;
+  color: var(--tx);
+}
+.jv-bubble em {
+  font-style: italic;
+  color: var(--tx2);
+}
+.jv-bubble code {
+  font-family: var(--font-mono);
+  background: var(--bg2);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+.jv-bubble ol, .jv-bubble ul {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+.jv-bubble li {
+  margin-bottom: 4px;
+}
+
+.jv-meta {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+  flex-wrap: wrap;
+}
+.jv-msg:hover .jv-meta-actions { opacity: 1; }
+.jv-meta-actions {
+  display: inline-flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 140ms;
+}
+.jv-meta-actions button {
+  background: none;
+  border: none;
+  color: var(--tx3);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.jv-meta-actions button:hover { color: var(--tx); }
+
+/* Citations ─ pills under a jarvis message */
+.jv-cites {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.jv-cite {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 10px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--tx2);
+  cursor: pointer;
+  transition: all 140ms;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jv-cite:hover {
+  border-color: var(--tx2);
+  color: var(--tx);
+  background: var(--bg);
+}
+.jv-cite-type {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+  padding-right: 8px;
+  border-right: 1px solid var(--bd);
+}
+
+/* Challenging — quand Jarvis "push back" */
+.jv-msg--challenging .jv-bubble {
+  position: relative;
+}
+.jv-msg--challenging .jv-bubble::before {
+  content: "Challenge";
+  position: absolute;
+  left: 0;
+  top: -18px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--alert, #b8956a);
+  font-weight: 500;
+}
+
+/* ══════════════════════════════════════════════════════════
+   COMPOSER (sticky at bottom)
+   ══════════════════════════════════════════════════════════ */
+.jv-composer-wrap {
+  flex-shrink: 0;
+  padding: 10px 36px 16px;
+  background: var(--bg);
+  border-top: 1px solid var(--bd);
+  position: relative;
+  z-index: 5;
+}
+.jv-composer-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.jv-prompts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin-bottom: 8px;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.jv-prompts::-webkit-scrollbar { display: none; }
+.jv-prompt {
+  padding: 5px 11px;
+  background: transparent;
+  border: 1px solid var(--bd);
+  border-radius: 100px;
+  font-size: 11.5px;
+  color: var(--tx2);
+  cursor: pointer;
+  transition: all 140ms;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.jv-prompt:hover {
+  border-color: var(--tx);
+  color: var(--tx);
+  background: var(--bg2);
+}
+
+.jv-composer {
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 10px 10px 10px 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: all 160ms;
+}
+.jv-composer:focus-within {
+  border-color: var(--tx2);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+.jv-composer textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--tx);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  padding: 8px 4px;
+  min-height: 24px;
+  max-height: 240px;
+}
+.jv-composer textarea::placeholder {
+  color: var(--tx3);
+}
+.jv-composer-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.jv-composer-actions .jv-iconbtn {
+  width: 34px; height: 34px;
+}
+.jv-send {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--tx);
+  color: var(--bg);
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 140ms;
+}
+.jv-send:hover { background: var(--brand); }
+.jv-send:disabled {
+  background: var(--tx3);
+  cursor: not-allowed;
+}
+
+.jv-composer-foot {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--tx3);
+  letter-spacing: 0.02em;
+  padding: 0 4px;
+}
+.jv-kbd {
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 9.5px;
+  color: var(--tx2);
+}
+
+/* ══════════════════════════════════════════════════════════
+   MEMORY COLUMN
+   ══════════════════════════════════════════════════════════ */
+.jv-memory {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg2);
+  position: relative;
+}
+
+.jv-mem-header {
+  flex-shrink: 0;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--bd);
+}
+.jv-mem-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tx2);
+  margin-bottom: 8px;
+}
+.jv-mem-title {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--tx);
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.jv-mem-title em {
+  font-style: italic;
+  color: var(--brand);
+}
+.jv-mem-sub {
+  font-size: 12.5px;
+  color: var(--tx2);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Filter bar */
+.jv-mem-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--bd);
+  flex-shrink: 0;
+  background: var(--bg2);
+}
+.jv-mem-filter {
+  padding: 4px 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tx2);
+  cursor: pointer;
+  transition: all 140ms;
+}
+.jv-mem-filter:hover { color: var(--tx); }
+.jv-mem-filter.is-active {
+  background: var(--tx);
+  color: var(--bg);
+}
+.jv-mem-filter-count {
+  margin-left: 4px;
+  opacity: 0.6;
+  font-size: 9px;
+}
+
+/* Memory scroll */
+.jv-mem-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 0 16px;
+}
+.jv-mem-scroll::-webkit-scrollbar { width: 8px; }
+.jv-mem-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--tx3) 40%, transparent);
+  border-radius: 10px;
+  border: 2px solid var(--bg2);
+}
+
+.jv-mem-group {
+  padding: 14px 24px 4px;
+}
+.jv-mem-group-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx3);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.jv-mem-group-count {
+  color: var(--tx3);
+  opacity: 0.6;
+}
+
+.jv-mem-item {
+  padding: 10px 24px 12px;
+  border-bottom: 1px solid var(--bd);
+  cursor: pointer;
+  transition: background 140ms;
+  position: relative;
+}
+.jv-mem-item:hover {
+  background: var(--bg);
+}
+.jv-mem-item.is-pinned::before {
+  content: "";
+  position: absolute;
+  left: 24px;
+  top: 14px;
+  width: 6px; height: 6px;
+  background: var(--brand);
+  border-radius: 50%;
+}
+.jv-mem-item.is-pinned { padding-left: 38px; }
+.jv-mem-item-label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx);
+  margin-bottom: 3px;
+  letter-spacing: 0.01em;
+}
+.jv-mem-item-value {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--tx);
+  margin: 0 0 7px;
+  font-family: var(--font-sans);
+}
+.jv-mem-item-value em {
+  font-style: italic;
+  color: var(--tx2);
+}
+.jv-mem-item-foot {
+  display: flex;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--tx3);
+  text-transform: lowercase;
+  align-items: center;
+}
+.jv-mem-item-strength {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+.jv-mem-item-strength-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--tx3);
+}
+.jv-mem-item-strength--strong .jv-mem-item-strength-dot { background: var(--tx); }
+.jv-mem-item-strength--medium .jv-mem-item-strength-dot:nth-child(1),
+.jv-mem-item-strength--medium .jv-mem-item-strength-dot:nth-child(2) {
+  background: var(--tx);
+}
+
+/* Memory footer */
+.jv-mem-foot {
+  flex-shrink: 0;
+  border-top: 1px solid var(--bd);
+  padding: 14px 24px;
+  background: var(--bg2);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  color: var(--tx2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.jv-mem-foot-link {
+  color: var(--tx);
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--tx3);
+}
+.jv-mem-foot-link:hover { text-decoration-color: var(--tx); }
+
+/* ══════════════════════════════════════════════════════════
+   EXPANDED MEMORY (inline edit state)
+   ══════════════════════════════════════════════════════════ */
+.jv-mem-item.is-expanded {
+  background: var(--bg);
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.jv-mem-item.is-expanded .jv-mem-item-value {
+  white-space: normal;
+}
+.jv-mem-expand {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+}
+.jv-mem-expand button {
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--bd);
+  background: var(--bg);
+  color: var(--tx2);
+  cursor: pointer;
+  border-radius: 3px;
+}
+.jv-mem-expand button:hover {
+  color: var(--tx);
+  border-color: var(--tx2);
+}
+.jv-mem-expand button.is-danger:hover {
+  color: var(--alert, #b8956a);
+  border-color: var(--alert, #b8956a);
+}
