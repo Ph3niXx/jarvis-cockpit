@@ -752,6 +752,298 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
   font-family:var(--mono);font-size:11px;color:var(--tx3);text-align:right;
 }
 
+/* ══════════════════════════════════════════════════════════
+   PANEL : MA SEMAINE — factuel + éditorial
+   ══════════════════════════════════════════════════════════ */
+.week-wrap{padding:32px 0 48px;display:flex;flex-direction:column;gap:40px}
+.week-stats-row{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:0;
+  border:1px solid var(--bd);border-radius:var(--radius-lg);
+  overflow:hidden;background:var(--surface);
+}
+@media(max-width:1100px){.week-stats-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.week-stats-row{grid-template-columns:repeat(2,1fr)}}
+.week-stat{
+  padding:18px 20px;display:flex;flex-direction:column;gap:6px;
+  border-right:1px solid var(--bd);background:var(--surface);
+}
+.week-stat:last-child{border-right:none}
+.week-stat--accent{background:var(--brand-tint)}
+.week-stat-label{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.week-stat-value-row{display:flex;align-items:baseline;gap:4px}
+.week-stat-value{
+  font-family:var(--display);font-size:30px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.03em;color:var(--tx);line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.week-stat--accent .week-stat-value{color:var(--brand)}
+.week-stat-unit{font-size:13px;color:var(--tx3);font-family:var(--mono)}
+.week-stat-delta{
+  font-family:var(--mono);font-size:10px;color:var(--tx3);
+  font-variant-numeric:tabular-nums;
+}
+.week-stat-delta.is-up{color:var(--positive)}
+.week-stat-delta.is-down{color:var(--danger)}
+
+.week-section{display:flex;flex-direction:column;gap:16px}
+.week-section-head{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+}
+.week-updated{
+  font-family:var(--mono);font-size:11px;color:var(--tx3);
+  font-variant-numeric:tabular-nums;
+}
+.section-kicker{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);margin-bottom:6px;
+}
+.section-title{
+  font-family:var(--display);font-size:24px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.02em;line-height:1.2;color:var(--tx);
+}
+
+.week-split{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+@media(max-width:1000px){.week-split{grid-template-columns:1fr}}
+
+/* Day strip (7 day cards) */
+.day-strip{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:8px;
+}
+@media(max-width:900px){.day-strip{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}}
+.day-card{
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  padding:16px 14px;display:flex;flex-direction:column;gap:12px;
+  transition:border-color 160ms;
+}
+.day-card:hover{border-color:var(--bd2)}
+.day-card.is-today{
+  border-color:var(--brand);
+  box-shadow:0 0 0 3px var(--brand-tint);
+}
+.day-card.is-future{opacity:.45}
+.day-card-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding-bottom:8px;border-bottom:1px solid var(--bd);
+}
+.day-card-day{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx2);font-weight:600;
+}
+.day-card.is-today .day-card-day{color:var(--brand)}
+.day-card-num{
+  font-family:var(--display);font-size:18px;color:var(--tx3);font-weight:500;
+  font-variation-settings:"opsz" 144;letter-spacing:-.02em;
+}
+.day-card-rows{display:flex;flex-direction:column;gap:7px}
+.day-card-row{
+  display:grid;grid-template-columns:58px 42px 1fr;gap:6px;align-items:center;
+  font-family:var(--mono);font-size:10px;
+}
+.day-card-row-label{color:var(--tx3);text-transform:uppercase;letter-spacing:.08em}
+.day-card-row-val{color:var(--tx);font-variant-numeric:tabular-nums;text-align:right}
+.day-card-row-bar{
+  height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;
+  position:relative;
+}
+.day-card-row-fill{
+  display:block;height:100%;border-radius:2px;
+  background:var(--tx2);transition:width 400ms;
+}
+.day-card-row-fill[data-color="brand"]{background:var(--brand)}
+.day-card-row-fill[data-color="positive"]{background:var(--positive)}
+.day-card-row-fill[data-color="neutral"]{background:var(--tx2)}
+.day-card-row-fill[data-color="warn"]{background:var(--warning)}
+
+/* Reading chart */
+.week-chart{
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  padding:24px;
+  display:grid;grid-template-columns:36px 1fr;gap:12px;
+  height:240px;position:relative;
+}
+.week-chart-grid{
+  display:flex;flex-direction:column;justify-content:space-between;
+  font-family:var(--mono);font-size:10px;color:var(--tx3);
+  text-align:right;padding-right:4px;font-variant-numeric:tabular-nums;
+}
+.week-chart-bars{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:8px;
+  align-items:end;position:relative;
+  border-bottom:1px solid var(--bd);
+}
+.week-chart-bars::before{
+  content:'';position:absolute;left:0;right:0;top:50%;height:1px;
+  background:var(--bd);opacity:.5;pointer-events:none;
+}
+.week-chart-col{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  height:100%;position:relative;z-index:1;
+}
+.week-chart-bar-wrap{
+  flex:1;display:flex;flex-direction:column;justify-content:flex-end;
+  width:100%;max-width:44px;min-height:0;
+}
+.week-chart-bar{
+  width:100%;background:var(--tx2);opacity:.22;
+  border-radius:3px 3px 0 0;min-height:4px;
+  display:flex;align-items:flex-start;justify-content:center;padding-top:4px;
+  transition:height 400ms cubic-bezier(.2,.8,.2,1),opacity 200ms,background 200ms;
+  position:relative;
+}
+.week-chart-col:hover .week-chart-bar{opacity:.5}
+.week-chart-col.is-peak .week-chart-bar,
+.week-chart-col.is-today .week-chart-bar{background:var(--brand);opacity:1}
+.week-chart-bar-val{
+  position:absolute;top:-18px;left:0;right:0;text-align:center;
+  font-family:var(--display);font-size:12px;color:var(--tx2);
+  font-weight:500;font-variant-numeric:tabular-nums;
+}
+.week-chart-col.is-peak .week-chart-bar-val,
+.week-chart-col.is-today .week-chart-bar-val{color:var(--brand);font-weight:600}
+.week-chart-day{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.week-chart-col.is-today .week-chart-day{color:var(--brand);font-weight:600}
+
+/* Theme cloud */
+.theme-cloud{
+  display:flex;flex-direction:column;gap:8px;
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  padding:20px 24px;
+}
+.theme-chip{
+  display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
+  padding:8px 0;position:relative;
+  border-bottom:1px solid var(--bd);
+}
+.theme-chip:last-child{border-bottom:none}
+.theme-chip-label{
+  font-family:var(--font);font-size:13px;color:var(--tx);font-weight:500;
+  text-transform:lowercase;letter-spacing:-.005em;z-index:1;
+}
+.theme-chip-weight{
+  font-family:var(--mono);font-size:11px;color:var(--tx2);
+  font-variant-numeric:tabular-nums;z-index:1;
+}
+.theme-chip-bar{
+  position:absolute;left:0;right:auto;top:0;bottom:0;
+  background:var(--brand-tint);border-radius:4px;z-index:0;
+}
+.theme-chip--brand .theme-chip-bar{background:var(--brand-tint)}
+.theme-chip--neutral .theme-chip-bar{background:var(--bg2)}
+.theme-chip--alert .theme-chip-bar{background:var(--danger-bg)}
+
+/* Top list */
+.week-top-list{
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  display:flex;flex-direction:column;
+}
+.week-top-item{
+  display:grid;grid-template-columns:48px 1fr 64px;gap:16px;align-items:center;
+  padding:16px 20px;border-bottom:1px solid var(--bd);
+  cursor:pointer;transition:background 120ms;
+}
+.week-top-item:last-child{border-bottom:none}
+.week-top-item:hover{background:var(--bg2)}
+.week-top-day{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);text-align:center;
+}
+.week-top-body{min-width:0}
+.week-top-title{
+  font-family:var(--display);font-size:16px;font-weight:500;
+  font-variation-settings:"opsz" 144;letter-spacing:-.01em;line-height:1.3;
+  color:var(--tx);margin-bottom:4px;
+}
+.week-top-meta{font-family:var(--mono);font-size:10.5px;color:var(--tx3);letter-spacing:.08em}
+.week-top-time{
+  font-family:var(--display);font-size:18px;font-weight:500;
+  color:var(--brand);font-variant-numeric:tabular-nums;text-align:right;
+}
+
+/* Perso grid */
+.week-perso-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+}
+@media(max-width:1000px){.week-perso-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.week-perso-grid{grid-template-columns:1fr}}
+.week-perso-card{
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius-lg);
+  padding:20px;display:flex;flex-direction:column;gap:4px;
+  transition:border-color 160ms;
+}
+.week-perso-card:hover{border-color:var(--bd2)}
+.week-perso-icon{color:var(--brand);margin-bottom:8px}
+.week-perso-icon svg{width:18px;height:18px}
+.week-perso-big{
+  font-family:var(--display);font-size:30px;font-weight:500;
+  font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.03em;color:var(--tx);line-height:1;
+  font-variant-numeric:tabular-nums;
+  display:flex;align-items:baseline;gap:3px;
+}
+.week-perso-big-unit{font-size:15px;color:var(--tx3);font-family:var(--mono)}
+.week-perso-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);
+}
+.week-perso-note{font-size:12px;color:var(--tx2);line-height:1.5;margin-top:2px}
+
+/* Editorial mode */
+.week-wrap--edito{padding:40px 0 60px;align-items:center}
+.week-edito{max-width:72ch;margin:0 auto;color:var(--tx)}
+.week-edito-date{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--brand);margin-bottom:14px;
+}
+.week-edito-title{
+  font-family:var(--display);font-size:clamp(28px,3.4vw,40px);
+  font-weight:500;font-variation-settings:"opsz" 144,"wght" 500;
+  letter-spacing:-.025em;line-height:1.15;color:var(--tx);
+  margin-bottom:24px;text-wrap:balance;font-style:italic;
+}
+.week-edito-lede{
+  font-size:18px;line-height:1.65;color:var(--tx2);
+  margin-bottom:24px;font-family:var(--display);
+  font-variation-settings:"opsz" 144;
+}
+.week-edito-pullquote{
+  font-family:var(--display);font-size:22px;font-style:italic;
+  line-height:1.4;color:var(--brand);
+  border-left:3px solid var(--brand);padding:10px 0 10px 24px;
+  margin:24px 0;
+  font-variation-settings:"opsz" 144;
+}
+.week-edito-body{font-size:15.5px;line-height:1.7;color:var(--tx2);margin-bottom:20px}
+.week-edito-h3{
+  font-family:var(--display);font-size:20px;font-weight:500;
+  font-variation-settings:"opsz" 144;
+  color:var(--tx);margin:28px 0 12px;
+}
+.week-edito-nums{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:20px;
+  padding:20px 0;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);
+  margin:16px 0 24px;
+}
+@media(max-width:600px){.week-edito-nums{grid-template-columns:repeat(2,1fr)}}
+.week-edito-nums div{display:flex;flex-direction:column;gap:2px}
+.week-edito-nums strong{
+  font-family:var(--display);font-size:26px;font-weight:500;
+  font-variation-settings:"opsz" 144;
+  color:var(--tx);letter-spacing:-.02em;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.week-edito-nums span{
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);
+}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
@@ -2289,29 +2581,96 @@ body.deep-work .count{display:none!important}
   </div>
 
   <!-- MY WEEK -->
-  <div class="panel" role="tabpanel" id="panel-myweek">
-    <div class="page-header">
-      <div class="page-title">Ma semaine</div>
-      <div class="page-subtitle">Ce que tu as appris et fait cette semaine.</div>
-      <div class="myweek-nav">
-        <button class="myweek-nav-btn" onclick="changeWeek(-1)" aria-label="Semaine précédente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
-        <span id="myweek-range" class="myweek-range">—</span>
-        <button class="myweek-nav-btn" onclick="changeWeek(1)" aria-label="Semaine suivante"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+  <div class="panel panel-page" role="tabpanel" id="panel-myweek">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow"><span id="myweek-eyebrow">Ma semaine</span></div>
+      <h1 class="panel-hero-title">Ce que tu as <em>lu, appris, vécu</em> cette semaine</h1>
+      <p class="panel-hero-sub">Vue d'ensemble — veille IA, sport, musique, gaming, notes. Deux modes de lecture : factuel (dashboard) ou éditorial (raconté).</p>
+    </div>
+
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-label">Mode</span>
+      <div class="panel-toolbar-group" id="myweek-mode-group">
+        <button class="pill is-active" data-mode="factuel">Factuel</button>
+        <button class="pill" data-mode="edito">Éditorial</button>
+      </div>
+      <span class="panel-toolbar-divider"></span>
+      <span class="panel-toolbar-label">Semaine</span>
+      <div class="panel-toolbar-group">
+        <button class="pill" onclick="changeWeek(-1)" aria-label="Semaine précédente">‹</button>
+        <button class="pill is-active" id="myweek-range" style="min-width:140px">—</button>
+        <button class="pill" onclick="changeWeek(1)" aria-label="Semaine suivante">›</button>
       </div>
     </div>
-    <div class="myweek-kpis" id="myweek-kpis"></div>
-    <div class="myweek-streak" id="myweek-streak"></div>
-    <div class="myweek-section">
-      <h2 class="myweek-section-title">Activité quotidienne</h2>
-      <div id="myweek-activity"></div>
+
+    <div class="week-wrap" id="myweek-factuel">
+      <div class="week-stats-row" id="myweek-stats"></div>
+
+      <section class="week-section">
+        <div class="week-section-head">
+          <div>
+            <div class="section-kicker">Activité quotidienne</div>
+            <h2 class="section-title">Ta semaine, jour par jour</h2>
+          </div>
+        </div>
+        <div class="day-strip" id="myweek-daystrip"></div>
+      </section>
+
+      <div class="week-split">
+        <section class="week-section">
+          <div class="week-section-head">
+            <div>
+              <div class="section-kicker">Lectures · 7 jours</div>
+              <h2 class="section-title">Rythme de veille</h2>
+            </div>
+            <span class="week-updated" id="myweek-chart-meta"></span>
+          </div>
+          <div class="week-chart" id="myweek-chart"></div>
+        </section>
+
+        <section class="week-section">
+          <div class="week-section-head">
+            <div>
+              <div class="section-kicker">Thèmes dominants</div>
+              <h2 class="section-title">De quoi ta semaine a parlé</h2>
+            </div>
+          </div>
+          <div class="theme-cloud" id="myweek-themes"></div>
+        </section>
+      </div>
+
+      <section class="week-section">
+        <div class="week-section-head">
+          <div>
+            <div class="section-kicker">Top lectures</div>
+            <h2 class="section-title">Les articles que tu as creusés</h2>
+          </div>
+        </div>
+        <div class="week-top-list" id="myweek-top-list"></div>
+      </section>
+
+      <section class="week-section">
+        <div class="week-section-head">
+          <div>
+            <div class="section-kicker">Côté perso</div>
+            <h2 class="section-title">Hors veille</h2>
+          </div>
+        </div>
+        <div class="week-perso-grid" id="myweek-perso"></div>
+      </section>
     </div>
-    <div class="myweek-section">
-      <h2 class="myweek-section-title">Top sujets</h2>
-      <div id="myweek-topics"></div>
-    </div>
-    <div class="myweek-section">
-      <h2 class="myweek-section-title">Faits marquants</h2>
-      <div id="myweek-highlights"></div>
+
+    <div class="week-wrap week-wrap--edito" id="myweek-edito" style="display:none">
+      <article class="week-edito">
+        <div class="week-edito-date" id="myweek-edito-date">—</div>
+        <h2 class="week-edito-title" id="myweek-edito-title">—</h2>
+        <p class="week-edito-lede" id="myweek-edito-lede">—</p>
+        <div class="week-edito-pullquote" id="myweek-edito-quote">—</div>
+        <p class="week-edito-body" id="myweek-edito-body">—</p>
+        <h3 class="week-edito-h3">Chiffres de la semaine</h3>
+        <div class="week-edito-nums" id="myweek-edito-nums"></div>
+        <p class="week-edito-body" id="myweek-edito-close">—</p>
+      </article>
     </div>
   </div>
 
@@ -3626,141 +3985,270 @@ function renderVeilleScore(){
   });});
 }
 
+let _myweekMode='factuel';
+function _weekLabel(monday,sunday){
+  const o={day:'numeric',month:'short'};
+  const m=monday.toLocaleDateString('fr-FR',o);
+  const s=sunday.toLocaleDateString('fr-FR',o);
+  return `S${String(_isoWeek(monday)).padStart(2,'0')} · ${m.charAt(0).toUpperCase()+m.slice(1)} → ${s.charAt(0).toUpperCase()+s.slice(1)}`;
+}
 async function loadMyWeek(){
   const{monday,sunday}=_getWeekBounds(myWeekOffset);
   const days=_weekDays(monday);
-  const monStr=_dateFmt(monday),sunStr=_dateFmt(sunday);
-  document.getElementById('myweek-range').textContent=`${monStr} — ${sunStr}`;
+  const dayLabelsShort=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  const dayLabelsLong={Lun:'Lundi',Mar:'Mardi',Mer:'Mercredi',Jeu:'Jeudi',Ven:'Vendredi',Sam:'Samedi',Dim:'Dimanche'};
 
-  // Disable next week if it would be in the future
+  const rangeLabel=_weekLabel(monday,sunday);
+  const rangeEl=document.getElementById('myweek-range');
+  if(rangeEl)rangeEl.textContent=rangeLabel;
+  const eyebrowEl=document.getElementById('myweek-eyebrow');
+  if(eyebrowEl)eyebrowEl.textContent=`Ma semaine · ${rangeLabel}`;
+
   const today=new Date();today.setHours(0,0,0,0);
-  const nextMonday=new Date(monday);nextMonday.setDate(monday.getDate()+7);
-  document.querySelector('.myweek-nav-btn:last-child').disabled=nextMonday>today;
+  const todayIso=today.toISOString().split('T')[0];
+  const todayIdx=days.indexOf(todayIso);
 
-  // Show loading
-  document.getElementById('myweek-kpis').innerHTML='<div class="empty" style="grid-column:1/-1">Chargement des données...</div>';
-  document.getElementById('myweek-streak').textContent='';
-  document.getElementById('myweek-activity').innerHTML='';
-  document.getElementById('myweek-topics').innerHTML='';
-  document.getElementById('myweek-highlights').innerHTML='';
+  // Loading placeholders
+  const setLoad=id=>{const el=document.getElementById(id); if(el) el.innerHTML='<div style="padding:24px;color:var(--tx3);font-size:13px">Chargement…</div>';};
+  ['myweek-stats','myweek-daystrip','myweek-chart','myweek-themes','myweek-top-list','myweek-perso'].forEach(setLoad);
 
   try{
-    // Fetch articles for the week
-    const articles=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?select=id,title,fetch_date,section,source&fetch_date=gte.${days[0]}&fetch_date=lte.${days[6]}&order=fetch_date.asc&limit=500`);
+    // Parallel fetches
+    const [articles, stravaAct, musicDaily, gamingDaily] = await Promise.all([
+      fetchJSON(`${SUPABASE_URL}/rest/v1/articles?select=id,title,fetch_date,section,source&fetch_date=gte.${days[0]}&fetch_date=lte.${days[6]}&order=fetch_date.asc&limit=500`),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/strava_activities?select=start_date,sport_type,moving_time_s,distance_m&start_date=gte.${days[0]}&start_date=lte.${days[6]}T23:59:59&limit=100`).catch(()=>[]),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/music_stats_daily?select=stat_date,scrobble_count,listening_minutes,top_artist&stat_date=gte.${days[0]}&stat_date=lte.${days[6]}&limit=14`).catch(()=>[]),
+      fetchJSON(`${SUPABASE_URL}/rest/v1/gaming_stats_daily?select=stat_date,total_playtime_minutes,top_game_name&stat_date=gte.${days[0]}&stat_date=lte.${days[6]}&limit=14`).catch(()=>[]),
+    ]);
 
-    // Group articles by day
-    const byDay={};
-    days.forEach(d=>byDay[d]=[]);
+    const byDay={};days.forEach(d=>byDay[d]=[]);
     articles.forEach(a=>{if(byDay[a.fetch_date])byDay[a.fetch_date].push(a);});
 
-    // Read articles tracker
     const readMap=getReadArticles();
     const readThisWeek=articles.filter(a=>!!readMap[a.id]);
-
-    // Actions tracker
-    const actions=JSON.parse(localStorage.getItem(_ACT_KEY)||'{}');
-    const signalsDug=Object.keys(actions).filter(k=>k.startsWith('dig-')&&actions[k]).length;
-    const oppsFollowed=Object.keys(actions).filter(k=>k.startsWith('follow-')&&actions[k]).length;
-
-    // Veille score: % of articles read this week
-    const totalArticles=articles.length;
-    const readCount=readThisWeek.length;
-    const veilleScore=totalArticles>0?Math.round((readCount/totalArticles)*100):0;
-
-    // Daily sparkline data (articles per day)
     const dailyCounts=days.map(d=>byDay[d].length);
     const dailyRead=days.map(d=>byDay[d].filter(a=>!!readMap[a.id]).length);
+    const totalArticles=articles.length;
+    const readCount=readThisWeek.length;
+    const readingMin=Math.round(readCount*2.5);
+    const streak=getStreak();
 
-    // ── KPIs ──
-    const kpis=[
-      {label:'Articles lus',value:readCount,spark:dailyRead},
-      {label:'Signaux creusés',value:signalsDug,spark:null},
-      {label:'Opps suivies',value:oppsFollowed,spark:null},
-      {label:'Score veille',value:`${veilleScore}%`,spark:dailyCounts}
+    // Sport by day (workout count + minutes)
+    const sportByDay={};days.forEach(d=>sportByDay[d]={done:0,min:0});
+    (stravaAct||[]).forEach(a=>{
+      const d=(a.start_date||'').split('T')[0];
+      if(sportByDay[d]){sportByDay[d].done++;sportByDay[d].min+=Math.round((a.moving_time_s||0)/60);}
+    });
+    const workoutsDone=Object.values(sportByDay).reduce((s,x)=>s+(x.done>0?1:0),0);
+
+    // Music by day
+    const musicByDay={};days.forEach(d=>musicByDay[d]={min:0,scrobbles:0,top:''});
+    (musicDaily||[]).forEach(r=>{if(musicByDay[r.stat_date]){musicByDay[r.stat_date].min=r.listening_minutes||0;musicByDay[r.stat_date].scrobbles=r.scrobble_count||0;musicByDay[r.stat_date].top=r.top_artist||'';}});
+    const musicTotalMin=Object.values(musicByDay).reduce((s,x)=>s+x.min,0);
+    const topArtist=(musicDaily||[]).sort((a,b)=>(b.scrobble_count||0)-(a.scrobble_count||0))[0]?.top_artist||'—';
+
+    // Gaming by day
+    const gameByDay={};days.forEach(d=>gameByDay[d]={min:0,top:''});
+    (gamingDaily||[]).forEach(r=>{if(gameByDay[r.stat_date]){gameByDay[r.stat_date].min=r.total_playtime_minutes||0;gameByDay[r.stat_date].top=r.top_game_name||'';}});
+    const gameTotalMin=Object.values(gameByDay).reduce((s,x)=>s+x.min,0);
+    const topGame=(gamingDaily||[]).sort((a,b)=>(b.total_playtime_minutes||0)-(a.total_playtime_minutes||0))[0]?.top_game_name||'—';
+
+    // ── Stats row ──
+    const stats=[
+      {label:'Articles lus',value:readCount,accent:true},
+      {label:'Temps lecture',value:Math.floor(readingMin/60),unit:`h${String(readingMin%60).padStart(2,'0')}`},
+      {label:'Streak veille',value:streak,unit:'j'},
+      {label:'Articles vus',value:totalArticles},
+      {label:'Séances sport',value:workoutsDone},
+      {label:'Musique',value:Math.floor(musicTotalMin/60),unit:`h${String(musicTotalMin%60).padStart(2,'0')}`},
     ];
-    document.getElementById('myweek-kpis').innerHTML=kpis.map(k=>`
-      <div class="kpi-card">
-        <div class="kpi-label">${k.label}</div>
-        <div class="kpi-value">${k.value}</div>
-        ${k.spark?`<div class="kpi-sparkline">${createSparkline(k.spark,60,20)}</div>`:''}
+    document.getElementById('myweek-stats').innerHTML=stats.map(s=>`
+      <div class="week-stat${s.accent?' week-stat--accent':''}">
+        <div class="week-stat-label">${s.label}</div>
+        <div class="week-stat-value-row">
+          <span class="week-stat-value">${s.value}</span>
+          ${s.unit?`<span class="week-stat-unit">${s.unit}</span>`:''}
+        </div>
       </div>`).join('');
 
-    // ── Streak ──
-    const streak=getStreak();
-    const streakEl=document.getElementById('myweek-streak');
-    if(streak>0){
-      const fire=streak>=7?'<svg class="icon" aria-hidden="true"><use href="#icon-flame"/></svg><svg class="icon" aria-hidden="true"><use href="#icon-flame"/></svg><svg class="icon" aria-hidden="true"><use href="#icon-flame"/></svg>':streak>=3?'<svg class="icon" aria-hidden="true"><use href="#icon-flame"/></svg><svg class="icon" aria-hidden="true"><use href="#icon-flame"/></svg>':'<svg class="icon" aria-hidden="true"><use href="#icon-flame"/></svg>';
-      streakEl.innerHTML=`${fire} <strong>${streak} jour${streak>1?'s':''}</strong> de suite sur le cockpit`;
-    }else{
-      streakEl.innerHTML='Reviens demain pour démarrer une série !';
-    }
-
-    // ── Activity bars (Mon-Sun) ──
-    const dayLabels=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-    const maxDay=Math.max(...dailyCounts,1);
-    document.getElementById('myweek-activity').innerHTML=days.map((d,i)=>{
-      const count=dailyCounts[i];
-      const read=dailyRead[i];
-      const pct=Math.round((count/maxDay)*100);
-      return `<div class="activity-bar">
-        <span class="activity-bar-label">${dayLabels[i]}</span>
-        <div class="activity-bar-track"><div class="activity-bar-fill" style="width:${pct}%"></div></div>
-        <span class="activity-bar-value">${count} article${count>1?'s':''} · ${read} lu${read>1?'s':''}</span>
+    // ── Day strip ──
+    const maxesRead=Math.max(...dailyCounts,1);
+    const maxesMusic=Math.max(...Object.values(musicByDay).map(x=>x.min),1);
+    const maxesGame=Math.max(...Object.values(gameByDay).map(x=>x.min),1);
+    document.getElementById('myweek-daystrip').innerHTML=days.map((dISO,i)=>{
+      const d=dayLabelsShort[i];
+      const read=dailyCounts[i];
+      const sport=sportByDay[dISO];
+      const music=musicByDay[dISO];
+      const gaming=gameByDay[dISO];
+      const dayNum=new Date(dISO+'T12:00:00').getDate();
+      const isToday=dISO===todayIso;
+      const isPast=new Date(dISO)<today;
+      return `<div class="day-card ${isToday?'is-today':''} ${!isToday && !isPast?'is-future':''}">
+        <div class="day-card-head">
+          <span class="day-card-day">${dayLabelsLong[d]}</span>
+          <span class="day-card-num">${dayNum}</span>
+        </div>
+        <div class="day-card-rows">
+          <div class="day-card-row">
+            <span class="day-card-row-label">Veille</span>
+            <span class="day-card-row-val">${read>0?read+' art.':'—'}</span>
+            <span class="day-card-row-bar"><span class="day-card-row-fill" data-color="brand" style="width:${(read/maxesRead)*100}%"></span></span>
+          </div>
+          <div class="day-card-row">
+            <span class="day-card-row-label">Sport</span>
+            <span class="day-card-row-val">${sport.done?'✓':'—'}</span>
+            <span class="day-card-row-bar"><span class="day-card-row-fill" data-color="positive" style="width:${sport.done?100:0}%"></span></span>
+          </div>
+          <div class="day-card-row">
+            <span class="day-card-row-label">Musique</span>
+            <span class="day-card-row-val">${music.min>0?music.min+'′':'—'}</span>
+            <span class="day-card-row-bar"><span class="day-card-row-fill" data-color="neutral" style="width:${(music.min/maxesMusic)*100}%"></span></span>
+          </div>
+          <div class="day-card-row">
+            <span class="day-card-row-label">Gaming</span>
+            <span class="day-card-row-val">${gaming.min>0?gaming.min+'′':'—'}</span>
+            <span class="day-card-row-bar"><span class="day-card-row-fill" data-color="warn" style="width:${(gaming.min/maxesGame)*100}%"></span></span>
+          </div>
+        </div>
       </div>`;
     }).join('');
 
-    // ── Top topics ──
-    const wordFreq={};
-    articles.forEach(a=>{
-      if(!a.title)return;
-      const words=a.title.toLowerCase().replace(/['']/g,' ').split(/[\s\-_/,.:;!?()[\]{}]+/).filter(w=>w.length>2&&!_STOP_WORDS.has(w));
-      words.forEach(w=>{wordFreq[w]=(wordFreq[w]||0)+1;});
-    });
-    const topTopics=Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    if(topTopics.length){
-      document.getElementById('myweek-topics').innerHTML=topTopics.map(([word,count],i)=>`
-        <div class="topic-item">
-          <span class="topic-rank">${i+1}</span>
-          <span class="topic-name">${word}</span>
-          <span class="topic-count">${count} mention${count>1?'s':''}</span>
-        </div>`).join('');
-    }else{
-      document.getElementById('myweek-topics').innerHTML='<div class="empty">Pas assez de données cette semaine</div>';
-    }
+    // ── Reading chart ──
+    const maxC=Math.max(...dailyCounts,3);
+    const peakIdx=dailyCounts.indexOf(Math.max(...dailyCounts));
+    const ticks=[maxC, Math.round(maxC/2), 0];
+    const chartGrid=ticks.map(v=>`<div><span>${v}</span></div>`).join('');
+    const chartBars=days.map((dISO,i)=>{
+      const c=dailyCounts[i];
+      const isToday=dISO===todayIso;
+      const isPeak=i===peakIdx && c>0;
+      return `<div class="week-chart-col${isToday?' is-today':''}${isPeak&&!isToday?' is-peak':''}">
+        <div class="week-chart-bar-wrap">
+          <div class="week-chart-bar" style="height:${(c/maxC)*100}%">
+            <span class="week-chart-bar-val">${c}</span>
+          </div>
+        </div>
+        <span class="week-chart-day">${dayLabelsShort[i]}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('myweek-chart').innerHTML=`<div class="week-chart-grid">${chartGrid}</div><div class="week-chart-bars">${chartBars}</div>`;
+    const chartMeta=document.getElementById('myweek-chart-meta');
+    if(chartMeta)chartMeta.textContent=`${totalArticles} articles · ${Math.floor(readingMin/60)}h${String(readingMin%60).padStart(2,'0')}`;
 
-    // ── Highlights ──
-    const highlights=[];
-    // Best day
-    const bestDayIdx=dailyCounts.indexOf(Math.max(...dailyCounts));
-    if(dailyCounts[bestDayIdx]>0){
-      highlights.push(`<svg class="icon" aria-hidden="true"><use href="#icon-newspaper"/></svg> Meilleur jour : <strong>${dayLabels[bestDayIdx]}</strong> avec ${dailyCounts[bestDayIdx]} articles`);
-    }
-    // Total articles
-    highlights.push(`<svg class="icon" aria-hidden="true"><use href="#icon-activity"/></svg> ${totalArticles} articles cette semaine, ${readCount} lus`);
-    // Most active section
+    // ── Themes (by section) ──
     const sectionCounts={};
-    articles.forEach(a=>{sectionCounts[a.section]=(sectionCounts[a.section]||0)+1;});
-    const topSection=Object.entries(sectionCounts).sort((a,b)=>b[1]-a[1])[0];
-    if(topSection){
-      highlights.push(`<svg class="icon" aria-hidden="true"><use href="#icon-tag"/></svg> Section la plus active : <strong>${topSection[0]}</strong> (${topSection[1]} articles)`);
-    }
-    // Streak achievement
-    if(streak>=7) highlights.push('<svg class="icon" aria-hidden="true"><use href="#icon-trophy"/></svg> Série de 7 jours+ — tu es en feu !');
-    else if(streak>=3) highlights.push('✨ Série de 3 jours+ — continue comme ça !');
-    // Veille score comment
-    if(veilleScore>=80) highlights.push('<svg class="icon" aria-hidden="true"><use href="#icon-target"/></svg> Score veille excellent ('+veilleScore+'%) — rien ne t\'échappe');
-    else if(veilleScore>=50) highlights.push('<svg class="icon" aria-hidden="true"><use href="#icon-eye"/></svg> Score veille correct ('+veilleScore+'%) — tu couvres l\'essentiel');
-    else if(totalArticles>0) highlights.push('<svg class="icon" aria-hidden="true"><use href="#icon-lightbulb"/></svg> Score veille à '+veilleScore+'% — essaie de lire les briefs quotidiens');
+    articles.forEach(a=>{if(a.section)sectionCounts[a.section]=(sectionCounts[a.section]||0)+1;});
+    const sectionEntries=Object.entries(sectionCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const sectionTotal=sectionEntries.reduce((s,[,c])=>s+c,0)||1;
+    const sectionLabel={updates:'modèles',llm:'llms',agents:'agents',energy:'énergie',finserv:'finserv',tools:'outils',biz:'business',reg:'régulation',papers:'recherche'};
+    document.getElementById('myweek-themes').innerHTML=sectionEntries.length?sectionEntries.map(([s,count],i)=>{
+      const weight=Math.round((count/sectionTotal)*100);
+      const color=i===0?'brand':(s==='reg'?'alert':'neutral');
+      return `<div class="theme-chip theme-chip--${color}">
+        <span class="theme-chip-label">${esc(sectionLabel[s]||s)}</span>
+        <span class="theme-chip-weight">${weight}%</span>
+        <span class="theme-chip-bar" style="width:${weight}%"></span>
+      </div>`;
+    }).join(''):'<div style="color:var(--tx3);font-size:13px;padding:12px">Pas de thèmes identifiés cette semaine</div>';
 
-    document.getElementById('myweek-highlights').innerHTML=highlights.map(h=>`<div class="highlight-item">${h}</div>`).join('');
+    // ── Top read list ──
+    const readArts=readThisWeek.slice(0,5);
+    const topListEl=document.getElementById('myweek-top-list');
+    if(readArts.length){
+      topListEl.innerHTML=readArts.map(a=>{
+        const dayIdx=days.indexOf(a.fetch_date);
+        const dayLbl=dayIdx>=0?dayLabelsShort[dayIdx]:'—';
+        const readTime=Math.max(2,Math.round((a.title?.length||120)/30));
+        return `<div class="week-top-item" onclick="window.open('${esc(a.url||'#')}','_blank')">
+          <span class="week-top-day">${dayLbl}</span>
+          <div class="week-top-body">
+            <div class="week-top-title">${esc(a.title||'')}</div>
+            <div class="week-top-meta">${esc(a.source||'')} · ${readTime} min de lecture</div>
+          </div>
+          <span class="week-top-time">${readTime}′</span>
+        </div>`;
+      }).join('');
+    }else{
+      topListEl.innerHTML=`<div style="padding:24px;color:var(--tx3);font-size:13px;text-align:center">Aucune lecture marquée cette semaine</div>`;
+    }
+
+    // ── Perso grid ──
+    const persoCards=[
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',big:workoutsDone,unit:`/ 7j`,label:'Séances sport',note:workoutsDone>=3?'Au-dessus de ton objectif':'Objectif 3+/semaine'},
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',big:Math.floor(musicTotalMin/60),unit:`h${String(musicTotalMin%60).padStart(2,'0')}`,label:'Musique écoutée',note:topArtist!=='—'?`Top : ${topArtist}`:'Connecte Last.fm'},
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1.11 0 2.08-.402 2.592-1.147C8.168 16.974 9 16 10.5 16h3c1.5 0 2.332.974 2.908 1.853.512.745 1.482 1.147 2.592 1.147a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>',big:Math.floor(gameTotalMin/60),unit:`h${String(gameTotalMin%60).padStart(2,'0')}`,label:'Temps gaming',note:topGame!=='—'?`Top : ${topGame}`:'Connecte Steam'},
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',big:streak,unit:'j',label:'Streak cockpit',note:streak>=7?'En feu — meilleur depuis longtemps':streak>=3?'Continue comme ça':'Reviens demain'},
+    ];
+    document.getElementById('myweek-perso').innerHTML=persoCards.map(c=>`
+      <div class="week-perso-card">
+        <div class="week-perso-icon">${c.icon}</div>
+        <div class="week-perso-big">${c.big}<span class="week-perso-big-unit">${c.unit||''}</span></div>
+        <div class="week-perso-label">${c.label}</div>
+        <div class="week-perso-note">${c.note}</div>
+      </div>`).join('');
+
+    // ── Edito mode ──
+    const bestDay=dayLabelsShort[peakIdx];
+    const topSection=sectionEntries[0];
+    const editoDate=document.getElementById('myweek-edito-date');
+    const editoTitle=document.getElementById('myweek-edito-title');
+    const editoLede=document.getElementById('myweek-edito-lede');
+    const editoQuote=document.getElementById('myweek-edito-quote');
+    const editoBody=document.getElementById('myweek-edito-body');
+    const editoNums=document.getElementById('myweek-edito-nums');
+    const editoClose=document.getElementById('myweek-edito-close');
+    if(editoDate)editoDate.textContent=rangeLabel;
+    const editoTitleText = topSection
+      ? `La semaine où ${sectionLabel[topSection[0]]||topSection[0]} a dominé tes lectures`
+      : `Une semaine plus calme sur la veille`;
+    if(editoTitle)editoTitle.textContent=editoTitleText;
+    if(editoLede)editoLede.textContent=`${totalArticles} articles parcourus, ${readCount} lus en profondeur, et ${streak} jour${streak>1?'s':''} d'affilée à tenir ton rythme de veille. ${topSection?`Le fil rouge s'impose : ${sectionLabel[topSection[0]]||topSection[0]}, avec ${topSection[1]} articles (${Math.round((topSection[1]/sectionTotal)*100)}% du flux).`:''}`;
+    if(editoQuote){
+      if(streak>=7)editoQuote.textContent=`« Ton streak veille atteint ${streak} jours — ton meilleur depuis longtemps. »`;
+      else if(readCount>totalArticles*0.7)editoQuote.textContent=`« ${readCount} articles lus en profondeur sur ${totalArticles} — tu ne laisses pas grand-chose passer. »`;
+      else editoQuote.textContent=`« Meilleur jour de la semaine : ${dayLabelsLong[bestDay]||bestDay} avec ${dailyCounts[peakIdx]} articles. »`;
+    }
+    if(editoBody){
+      const persoNotes=[];
+      if(workoutsDone)persoNotes.push(`${workoutsDone} séance${workoutsDone>1?'s':''} de sport`);
+      if(musicTotalMin>0)persoNotes.push(`${Math.floor(musicTotalMin/60)}h de musique (top : ${topArtist})`);
+      if(gameTotalMin>0)persoNotes.push(`${Math.floor(gameTotalMin/60)}h de gaming sur ${topGame}`);
+      editoBody.textContent=persoNotes.length?`Côté perso, ${persoNotes.join(', ')}.`:`Pas de données perso captées cette semaine — pense à connecter Strava, Last.fm ou Steam.`;
+    }
+    if(editoNums){
+      editoNums.innerHTML=[
+        {v:totalArticles,l:'articles vus'},
+        {v:readCount,l:'lus'},
+        {v:`${Math.floor(readingMin/60)}h${String(readingMin%60).padStart(2,'0')}`,l:'de lecture'},
+        {v:streak,l:'jours streak'},
+        {v:workoutsDone,l:'séances sport'},
+        {v:Math.floor((musicTotalMin+gameTotalMin)/60)+'h',l:'perso écran/son'},
+      ].map(x=>`<div><strong>${x.v}</strong><span>${x.l}</span></div>`).join('');
+    }
+    if(editoClose){
+      editoClose.textContent=streak>=7
+        ? `Tu es en très bonne forme sur la veille. Prends un moment pour digérer — un bon challenge apprentissage serait bienvenu.`
+        : `Point d'attention : garder un rythme régulier pour construire un vrai signal dans la durée.`;
+    }
 
   }catch(e){
     console.error('loadMyWeek',e);
-    document.getElementById('myweek-kpis').innerHTML='<div class="empty" style="grid-column:1/-1">Erreur de chargement</div>';
+    document.getElementById('myweek-stats').innerHTML='<div style="grid-column:1/-1;padding:20px;color:var(--tx3);font-size:13px">Erreur de chargement</div>';
   }
   myWeekLoaded=true;
 }
 function changeWeek(dir){myWeekOffset+=dir;myWeekLoaded=false;loadMyWeek();}
+// Mode switcher
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('#myweek-mode-group .pill');
+  if(!btn)return;
+  document.querySelectorAll('#myweek-mode-group .pill').forEach(b=>b.classList.remove('is-active'));
+  btn.classList.add('is-active');
+  _myweekMode=btn.dataset.mode;
+  document.getElementById('myweek-factuel').style.display=_myweekMode==='factuel'?'':'none';
+  document.getElementById('myweek-edito').style.display=_myweekMode==='edito'?'':'none';
+});
 
 // ── SPARKLINE ─────────────────────────────────────────────
 async function getWeeklyArticleCounts(){
