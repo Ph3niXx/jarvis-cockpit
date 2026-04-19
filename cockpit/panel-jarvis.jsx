@@ -247,15 +247,18 @@ function JvMemory({ memory, onNavigate }) {
 function PanelJarvis({ data, onNavigate }) {
   const JV = window.JARVIS_DATA;
   const [input, setInput] = useStateJv("");
+  const [messages, setMessages] = useStateJv(() => JV.messages.slice());
+  const [sending, setSending] = useStateJv(false);
+  const [mode, setMode] = useStateJv(() => {
+    try { return localStorage.getItem("jarvis-mode") || "quick"; } catch { return "quick"; }
+  });
   const scrollRef = useRefJv(null);
   const taRef = useRefJv(null);
 
-  // Scroll to bottom on mount
+  // Scroll to bottom on mount + after each new message
   useEffectJv(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, []);
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages.length]);
 
   // Auto-resize textarea
   useEffectJv(() => {
@@ -265,12 +268,57 @@ function PanelJarvis({ data, onNavigate }) {
     }
   }, [input]);
 
+  useEffectJv(() => { try { localStorage.setItem("jarvis-mode", mode); } catch {} }, [mode]);
+
   const handleNav = (panelId) => { if (onNavigate) onNavigate(panelId); };
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  // ── Jarvis gateway (localhost:8765) ─────────────────────
+  // Reads the tunnel URL from user_profile.jarvis_tunnel_url when
+  // localhost is unreachable (mobile / deployed). Posts the user
+  // message, appends the response to the timeline.
+  async function jarvisGateway(){
+    const fallback = "http://localhost:8765";
+    try {
+      const pf = window.PROFILE_DATA?._values || {};
+      const tunnel = pf.jarvis_tunnel_url;
+      return tunnel || fallback;
+    } catch { return fallback; }
+  }
+
+  const handleSend = async () => {
+    const text = input.trim();
+    if (!text || sending) return;
     setInput("");
-    // Demo only — we don't actually append to timeline
+    setSending(true);
+    const userMsg = { kind: "user", text, ts: Date.now() };
+    setMessages(prev => prev.concat([userMsg]));
+    try { window.track && window.track("pipeline_triggered", { pipeline: "jarvis", mode }); } catch {}
+    try {
+      const base = await jarvisGateway();
+      const resp = await fetch(base + "/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, mode, session_id: "cockpit" }),
+      });
+      if (!resp.ok) throw new Error("gateway " + resp.status);
+      const data = await resp.json();
+      const answer = data?.response || data?.answer || data?.message || "—";
+      const cites = (data?.sources || []).map(s => ({
+        kind: s.source_table || "article",
+        title: s.chunk_text?.slice(0, 80) || s.name || "source",
+        url: s.url,
+      }));
+      setMessages(prev => prev.concat([{ kind: "jarvis", text: answer, cites, ts: Date.now() }]));
+    } catch (e) {
+      setMessages(prev => prev.concat([{
+        kind: "jarvis",
+        text: "Jarvis est hors ligne. Lance `start_jarvis.bat` pour activer le LLM local, ou renseigne `jarvis_tunnel_url` dans ton profil pour y accéder à distance.",
+        ts: Date.now(),
+      }]));
+      try { window.track && window.track("error_shown", { context: "jarvis:gateway", message: String(e).slice(0, 200) }); } catch {}
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -305,9 +353,17 @@ function PanelJarvis({ data, onNavigate }) {
 
         <div className="jv-scroll" ref={scrollRef}>
           <div className="jv-feed">
-            {JV.messages.map((m, i) => (
+            {messages.map((m, i) => (
               <JvMessage key={i} m={m} onNavigate={handleNav} />
             ))}
+            {sending && (
+              <div className="jv-msg jv-msg--jarvis" style={{ opacity: 0.6 }}>
+                <span className="jv-avatar"><JvIcon name="sparkle" size={14} /></span>
+                <div className="jv-bubble" style={{ fontStyle: "italic" }}>
+                  Jarvis réfléchit… <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, marginLeft: 8 }}>mode {mode}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -319,6 +375,18 @@ function PanelJarvis({ data, onNavigate }) {
                   {p}
                 </button>
               ))}
+              <span style={{ flex: 1 }} />
+              <div style={{ display: "flex", gap: 4, fontFamily: "var(--font-mono)", fontSize: 10 }}>
+                {["quick", "deep", "cloud"].map(m => (
+                  <button
+                    key={m}
+                    className="jv-prompt"
+                    onClick={() => setMode(m)}
+                    style={mode === m ? { background: "var(--brand)", color: "var(--bg2)", borderColor: "var(--brand)" } : {}}
+                    title={m === "quick" ? "Local LLM, sans RAG · 512 tok" : m === "deep" ? "Local + RAG · 2048 tok" : "Claude Haiku + RAG · ~0.01$"}
+                  >{m === "quick" ? "Rapide" : m === "deep" ? "Deep" : "Cloud"}</button>
+                ))}
+              </div>
             </div>
             <div className="jv-composer">
               <textarea
