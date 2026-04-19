@@ -573,6 +573,185 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
   border-top:1px solid var(--bd);
 }
 
+/* ══════════════════════════════════════════════════════════
+   PANEL GRAMMAR — shared hero, toolbar, pills
+   ══════════════════════════════════════════════════════════ */
+.panel-page{
+  display:flex;flex-direction:column;
+  padding-left:var(--space-12);padding-right:var(--space-12);
+}
+@media(max-width:1000px){.panel-page{padding-left:var(--space-8);padding-right:var(--space-8)}}
+@media(max-width:600px){.panel-page{padding-left:var(--space-5);padding-right:var(--space-5)}}
+.panel-hero{
+  padding:40px 0 36px;
+  background:var(--bg);
+  border-bottom:1px solid var(--bd);
+}
+.panel-hero-eyebrow{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--brand);
+  margin-bottom:12px;display:inline-flex;align-items:center;gap:8px;
+}
+.panel-hero-eyebrow::before{
+  content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--brand);
+}
+.panel-hero-title{
+  font-family:var(--display);
+  font-size:clamp(30px,4vw,46px);
+  font-weight:500;letter-spacing:-.025em;line-height:1.12;color:var(--tx);
+  font-variation-settings:"opsz" 144;
+  margin-bottom:20px;padding-bottom:.08em;text-wrap:balance;
+}
+.panel-hero-title em{font-style:italic;color:var(--brand);font-weight:500}
+.panel-hero-sub{
+  font-size:15px;line-height:1.6;color:var(--tx2);max-width:60ch;
+}
+.panel-toolbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:14px 0;
+  border-bottom:1px solid var(--bd);
+  background:var(--bg2);
+  position:sticky;top:0;z-index:30;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.panel-toolbar-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.panel-toolbar-divider{width:1px;height:20px;background:var(--bd);margin:0 4px}
+.panel-toolbar-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tx3);margin-right:4px;
+}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:999px;
+  border:1px solid var(--bd);background:var(--surface);
+  color:var(--tx2);font-size:12px;transition:all 120ms;
+  font-family:var(--font);cursor:pointer;
+}
+.pill:hover{border-color:var(--bd2);color:var(--tx)}
+.pill.is-active{background:var(--tx);color:var(--bg2);border-color:var(--tx)}
+.pill-count{font-family:var(--mono);font-size:10px;opacity:.7}
+
+/* ══════════════════════════════════════════════════════════
+   PANEL : TOP DU JOUR — magazine style
+   ══════════════════════════════════════════════════════════ */
+.top-list-wrap{padding:32px 0}
+.top-list-feat{
+  display:grid;grid-template-columns:2fr 1fr 1fr;gap:20px;
+  margin-bottom:40px;
+}
+@media(max-width:1100px){.top-list-feat{grid-template-columns:1fr}}
+.top-feat-main{
+  display:flex;flex-direction:column;
+  padding:32px;
+  background:linear-gradient(180deg,var(--brand-tint) 0%,var(--surface) 60%);
+  border:1px solid var(--brand);border-radius:var(--radius-lg);
+  min-height:360px;position:relative;overflow:hidden;cursor:pointer;
+  transition:all 200ms;text-align:left;
+}
+.top-feat-main:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.top-feat-rank{
+  position:absolute;top:24px;right:32px;
+  font-family:var(--display);font-size:120px;line-height:.8;
+  color:var(--brand);opacity:.15;font-weight:600;
+  font-variation-settings:"opsz" 144;letter-spacing:-.05em;
+}
+.top-feat-meta{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--brand);
+  margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;
+}
+.top-feat-title{
+  font-family:var(--display);font-size:34px;font-weight:500;
+  line-height:1.1;letter-spacing:-.025em;color:var(--tx);
+  font-variation-settings:"opsz" 144;
+  margin-bottom:14px;text-wrap:balance;max-width:22ch;
+  z-index:1;position:relative;
+}
+.top-feat-summary{
+  font-size:15px;line-height:1.6;color:var(--tx2);
+  margin-bottom:auto;max-width:58ch;
+}
+.top-feat-foot{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:24px;padding-top:20px;
+  border-top:1px solid var(--brand-tint);
+  font-family:var(--mono);font-size:11px;color:var(--tx2);
+}
+.top-feat-score{display:flex;align-items:center;gap:8px}
+.top-feat-score-num{color:var(--brand);font-weight:600;font-size:15px}
+.top-feat-side{
+  padding:24px;background:var(--surface);
+  border:1px solid var(--bd);border-radius:var(--radius-lg);
+  cursor:pointer;transition:all 200ms;
+  display:flex;flex-direction:column;text-align:left;
+}
+.top-feat-side:hover{border-color:var(--bd2);box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.top-feat-side-rank{
+  font-family:var(--display);font-size:44px;font-weight:500;
+  line-height:1;color:var(--tx3);letter-spacing:-.03em;margin-bottom:16px;
+}
+.top-feat-side-meta{
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx3);
+  margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;
+}
+.top-feat-side-title{
+  font-family:var(--display);font-size:19px;font-weight:500;
+  line-height:1.25;letter-spacing:-.015em;color:var(--tx);
+  font-variation-settings:"opsz" 144;
+  margin-bottom:10px;text-wrap:balance;
+}
+.top-feat-side-summary{font-size:13px;line-height:1.55;color:var(--tx2);flex:1}
+.top-feat-side-foot{
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--bd);
+  display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:10.5px;color:var(--tx3);
+}
+.top-rest-title{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);
+  margin-bottom:16px;padding-top:12px;border-top:1px solid var(--bd);
+}
+.top-rest-list{display:flex;flex-direction:column}
+.top-rest-item{
+  display:grid;grid-template-columns:48px 90px 1fr 180px 80px;
+  gap:20px;align-items:center;
+  padding:16px 0;border-bottom:1px solid var(--bd);
+  cursor:pointer;transition:background 120ms;text-align:left;
+  background:transparent;border-left:none;border-right:none;border-top:none;
+  width:100%;
+}
+.top-rest-item:hover{
+  background:var(--brand-tint);padding-left:12px;padding-right:12px;
+  margin:0 -12px;border-radius:4px;border-bottom-color:transparent;
+}
+@media(max-width:900px){
+  .top-rest-item{grid-template-columns:40px 1fr}
+  .top-rest-col--source,.top-rest-col--score,.top-rest-col--date{display:none}
+}
+.top-rest-rank{
+  font-family:var(--display);font-size:24px;color:var(--tx3);
+  font-weight:500;letter-spacing:-.03em;
+}
+.top-rest-source{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tx2);font-weight:600;
+}
+.top-rest-title-text{
+  font-family:var(--display);font-size:17px;font-weight:500;
+  line-height:1.3;color:var(--tx);
+  font-variation-settings:"opsz" 144;letter-spacing:-.01em;
+}
+.top-rest-section{
+  font-family:var(--mono);font-size:10px;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--brand);
+  padding:2px 8px;background:var(--brand-tint);border-radius:3px;
+  justify-self:start;
+}
+.top-rest-date{
+  font-family:var(--mono);font-size:11px;color:var(--tx3);text-align:right;
+}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
@@ -2171,16 +2350,29 @@ body.deep-work .count{display:none!important}
   </div>
 
   <!-- TOP DU JOUR -->
-  <div class="panel" role="tabpanel" id="panel-top">
-    <div class="page-header"><div class="page-title">Incontournables</div><div class="page-subtitle">Articles prioritaires du jour.</div></div>
-    <div class="content">
-      <div class="top-config-bar">
-        <span class="top-config-label">Tri :</span>
-        <button class="top-sort-btn active" data-sort="score">Pertinence</button>
-        <button class="top-sort-btn" data-sort="fresh">Fraîcheur</button>
-        <button class="top-sort-btn" data-sort="signal">Signal fort</button>
+  <div class="panel panel-page" role="tabpanel" id="panel-top">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow"><span id="top-hero-eyebrow">Top du jour</span></div>
+      <h1 class="panel-hero-title" id="top-hero-title">Les <em>10 lectures</em> incontournables, triées par impact métier</h1>
+      <p class="panel-hero-sub">Score calculé sur la pertinence pour ton rôle (RTE, assurance), la fraîcheur, et la convergence de signaux entre sources. Les 3 premiers sont des incontournables — lecture chaudement recommandée avant 9h.</p>
+    </div>
+
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-label">Trier</span>
+      <div class="panel-toolbar-group" id="top-sort-group">
+        <button class="pill is-active" data-sort="score">Pertinence</button>
+        <button class="pill" data-sort="fresh">Fraîcheur</button>
+        <button class="pill" data-sort="signal">Signal fort</button>
       </div>
-      <ol class="top-list" id="top-list"></ol>
+      <span class="panel-toolbar-divider"></span>
+      <span class="panel-toolbar-label">Section</span>
+      <div class="panel-toolbar-group" id="top-filter-group"></div>
+    </div>
+
+    <div class="top-list-wrap">
+      <div class="top-list-feat" id="top-feat"></div>
+      <div class="top-rest-title" id="top-rest-title" style="display:none">La suite du classement</div>
+      <div class="top-rest-list" id="top-list"></div>
     </div>
   </div>
 
@@ -2635,55 +2827,151 @@ function scoreArticleForJean(article){
   if(isRead(article.id))s-=20;
   return Math.max(0,Math.min(100,s));
 }
+const _TOP_SECTION_LABEL={updates:'Modèles',llm:'Modèles',agents:'Agents',energy:'Énergie',finserv:'FinServ',tools:'Outils',biz:'Business',reg:'Régulation',papers:'Recherche'};
+let _topState={sort:'score',filter:'all'};
+function _timeAgoBrief(iso){
+  try{
+    const d=new Date(iso);
+    const mins=Math.max(0,Math.round((Date.now()-d)/60000));
+    if(mins<60)return `il y a ${mins} min`;
+    const h=Math.round(mins/60);
+    if(h<24)return `il y a ${h}h`;
+    const dy=Math.round(h/24);
+    return `il y a ${dy}j`;
+  }catch{return'';}
+}
 function renderTopOfDay(){
+  const feat=document.getElementById('top-feat');
   const list=document.getElementById('top-list');
-  if(!list)return;
-  const sort=document.querySelector('.top-sort-btn.active')?.dataset.sort||'score';
+  const restTitle=document.getElementById('top-rest-title');
+  const eyebrow=document.getElementById('top-hero-eyebrow');
+  const heroTitle=document.getElementById('top-hero-title');
+  if(!feat||!list)return;
+
   const cards=document.querySelectorAll('.card[data-article-id]');
   const arts=[];
   cards.forEach(card=>{
     arts.push({
       id:card.dataset.articleId,
       section:card.dataset.section||'',
+      source:card.querySelector('.card-source')?.textContent?.trim() || card.dataset.source || '',
       title:card.querySelector('.card-title')?.textContent?.trim()||'',
       summary:card.querySelector('.card-summary')?.textContent?.trim()||'',
       url:card.querySelector('.card-title a')?.href||'',
-      created_at:card.dataset.createdAt||'',
-      fetch_date:''
+      created_at:card.dataset.createdAt||card.dataset.date||'',
     });
   });
   arts.forEach(a=>a.score=scoreArticleForJean(a));
-  if(sort==='fresh')arts.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
-  else arts.sort((a,b)=>b.score-a.score);
-  const top=arts.slice(0,10);
-  list.innerHTML=top.map((a,i)=>`<li class="top-item" data-article-id="${a.id}">
-    <span class="top-rank">${i+1}</span>
-    <div class="top-content">
-      <div class="top-meta"><span class="top-section">${esc(a.section)}</span><span class="top-score">\u{1F3AF} ${a.score}%</span></div>
-      <a class="top-title" href="${esc(a.url)}" target="_blank">${esc(a.title)}</a>
-      <p class="top-summary">${esc(a.summary.substring(0,140))}${a.summary.length>140?'\u2026':''}</p>
+
+  // Filters
+  let filtered=arts;
+  if(_topState.filter!=='all') filtered=arts.filter(a=>a.section===_topState.filter);
+
+  if(_topState.sort==='fresh')filtered.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  else filtered.sort((a,b)=>b.score-a.score);
+  const top=filtered.slice(0,10);
+
+  // Hero eyebrow with date + week
+  try{
+    const now=new Date();
+    const wk=`S${String(_isoWeek(now)).padStart(2,'0')}`;
+    const dateLong=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+    if(eyebrow)eyebrow.textContent=`Top du jour · ${wk} · ${dateLong.replace(/^./,c=>c.toUpperCase())}`;
+  }catch{}
+  if(heroTitle)heroTitle.innerHTML=`Les <em>${top.length} lectures</em> incontournables, triées par impact métier`;
+
+  // Filter pills — all sections present
+  const sections=['all', ...new Set(arts.map(a=>a.section).filter(Boolean))];
+  const filterGroup=document.getElementById('top-filter-group');
+  if(filterGroup){
+    filterGroup.innerHTML=sections.map(s=>{
+      const count=s==='all'?arts.length:arts.filter(a=>a.section===s).length;
+      const label=s==='all'?'Tout':(_TOP_SECTION_LABEL[s]||s);
+      return `<button class="pill${_topState.filter===s?' is-active':''}" data-filter="${esc(s)}">${esc(label)} <span class="pill-count">${count}</span></button>`;
+    }).join('');
+  }
+
+  if(!top.length){
+    feat.innerHTML=`<div class="empty" style="grid-column:1/-1;padding:40px;text-align:center;color:var(--tx3)">Aucun article aujourd'hui</div>`;
+    list.innerHTML='';
+    restTitle.style.display='none';
+    return;
+  }
+
+  // Feature trio
+  const [f1,f2,f3,...rest]=top;
+  const f1Html=f1?`<button class="top-feat-main" data-article-id="${f1.id}">
+    <div class="top-feat-rank">01</div>
+    <div class="top-feat-meta">
+      <span>${esc(f1.source||'—')}</span><span>·</span>
+      <span>${esc(_TOP_SECTION_LABEL[f1.section]||f1.section||'')}</span><span>·</span>
+      <span>${esc(_timeAgoBrief(f1.created_at))}</span>
     </div>
-  </li>`).join('')||'<div class="empty">Aucun article aujourd\'hui</div>';
-  // Mark as read on click
-  list.querySelectorAll('.top-title').forEach(link=>{
-    link.addEventListener('click',()=>{
-      const item=link.closest('.top-item');
-      const id=item?.dataset.articleId;
-      if(id){
-        markAsRead(id);
-        const card=document.querySelector(`.card[data-article-id="${id}"]`);
-        if(card){card.classList.remove('card--unread');card.classList.add('card--read');}
-      }
+    <h2 class="top-feat-title">${esc(f1.title)}</h2>
+    <p class="top-feat-summary">${esc((f1.summary||'').slice(0,260))}${(f1.summary||'').length>260?'…':''}</p>
+    <div class="top-feat-foot">
+      <div class="top-feat-score"><span class="top-feat-score-num">${f1.score}</span><span>/ 100 · impact</span></div>
+      <span>Lire →</span>
+    </div>
+  </button>`:'';
+  const sideHtml=(a,rank)=>a?`<button class="top-feat-side" data-article-id="${a.id}">
+    <div class="top-feat-side-rank">${String(rank).padStart(2,'0')}</div>
+    <div class="top-feat-side-meta">
+      <span>${esc(a.source||'—')}</span><span>·</span>
+      <span>${esc(_timeAgoBrief(a.created_at))}</span>
+    </div>
+    <h3 class="top-feat-side-title">${esc(a.title)}</h3>
+    <p class="top-feat-side-summary">${esc((a.summary||'').slice(0,140))}${(a.summary||'').length>140?'…':''}</p>
+    <div class="top-feat-side-foot">
+      <span>${esc(_TOP_SECTION_LABEL[a.section]||a.section||'')}</span>
+      <span>${a.score}/100</span>
+    </div>
+  </button>`:'';
+  feat.innerHTML=f1Html+sideHtml(f2,2)+sideHtml(f3,3);
+
+  // Rest list
+  if(rest.length){
+    restTitle.style.display='block';
+    list.innerHTML=rest.map((a,i)=>{
+      const rank=i+4;
+      return `<button class="top-rest-item" data-article-id="${a.id}">
+        <span class="top-rest-rank">${String(rank).padStart(2,'0')}</span>
+        <span class="top-rest-source top-rest-col--source">${esc(a.source||'—')}</span>
+        <span class="top-rest-title-text">${esc(a.title)}</span>
+        <span class="top-rest-section top-rest-col--score">${esc(_TOP_SECTION_LABEL[a.section]||a.section||'')}</span>
+        <span class="top-rest-date top-rest-col--date">${esc(_timeAgoBrief(a.created_at))}</span>
+      </button>`;
+    }).join('');
+  }else{
+    restTitle.style.display='none';
+    list.innerHTML='';
+  }
+
+  // Click-to-open
+  const clickHandler=(el)=>{
+    el.addEventListener('click',()=>{
+      const id=el.dataset.articleId;
+      const art=top.find(x=>x.id===id);
+      if(art && art.url){window.open(art.url,'_blank');markAsRead(id);}
     });
-  });
+  };
+  [...feat.querySelectorAll('.top-feat-main, .top-feat-side'), ...list.querySelectorAll('.top-rest-item')].forEach(clickHandler);
 }
-// Sort button handler
+// Toolbar handlers
 document.addEventListener('click',e=>{
-  const btn=e.target.closest('.top-sort-btn');
-  if(!btn)return;
-  document.querySelectorAll('.top-sort-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderTopOfDay();
+  const sortBtn=e.target.closest('#top-sort-group .pill');
+  if(sortBtn){
+    document.querySelectorAll('#top-sort-group .pill').forEach(b=>b.classList.remove('is-active'));
+    sortBtn.classList.add('is-active');
+    _topState.sort=sortBtn.dataset.sort;
+    renderTopOfDay();
+    return;
+  }
+  const filterBtn=e.target.closest('#top-filter-group .pill');
+  if(filterBtn){
+    _topState.filter=filterBtn.dataset.filter;
+    renderTopOfDay();
+  }
 });
 
 function renderSidebarProgress(){
