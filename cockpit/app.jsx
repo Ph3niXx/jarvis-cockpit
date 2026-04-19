@@ -15,10 +15,21 @@ function Stub({ id, theme, onBack }) {
 }
 
 function App() {
-  const [activePanel, setActivePanel] = useState("brief");
+  const [activePanel, setActivePanel] = useState(() => {
+    try {
+      const h = (window.location.hash || "").replace(/^#/, "").trim();
+      if (h) return h;
+    } catch {}
+    return "brief";
+  });
   const [historicalDay, setHistoricalDay] = useState(null);
   const [themeId, setThemeId] = useState(() => {
-    try { return localStorage.getItem("cockpit-theme") || "dawn"; } catch { return "dawn"; }
+    try {
+      const stored = localStorage.getItem("cockpit-theme");
+      if (stored) return stored;
+      if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) return "obsidian";
+    } catch {}
+    return "dawn";
   });
   const theme = THEMES[themeId] || THEMES.dawn;
   const data = COCKPIT_DATA;
@@ -33,7 +44,48 @@ function App() {
   const handleNavigate = (id) => {
     setActivePanel(id);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    try { window.location.hash = id; } catch {}
+    try { window.track && window.track("section_opened", { section: id }); } catch {}
+    // Tier 2 lazy load for the panel we're entering (fire-and-forget).
+    try {
+      if (window.cockpitDataLoader && typeof window.cockpitDataLoader.loadPanel === "function") {
+        window.cockpitDataLoader.loadPanel(id).catch(() => {});
+      }
+    } catch {}
   };
+
+  // Hash deep-link: sync browser hash → activePanel (back/forward nav).
+  useEffect(() => {
+    const onHash = () => {
+      const h = (window.location.hash || "").replace(/^#/, "").trim();
+      if (h && h !== activePanel) setActivePanel(h);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [activePanel]);
+
+  // Cmd/Ctrl+K → search panel
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        handleNavigate("search");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Global link_clicked telemetry (delegated to capture a[target="_blank"]).
+  useEffect(() => {
+    const onClick = (e) => {
+      const a = e.target.closest && e.target.closest('a[target="_blank"]');
+      if (!a || !a.href) return;
+      try { window.track && window.track("link_clicked", { url: a.href.substring(0, 200), section: activePanel }); } catch {}
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, [activePanel]);
 
   let content;
   if (activePanel === "brief") content = <Home theme={theme} data={data} onNavigate={handleNavigate} />;
@@ -113,4 +165,14 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+// Deferred mount — the bootstrap script (cockpit/lib/bootstrap.js) awaits
+// auth + Tier 1 data, then calls window.__cockpitMount().
+window.__cockpitMount = function(){
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+};
+// Fallback: if no bootstrap script is present (e.g. running the raw
+// migration-package locally), mount immediately so the fake-data maquette
+// still works.
+if (!window.__cockpitBootstrapPending) {
+  window.__cockpitMount();
+}
