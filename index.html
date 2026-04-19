@@ -1784,6 +1784,34 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
 .chal-card-xp{color:var(--positive);font-weight:600}
 .chal-card-diff{color:var(--tx2)}
 
+/* ══════════════════════════════════════════════════════════
+   PANEL : WIKI IA — bibliothèque vivante
+   ══════════════════════════════════════════════════════════ */
+.wiki-searchbar{
+  display:flex;gap:12px;align-items:center;margin:28px 0 20px;flex-wrap:wrap;
+}
+.wiki-search-input-wrap{
+  flex:1;min-width:280px;
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;background:var(--surface);
+  border:1px solid var(--bd2);border-radius:999px;
+  transition:border-color 160ms,box-shadow 160ms;
+}
+.wiki-search-input-wrap:focus-within{border-color:var(--brand);box-shadow:0 0 0 4px var(--brand-tint)}
+.wiki-search-input-wrap svg{color:var(--tx3);flex-shrink:0}
+.wiki-search-input{
+  flex:1;border:none;outline:none;background:transparent;
+  font-family:var(--font);font-size:14.5px;color:var(--tx);
+}
+.wiki-search-input::placeholder{color:var(--tx3)}
+.wiki-search-clear{
+  width:22px;height:22px;border-radius:50%;border:none;
+  background:var(--bg2);color:var(--tx2);cursor:pointer;
+  font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;
+}
+.wiki-search-clear:hover{background:var(--bd);color:var(--tx)}
+.wiki-create-btn{padding:11px 18px;font-size:13px}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
@@ -3537,12 +3565,39 @@ body.deep-work .count{display:none!important}
   <div class="panel" role="tabpanel" id="panel-papers"><div class="page-header"><div class="page-title">Recherche</div><div class="page-subtitle">Publications CS.AI et CS.LG.</div></div><div class="content"><div class="cards-grid" id="cards-papers"></div></div></div>
 
   <!-- WIKI -->
-  <div class="panel" role="tabpanel" id="panel-wiki">
-    <div class="page-header"><div class="page-title">Wiki IA</div><div class="page-subtitle">Base de connaissances auto-alimentée par les articles</div></div>
-    <div class="content">
-      <div id="wiki-detail-container"></div>
-      <div class="wiki-grid" id="wiki-grid"><div class="loading">Chargement…</div></div>
+  <div class="panel panel-page" role="tabpanel" id="panel-wiki">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow"><span id="wiki-eyebrow">Apprentissage · Wiki IA · Bibliothèque vivante</span></div>
+      <h1 class="panel-hero-title">Cherche ce que tu sais déjà,<br><em>demande à Jarvis</em> le reste.</h1>
+      <p class="panel-hero-sub" id="wiki-hero-sub">Synthèses maintenues par Jarvis + tes notes perso, regroupées par thème. Recherche full-text dans les titres, résumés et tags.</p>
     </div>
+
+    <div class="wiki-searchbar">
+      <div class="wiki-search-input-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" class="wiki-search-input" id="wiki-search-input" placeholder="Recherche une entrée, un terme, un tag…" autocomplete="off">
+        <button class="wiki-search-clear" id="wiki-search-clear" style="display:none">×</button>
+      </div>
+      <button class="btn--primary-dawn wiki-create-btn" id="wiki-create-btn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        Nouvelle entrée
+      </button>
+    </div>
+
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-label">Tri</span>
+      <div class="panel-toolbar-group" id="wiki-sort-group">
+        <button class="pill is-active" data-sort="recent">Récent</button>
+        <button class="pill" data-sort="popular">Plus lus</button>
+        <button class="pill" data-sort="alpha">A–Z</button>
+      </div>
+      <span class="panel-toolbar-divider"></span>
+      <span class="panel-toolbar-label">Catégorie</span>
+      <div class="panel-toolbar-group" id="wiki-cat-group"></div>
+    </div>
+
+    <div id="wiki-detail-container"></div>
+    <div class="wiki-grid" id="wiki-grid"><div style="padding:24px;color:var(--tx3);font-size:13px">Chargement…</div></div>
   </div>
 
   <!-- SIGNALS -->
@@ -6218,20 +6273,91 @@ function _renderWikiCard(c){
     ${renderRelatedLinks(c.name,'wiki')}
   </div>`;
 }
+const _WIKI_STATE={query:'',category:'all',sort:'recent',_cache:[]};
 async function loadWiki(){
   if(wikiLoaded)return;
-  showSkeleton('wiki-grid','wiki');
   try{
-    const concepts=await fetchJSON(`${SUPABASE_URL}/rest/v1/wiki_concepts?order=mention_count.desc&limit=100`);
-    const grid=document.getElementById('wiki-grid');
-    if(!concepts.length){grid.innerHTML=`<div class="empty"><div class="empty-icon">${eIcon('library')}</div>Le wiki se remplit automatiquement avec les articles quotidiens</div>`;return;}
+    const concepts=await fetchJSON(`${SUPABASE_URL}/rest/v1/wiki_concepts?order=mention_count.desc&limit=200`);
+    _WIKI_STATE._cache=concepts||[];
     cockpitData.wiki=concepts;
-    // Group by category
-    const groups={};
-    concepts.forEach(c=>{const cat=c.category||'Autres';if(!groups[cat])groups[cat]=[];groups[cat].push(c);});
+    // Hero sub
+    const subEl=document.getElementById('wiki-hero-sub');
+    if(subEl){
+      const recentCount=concepts.filter(c=>{
+        const d=c.last_mentioned||c.updated_at;
+        if(!d)return false;
+        return (Date.now()-new Date(d).getTime())<7*24*3600*1000;
+      }).length;
+      subEl.innerHTML=`<strong>${concepts.length} entrée${concepts.length>1?'s':''}</strong> — synthèses maintenues par Jarvis à partir des articles quotidiens. <strong>${recentCount}</strong> mise${recentCount>1?'s':''} à jour cette semaine.`;
+    }
+    // Category pills
+    const cats={};concepts.forEach(c=>{const k=c.category||'Autres';cats[k]=(cats[k]||0)+1;});
+    const catEl=document.getElementById('wiki-cat-group');
+    if(catEl){
+      const pills=[['all',concepts.length], ...Object.entries(cats).sort((a,b)=>b[1]-a[1])];
+      catEl.innerHTML=pills.map(([cat,count])=>{
+        const label=cat==='all'?'Toutes':cat;
+        const active=_WIKI_STATE.category===cat;
+        return `<button class="pill${active?' is-active':''}" data-cat="${esc(cat)}">${esc(label)} <span class="pill-count">${count}</span></button>`;
+      }).join('');
+      catEl.querySelectorAll('.pill').forEach(p=>{
+        p.onclick=()=>{_WIKI_STATE.category=p.dataset.cat;document.querySelectorAll('#wiki-cat-group .pill').forEach(x=>x.classList.toggle('is-active',x.dataset.cat===_WIKI_STATE.category));_renderWikiList();};
+      });
+    }
+    // Sort pills
+    document.querySelectorAll('#wiki-sort-group .pill').forEach(p=>{
+      p.onclick=()=>{_WIKI_STATE.sort=p.dataset.sort;document.querySelectorAll('#wiki-sort-group .pill').forEach(x=>x.classList.remove('is-active'));p.classList.add('is-active');_renderWikiList();};
+    });
+    // Search
+    const inp=document.getElementById('wiki-search-input');
+    const clr=document.getElementById('wiki-search-clear');
+    if(inp){
+      inp.addEventListener('input',e=>{
+        _WIKI_STATE.query=e.target.value;
+        if(clr)clr.style.display=e.target.value?'flex':'none';
+        _renderWikiList();
+      });
+    }
+    if(clr){clr.onclick=()=>{inp.value='';_WIKI_STATE.query='';clr.style.display='none';_renderWikiList();inp.focus();};}
+    // Create btn
+    const createBtn=document.getElementById('wiki-create-btn');
+    if(createBtn)createBtn.onclick=()=>{
+      if(typeof navigateToPanel==='function')navigateToPanel('jarvis');
+      setTimeout(()=>{const i=document.getElementById('jarvis-input');if(i){i.value='Crée une nouvelle entrée wiki sur le sujet : ';i.focus();}},200);
+    };
+
+    _renderWikiList();
+    updateSidebarBadge('wiki',concepts,'last_mentioned');
+    wikiLoaded=true;
+  }catch(e){
+    console.error('loadWiki',e);
+    document.getElementById('wiki-grid').innerHTML=`<div class="vl-empty"><div class="vl-empty-title">Erreur de chargement</div></div>`;
+  }
+}
+
+function _renderWikiList(){
+  const grid=document.getElementById('wiki-grid');
+  if(!grid)return;
+  const {query,category,sort,_cache}=_WIKI_STATE;
+  let list=_cache.slice();
+  if(category!=='all')list=list.filter(c=>(c.category||'Autres')===category);
+  if(query.trim()){
+    const q=query.toLowerCase();
+    list=list.filter(c=>(c.name||'').toLowerCase().includes(q) || (c.summary_beginner||'').toLowerCase().includes(q) || (c.slug||'').toLowerCase().includes(q));
+  }
+  if(sort==='popular')list.sort((a,b)=>(b.mention_count||0)-(a.mention_count||0));
+  else if(sort==='alpha')list.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  else list.sort((a,b)=>new Date(b.last_mentioned||b.updated_at||0)-new Date(a.last_mentioned||a.updated_at||0));
+  if(!list.length){
+    grid.innerHTML=`<div class="vl-empty"><div class="vl-empty-title">Aucune entrée ne matche</div><div style="color:var(--tx3);font-size:13px">Essaie un autre terme ou retire les filtres.</div></div>`;
+    return;
+  }
+  // Group by category if no query + no category filter
+  if(!query.trim() && category==='all'){
+    const groups={};list.forEach(c=>{const k=c.category||'Autres';if(!groups[k])groups[k]=[];groups[k].push(c);});
     const collapseState=_getWikiCollapse();
     let html='',isFirst=true;
-    for(const[cat,items]of Object.entries(groups)){
+    for(const [cat,items] of Object.entries(groups)){
       const collapsed=collapseState[cat]??(isFirst?false:true);
       const escapedCat=cat.replace(/'/g,"\\'");
       html+=`<div class="wiki-group">
@@ -6247,9 +6373,10 @@ async function loadWiki(){
       isFirst=false;
     }
     grid.innerHTML=html;
-    updateSidebarBadge('wiki',concepts,'last_mentioned');
-    wikiLoaded=true;
-  }catch(e){console.error('loadWiki',e);showError('wiki-grid','Erreur de chargement du wiki',()=>{wikiLoaded=false;loadWiki()})}
+  }else{
+    // Flat grid when filtering/searching
+    grid.innerHTML=`<div class="wiki-group-grid">${list.map(_renderWikiCard).join('')}</div>`;
+  }
 }
 
 async function showWikiDetail(slug){
