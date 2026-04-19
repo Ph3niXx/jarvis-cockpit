@@ -1044,6 +1044,197 @@ a:hover{text-decoration:underline;text-decoration-color:var(--bd2)}
   text-transform:uppercase;color:var(--tx3);
 }
 
+/* ══════════════════════════════════════════════════════════
+   PANEL : RECHERCHE — Command-K modal
+   ══════════════════════════════════════════════════════════ */
+.cmdk-kbd{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;
+  background:var(--bg2);border:1px solid var(--bd);border-radius:4px;
+  font-family:var(--mono);font-size:10px;color:var(--tx2);font-weight:600;
+  margin:0 1px;
+}
+.cmdk-trigger{
+  display:inline-flex;align-items:center;gap:14px;
+  margin-top:22px;padding:14px 16px 14px 20px;
+  min-width:420px;max-width:560px;
+  background:var(--surface);border:1px solid var(--bd2);
+  border-radius:999px;color:var(--tx3);
+  font-family:var(--font);font-size:14.5px;
+  cursor:pointer;transition:all 160ms;
+  box-shadow:0 2px 8px -4px rgba(0,0,0,0.06);
+}
+.cmdk-trigger:hover{
+  border-color:var(--brand);color:var(--tx);
+  box-shadow:0 8px 24px -10px rgba(0,0,0,0.12);
+}
+.cmdk-trigger svg{color:var(--tx3)}
+.cmdk-trigger:hover svg{color:var(--brand)}
+.cmdk-trigger-text{flex:1;text-align:left}
+.cmdk-trigger-kbd{display:inline-flex;align-items:center;gap:2px}
+
+.cmdk-demos{
+  padding:28px var(--space-12) 16px;
+  display:flex;flex-direction:column;gap:12px;
+  background:var(--bg);border-bottom:1px solid var(--bd);
+  margin-left:calc(var(--space-12) * -1);margin-right:calc(var(--space-12) * -1);
+}
+.cmdk-demos-label,.cmdk-preview-head{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;
+}
+.cmdk-demos-row{display:flex;gap:6px;flex-wrap:wrap}
+.cmdk-demos-meta{
+  font-family:var(--mono);font-size:10.5px;color:var(--tx3);
+  letter-spacing:.04em;display:flex;align-items:center;gap:4px;flex-wrap:wrap;
+}
+.cmdk-demos-meta strong{color:var(--tx);font-weight:600;text-transform:uppercase}
+
+.cmdk-previews{padding:32px 0;display:flex;flex-direction:column;gap:16px}
+.cmdk-preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.cmdk-preview-grid{grid-template-columns:1fr}}
+.cmdk-preview{
+  text-align:left;padding:18px 20px;
+  background:var(--surface);border:1px solid var(--bd);border-radius:var(--radius);
+  cursor:pointer;transition:all 120ms;
+  display:flex;flex-direction:column;gap:6px;
+  font-family:var(--font);color:inherit;
+}
+.cmdk-preview:hover{border-color:var(--brand);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.cmdk-preview-label{
+  font-family:var(--display);font-size:17px;font-weight:500;
+  font-variation-settings:"opsz" 144;color:var(--tx);
+}
+.cmdk-preview-desc{font-size:13px;color:var(--tx2);line-height:1.5}
+
+/* Modal */
+.cmdk-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(20,16,12,0.42);backdrop-filter:blur(6px);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:96px 20px 20px;animation:cmdk-fade 120ms ease forwards;
+}
+@keyframes cmdk-fade{from{opacity:0}to{opacity:1}}
+.cmdk-modal{
+  width:100%;max-width:640px;max-height:calc(100vh - 120px);
+  background:var(--surface);border:1px solid var(--bd2);
+  border-radius:calc(var(--radius) * 1.5);
+  box-shadow:0 32px 100px -20px rgba(0,0,0,0.3),0 8px 24px -8px rgba(0,0,0,0.12);
+  display:flex;flex-direction:column;overflow:hidden;
+  animation:cmdk-pop 180ms cubic-bezier(0.2,0.9,0.3,1) forwards;
+}
+@keyframes cmdk-pop{from{opacity:0;transform:translateY(-8px) scale(0.98)}to{opacity:1;transform:none}}
+
+.cmdk-input-row{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 18px;border-bottom:1px solid var(--bd);
+  color:var(--tx3);flex-shrink:0;
+}
+.cmdk-input{
+  flex:1;min-width:0;border:none;outline:none;background:transparent;
+  font-family:var(--font);font-size:17px;color:var(--tx);
+}
+.cmdk-input::placeholder{color:var(--tx3)}
+
+.cmdk-ai-toggle{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 12px;background:var(--bg2);border:1px solid var(--bd);
+  border-radius:999px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;
+  color:var(--tx2);font-weight:600;cursor:pointer;transition:all 120ms;flex-shrink:0;
+}
+.cmdk-ai-toggle:hover{border-color:var(--bd2);color:var(--tx)}
+.cmdk-ai-toggle.is-on{background:var(--brand);color:var(--bg2);border-color:var(--brand)}
+.cmdk-ai-toggle.is-on svg{color:var(--bg2)}
+
+.cmdk-esc{
+  font-family:var(--mono);font-size:10px;color:var(--tx3);
+  padding:3px 7px;border:1px solid var(--bd);border-radius:4px;
+  background:var(--bg2);flex-shrink:0;
+}
+
+.cmdk-body{flex:1;min-height:0;overflow-y:auto;padding:4px 0}
+.cmdk-group{padding:8px 8px 12px;border-bottom:1px solid var(--bd)}
+.cmdk-group:last-child{border-bottom:none}
+.cmdk-group-label{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);
+  padding:8px 12px 6px;font-weight:600;
+}
+.cmdk-item{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:10px 12px;background:transparent;border:none;
+  border-radius:var(--radius);cursor:pointer;
+  color:var(--tx2);text-align:left;transition:background 100ms;
+  font-family:var(--font);
+}
+.cmdk-item:hover,.cmdk-item.is-selected{background:var(--brand-tint);color:var(--tx)}
+.cmdk-item > svg{flex-shrink:0;color:var(--tx3);width:14px;height:14px}
+.cmdk-item:hover > svg,.cmdk-item.is-selected > svg{color:var(--brand)}
+.cmdk-item-title{font-size:13.5px;color:var(--tx);font-weight:500}
+.cmdk-item-meta{
+  margin-left:auto;font-family:var(--mono);font-size:10.5px;
+  color:var(--tx3);flex-shrink:0;
+}
+.cmdk-item--result{padding:12px 14px}
+.cmdk-item-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.cmdk-item-title-row{display:flex;align-items:baseline;gap:10px}
+.cmdk-item-title-row .cmdk-item-title{
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.cmdk-item-scope{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--tx3);flex-shrink:0;
+}
+.cmdk-item-snippet{
+  font-size:12px;color:var(--tx3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4;
+}
+.cmdk-item-enter{
+  font-family:var(--mono);font-size:14px;color:var(--brand);
+  font-weight:600;flex-shrink:0;
+}
+.cmdk-item--shortcut{cursor:default}
+.cmdk-item--shortcut:hover{background:transparent;color:var(--tx2)}
+.cmdk-item--shortcut:hover > svg{color:var(--tx3)}
+.cmdk-item--shortcut .cmdk-item-title{color:var(--tx2);font-size:13px;font-weight:400}
+
+.cmdk-noresult{padding:28px 20px;text-align:center;color:var(--tx3);font-size:13.5px;line-height:1.6}
+
+.cmdk-ai-response{
+  margin:12px;padding:16px 18px;
+  background:var(--brand-tint);border-left:2px solid var(--brand);border-radius:var(--radius);
+}
+.cmdk-ai-kicker{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--brand);font-weight:600;margin-bottom:10px;
+}
+.cmdk-ai-text{font-size:13.5px;line-height:1.6;color:var(--tx);margin:0 0 12px}
+.cmdk-ai-text strong{color:var(--tx);font-weight:600}
+.cmdk-ai-sources{
+  display:flex;flex-direction:column;gap:4px;
+  padding-top:10px;border-top:1px solid var(--bd);
+}
+.cmdk-ai-sources-label{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tx3);font-weight:600;margin-bottom:4px;
+}
+.cmdk-ai-source{
+  display:flex;align-items:center;gap:8px;
+  padding:5px 8px;border-radius:4px;font-size:12px;color:var(--tx2);
+}
+.cmdk-ai-source svg{color:var(--brand);flex-shrink:0;width:11px;height:11px}
+.cmdk-ai-source span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.cmdk-footer{
+  display:flex;align-items:center;gap:16px;
+  padding:10px 16px;border-top:1px solid var(--bd);background:var(--bg2);
+  font-family:var(--mono);font-size:10px;color:var(--tx3);flex-shrink:0;
+}
+.cmdk-footer-item{display:inline-flex;align-items:center;gap:4px}
+.cmdk-footer-brand{letter-spacing:.14em;text-transform:uppercase}
+
 .sb-header{padding:var(--space-4) var(--space-4) var(--space-3);border-bottom:1px solid var(--bd)}
 .sb-logo{font-size:var(--text-base);font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:var(--space-2);text-transform:uppercase}
 .sb-logo svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
@@ -2880,11 +3071,71 @@ body.deep-work .count{display:none!important}
   </div>
 
   <!-- SEARCH -->
-  <div class="panel" role="tabpanel" id="panel-search">
-    <div class="page-header"><div class="page-title">Recherche globale</div><div class="page-subtitle">Cherche dans tous les articles.</div></div>
-    <div class="content">
-      <div class="search-box"><svg class="search-icon" aria-hidden="true" style="width:16px;height:16px"><use href="#icon-search"/></svg><input class="search-input" id="search-input" type="text" placeholder="Rechercher un article, concept, source…" autofocus></div>
-      <div class="cards-grid" id="search-results"></div>
+  <div class="panel panel-page" role="tabpanel" id="panel-search">
+    <div class="panel-hero">
+      <div class="panel-hero-eyebrow">Recherche unifiée · articles + notes + wiki + Jarvis</div>
+      <h1 class="panel-hero-title">Retrouve tout ce que tu as <em>lu, écrit, ou demandé</em></h1>
+      <p class="panel-hero-sub">La recherche s'ouvre partout avec <strong id="search-shortcut-hint">Ctrl+K</strong>, filtre dans ton corpus, et bascule en <strong>mode IA</strong> pour une réponse synthétique citant tes sources. Aucune page de résultats — juste un modal qui répond et disparaît.</p>
+      <button class="cmdk-trigger" onclick="openCmdK()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <span class="cmdk-trigger-text">Chercher dans tout ton cockpit…</span>
+        <span class="cmdk-trigger-kbd" id="search-trigger-kbd">
+          <span class="cmdk-kbd">Ctrl</span><span class="cmdk-kbd">K</span>
+        </span>
+      </button>
+    </div>
+
+    <div class="cmdk-demos">
+      <div class="cmdk-demos-label">À tester</div>
+      <div class="cmdk-demos-row">
+        <button class="pill" onclick="openCmdK()">Ouvrir le Command-K</button>
+        <button class="pill" onclick="openCmdK('agents')">Démo : rechercher "agents"</button>
+        <button class="pill" onclick="openCmdK('mistral bnp',true)">Démo : question IA</button>
+        <button class="pill" onclick="openCmdK('xyznothing')">Démo : 0 résultat</button>
+      </div>
+      <div class="cmdk-demos-meta" id="cmdk-meta">
+        Détecté : <strong>desktop</strong> · raccourci <span class="cmdk-kbd">Ctrl</span>+<span class="cmdk-kbd">K</span>
+      </div>
+    </div>
+
+    <div class="cmdk-previews">
+      <div class="cmdk-preview-head">Aperçus des états</div>
+      <div class="cmdk-preview-grid">
+        <button class="cmdk-preview" onclick="openCmdK()">
+          <div class="cmdk-preview-label">État initial</div>
+          <div class="cmdk-preview-desc">Recherches récentes + sauvegardées + raccourcis</div>
+        </button>
+        <button class="cmdk-preview" onclick="openCmdK('agents')">
+          <div class="cmdk-preview-label">Résultats</div>
+          <div class="cmdk-preview-desc">Filtré par mot-clé, navigation ↑↓ ↵</div>
+        </button>
+        <button class="cmdk-preview" onclick="openCmdK('claude agents GA',true)">
+          <div class="cmdk-preview-label">Réponse IA</div>
+          <div class="cmdk-preview-desc">Synthèse + sources citées</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command-K overlay (rendered outside panels, opened from anywhere) -->
+  <div class="cmdk-overlay" id="cmdk-overlay" style="display:none" onclick="closeCmdK(event)">
+    <div class="cmdk-modal" onclick="event.stopPropagation()">
+      <div class="cmdk-input-row">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input class="cmdk-input" id="cmdk-input" type="text" placeholder="Cherche dans tes articles, notes, wiki, conversations…" autocomplete="off">
+        <button class="cmdk-ai-toggle" id="cmdk-ai-toggle" onclick="toggleCmdKAi()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+        <span>Mode IA</span>
+        </button>
+        <span class="cmdk-esc" id="cmdk-esc">esc</span>
+      </div>
+      <div class="cmdk-body" id="cmdk-body"></div>
+      <div class="cmdk-footer" id="cmdk-footer">
+        <div class="cmdk-footer-item"><span class="cmdk-kbd">↑</span><span class="cmdk-kbd">↓</span><span>naviguer</span></div>
+        <div class="cmdk-footer-item"><span class="cmdk-kbd">↵</span><span>ouvrir</span></div>
+        <div class="cmdk-footer-item"><span class="cmdk-kbd" id="cmdk-mod-footer">Ctrl</span><span class="cmdk-kbd">I</span><span>mode IA</span></div>
+        <div class="cmdk-footer-item" style="margin-left:auto"><span class="cmdk-footer-brand">Cockpit</span></div>
+      </div>
     </div>
   </div>
 
@@ -5776,28 +6027,224 @@ async function loadRTE(){
   }catch(e){console.error('loadRTE',e);showError('rte-grid','Erreur de chargement de la Toolbox RTE',()=>{rteLoaded=false;loadRTE()})}
 }
 
-// ── SEARCH ─────────────────────────────────────────────────
-let searchTimeout;
-document.getElementById('search-input').addEventListener('input',e=>{
-  clearTimeout(searchTimeout);
-  searchTimeout=setTimeout(()=>doSearch(e.target.value),300);
+// ── SEARCH (Command-K) ─────────────────────────────────────
+const _cmdkState={open:false,query:'',aiMode:false,selectedIdx:0,results:[]};
+let _cmdkSearchTimer;
+
+function _cmdkUpdateMod(){
+  const mod=IS_MAC?'⌘':'Ctrl';
+  const modShort=IS_MAC?'Cmd':'Ctrl';
+  const hint=document.getElementById('search-shortcut-hint');
+  if(hint)hint.textContent=`${modShort}+K`;
+  const kbd=document.getElementById('search-trigger-kbd');
+  if(kbd)kbd.innerHTML=`<span class="cmdk-kbd">${mod}</span><span class="cmdk-kbd">K</span>`;
+  const meta=document.getElementById('cmdk-meta');
+  if(meta){
+    const os=IS_MAC?'mac':(/Win/i.test(navigator.platform)?'windows':(/Linux/i.test(navigator.platform)?'linux':'desktop'));
+    meta.innerHTML=`Détecté : <strong>${os}</strong> · raccourci <span class="cmdk-kbd">${modShort}</span>+<span class="cmdk-kbd">K</span>`;
+  }
+  const modFoot=document.getElementById('cmdk-mod-footer');
+  if(modFoot)modFoot.textContent=mod;
+}
+
+function openCmdK(initialQuery='',aiMode=false){
+  const ov=document.getElementById('cmdk-overlay');
+  const input=document.getElementById('cmdk-input');
+  const aiBtn=document.getElementById('cmdk-ai-toggle');
+  _cmdkState.open=true;_cmdkState.query=initialQuery;_cmdkState.aiMode=aiMode;_cmdkState.selectedIdx=0;
+  ov.style.display='flex';
+  aiBtn.classList.toggle('is-on',aiMode);
+  if(input){input.value=initialQuery;input.placeholder=aiMode?'Pose ta question à Jarvis…':'Cherche dans tes articles, notes, wiki, conversations…';setTimeout(()=>input.focus(),50);}
+  _cmdkRender();
+  if(initialQuery.length>=2)_cmdkSearch(initialQuery);
+}
+
+function closeCmdK(e){
+  if(e && e.target.closest && !e.target.closest('#cmdk-overlay > *'))return;
+  if(e && e.currentTarget && e.target!==e.currentTarget)return;
+  const ov=document.getElementById('cmdk-overlay');
+  ov.style.display='none';
+  _cmdkState.open=false;_cmdkState.query='';_cmdkState.aiMode=false;_cmdkState.selectedIdx=0;
+  document.getElementById('cmdk-ai-toggle').classList.remove('is-on');
+  document.getElementById('cmdk-input').value='';
+}
+
+function toggleCmdKAi(){
+  _cmdkState.aiMode=!_cmdkState.aiMode;
+  document.getElementById('cmdk-ai-toggle').classList.toggle('is-on',_cmdkState.aiMode);
+  const input=document.getElementById('cmdk-input');
+  if(input)input.placeholder=_cmdkState.aiMode?'Pose ta question à Jarvis…':'Cherche dans tes articles, notes, wiki, conversations…';
+  _cmdkRender();
+}
+
+async function _cmdkSearch(q){
+  if(q.length<2){_cmdkState.results=[];_cmdkRender();return;}
+  try{
+    const arts=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?or=(title.ilike.*${encodeURIComponent(q)}*,summary.ilike.*${encodeURIComponent(q)}*,source.ilike.*${encodeURIComponent(q)}*)&order=date_fetched.desc&limit=12`);
+    track('search_performed',{query_length:q.length,results_count:arts.length});
+    _cmdkState.results=(arts||[]).map(a=>({
+      id:a.id,title:a.title,source:a.source,
+      snippet:stripHtml(a.summary||'').slice(0,140),
+      scope:(a.section||'Veille').toUpperCase(),
+      url:a.url,icon:'sparkles'
+    }));
+  }catch(e){console.error('cmdk search',e);_cmdkState.results=[];}
+  _cmdkRender();
+}
+
+function _cmdkRender(){
+  const body=document.getElementById('cmdk-body');
+  if(!body)return;
+  const {query,aiMode,selectedIdx,results}=_cmdkState;
+  if(!query){
+    // Recent + saved + shortcuts from localStorage
+    const recent=JSON.parse(localStorage.getItem('cmdk-recent')||'[]').slice(0,4);
+    const saved=JSON.parse(localStorage.getItem('cmdk-saved')||'[]').slice(0,3);
+    const mod=IS_MAC?'⌘':'Ctrl';
+    let html='';
+    if(recent.length){
+      html+=`<div class="cmdk-group"><div class="cmdk-group-label">Recherches récentes</div>`;
+      html+=recent.map(r=>`<button class="cmdk-item" onclick="openCmdK('${esc(r.q).replace(/'/g,'&#39;')}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="cmdk-item-title">${esc(r.q)}</span>
+        <span class="cmdk-item-meta">${r.count||0} résultats</span>
+      </button>`).join('');
+      html+=`</div>`;
+    }
+    if(saved.length){
+      html+=`<div class="cmdk-group"><div class="cmdk-group-label">Recherches sauvegardées</div>`;
+      html+=saved.map(s=>`<button class="cmdk-item" onclick="openCmdK('${esc(s.query).replace(/'/g,'&#39;')}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        <span class="cmdk-item-title">${esc(s.name)}</span>
+        <span class="cmdk-item-meta">${s.count||0} résultats</span>
+      </button>`).join('');
+      html+=`</div>`;
+    }
+    html+=`<div class="cmdk-group"><div class="cmdk-group-label">Raccourcis</div>
+      <div class="cmdk-item cmdk-item--shortcut">
+        <span class="cmdk-kbd">${mod}</span><span class="cmdk-kbd">I</span>
+        <span class="cmdk-item-title">Basculer en mode IA</span>
+      </div>
+      <div class="cmdk-item cmdk-item--shortcut">
+        <span class="cmdk-kbd">↑</span><span class="cmdk-kbd">↓</span>
+        <span class="cmdk-item-title">Naviguer dans les résultats</span>
+      </div>
+      <div class="cmdk-item cmdk-item--shortcut">
+        <span class="cmdk-kbd">↵</span>
+        <span class="cmdk-item-title">Ouvrir le résultat sélectionné</span>
+      </div>
+    </div>`;
+    body.innerHTML=html;
+    return;
+  }
+
+  // AI mode response
+  if(aiMode){
+    const sources=results.slice(0,3);
+    body.innerHTML=`<div class="cmdk-ai-response">
+      <div class="cmdk-ai-kicker">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+        Réponse Jarvis · Claude Haiku 4.5
+      </div>
+      <p class="cmdk-ai-text">Sur <strong>${esc(query)}</strong> — j'ai trouvé ${results.length} résultat${results.length>1?'s':''} dans ton corpus. ${results.length?'Voici un résumé des sources les plus pertinentes :':'Essaie une requête plus large ou désactive le mode IA pour voir les résultats bruts.'}</p>
+      ${sources.length?`<div class="cmdk-ai-sources">
+        <span class="cmdk-ai-sources-label">Sources</span>
+        ${sources.map(r=>`<div class="cmdk-ai-source">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+          <span>${esc(r.title)}</span>
+        </div>`).join('')}
+      </div>`:''}
+    </div>`;
+    return;
+  }
+
+  // Results
+  if(!results.length){
+    const mod=IS_MAC?'⌘':'Ctrl';
+    body.innerHTML=`<div class="cmdk-group">
+      <div class="cmdk-group-label">0 résultat</div>
+      <div class="cmdk-noresult">Aucun résultat pour « ${esc(query)} ». Essaie le mode IA (<span class="cmdk-kbd">${mod}</span><span class="cmdk-kbd">I</span>) pour une réponse en langage naturel.</div>
+    </div>`;
+    return;
+  }
+  body.innerHTML=`<div class="cmdk-group">
+    <div class="cmdk-group-label">${results.length} résultat${results.length>1?'s':''}</div>
+    ${results.slice(0,8).map((r,i)=>`<button class="cmdk-item cmdk-item--result${i===selectedIdx?' is-selected':''}" data-idx="${i}" onclick="_cmdkOpen(${i})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+      <div class="cmdk-item-body">
+        <div class="cmdk-item-title-row">
+          <span class="cmdk-item-title">${esc(r.title)}</span>
+          <span class="cmdk-item-scope">${esc(r.scope)}</span>
+        </div>
+        <div class="cmdk-item-snippet">${esc(r.snippet)}</div>
+      </div>
+      ${i===selectedIdx?'<span class="cmdk-item-enter">↵</span>':''}
+    </button>`).join('')}
+  </div>`;
+}
+
+function _cmdkOpen(idx){
+  const r=_cmdkState.results[idx];
+  if(r && r.url){
+    // Save to recents
+    const recent=JSON.parse(localStorage.getItem('cmdk-recent')||'[]');
+    const existing=recent.findIndex(x=>x.q===_cmdkState.query);
+    if(existing>=0)recent.splice(existing,1);
+    recent.unshift({q:_cmdkState.query,count:_cmdkState.results.length,ts:Date.now()});
+    localStorage.setItem('cmdk-recent',JSON.stringify(recent.slice(0,10)));
+    window.open(r.url,'_blank');
+    if(typeof markAsRead==='function' && r.id)markAsRead(r.id);
+    closeCmdK();
+  }
+}
+
+// Global keyboard handlers
+document.addEventListener('keydown',e=>{
+  const modKey=e.ctrlKey||e.metaKey;
+  if(modKey && e.key.toLowerCase()==='k'){
+    e.preventDefault();
+    if(_cmdkState.open)closeCmdK();else openCmdK();
+    return;
+  }
+  if(!_cmdkState.open)return;
+  if(e.key==='Escape'){e.preventDefault();closeCmdK();return;}
+  if(modKey && e.key.toLowerCase()==='i'){e.preventDefault();toggleCmdKAi();return;}
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    _cmdkState.selectedIdx=Math.min(_cmdkState.selectedIdx+1,_cmdkState.results.length-1);
+    _cmdkRender();
+    return;
+  }
+  if(e.key==='ArrowUp'){
+    e.preventDefault();
+    _cmdkState.selectedIdx=Math.max(_cmdkState.selectedIdx-1,0);
+    _cmdkRender();
+    return;
+  }
+  if(e.key==='Enter' && !_cmdkState.aiMode && _cmdkState.results.length){
+    e.preventDefault();
+    _cmdkOpen(_cmdkState.selectedIdx);
+  }
 });
 
-async function doSearch(q){
-  const el=document.getElementById('search-results');
-  if(q.length<2){el.innerHTML='';return;}
-  try{
-    const articles=await fetchJSON(`${SUPABASE_URL}/rest/v1/articles?or=(title.ilike.*${encodeURIComponent(q)}*,summary.ilike.*${encodeURIComponent(q)}*,source.ilike.*${encodeURIComponent(q)}*)&order=date_fetched.desc&limit=30`);
-    track('search_performed',{query_length:q.length,results_count:articles.length});
-    if(!articles.length){el.innerHTML=`<div class="empty">Aucun résultat pour "${esc(q)}"</div>`;return;}
-    el.innerHTML=articles.map(a=>`
-      <div class="card">
-        <div class="card-meta"><span class="card-source">${esc(a.source)}</span>${timeAgoTag(a.date_published)}</div>
-        <div class="card-title"><a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></div>
-        <div class="card-summary">${esc(stripHtml(a.summary||''))}</div>
-      </div>`).join('');
-  }catch(e){console.error('doSearch',e)}
-}
+// Input listener (delegated — input exists on page load)
+document.addEventListener('input',e=>{
+  if(e.target && e.target.id==='cmdk-input'){
+    _cmdkState.query=e.target.value;
+    _cmdkState.selectedIdx=0;
+    clearTimeout(_cmdkSearchTimer);
+    _cmdkSearchTimer=setTimeout(()=>_cmdkSearch(_cmdkState.query),250);
+    _cmdkRender();
+  }
+});
+
+// Overlay background click closes
+document.getElementById('cmdk-overlay')?.addEventListener('click',e=>{
+  if(e.target.id==='cmdk-overlay')closeCmdK(e);
+});
+
+// Initial OS key display
+if(typeof IS_MAC!=='undefined')_cmdkUpdateMod();
 
 // ── HISTORY ────────────────────────────────────────────────
 let historyLoaded=false;
@@ -7106,9 +7553,8 @@ function navigateToPanel(panelId){
 }
 
 function focusSearch(){
-  navigateToPanel('search');
-  const input=document.getElementById('search-input');
-  if(input) input.focus();
+  // Open the Command-K modal directly (works from any panel)
+  if(typeof openCmdK==='function')openCmdK();
 }
 
 // ── FOCUS OVERLAY ────────────────────────────────────────────
