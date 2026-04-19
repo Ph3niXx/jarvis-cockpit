@@ -190,7 +190,18 @@
   }
 
   function buildRadar(rows){
-    if (!rows || !rows.length) return { axes: [], next_gap: null };
+    const EMPTY_GAP = {
+      axis: "Radar à initialiser",
+      reason: "Fais le diagnostic radar pour identifier ton prochain gap à combler.",
+      action: "Ouvrir le radar",
+    };
+    if (!rows || !rows.length) {
+      return {
+        axes: [],
+        next_gap: EMPTY_GAP,
+        summary: { avg: 0, strongest: null, weakest: null, level_global: "—", position_peers: "—" },
+      };
+    }
     const norm = r => {
       const s = Number(r.score || 0);
       return s <= 10 ? s * 10 : Math.min(100, s);
@@ -216,7 +227,7 @@
         axis: lowest.name,
         reason: lowest.gaps || `Score bloqué à ${lowest.score}/100. C'est ton plus gros delta avec l'expert — prochain pas recommandé.`,
         action: "Faire un challenge de la semaine",
-      } : null,
+      } : EMPTY_GAP,
       summary: {
         avg: Math.round(axes.reduce((s, a) => s + a.score, 0) / Math.max(1, axes.length)),
         strongest: axes.slice().sort((a, b) => b.score - a.score)[0]?.id,
