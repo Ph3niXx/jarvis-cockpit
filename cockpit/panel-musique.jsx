@@ -133,31 +133,33 @@ function PanelMusique() {
         <div>
           <div className="mz-hero-eyebrow">
             <span className="mz-live">live</span>
-            <span>last.fm · depuis apple music · {D.totals.all180.toLocaleString("fr-FR")} scrobbles 180j</span>
+            <span>last.fm · {D.totals.all180.toLocaleString("fr-FR")} scrobbles 180j</span>
           </div>
           <h1 className="mz-hero-title">
             <em>{D.totals.last30.toLocaleString("fr-FR")}</em> scrobbles<br />
-            sur 30 jours — dominé par le <em>prog&nbsp;metal</em>.
+            sur 30 jours{(D.genres_30d && D.genres_30d[0]) ? <> — dominé par le <em>{D.genres_30d[0].name}</em>.</> : "."}
           </h1>
           <p className="mz-hero-sub">
-            Gojira #1 depuis {D.streaks.current_top_artist_weeks} semaines. Streak quotidien : {D.streaks.current_daily} jours sans interruption.
-            Après-midi calmes, pics matin 8–11h (deep work) et samedis tardifs.
+            {(D.top_artists && D.top_artists["30d"] && D.top_artists["30d"][0])
+              ? <><strong>{D.top_artists["30d"][0].name}</strong> #1 sur 30 jours · </>
+              : null}
+            Streak quotidien : {D.streaks.current_daily} jours sans interruption{D.streaks.longest_daily ? <> · record {D.streaks.longest_daily}j</> : ""}.
           </p>
         </div>
 
         <div className="mz-hero-np">
-          <div className="mz-hero-np-art" style={{ background: np.album_art_hint }}>
-            <span>{np.album}</span>
+          <div className="mz-hero-np-art" style={{ background: np.album_art_hint || "var(--tx)" }}>
+            <span>{np.album || "—"}</span>
           </div>
           <div className="mz-hero-np-meta">
-            <div className="mz-hero-np-label">now playing · {np.started_at}</div>
-            <div className="mz-hero-np-track">{np.track}</div>
+            <div className="mz-hero-np-label">now playing{np.started_at || np.ago ? " · " + (np.started_at || np.ago) : ""}</div>
+            <div className="mz-hero-np-track">{np.track || "—"}</div>
             <div className="mz-hero-np-artist">
-              <strong>{np.artist}</strong> · {np.album}
+              <strong>{np.artist || "—"}</strong>{np.album ? <> · {np.album}</> : null}
             </div>
             <div className="mz-hero-np-stats">
-              <span><strong>{np.scrobble_count_track}</strong> plays · ce titre</span>
-              <span><strong>{np.scrobble_count_artist}</strong> · cet artiste</span>
+              {np.scrobble_count_track ? <span><strong>{np.scrobble_count_track}</strong> plays · ce titre</span> : null}
+              {np.scrobble_count_artist ? <span><strong>{np.scrobble_count_artist}</strong> · cet artiste</span> : null}
               {np.loved && <span className="mz-loved">♥ loved</span>}
             </div>
           </div>

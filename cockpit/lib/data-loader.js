@@ -930,12 +930,31 @@
 
     // ── now_playing ────────────────────────
     const latest = (scrobbles || [])[0];
-    const now_playing = latest ? {
-      track: latest.track_name || "—",
-      artist: latest.artist_name || "—",
-      album: latest.album_name || "",
-      ago: relTime(latest.scrobbled_at),
-    } : null;
+    let now_playing = null;
+    if (latest) {
+      // Count total plays of this exact track + total plays of this artist
+      // across the 200-scrobble window we fetched.
+      let trackPlays = 0, artistPlays = 0;
+      (scrobbles || []).forEach(sc => {
+        if (sc.artist_name === latest.artist_name) artistPlays++;
+        if (sc.track_name === latest.track_name && sc.artist_name === latest.artist_name) trackPlays++;
+      });
+      const isLoved = (loved || []).some(l =>
+        (l.track_name || "").toLowerCase() === (latest.track_name || "").toLowerCase() &&
+        (l.artist_name || "").toLowerCase() === (latest.artist_name || "").toLowerCase()
+      );
+      now_playing = {
+        track: latest.track_name || "—",
+        artist: latest.artist_name || "—",
+        album: latest.album_name || "",
+        ago: relTime(latest.scrobbled_at),
+        started_at: relTime(latest.scrobbled_at),
+        scrobble_count_track: trackPlays,
+        scrobble_count_artist: artistPlays,
+        loved: isLoved,
+        album_art_hint: null,
+      };
+    }
 
     return {
       now_playing,
