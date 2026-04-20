@@ -173,7 +173,18 @@ function Home({ theme, data, onNavigate }) {
         </div>
         <div className="ph-right">
           <AudioBriefChip macro={macro} />
-          <button className="ph-chip ph-chip--primary"><Icon name="check" size={13} stroke={2.5} /> Tout marqué lu</button>
+          <button
+            className="ph-chip ph-chip--primary"
+            onClick={() => {
+              try {
+                const rm = JSON.parse(localStorage.getItem("read-articles") || "{}");
+                (top || []).forEach(t => { const id = t._id || t.id; if (id) rm[id] = { ts: Date.now() }; });
+                localStorage.setItem("read-articles", JSON.stringify(rm));
+                // Force a lightweight refresh so the read state shows
+                setReadTop(Object.fromEntries((top || []).map(t => [t.rank, true])));
+              } catch {}
+            }}
+          ><Icon name="check" size={13} stroke={2.5} /> Tout marqué lu</button>
         </div>
       </header>
 
@@ -190,8 +201,12 @@ function Home({ theme, data, onNavigate }) {
             <h1 className="hero-title">{macro.title}</h1>
             <p className="hero-body">{macro.body}</p>
             <div className="hero-actions">
-              <button className="btn btn--primary">Lire les 3 incontournables <Icon name="arrow_right" size={14} stroke={2} /></button>
-              <button className="btn btn--ghost">Parcourir les 47 articles</button>
+              <button className="btn btn--primary" onClick={() => onNavigate("top")}>
+                Lire les 3 incontournables <Icon name="arrow_right" size={14} stroke={2} />
+              </button>
+              <button className="btn btn--ghost" onClick={() => onNavigate("updates")}>
+                Parcourir les {macro.articles_summarized || 0} articles
+              </button>
             </div>
           </div>
 

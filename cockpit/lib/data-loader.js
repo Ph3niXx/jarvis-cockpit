@@ -75,7 +75,8 @@
     return q("articles", `fetch_date=eq.${date}&order=date_fetched.desc&limit=100`);
   }
   async function loadDailyBrief(){
-    const rows = await q("daily_briefs", "order=created_at.desc&limit=1");
+    // daily_briefs columns: date, brief_html, article_count, created_at
+    const rows = await q("daily_briefs", "order=date.desc&limit=1");
     return rows[0] || null;
   }
   async function loadSignals(){
@@ -139,8 +140,21 @@
       };
     }
     const top = articles[0];
-    const title = brief?.title || top?.title || "Brief du jour";
-    const body = stripHtml(brief?.summary || brief?.body_html || top?.summary || "").slice(0, 420);
+    // daily_briefs has one column brief_html (Gemini-generated). Derive
+    // title from its <h1>/<h2> if present, else fall back on the top
+    // article title; body is the first paragraph-ish chunk.
+    const html = brief?.brief_html || "";
+    let briefTitle = null, briefBody = null;
+    if (html) {
+      const titleMatch = html.match(/<(?:h1|h2)[^>]*>([\s\S]*?)<\/(?:h1|h2)>/i);
+      if (titleMatch) briefTitle = stripHtml(titleMatch[1]).trim();
+      const paraMatch = html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+      if (paraMatch) briefBody = stripHtml(paraMatch[1]).trim();
+      // Fallback: strip all HTML and take first 420 chars
+      if (!briefBody) briefBody = stripHtml(html).slice(0, 420);
+    }
+    const title = briefTitle || top?.title || "Brief du jour";
+    const body = (briefBody || stripHtml(top?.summary || "")).slice(0, 420);
     return {
       kicker: "Synthèse du matin",
       title,
@@ -763,7 +777,7 @@
     });
     const briefByDate = {};
     (briefs || []).forEach(b => {
-      const d = (b.created_at || "").slice(0, 10);
+      const d = (b.date || b.created_at || "").slice(0, 10);
       if (d) briefByDate[d] = b;
     });
     const today = new Date(); today.setHours(0,0,0,0);
@@ -800,11 +814,19 @@
         jarvis_calls: 0,   // needs usage_events aggregation — skip for now
         intensity: count >= 12 ? 3 : count >= 6 ? 2 : count >= 1 ? 1 : 0,
         pinned: false,
-        macro: {
-          title: brief?.title || (top[0]?.title || "Pas de brief pour ce jour"),
-          body: (brief?.summary || "").slice(0, 280) || (arts.length ? arts.length + " articles ce jour-là." : ""),
-          tag: top[0]?.section || "veille",
-        },
+        macro: (function(){
+          // daily_briefs stores the full synthesis in brief_html.
+          let t = top[0]?.title || "Pas de brief pour ce jour";
+          let b = arts.length ? arts.length + " articles ce jour-là." : "";
+          if (brief?.brief_html) {
+            const h = brief.brief_html;
+            const tm = h.match(/<(?:h1|h2)[^>]*>([\s\S]*?)<\/(?:h1|h2)>/i);
+            if (tm) t = stripHtml(tm[1]).trim();
+            const pm = h.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+            if (pm) b = stripHtml(pm[1]).trim().slice(0, 280);
+          }
+          return { title: t, body: b, tag: top[0]?.section || "veille" };
+        })(),
         top,
         signals: [],
       });
@@ -1013,7 +1035,7 @@
         const fromDate = sixtyDaysAgo.toISOString().split("T")[0];
         const [arts60, briefs] = await Promise.all([
           q("articles", `fetch_date=gte.${fromDate}&select=id,title,fetch_date,section,source,url,summary&order=fetch_date.desc&limit=2000`).catch(() => []),
-          q("daily_briefs", `created_at=gte.${fromDate}&select=title,summary,created_at&order=created_at.desc&limit=60`).catch(() => []),
+          q("daily_briefs", `date=gte.${fromDate}&select=date,brief_html,article_count&order=date.desc&limit=60`).catch(() => []),
         ]);
         if (window.HISTORY_DATA && arts60.length) {
           const shape = transformHistory(arts60, briefs);
@@ -1060,8 +1082,15 @@
       window.APPRENTISSAGE_DATA.radar = buildRadar(raw.radarRows);
     }
     if (window.PROFILE_DATA && raw.profileRows?.length) {
-      window.PROFILE_DATA._values = transformProfile(raw.profileRows);
+      const kv = transformProfile(raw.profileRows);
+      window.PROFILE_DATA._values = kv;
       window.PROFILE_DATA._raw = raw.profileRows;
+      // Non-destructive merge of a few headline fields the panel reads.
+      if (window.PROFILE_DATA.identity) {
+        if (kv.name) window.PROFILE_DATA.identity.name = kv.name;
+        if (kv.role || kv.current_role) window.PROFILE_DATA.identity.role = kv.role || kv.current_role;
+        if (kv.location) window.PROFILE_DATA.identity.location = kv.location;
+      }
     }
     if (window.SIGNALS_DATA && raw.signals?.length) {
       // SIGNALS_DATA may have a richer shape too — expose real under _raw
