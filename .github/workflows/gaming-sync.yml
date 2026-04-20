@@ -1,0 +1,28 @@
+name: Gaming — RSS Sync
+
+on:
+  schedule:
+    # Quotidien à 6h45 UTC (8h45 Paris)
+    - cron: '45 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  gaming-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r pipelines/requirements-gaming.txt
+
+      - name: Run gaming sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python pipelines/gaming_sync.py

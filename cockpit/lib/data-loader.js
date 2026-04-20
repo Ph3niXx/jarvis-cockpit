@@ -447,6 +447,7 @@
     async weekly_analysis(){ return once("weekly_analysis_all", () => loadWeeklyAnalysis(30)); },
     async jobs_all(){ return once("jobs_all", () => q("jobs", "select=*&order=score_total.desc.nullslast&limit=300")); },
     async sport(){ return once("sport_articles", () => q("sport_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
+    async gaming_news(){ return once("gaming_articles", () => q("gaming_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async jobs_scan_today(){
       const today = isoToday();
       return once("jobs_scan_" + today, async () => {
@@ -1325,6 +1326,56 @@
     });
   }
 
+  // Gaming feed transformer — same contract as transformSportFeed but with
+  // gaming-specific category labels and icons.
+  const GAMING_CATEGORY_LABELS = {
+    releases: "Sorties récentes", upcoming: "À venir",
+    esport: "E-sport", industry: "Industrie",
+  };
+  const GAMING_CATEGORY_ICONS = {
+    releases: "sparkles", upcoming: "flag",
+    esport: "bot", industry: "wrench",
+  };
+  function normalizeGamingSource(src){
+    if (!src) return "—";
+    if (src.startsWith("L'Equipe") || src.startsWith("L'Équipe")) return "L'Équipe E-sport";
+    return src;
+  }
+  function guessGamingType(title){
+    const t = (title || "").toLowerCase();
+    if (/review|critique|test|verdict|note/.test(t)) return "Critique";
+    if (/patch|update|mise à jour|hotfix/.test(t)) return "Patch";
+    if (/trailer|teaser|showcase|direct/.test(t)) return "Trailer";
+    if (/interview|explique|confie/.test(t)) return "Interview";
+    if (/leak|leaked|fuite|rumeur|rumour/.test(t)) return "Rumeur";
+    if (/acquires|acquisition|racheté|layoff|licenc/.test(t)) return "Deal";
+    if (/sortie|release|launch|disponible|out now/.test(t)) return "Sortie";
+    if (/annonce|announce|reveal|révél/.test(t)) return "Annonce";
+    return "Actu";
+  }
+  function transformGamingFeed(articles){
+    const readMap = getReadMap();
+    return (articles || []).map(a => {
+      const when = a.date_published || a.date_fetched || Date.now();
+      const dateH = Math.max(0, Math.round((Date.now() - new Date(when).getTime()) / 3600000));
+      return {
+        id: a.id,
+        actor: normalizeGamingSource(a.source),
+        category: a.category || "releases",
+        type: guessGamingType(a.title),
+        date_h: dateH,
+        date_label: relTime(when),
+        title: a.title || "",
+        summary: stripHtml(a.summary || "").slice(0, 260),
+        tags: ["#" + (a.category || "gaming")],
+        unread: !readMap[a.id],
+        starred: false,
+        icon: GAMING_CATEGORY_ICONS[a.category] || "flag",
+        url: a.url,
+      };
+    });
+  }
+
   function transformVeilleFeed(articles){
     const readMap = getReadMap();
     return (articles || []).map(a => {
@@ -1541,7 +1592,94 @@
         }
         return { articles };
       }
-      case "gaming_news":
+      case "gaming_news": {
+        const articles = await T2.gaming_news();
+        if (window.GAMING_DATA && articles.length) {
+          window.GAMING_DATA.feed = transformGamingFeed(articles);
+          const fresh = articles[0];
+          const now = Date.now();
+          const ageH = a => {
+            const t = new Date(a.date_published || a.date_fetched || 0).getTime();
+            return (now - t) / 3600000;
+          };
+          const last24h = articles.filter(a => ageH(a) <= 24).length;
+          const last7d = articles.filter(a => ageH(a) <= 24 * 7);
+          const catCounts7d = {};
+          last7d.forEach(a => {
+            const k = a.category || "releases";
+            catCounts7d[k] = (catCounts7d[k] || 0) + 1;
+          });
+          const topCatEntry = Object.entries(catCounts7d).sort((a, b) => b[1] - a[1])[0];
+          const topCat = topCatEntry ? (GAMING_CATEGORY_LABELS[topCatEntry[0]] || topCatEntry[0]) : "—";
+          const topCatCount = topCatEntry ? topCatEntry[1] : 0;
+          const sourcesN = new Set(articles.map(a => normalizeGamingSource(a.source))).size;
+          if (fresh) {
+            const freshLabel = GAMING_CATEGORY_LABELS[fresh.category] || fresh.category || "Gaming";
+            window.GAMING_DATA.headline = {
+              ...(window.GAMING_DATA.headline || {}),
+              kicker: freshLabel + " · " + (relTime(fresh.date_published || fresh.date_fetched) || "récent"),
+              actor: normalizeGamingSource(fresh.source),
+              version: freshLabel,
+              tagline: fresh.title || "",
+              body: stripHtml(fresh.summary || "").slice(0, 320) || fresh.title || "",
+              metrics: [
+                { label: "Articles 24h", value: String(last24h), delta: last24h ? "+" + last24h : "=" },
+                { label: "Articles 7j", value: String(last7d.length), delta: "=" },
+                { label: "Top rubrique", value: topCat, delta: topCatCount ? "+" + topCatCount : "=" },
+                { label: "Sources", value: String(sourcesN), delta: "=" },
+              ],
+              tags: ["#gaming", "#" + (fresh.category || "actu")],
+            };
+          }
+          // Actors = sources (Dexerto, IGN, PC Gamer…)
+          const sourceColors = {
+            "JeuxVideo.com": "#e60000",
+            "Gamekult": "#f26522",
+            "ActuGaming": "#2d9cdb",
+            "IGN": "#bf1e2d",
+            "Eurogamer": "#7700bb",
+            "PC Gamer": "#af1e23",
+            "GamesIndustry.biz": "#222",
+            "Dexerto": "#ff6600",
+            "L'Équipe E-sport": "#e4002b",
+          };
+          const srcMap = new Map();
+          articles.forEach(a => {
+            const name = normalizeGamingSource(a.source);
+            if (!srcMap.has(name)) {
+              srcMap.set(name, {
+                id: name.toLowerCase().replace(/\W+/g, "-"),
+                name,
+                mark: name.split(/[\s.]/).map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase(),
+                color: sourceColors[name] || "#555",
+                followed: true,
+                last_activity: relTime(a.date_published || a.date_fetched),
+                last_title: a.title || "",
+                momentum: "",
+                pulse: [0, 0, 0, 0, 0, 0, 0, 0],
+                note: "",
+              });
+            }
+            srcMap.get(name).pulse[7]++;
+          });
+          window.GAMING_DATA.actors = Array.from(srcMap.values());
+          // Trends = one per rubrique.
+          window.GAMING_DATA.trends = Object.entries(catCounts7d)
+            .map(([cat, count]) => ({
+              id: "tg-" + cat,
+              label: GAMING_CATEGORY_LABELS[cat] || cat,
+              kicker: "Rubrique",
+              momentum: count + " articles · 7j",
+              pulse: [0, 0, 0, 0, 0, 0, 0, count],
+              articles_count: count,
+              summary: count + " articles récents en " + (GAMING_CATEGORY_LABELS[cat] || cat) + ".",
+              actors_involved: [],
+              status: count >= 15 ? "rising" : count >= 8 ? "stable" : "new",
+            }))
+            .sort((a, b) => b.articles_count - a.articles_count);
+        }
+        return { articles };
+      }
       case "anime":
       case "news": {
         // Non-AI verticals need articles.domain column + dedicated
@@ -1726,7 +1864,7 @@
   const TIER2_PANELS = new Set([
     "updates", "wiki", "radar", "recos", "challenges", "opps", "ideas",
     "profile", "perf", "music", "gaming", "stacks", "history", "jobs",
-    "sport",
+    "sport", "gaming_news",
   ]);
 
   // Hydrate globals with real data on boot (Tier 1 already fetched the
