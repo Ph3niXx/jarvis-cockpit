@@ -9,7 +9,76 @@
 // §5 Milestones 2026 YTD
 // ═══════════════════════════════════════════════════════════════
 
-const { useState: useMzState, useMemo: useMzMemo } = React;
+const { useState: useMzState, useMemo: useMzMemo, useEffect: useMzEffect } = React;
+
+// ── Live now-playing hook ─────────────────────────────────
+// Polls Last.fm user.getRecentTracks every 30s and returns the
+// freshest "now playing" info. If the user is actively listening,
+// Last.fm flags the top track with @attr.nowplaying === "true" and
+// omits its timestamp. Otherwise we fall back to the cached shape.
+function useLiveNowPlaying(initial) {
+  const [np, setNp] = useMzState(initial || null);
+  useMzEffect(() => { setNp(initial || null); }, [initial]);
+
+  useMzEffect(() => {
+    const pf = (window.PROFILE_DATA && window.PROFILE_DATA._values) || {};
+    const apiKey = pf.lastfm_api_key;
+    const user = pf.lastfm_username;
+    if (!apiKey || !user) return;
+
+    let alive = true;
+
+    async function poll() {
+      try {
+        const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(user)}&api_key=${encodeURIComponent(apiKey)}&limit=1&format=json`;
+        const r = await fetch(url);
+        if (!r.ok) return;
+        const data = await r.json();
+        const tracks = data?.recenttracks?.track;
+        const first = Array.isArray(tracks) ? tracks[0] : tracks;
+        if (!first || !alive) return;
+        const isLive = first["@attr"]?.nowplaying === "true";
+        const imgArr = first.image || [];
+        const image_url = imgArr.reverse().find(i => i && i["#text"])?.["#text"] || null;
+        const ts = first.date?.uts ? Number(first.date.uts) * 1000 : null;
+        setNp(prev => {
+          const merged = {
+            ...(prev || {}),
+            track: first.name || "—",
+            artist: (first.artist?.["#text"]) || first.artist?.name || "—",
+            album: first.album?.["#text"] || "",
+            image_url: image_url || prev?.image_url || null,
+            loved: first.loved === "1",
+            is_live: isLive,
+            started_at: isLive ? "en cours" : ts ? relTimeMs(ts) : (prev?.started_at || ""),
+            ago: isLive ? "en cours" : ts ? relTimeMs(ts) : (prev?.ago || ""),
+          };
+          return merged;
+        });
+      } catch (e) {
+        // Network / parsing error → keep current state.
+      }
+    }
+
+    poll();
+    const id = setInterval(poll, 30000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+
+  return np;
+}
+
+function relTimeMs(ms) {
+  const diff = Math.max(0, Date.now() - ms);
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return "il y a " + s + "s";
+  const m = Math.floor(s / 60);
+  if (m < 60) return "il y a " + m + "min";
+  const h = Math.floor(m / 60);
+  if (h < 48) return "il y a " + h + "h";
+  const d = Math.floor(h / 24);
+  return "il y a " + d + "j";
+}
 
 // ── Daily line chart ────────────────────────────────
 function MzDailyChart({ series, range }) {
@@ -120,7 +189,10 @@ function PanelMusique() {
   const [chartRange, setChartRange] = useMzState("90j");
 
   const artists = D.top_artists[artistRange];
-  const np = D.now_playing;
+  // Live polling — falls back to the cached D.now_playing until the
+  // first Last.fm response lands. Flagged `is_live` only when Last.fm
+  // says the user is actively listening right now.
+  const np = useLiveNowPlaying(D.now_playing) || D.now_playing || {};
 
   // initiales pour art placeholder
   const initials = (name) =>
@@ -132,7 +204,7 @@ function PanelMusique() {
       <header className="mz-hero">
         <div>
           <div className="mz-hero-eyebrow">
-            <span className="mz-live">live</span>
+            {np.is_live && <span className="mz-live">live</span>}
             <span>last.fm · {D.totals.all180.toLocaleString("fr-FR")} scrobbles 180j</span>
           </div>
           <h1 className="mz-hero-title">
@@ -154,7 +226,10 @@ function PanelMusique() {
               : <span>{np.album || "—"}</span>}
           </div>
           <div className="mz-hero-np-meta">
-            <div className="mz-hero-np-label">now playing{np.started_at || np.ago ? " · " + (np.started_at || np.ago) : ""}</div>
+            <div className="mz-hero-np-label">
+              {np.is_live ? "now playing" : "dernière écoute"}
+              {np.started_at || np.ago ? " · " + (np.started_at || np.ago) : ""}
+            </div>
             <div className="mz-hero-np-track">{np.track || "—"}</div>
             <div className="mz-hero-np-artist">
               <strong>{np.artist || "—"}</strong>{np.album ? <> · {np.album}</> : null}

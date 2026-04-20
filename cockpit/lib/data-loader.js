@@ -1031,6 +1031,7 @@
       loved: false,
       image_url: null,
       album_art_hint: "var(--tx)",
+      is_live: false,
     };
     if (latest) {
       // Count total plays of this exact track + total plays of this artist
@@ -1044,6 +1045,10 @@
         (l.track_name || "").toLowerCase() === (latest.track_name || "").toLowerCase() &&
         (l.artist_name || "").toLowerCase() === (latest.artist_name || "").toLowerCase()
       );
+      // is_live left false by default — the frontend polling hook
+      // (useLiveNowPlaying) flips it to true when Last.fm reports the
+      // user as actively scrobbling right now.
+      const ageMs = Date.now() - new Date(latest.scrobbled_at).getTime();
       now_playing = {
         track: latest.track_name || "—",
         artist: latest.artist_name || "—",
@@ -1055,6 +1060,7 @@
         loved: isLoved,
         image_url: latest.image_url || null,
         album_art_hint: tintFor((latest.album_name || "") + (latest.artist_name || "x")),
+        is_live: ageMs < 6 * 60 * 1000, // optimistic — confirmed/overridden by live poll
       };
     }
 
