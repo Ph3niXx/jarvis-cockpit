@@ -448,6 +448,7 @@
     async jobs_all(){ return once("jobs_all", () => q("jobs", "select=*&order=score_total.desc.nullslast&limit=300")); },
     async sport(){ return once("sport_articles", () => q("sport_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async gaming_news(){ return once("gaming_articles", () => q("gaming_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
+    async anime(){ return once("anime_articles", () => q("anime_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async jobs_scan_today(){
       const today = isoToday();
       return once("jobs_scan_" + today, async () => {
@@ -1376,6 +1377,54 @@
     });
   }
 
+  // Anime / Cinéma / Séries feed transformer
+  const ANIME_CATEGORY_LABELS = {
+    released: "Sorties récentes", upcoming: "À venir prochainement",
+    industry: "Industrie",
+  };
+  const ANIME_CATEGORY_ICONS = {
+    released: "sparkles", upcoming: "flag", industry: "wrench",
+  };
+  function normalizeAnimeSource(src){
+    if (!src) return "—";
+    if (src.startsWith("AlloCiné")) return "AlloCiné";
+    return src;
+  }
+  function guessAnimeType(title){
+    const t = (title || "").toLowerCase();
+    if (/review|critique|our verdict|test|recap/.test(t)) return "Critique";
+    if (/trailer|teaser|bande[- ]annonce|first look/.test(t)) return "Trailer";
+    if (/interview|confie|explique/.test(t)) return "Interview";
+    if (/box[- ]office|audiences?|ratings|viewership/.test(t)) return "Audience";
+    if (/acquires|acquisition|racheté|layoff|fermeture/.test(t)) return "Deal";
+    if (/premiere|premiered|premier épisode|finale|episode \d+|épisode \d+/.test(t)) return "Diffusion";
+    if (/announced|annonce|révélé|greenlit|renewed|delayed/.test(t)) return "Annonce";
+    if (/sortie|release|launch|disponible|premieres|streaming now/.test(t)) return "Sortie";
+    return "Actu";
+  }
+  function transformAnimeFeed(articles){
+    const readMap = getReadMap();
+    return (articles || []).map(a => {
+      const when = a.date_published || a.date_fetched || Date.now();
+      const dateH = Math.max(0, Math.round((Date.now() - new Date(when).getTime()) / 3600000));
+      return {
+        id: a.id,
+        actor: normalizeAnimeSource(a.source),
+        category: a.category || "released",
+        type: guessAnimeType(a.title),
+        date_h: dateH,
+        date_label: relTime(when),
+        title: a.title || "",
+        summary: stripHtml(a.summary || "").slice(0, 260),
+        tags: ["#" + (a.category || "anime")],
+        unread: !readMap[a.id],
+        starred: false,
+        icon: ANIME_CATEGORY_ICONS[a.category] || "flag",
+        url: a.url,
+      };
+    });
+  }
+
   function transformVeilleFeed(articles){
     const readMap = getReadMap();
     return (articles || []).map(a => {
@@ -1680,7 +1729,125 @@
         }
         return { articles };
       }
-      case "anime":
+      case "anime": {
+        const articles = await T2.anime();
+        if (window.ANIME_DATA && articles.length) {
+          window.ANIME_DATA.feed = transformAnimeFeed(articles);
+          const fresh = articles[0];
+          const now = Date.now();
+          const ageH = a => {
+            const t = new Date(a.date_published || a.date_fetched || 0).getTime();
+            return (now - t) / 3600000;
+          };
+          const last24h = articles.filter(a => ageH(a) <= 24).length;
+          const last7d = articles.filter(a => ageH(a) <= 24 * 7);
+          const catCounts7d = {};
+          last7d.forEach(a => {
+            const k = a.category || "released";
+            catCounts7d[k] = (catCounts7d[k] || 0) + 1;
+          });
+          const topCatEntry = Object.entries(catCounts7d).sort((a, b) => b[1] - a[1])[0];
+          const topCat = topCatEntry ? (ANIME_CATEGORY_LABELS[topCatEntry[0]] || topCatEntry[0]) : "—";
+          const topCatCount = topCatEntry ? topCatEntry[1] : 0;
+          const sourcesN = new Set(articles.map(a => normalizeAnimeSource(a.source))).size;
+          if (fresh) {
+            const freshLabel = ANIME_CATEGORY_LABELS[fresh.category] || fresh.category || "Actu";
+            window.ANIME_DATA.headline = {
+              ...(window.ANIME_DATA.headline || {}),
+              kicker: freshLabel + " · " + (relTime(fresh.date_published || fresh.date_fetched) || "récent"),
+              actor: normalizeAnimeSource(fresh.source),
+              version: freshLabel,
+              tagline: fresh.title || "",
+              body: stripHtml(fresh.summary || "").slice(0, 320) || fresh.title || "",
+              metrics: [
+                { label: "Articles 24h", value: String(last24h), delta: last24h ? "+" + last24h : "=" },
+                { label: "Articles 7j", value: String(last7d.length), delta: "=" },
+                { label: "Top statut", value: topCat, delta: topCatCount ? "+" + topCatCount : "=" },
+                { label: "Sources", value: String(sourcesN), delta: "=" },
+              ],
+              tags: ["#anime", "#" + (fresh.category || "actu")],
+            };
+          }
+          // Actors = sources
+          const sourceColors = {
+            "AlloCiné": "#fec300",
+            "Première": "#000000",
+            "Écran Large": "#c62828",
+            "Anime News Network": "#265a8f",
+            "MyAnimeList": "#2e51a2",
+            "Deadline": "#d50000",
+            "Variety": "#003c71",
+            "Hollywood Reporter": "#bf1a1a",
+            "IndieWire": "#2e6a4f",
+          };
+          const srcMap = new Map();
+          articles.forEach(a => {
+            const name = normalizeAnimeSource(a.source);
+            if (!srcMap.has(name)) {
+              srcMap.set(name, {
+                id: name.toLowerCase().replace(/\W+/g, "-"),
+                name,
+                mark: name.split(/[\s.]/).map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase(),
+                color: sourceColors[name] || "#555",
+                followed: true,
+                last_activity: relTime(a.date_published || a.date_fetched),
+                last_title: a.title || "",
+                momentum: "",
+                pulse: [0, 0, 0, 0, 0, 0, 0, 0],
+                note: "",
+              });
+            }
+            srcMap.get(name).pulse[7]++;
+          });
+          window.ANIME_DATA.actors = Array.from(srcMap.values());
+          // Trends
+          window.ANIME_DATA.trends = Object.entries(catCounts7d)
+            .map(([cat, count]) => ({
+              id: "ta-" + cat,
+              label: ANIME_CATEGORY_LABELS[cat] || cat,
+              kicker: "Statut",
+              momentum: count + " articles · 7j",
+              pulse: [0, 0, 0, 0, 0, 0, 0, count],
+              articles_count: count,
+              summary: count + " articles récents en " + (ANIME_CATEGORY_LABELS[cat] || cat) + ".",
+              actors_involved: [],
+              status: count >= 15 ? "rising" : count >= 8 ? "stable" : "new",
+            }))
+            .sort((a, b) => b.articles_count - a.articles_count);
+          // prod_cases = animes Jikan upcoming triés par date de diffusion proche
+          // (articles source=MyAnimeList + category=upcoming).
+          const MONTHS_FR = ["janv.","févr.","mars","avril","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+          const jikanUpcoming = articles
+            .filter(a => a.source === "MyAnimeList" && a.category === "upcoming" && a.date_published)
+            .sort((a, b) => new Date(a.date_published) - new Date(b.date_published))
+            .slice(0, 6);
+          window.ANIME_DATA.prod_cases = jikanUpcoming.map(a => {
+            const dt = new Date(a.date_published);
+            const whenLabel = isNaN(dt) ? "—" : `${MONTHS_FR[dt.getMonth()]} ${dt.getFullYear()}`;
+            // Extract [TV] / [Movie] / [OVA] prefix from our synthetic title
+            const typeMatch = (a.title || "").match(/^\[(TV|Movie|OVA|Special|ONA)\]\s*/i);
+            const cleanTitle = a.title.replace(/^\[[^\]]+\]\s*/, "");
+            const atype = typeMatch ? typeMatch[1] : "Anime";
+            // Extract studio from summary prefix "Studio : XXX · ..."
+            const studioMatch = (a.summary || "").match(/Studio\s*:\s*([^·]+?)(?:\s*·|$)/);
+            const studio = studioMatch ? studioMatch[1].trim() : "";
+            const mark = cleanTitle.split(/\s+/).map(w => w[0]).filter(Boolean).join("").slice(0, 3).toUpperCase();
+            return {
+              company: cleanTitle.slice(0, 60),
+              logo_mark: mark || "??",
+              color: "#2e51a2",
+              scale: studio || "MyAnimeList",
+              model: studio || "MAL",
+              domain: atype,
+              when: whenLabel,
+              headline: (a.summary || "").replace(/^Studio\s*:[^·]+·\s*(?:[^·]+·\s*)?/, "").slice(0, 200) || "À paraître prochainement.",
+              impact: `Diffusion ${whenLabel}`,
+              url: a.url,
+            };
+          });
+        }
+        return { articles };
+      }
       case "news": {
         // Non-AI verticals need articles.domain column + dedicated
         // pipelines. Keep fake VEILLE_DATA corpora for now.
@@ -1864,7 +2031,7 @@
   const TIER2_PANELS = new Set([
     "updates", "wiki", "radar", "recos", "challenges", "opps", "ideas",
     "profile", "perf", "music", "gaming", "stacks", "history", "jobs",
-    "sport", "gaming_news",
+    "sport", "gaming_news", "anime",
   ]);
 
   // Hydrate globals with real data on boot (Tier 1 already fetched the

@@ -1,0 +1,28 @@
+name: Anime / Cinéma / Séries — RSS + Jikan Sync
+
+on:
+  schedule:
+    # Quotidien à 7h UTC (9h Paris)
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  anime-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r pipelines/requirements-anime.txt
+
+      - name: Run anime sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python pipelines/anime_sync.py
