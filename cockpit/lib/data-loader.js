@@ -336,6 +336,7 @@
     { group: "Business", items: [
       { id: "opps", label: "Opportunités", icon: "lightbulb" },
       { id: "ideas", label: "Carnet d'idées", icon: "notebook" },
+      { id: "jobs", label: "Jobs Radar", icon: "target" },
     ]},
     { group: "Personnel", items: [
       { id: "jarvis", label: "Jarvis", icon: "assistant" },
@@ -421,6 +422,18 @@
     async steam_stats(){ return once("steam_stats", () => q("gaming_stats_daily", "order=stat_date.desc&limit=90")); },
     async steam_achievements(){ return once("steam_achievements", () => q("steam_achievements", "order=unlocked_at.desc&limit=50")); },
     async weekly_analysis(){ return once("weekly_analysis_all", () => loadWeeklyAnalysis(30)); },
+    async jobs_all(){ return once("jobs_all", () => q("jobs", "select=*&order=score_total.desc.nullslast&limit=300")); },
+    async jobs_scan_today(){
+      const today = isoToday();
+      return once("jobs_scan_" + today, async () => {
+        const rows = await q("job_scans", `scan_date=eq.${today}&select=*`);
+        return rows[0] || null;
+      });
+    },
+    async jobs_scans_7d(){
+      const from = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      return once("jobs_scans_7d", () => q("job_scans", `scan_date=gte.${from}&select=*&order=scan_date.desc&limit=14`));
+    },
   };
 
   // ── Tier 2 transformers — rebuild window.*_DATA globals ──
@@ -540,6 +553,163 @@
     const kv = {};
     (rows || []).forEach(r => { if (r.key) kv[r.key] = r.value; });
     return kv;
+  }
+
+  // ── Jobs Radar transforms ────────────────────────────────
+  function daysSinceDate(dateStr){
+    if (!dateStr) return 0;
+    const d = new Date(String(dateStr).slice(0, 10) + "T00:00:00");
+    const today = new Date(); today.setHours(0,0,0,0);
+    return Math.max(0, Math.round((today - d) / 86400000));
+  }
+
+  function transformJobRubric(rubric){
+    if (!rubric) return [];
+    if (Array.isArray(rubric)) return rubric;
+    return [
+      { axis: "Séniorité", text: rubric.seniority || "" },
+      { axis: "Secteur",   text: rubric.sector    || "" },
+      { axis: "Impact",    text: rubric.impact    || "" },
+    ].filter(r => r.text);
+  }
+
+  function transformJobIntel(intel){
+    if (!intel || typeof intel !== "object") return null;
+    // Accept both the Supabase shape (signaux_boite / lead_identifie /
+    // reseau_warm / angle_approche / maturite_safe) and the panel shape
+    // (company_signals / lead / warm_network / angle / safe_maturity) —
+    // so mock data keeps working.
+    const signals = intel.company_signals || intel.signaux_boite || [];
+    const leadSrc = intel.lead || intel.lead_identifie;
+    const lead = leadSrc ? {
+      name:     leadSrc.name  || "",
+      role:     leadSrc.role  || leadSrc.title || "",
+      linkedin: leadSrc.linkedin || leadSrc.linkedin_url || "",
+      notes:    leadSrc.notes || leadSrc.background || "",
+    } : null;
+    const warmSrc = intel.warm_network || intel.reseau_warm || [];
+    const warm_network = warmSrc.map(w => ({
+      name:     w.name || "",
+      degree:   Number(w.degree) === 1 ? 1 : 2,
+      relation: w.relation || [w.current_title, w.context].filter(Boolean).join(" — "),
+    }));
+    const safe = intel.safe_maturity || intel.maturite_safe || null;
+    return {
+      company_signals: signals,
+      lead,
+      warm_network,
+      safe_maturity: typeof safe === "string" ? safe : (safe ? JSON.stringify(safe) : null),
+      angle: intel.angle || intel.angle_approche || "",
+    };
+  }
+
+  function transformJobRow(row){
+    return {
+      id: row.id,
+      title: row.title || "",
+      company: row.company || "",
+      url: row.url || "",
+      posted_days_ago: daysSinceDate(row.posted_date || row.first_seen_date),
+      role_category: row.role_category || "produit",
+      company_stage: row.company_stage || "C",
+      pitch: row.pitch || "",
+      compensation: row.compensation || "",
+      score_total: Number(row.score_total) || 0,
+      score_seniority: Number(row.score_seniority) || 0,
+      score_sector: Number(row.score_sector) || 0,
+      score_impact: Number(row.score_impact) || 0,
+      score_bonus: Number(row.score_bonus) || 0,
+      rubric_justif: transformJobRubric(row.rubric_justif),
+      cv_recommended: row.cv_recommended || "pdf",
+      cv_reason: row.cv_reason || "",
+      intel: transformJobIntel(row.intel),
+      intel_depth: row.intel_depth || "none",
+      status: row.status || "new",
+      first_seen_date: row.first_seen_date,
+      last_seen_date: row.last_seen_date,
+      user_notes: row.user_notes || "",
+    };
+  }
+
+  function transformJobScan(todayScan, last7Scans, allJobs){
+    const MONTHS_FR_SCAN = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+    const DAYS_FR_SCAN   = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+    const today = new Date();
+    // 7-day volumes Mon→Sun for the current ISO week
+    const dayOfWeek = (today.getDay() + 6) % 7; // Mon=0
+    const monday = new Date(today); monday.setHours(0,0,0,0);
+    monday.setDate(today.getDate() - dayOfWeek);
+    const byDate = {};
+    (last7Scans || []).forEach(s => { if (s.scan_date) byDate[s.scan_date] = s; });
+    const volumes_7d = [];
+    for (let i = 0; i < 7; i++){
+      const d = new Date(monday); d.setDate(monday.getDate() + i);
+      const iso = d.toISOString().slice(0, 10);
+      volumes_7d.push(Number(byDate[iso]?.processed_count || 0));
+    }
+
+    // Category ratios from active jobs (new + to_apply + applied)
+    const activeJobs = (allJobs || []).filter(j => j.status !== "archived" && j.status !== "snoozed");
+    const totalActive = activeJobs.length || 1;
+    const CAT_DEF = [
+      { id: "produit", label: "Produit" },
+      { id: "rte",     label: "RTE" },
+      { id: "pgm",     label: "PgM" },
+      { id: "pjm",     label: "PjM" },
+      { id: "cos",     label: "CoS" },
+    ];
+    const ratios_category = CAT_DEF.map(c => {
+      const count = activeJobs.filter(j => (j.role_category || "").toLowerCase() === c.id).length;
+      return { id: c.id, label: c.label, pct: Math.round(count / totalActive * 100) };
+    });
+
+    // CV signal — PDF/DOCX ratio on last 30 days of jobs
+    const thirty = Date.now() - 30 * 86400000;
+    const recent = (allJobs || []).filter(j => j.first_seen_date && new Date(j.first_seen_date + "T00:00:00").getTime() >= thirty);
+    const pdfCount  = recent.filter(j => j.cv_recommended === "pdf").length;
+    const docxCount = recent.filter(j => j.cv_recommended === "docx").length;
+    const sumCv = pdfCount + docxCount || 1;
+    const pdf_pct  = Math.round(pdfCount  / sumCv * 100);
+    const docx_pct = 100 - pdf_pct;
+    const signalCvFromScan = todayScan && todayScan.signal_cv && typeof todayScan.signal_cv === "object" ? todayScan.signal_cv : null;
+
+    // Date label in French
+    const dLabel = `${DAYS_FR_SCAN[today.getDay()]} ${today.getDate()} ${MONTHS_FR_SCAN[today.getMonth()]}`;
+
+    // Actions — fall back to a computed reminder when the scan doesn't carry any
+    let actions = (todayScan && Array.isArray(todayScan.actions)) ? todayScan.actions : [];
+    if (!actions.length) {
+      const staleApplied = (allJobs || []).filter(j => j.status === "applied" && daysSinceDate(j.last_seen_date) >= 10).slice(0, 2);
+      actions = staleApplied.map(j => ({
+        id: "relance-" + j.id,
+        kind: "apply",
+        label: `Relancer ${j.company} — ${j.title} (candidaté il y a ${daysSinceDate(j.last_seen_date)}j)`,
+        cta: "Relancer",
+      }));
+    }
+
+    return {
+      date_label: dLabel.charAt(0).toUpperCase() + dLabel.slice(1),
+      raw_count: Number(todayScan?.raw_count || 0),
+      processed_count: Number(todayScan?.processed_count || activeJobs.length),
+      hot_leads_count: Number(todayScan?.hot_leads_count || activeJobs.filter(j => Number(j.score_total) >= 7).length),
+      tendances: {
+        volumes_7d,
+        ratios_category,
+      },
+      signal_cv: signalCvFromScan ? {
+        pdf_pct:  Number(signalCvFromScan.pdf_pct  ?? pdf_pct),
+        docx_pct: Number(signalCvFromScan.docx_pct ?? docx_pct),
+        window_days: Number(signalCvFromScan.window_days ?? 30),
+        insight: signalCvFromScan.insight || (pdfCount >= docxCount ? "Les offres récentes recommandent majoritairement le PDF." : "Le DOCX reste dominant sur la période — garde les deux versions à jour."),
+      } : {
+        pdf_pct, docx_pct, window_days: 30,
+        insight: sumCv <= 1
+          ? "Pas encore assez d'offres pour tirer un signal CV."
+          : (pdfCount >= docxCount ? "Les offres récentes recommandent majoritairement le PDF." : "Le DOCX reste dominant sur la période."),
+      },
+      actions,
+    };
   }
 
   // Build VEILLE_DATA.feed from real articles. Keeps headline/actors/
@@ -850,6 +1020,21 @@
       case "signals": {
         // SIGNALS_DATA may not exist; COCKPIT_DATA.signals holds Tier 1 data
         return { signals: raw.signals || [] };
+      }
+      case "jobs": {
+        const [allJobs, todayScan, last7Scans] = await Promise.all([
+          T2.jobs_all().catch(() => []),
+          T2.jobs_scan_today().catch(() => null),
+          T2.jobs_scans_7d().catch(() => []),
+        ]);
+        // Fall back to mock JOBS_DATA when the table is empty (first-run UX).
+        if (window.JOBS_DATA && (allJobs?.length || todayScan)) {
+          const offers = (allJobs || []).map(transformJobRow);
+          window.JOBS_DATA.offers = offers;
+          window.JOBS_DATA.scan = transformJobScan(todayScan, last7Scans, offers);
+          window.JOBS_DATA._raw = { jobs: allJobs, todayScan, last7Scans };
+        }
+        return { jobs: allJobs, todayScan, last7Scans };
       }
       default:
         return {};

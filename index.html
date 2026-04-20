@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="cockpit/styles-gaming.css?v=1">
 <link rel="stylesheet" href="cockpit/styles-stacks.css?v=1">
 <link rel="stylesheet" href="cockpit/styles-history.css?v=1">
+<link rel="stylesheet" href="cockpit/styles-jobs-radar.css?v=2">
 </head>
 <body>
 <div id="root"></div>
@@ -44,7 +45,7 @@
 <script src="cockpit/lib/supabase.js?v=1"></script>
 <script src="cockpit/lib/telemetry.js?v=1"></script>
 <script src="cockpit/lib/auth.js?v=1"></script>
-<script src="cockpit/lib/data-loader.js?v=1"></script>
+<script src="cockpit/lib/data-loader.js?v=3"></script>
 
 <!-- Fallback fake data (remains in place as shape reference; tier 1 overrides these) -->
 <script src="cockpit/data.js"></script>
@@ -66,6 +67,7 @@
 <script src="cockpit/data-gaming-perso.js?v=1"></script>
 <script src="cockpit/data-stacks.js?v=1"></script>
 <script src="cockpit/data-history.js?v=3"></script>
+<script src="cockpit/data-jobs.js?v=1"></script>
 <script src="cockpit/themes.js?v=2"></script>
 <script type="text/babel" src="cockpit/icons.jsx?v=3"></script>
 <script type="text/babel" src="cockpit/sidebar.jsx?v=6"></script>
@@ -88,9 +90,10 @@
 <script type="text/babel" src="cockpit/panel-gaming.jsx?v=1"></script>
 <script type="text/babel" src="cockpit/panel-stacks.jsx?v=1"></script>
 <script type="text/babel" src="cockpit/panel-history.jsx?v=3"></script>
+<script type="text/babel" src="cockpit/panel-jobs-radar.jsx?v=3"></script>
 <!-- Bootstrap: sets __cockpitBootstrapPending so app.jsx defers mount until we say go -->
 <script src="cockpit/lib/bootstrap.js?v=1"></script>
-<script type="text/babel" src="cockpit/app.jsx?v=20"></script>
+<script type="text/babel" src="cockpit/app.jsx?v=21"></script>
 
 <!-- PWA service worker (best-effort: no-op if unsupported or file:// protocol) -->
 <script>
