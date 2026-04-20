@@ -91,13 +91,20 @@ function App() {
   // where the page is refreshed on a deep-link hash (#music, #perf, …) —
   // handleNavigate doesn't run at mount, so without this effect the panel
   // would render against the untouched fake *_DATA globals.
+  //
+  // Only panels in TIER2_PANELS trigger a dataVersion bump after resolve,
+  // so Tier 1-only screens (brief, top, week, jarvis, search) aren't
+  // subjected to a cosmetic re-mount for a no-op loader.
   useEffect(() => {
     try {
-      if (window.cockpitDataLoader && typeof window.cockpitDataLoader.loadPanel === "function") {
-        window.cockpitDataLoader.loadPanel(activePanel)
-          .then(() => setDataVersion(v => v + 1))
-          .catch(() => {});
-      }
+      const dl = window.cockpitDataLoader;
+      if (!dl || typeof dl.loadPanel !== "function") return;
+      const p = dl.loadPanel(activePanel);
+      if (!p || typeof p.then !== "function") return;
+      p.then((result) => {
+        const isTier2 = dl.TIER2_PANELS && dl.TIER2_PANELS.has(activePanel);
+        if (result !== null && isTier2) setDataVersion(v => v + 1);
+      }).catch(() => {});
     } catch {}
   }, [activePanel]);
 

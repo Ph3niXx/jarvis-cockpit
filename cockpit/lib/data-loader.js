@@ -1476,9 +1476,20 @@
         return { jobs: allJobs, todayScan, last7Scans };
       }
       default:
-        return {};
+        // No Tier 2 work for this panel — return null so the App effect
+        // can skip the dataVersion bump (avoids a cosmetic re-mount on
+        // Tier 1-only panels like brief/top/week/jarvis/search).
+        return null;
     }
   }
+
+  // Panels that mutate a window.*_DATA global when their loadPanel case
+  // runs. The App-level effect uses this to decide whether to bump
+  // dataVersion after loadPanel resolves.
+  const TIER2_PANELS = new Set([
+    "updates", "wiki", "radar", "recos", "challenges", "opps", "ideas",
+    "profile", "perf", "music", "gaming", "stacks", "history", "jobs",
+  ]);
 
   // Hydrate globals with real data on boot (Tier 1 already fetched the
   // radar rows, profile rows, signals — use them to seed the globals
@@ -1514,6 +1525,7 @@
     bootTier1,
     loadPanel,
     hydrateGlobalsFromTier1,
+    TIER2_PANELS,
     T2,
     cache,
     // shape builders re-exported for panels that want to rebuild parts live
