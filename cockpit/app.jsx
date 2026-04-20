@@ -256,7 +256,7 @@ function App() {
       { id: "cyclisme", label: "Cyclisme", color: "#d8a93a" },
       { id: "tennis", label: "Tennis", color: "#b3491a" },
       { id: "natation", label: "Natation", color: "#e67040" },
-    ]} prodSection={{ kicker: "À la une par discipline", title: "Les actus phares du jour" }} />;
+    ]} prodSection={null} />;
   else if (activePanel === "gaming_news")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="GAMING_DATA" title="Gaming" showActors={false} categoryLabel="Rubrique" typeLabel="Format" categories={[
       { id: "releases", label: "Sorties récentes", color: "#3a2a1a" },

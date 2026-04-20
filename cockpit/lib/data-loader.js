@@ -1521,37 +1521,6 @@
               status: count >= 20 ? "rising" : count >= 10 ? "stable" : "new",
             }))
             .sort((a, b) => b.articles_count - a.articles_count);
-          // prod_cases = "À la une par discipline" : le plus récent article par catégorie.
-          // Remplace l'ancienne liste statique d'événements calendar.
-          const categoryColors = {
-            foot: "#004170", rugby: "#1a3a6c", cyclisme: "#d8a93a",
-            tennis: "#b3491a", natation: "#e67040", esport: "#0ac7ff",
-          };
-          const CAT_ORDER = ["foot", "rugby", "cyclisme", "tennis", "natation", "esport"];
-          const freshByCat = {};
-          articles.forEach(a => {
-            const k = a.category || "autre";
-            if (!freshByCat[k]) freshByCat[k] = a;
-          });
-          window.SPORT_DATA.prod_cases = CAT_ORDER
-            .filter(cat => freshByCat[cat])
-            .map(cat => {
-              const a = freshByCat[cat];
-              const label = SPORT_CATEGORY_LABELS[cat] || cat;
-              const src = normalizeSportSource(a.source);
-              return {
-                company: (a.title || "").slice(0, 90),
-                logo_mark: label.slice(0, 2).toUpperCase(),
-                color: categoryColors[cat] || "#555",
-                scale: src + " · " + (relTime(a.date_published || a.date_fetched) || "récent"),
-                model: src,
-                domain: label,
-                when: relTime(a.date_published || a.date_fetched) || "—",
-                headline: stripHtml(a.summary || a.title || "").slice(0, 220),
-                impact: label,
-                url: a.url,
-              };
-            });
         }
         return { articles };
       }

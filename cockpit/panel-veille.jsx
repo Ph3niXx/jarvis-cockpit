@@ -374,6 +374,7 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
       </section>
 
       {/* ═══════ CAS PROD ═══════ */}
+      {prodSection && (
       <section className="vl-section">
         <div className="vl-section-head">
           <div>
@@ -401,6 +402,7 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
           ))}
         </div>
       </section>
+      )}
 
       {/* ═══════ TWEAK TONE TOGGLE ═══════ */}
       <div className="vl-tone-toggle" title="Ton éditorial">
