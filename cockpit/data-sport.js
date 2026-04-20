@@ -1,95 +1,35 @@
-// Sport — corpus : foot, e-sport, rugby, cyclisme, natation, autres
+// Sport — corpus initial : vide au démarrage, hydraté par data-loader au clic sidebar
+// (pipelines/sport_sync.py remplit sport_articles → loadPanel("sport") mute les champs).
+// Seuls prod_cases (événements calendar) restent statiques — pas d'API gratuite fiable.
 window.SPORT_DATA = {
   headline: {
-    kicker: "Transfert · il y a 3h",
-    actor: "PSG",
-    version: "Mercato hiver 2026",
-    tagline: "Le PSG tient son remplaçant à Mbappé — accord verbal à 95M€",
-    body: "Luis Enrique a validé ce matin le profil : un ailier gauche brésilien de 22 ans, 24 buts cette saison. Signature prévue cette semaine, arrivée officielle au mercato d'été. Trois autres clubs étaient sur le coup.",
+    kicker: "Chargement...",
+    actor: "—",
+    version: "Sport",
+    tagline: "Fetching des flux RSS sport en cours",
+    body: "Les articles apparaîtront ici dès que le pipeline quotidien aura tourné.",
     metrics: [
-      { label: "Montant", value: "95M€", delta: "+bonus" },
-      { label: "Âge", value: "22 ans", delta: "=" },
-      { label: "Buts saison", value: "24", delta: "+7" },
-      { label: "Contrat", value: "5 ans", delta: "=" },
+      { label: "Discipline", value: "—", delta: "=" },
+      { label: "Source", value: "—", delta: "=" },
+      { label: "Publié", value: "—", delta: "=" },
+      { label: "Articles", value: "0", delta: "=" },
     ],
-    tags: ["#mercato", "#psg", "#ligue1", "#transfert"],
+    tags: ["#sport"],
   },
 
-  actors: [
-    { id: "psg", name: "PSG", mark: "P", color: "#004170", followed: true, last_activity: "il y a 3h", last_title: "Mercato : accord à 95M€", momentum: "Top 2 Ligue 1", pulse: [3, 2, 4, 3, 5, 4, 3, 5], note: "Club de cœur. 28 actus ce mois." },
-    { id: "equipe-france", name: "Équipe de France", mark: "FR", color: "#1e4fa5", followed: true, last_activity: "il y a 1j", last_title: "Liste pour Euro 2028 dévoilée", momentum: "Qualifs en cours", pulse: [2, 1, 3, 1, 2, 2, 4, 2], note: "Suivi compétitions majeures." },
-    { id: "karmine", name: "Karmine Corp", mark: "KC", color: "#0ac7ff", followed: true, last_activity: "il y a 6h", last_title: "Victoire au LEC Spring Split", momentum: "+2 titres · 30j", pulse: [2, 3, 2, 4, 3, 2, 4, 3], note: "Meilleur moment de KC LoL depuis 2022." },
-    { id: "xv-france", name: "XV de France", mark: "XV", color: "#1a3a6c", followed: true, last_activity: "il y a 2j", last_title: "Victoire 28-19 contre l'Irlande", momentum: "Tournoi 6 Nations", pulse: [0, 2, 1, 3, 0, 2, 3, 2], note: "Dupont de retour, équipe solide." },
-    { id: "pogacar", name: "Tadej Pogačar", mark: "TP", color: "#d8a93a", followed: true, last_activity: "il y a 4h", last_title: "Remporte Liège-Bastogne-Liège 2026", momentum: "3e victoire monument saison", pulse: [1, 2, 1, 3, 2, 3, 2, 4], note: "Rouleau compresseur du cyclisme." },
-    { id: "marchand", name: "Léon Marchand", mark: "LM", color: "#e67040", followed: false, last_activity: "il y a 5j", last_title: "Record Europe 400m 4N", momentum: "En préparation JO", pulse: [0, 1, 0, 2, 1, 0, 1, 2], note: "Pas encore suivi — à ajouter ?" },
-  ],
+  actors: [],
 
-  feed: [
-    { id: "sp1", actor: "PSG", category: "foot", type: "Transfert", date_h: 3, date_label: "il y a 3h", title: "Le PSG tient son ailier gauche à 95M€", summary: "Accord verbal trouvé avec le club brésilien. Visite médicale prévue jeudi. Le joueur arrive cet été après la fin de saison Brésilienne.", tags: ["#mercato", "#psg", "#bresil"], unread: true, starred: true, icon: "star" },
-    { id: "sp2", actor: "Karmine Corp", category: "esport", type: "E-sport", date_h: 6, date_label: "il y a 6h", title: "KC remporte le LEC Spring Split 2026 contre G2", summary: "Finale 3-1 à Berlin. Cabochard MVP. Première victoire en LEC depuis 2024. Qualifié pour le MSI en mai.", tags: ["#lol", "#lec", "#esport"], unread: true, starred: false, icon: "sparkles" },
-    { id: "sp3", actor: "Tadej Pogačar", category: "cyclisme", type: "Course", date_h: 4, date_label: "il y a 4h", title: "Pogačar gagne Liège-Bastogne-Liège, 3e monument de la saison", summary: "Attaque à 30km de l'arrivée, Evenepoel résiste, Pogačar s'impose de 12 secondes. Troisième monument cette saison après Milan-Sanremo et Tour des Flandres.", tags: ["#cyclisme", "#monument", "#wt"], unread: true, starred: true, icon: "star" },
-    { id: "sp4", actor: "XV de France", category: "rugby", type: "Match", date_h: 48, date_label: "il y a 2j", title: "XV de France bat l'Irlande 28-19 au 6 Nations", summary: "Dupont inscrit 2 essais pour son retour de blessure. Galthié valide le groupe pour le déplacement au pays de Galles dans 15 jours.", tags: ["#rugby", "#6nations", "#xv"], unread: true, starred: false, icon: "check" },
-    { id: "sp5", actor: "Équipe de France", category: "foot", type: "Sélection", date_h: 24, date_label: "hier", title: "Deschamps annonce sa pré-liste pour l'Euro 2028", summary: "26 joueurs, 3 surprises : Camavinga revient, Zaïre-Emery titulaire pressenti, Olise confirmé. Mbappé capitaine, comme attendu.", tags: ["#edf", "#euro", "#deschamps"], unread: true, starred: false, icon: "flag" },
-    { id: "sp6", actor: "Léon Marchand", category: "natation", type: "Performance", date_h: 120, date_label: "il y a 5j", title: "Marchand bat le record d'Europe du 400m 4 nages", summary: "Meeting d'Indianapolis : 4'02''50. Amélioration de 0.8s sur son propre record. Confirme sa forme à 3 mois des Mondiaux.", tags: ["#natation", "#record", "#marchand"], unread: false, starred: true, icon: "sparkles" },
-    { id: "sp7", actor: "PSG", category: "foot", type: "Match", date_h: 72, date_label: "il y a 3j", title: "PSG 4-1 Monaco — Dembélé triplé, Ligue 1 quasi pliée", summary: "12 points d'avance sur Marseille à 7 journées de la fin. Dembélé atteint 19 buts cette saison. Monaco craque en 2e mi-temps.", tags: ["#psg", "#ligue1", "#dembele"], unread: false, starred: false, icon: "check" },
-    { id: "sp8", actor: "Karmine Corp", category: "esport", type: "Analyse", date_h: 18, date_label: "il y a 18h", title: "Analyse : comment KC a reconstruit son roster pour 2026", summary: "Pivot stratégique sur la meta top-lane, bootcamp de 6 semaines en Corée, recrutement d'un coach LCK. La recette du succès.", tags: ["#lol", "#lec", "#analyse"], unread: false, starred: false, icon: "paper" },
-    { id: "sp9", actor: "Tadej Pogačar", category: "cyclisme", type: "Interview", date_h: 168, date_label: "il y a 7j", title: "Pogačar : 'Le Tour 2026 sera mon objectif majeur'", summary: "Interview L'Équipe. Confirme qu'il ne fera pas le Giro cette année. Focus total sur le Tour de France et les JO.", tags: ["#cyclisme", "#interview", "#tour"], unread: false, starred: false, icon: "paper" },
-    { id: "sp10", actor: "XV de France", category: "rugby", type: "Blessure", date_h: 96, date_label: "il y a 4j", title: "Antoine Dupont incertain pour le pays de Galles", summary: "Gêne musculaire à l'entraînement. Galthié temporise, verdict mardi. Lucu prêt à reprendre le numéro 9.", tags: ["#rugby", "#6nations", "#blessure"], unread: false, starred: false, icon: "alert" },
-    { id: "sp11", actor: "Équipe de France", category: "foot", type: "Analyse", date_h: 240, date_label: "il y a 10j", title: "Les 3 systèmes tactiques que Deschamps teste pour l'Euro", summary: "4-3-3 classique, 4-2-3-1 avec Olise libéré, 3-4-3 en transition. Analyse vidéo des 6 derniers matchs.", tags: ["#edf", "#tactique", "#analyse"], unread: false, starred: false, icon: "paper" },
-    { id: "sp12", actor: "Karmine Corp", category: "esport", type: "E-sport", date_h: 96, date_label: "il y a 4j", title: "KC annonce une équipe Rocket League pour 2026", summary: "Retour sur RL après 2 ans d'absence. Recrutement de l'ancien roster Oxygen Esports. Objectif : RLCS.", tags: ["#rocketleague", "#esport", "#kc"], unread: true, starred: false, icon: "flag" },
-  ],
+  feed: [],
 
-  // Pour Sport : pas de "cas prod" mais des "événements à venir"
+  // Événements majeurs à venir — tenu à la main, pas d'API gratuite stable.
   prod_cases: [
     { company: "Tour de France 2026", logo_mark: "TF", color: "#ffce00", scale: "21 étapes · 3 semaines", model: "Départ Barcelone", domain: "Cyclisme", when: "4 juillet 2026", headline: "Parcours dévoilé : 7 étapes de montagne, Ventoux + Galibier + Tourmalet.", impact: "Favori : Pogačar" },
+    { company: "Roland-Garros 2026", logo_mark: "RG", color: "#b3491a", scale: "2 semaines · Grand Chelem", model: "Paris · terre battue", domain: "Tennis", when: "24 mai - 7 juin 2026", headline: "Alcaraz tenant du titre, Sinner favori annoncé, Djokovic en outsider.", impact: "Focus Français : Fils, Mpetshi Perricard" },
+    { company: "Mondiaux Natation 2026", logo_mark: "MN", color: "#0077be", scale: "2 semaines · Budapest", model: "FINA World Champs", domain: "Natation", when: "Juillet 2026", headline: "Marchand visera 5 médailles d'or après sa domination des JO Paris.", impact: "Test majeur avant LA28" },
     { company: "Euro 2028", logo_mark: "UE", color: "#1e4fa5", scale: "24 nations · Royaume-Uni + Irlande", model: "24 équipes", domain: "Football", when: "Juin-juillet 2028", headline: "France dans un groupe abordable : Suède, Pays-Bas, Albanie.", impact: "Objectif demi-finale" },
     { company: "Worlds 2026 LoL", logo_mark: "W", color: "#c89b3c", scale: "24 équipes · Paris", model: "Riot Games", domain: "E-sport", when: "Octobre 2026", headline: "KC qualifié en tant que 1er seed LEC. Format double-élim dès les play-ins.", impact: "Premier Worlds à Paris" },
+    { company: "Coupe du Monde Rugby 2027", logo_mark: "CM", color: "#1a3a6c", scale: "20 équipes · Australie", model: "World Rugby", domain: "Rugby", when: "Octobre-novembre 2027", headline: "XV de France tenant du titre 2023, équipe renouvelée autour de Dupont.", impact: "Objectif doublé historique" },
   ],
 
-  trends: [
-    {
-      id: "tsp-semi-auto",
-      label: "Règles semi-automatiques (hors-jeu)",
-      kicker: "Technologie arbitrage",
-      momentum: "+240% · 30j",
-      pulse: [0, 1, 1, 2, 3, 4, 8, 14],
-      articles_count: 8,
-      summary: "Déploiement généralisé Ligue 1 + 6 Nations. Débat persistant sur la ligne de vision et les cas limites. UEFA étend à l'Euro 2028.",
-      actors_involved: ["Ligue 1", "UEFA", "World Rugby"],
-      status: "rising",
-    },
-    {
-      id: "tsp-women",
-      label: "Sport féminin — explosion audiences",
-      kicker: "Tendance marché",
-      momentum: "+180% · 90j",
-      pulse: [2, 3, 3, 5, 7, 9, 12, 16],
-      articles_count: 11,
-      summary: "Audiences foot féminin ×3 en 2 ans. Droits TV Première Ligue +150%. Coupe du Monde Rugby 2025 records d'affluence.",
-      actors_involved: ["FIFA", "World Rugby", "FFF", "LFP"],
-      status: "rising",
-    },
-    {
-      id: "tsp-esport-mainstream",
-      label: "E-sport en prime-time TV",
-      kicker: "Diffusion",
-      momentum: "+95% · 30j",
-      pulse: [1, 2, 2, 3, 3, 5, 7, 9],
-      articles_count: 6,
-      summary: "Canal+ diffuse le LEC Spring Split en clair. L'Équipe TV teste un créneau esport quotidien. Audience dépasse Formule 1 sur le segment 15-25.",
-      actors_involved: ["Canal+", "L'Équipe TV", "Riot Games"],
-      status: "new",
-    },
-    {
-      id: "tsp-dopage",
-      label: "Dopage — nouvelles méthodes détectées",
-      kicker: "Controverse",
-      momentum: "+45% · 30j",
-      pulse: [1, 1, 2, 1, 2, 3, 3, 4],
-      articles_count: 4,
-      summary: "AMA publie rapport sur micro-dosage EPO + nouvelles molécules. Cyclisme principal concerné, contrôles intensifiés avant le Tour.",
-      actors_involved: ["AMA", "UCI", "ITA"],
-      status: "debated",
-    },
-  ],
+  trends: [],
 };

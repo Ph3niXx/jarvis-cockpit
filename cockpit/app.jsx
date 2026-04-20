@@ -254,6 +254,7 @@ function App() {
       { id: "esport", label: "E-sport", color: "#0ac7ff" },
       { id: "rugby", label: "Rugby", color: "#1a3a6c" },
       { id: "cyclisme", label: "Cyclisme", color: "#d8a93a" },
+      { id: "tennis", label: "Tennis", color: "#b3491a" },
       { id: "natation", label: "Natation", color: "#e67040" },
     ]} prodSection={{ kicker: "Compétitions à venir", title: "Ce qu'il ne faut pas rater cette année" }} />;
   else if (activePanel === "gaming_news")

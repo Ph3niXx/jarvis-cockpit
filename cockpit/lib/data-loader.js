@@ -446,6 +446,7 @@
     async steam_achievements(){ return once("steam_achievements", () => q("steam_achievements", "order=unlocked_at.desc&limit=50")); },
     async weekly_analysis(){ return once("weekly_analysis_all", () => loadWeeklyAnalysis(30)); },
     async jobs_all(){ return once("jobs_all", () => q("jobs", "select=*&order=score_total.desc.nullslast&limit=300")); },
+    async sport(){ return once("sport_articles", () => q("sport_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async jobs_scan_today(){
       const today = isoToday();
       return once("jobs_scan_" + today, async () => {
@@ -1276,6 +1277,54 @@
     energy: "sparkles", finserv: "bank", tools: "wrench",
     biz: "sparkles", reg: "scale", papers: "book",
   };
+  // Sport feed transformer — same shape as veille, but category-first
+  // (no "section" column on sport_articles, so we colour by discipline).
+  const SPORT_CATEGORY_LABELS = {
+    foot: "Football", rugby: "Rugby", cyclisme: "Cyclisme",
+    tennis: "Tennis", natation: "Natation", esport: "E-sport",
+  };
+  const SPORT_CATEGORY_ICONS = {
+    foot: "flag", rugby: "flag", cyclisme: "sparkles",
+    tennis: "flag", natation: "sparkles", esport: "bot",
+  };
+  function normalizeSportSource(src){
+    if (!src) return "—";
+    if (src.startsWith("L'Equipe") || src.startsWith("L'Équipe")) return "L'Équipe";
+    if (src.startsWith("RMC")) return "RMC Sport";
+    return src;
+  }
+  function guessSportType(title){
+    const t = (title || "").toLowerCase();
+    if (/transfert|mercato|signe|signé|rejoint|quitt|prolonge/.test(t)) return "Transfert";
+    if (/interview|confie|déclar|explique/.test(t)) return "Interview";
+    if (/record|victoire|remporte|s['’]impose|bat\s|gagne|triomphe/.test(t)) return "Match";
+    if (/bless|forfait|absent/.test(t)) return "Blessure";
+    if (/analyse|décrypt|tactique/.test(t)) return "Analyse";
+    return "Actu";
+  }
+  function transformSportFeed(articles){
+    const readMap = getReadMap();
+    return (articles || []).map(a => {
+      const when = a.date_published || a.date_fetched || Date.now();
+      const dateH = Math.max(0, Math.round((Date.now() - new Date(when).getTime()) / 3600000));
+      return {
+        id: a.id,
+        actor: normalizeSportSource(a.source),
+        category: a.category || "autre",
+        type: guessSportType(a.title),
+        date_h: dateH,
+        date_label: relTime(when),
+        title: a.title || "",
+        summary: stripHtml(a.summary || "").slice(0, 260),
+        tags: ["#" + (a.category || "sport")],
+        unread: !readMap[a.id],
+        starred: false,
+        icon: SPORT_CATEGORY_ICONS[a.category] || "flag",
+        url: a.url,
+      };
+    });
+  }
+
   function transformVeilleFeed(articles){
     const readMap = getReadMap();
     return (articles || []).map(a => {
@@ -1402,7 +1451,79 @@
         }
         return { articles };
       }
-      case "sport":
+      case "sport": {
+        const articles = await T2.sport();
+        if (window.SPORT_DATA && articles.length) {
+          window.SPORT_DATA.feed = transformSportFeed(articles);
+          const fresh = articles[0];
+          if (fresh) {
+            const freshLabel = SPORT_CATEGORY_LABELS[fresh.category] || fresh.category || "Sport";
+            window.SPORT_DATA.headline = {
+              ...(window.SPORT_DATA.headline || {}),
+              kicker: freshLabel + " · " + (relTime(fresh.date_published || fresh.date_fetched) || "récent"),
+              actor: normalizeSportSource(fresh.source),
+              version: freshLabel,
+              tagline: fresh.title || "",
+              body: stripHtml(fresh.summary || "").slice(0, 320) || fresh.title || "",
+              metrics: [
+                { label: "Discipline", value: freshLabel, delta: "=" },
+                { label: "Source", value: normalizeSportSource(fresh.source), delta: "=" },
+                { label: "Publié", value: relTime(fresh.date_published || fresh.date_fetched) || "—", delta: "=" },
+                { label: "Articles", value: String(articles.length), delta: "+" + articles.length },
+              ],
+              tags: ["#sport", "#" + (fresh.category || "actu")],
+            };
+          }
+          // Build actors from unique normalised sources (used for ActorMark + color).
+          const sourceColors = {
+            "L'Équipe": "#e4002b",
+            "RMC Sport": "#004080",
+            "Millenium": "#ff6600",
+            "Cyclism'Actu": "#0a8a4c",
+          };
+          const srcMap = new Map();
+          articles.forEach(a => {
+            const name = normalizeSportSource(a.source);
+            if (!srcMap.has(name)) {
+              srcMap.set(name, {
+                id: name.toLowerCase().replace(/\W+/g, "-"),
+                name,
+                mark: name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase(),
+                color: sourceColors[name] || "#555",
+                followed: true,
+                last_activity: relTime(a.date_published || a.date_fetched),
+                last_title: a.title || "",
+                momentum: "",
+                pulse: [0, 0, 0, 0, 0, 0, 0, 0],
+                note: "",
+              });
+            }
+            const actor = srcMap.get(name);
+            actor.pulse[7] = (actor.pulse[7] || 0) + 1;
+          });
+          window.SPORT_DATA.actors = Array.from(srcMap.values());
+          // Trends = one pseudo-trend per discipline, weighted by volume.
+          const byCategory = {};
+          articles.forEach(a => {
+            const k = a.category || "autre";
+            byCategory[k] = (byCategory[k] || 0) + 1;
+          });
+          window.SPORT_DATA.trends = Object.entries(byCategory)
+            .map(([cat, count]) => ({
+              id: "tsp-" + cat,
+              label: SPORT_CATEGORY_LABELS[cat] || cat,
+              kicker: "Discipline",
+              momentum: count + " articles · 30j",
+              pulse: [0, 0, 0, 0, 0, 0, 0, count],
+              articles_count: count,
+              summary: count + " articles récents en " + (SPORT_CATEGORY_LABELS[cat] || cat) + ".",
+              actors_involved: [],
+              status: count >= 20 ? "rising" : count >= 10 ? "stable" : "new",
+            }))
+            .sort((a, b) => b.articles_count - a.articles_count);
+        }
+        return { articles };
+      }
       case "gaming_news":
       case "anime":
       case "news": {
