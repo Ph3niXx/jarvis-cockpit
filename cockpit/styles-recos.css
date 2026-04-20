@@ -278,6 +278,53 @@
 }
 .reco-med-foot strong { color: var(--tx); font-weight: 600; }
 .reco-med-xp { color: var(--brand); }
+.reco-med-foot-right {
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.reco-med-done {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--tx2);
+  background: transparent;
+  border: 1px solid var(--bd2);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 140ms;
+}
+.reco-med-done:hover:not(:disabled) { border-color: var(--tx); color: var(--tx); }
+.reco-med-done.is-done {
+  background: var(--positive, #2a8757);
+  border-color: var(--positive, #2a8757);
+  color: white;
+}
+.reco-med-done:disabled { opacity: 0.4; cursor: wait; }
+
+/* Completed state — dim the whole card + strike the title */
+.reco-big.is-completed,
+.reco-med.is-completed,
+.reco-row.is-completed {
+  opacity: 0.55;
+}
+.reco-big.is-completed .reco-big-title,
+.reco-med.is-completed .reco-med-title,
+.reco-row.is-completed .reco-row-title {
+  text-decoration: line-through;
+  text-decoration-color: var(--tx3);
+}
+
+/* Empty state */
+.reco-empty {
+  padding: 32px 24px;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--tx3);
+  background: var(--bg);
+  border: 1px dashed var(--bd);
+  border-radius: 8px;
+}
 
 /* row */
 .reco-list {
@@ -287,7 +334,7 @@
 }
 .reco-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
   gap: 16px;
   padding: 14px 4px;
@@ -296,6 +343,23 @@
 }
 .reco-row:hover { background: var(--bg); }
 .reco-row-main { min-width: 0; }
+.reco-row-done {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--bd2);
+  background: transparent;
+  color: var(--tx3);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 140ms;
+}
+.reco-row-done:hover:not(:disabled) { border-color: var(--tx); color: var(--tx); }
+.reco-row-done.is-done {
+  background: var(--positive, #2a8757);
+  border-color: var(--positive, #2a8757);
+  color: white;
+}
+.reco-row-done:disabled { opacity: 0.4; cursor: wait; }
 .reco-row-title {
   font-family: var(--font-sans);
   font-size: 14px;

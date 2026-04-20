@@ -2,6 +2,25 @@
 // Deux variantes : "flux" (éditorial priorisé) et "constellation" (metaphore visuelle)
 const { useState: useStateReco, useMemo: useMemoReco } = React;
 
+function isoWeekReco(d){
+  const t = new Date(d);
+  t.setHours(0,0,0,0);
+  t.setDate(t.getDate() + 3 - (t.getDay() + 6) % 7);
+  const firstThursday = new Date(t.getFullYear(), 0, 4);
+  return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + (firstThursday.getDay() + 6) % 7) / 7);
+}
+
+async function patchRecoCompleted(id, completed){
+  if (!window.sb || !window.SUPABASE_URL) return;
+  const body = completed
+    ? { completed: true, completed_at: new Date().toISOString() }
+    : { completed: false, completed_at: null };
+  const url = `${window.SUPABASE_URL}/rest/v1/learning_recommendations?id=eq.${encodeURIComponent(id)}`;
+  const r = await window.sb.patchJSON(url, body);
+  if (!r.ok) throw new Error("patch " + r.status);
+  try { window.track && window.track("reco_completed_toggled", { id, completed }); } catch {}
+}
+
 function PanelRecos({ data, onNavigate }) {
   const a = window.APPRENTISSAGE_DATA;
   const recos = a.recos;
@@ -10,49 +29,87 @@ function PanelRecos({ data, onNavigate }) {
   const [levelFilter, setLevelFilter] = useStateReco("Tous");
   const [axisFilter, setAxisFilter] = useStateReco(null);
   const [timeFilter, setTimeFilter] = useStateReco("all");
+  const [hideDone, setHideDone] = useStateReco(false);
+  // id -> true | false (instant optimistic override of r.completed / r.unread)
+  const [completedOverrides, setCompletedOverrides] = useStateReco({});
+  const [pendingIds, setPendingIds] = useStateReco({});
+
+  const isCompleted = (r) => {
+    const o = completedOverrides[r.id];
+    if (o !== undefined) return o;
+    return !r.unread;
+  };
+
+  const toggleCompleted = async (r) => {
+    if (pendingIds[r.id]) return;
+    const next = !isCompleted(r);
+    setPendingIds(p => ({ ...p, [r.id]: true }));
+    setCompletedOverrides(o => ({ ...o, [r.id]: next }));
+    try {
+      await patchRecoCompleted(r.id, next);
+    } catch (e) {
+      console.error("[reco] patch failed", e);
+      // Rollback optimistic update
+      setCompletedOverrides(o => {
+        const n = { ...o }; delete n[r.id]; return n;
+      });
+      alert("Impossible de sauvegarder. Réessaie dans un instant.");
+    } finally {
+      setPendingIds(p => {
+        const n = { ...p }; delete n[r.id]; return n;
+      });
+    }
+  };
 
   const levels = ["Tous", "Débutant", "Intermédiaire", "Avancé"];
   const timeBuckets = [
-    { id: "all", label: "Toute durée" },
-    { id: "short", label: "< 20 min", max: 20 },
-    { id: "medium", label: "20-60 min", min: 20, max: 60 },
-    { id: "long", label: "> 1h", min: 60 },
+    { id: "all",    label: "Toute durée" },
+    { id: "short",  label: "< 20 min",   max: 20 },
+    { id: "medium", label: "20-60 min",  min: 20, max: 60 },
+    { id: "long",   label: "> 1h",       min: 60 },
   ];
 
   const filtered = useMemoReco(() => {
     return recos.filter(r => {
+      if (hideDone && isCompleted(r)) return false;
       if (levelFilter !== "Tous" && r.level !== levelFilter) return false;
       if (axisFilter && r.axis !== axisFilter) return false;
       if (timeFilter !== "all") {
         const t = timeBuckets.find(b => b.id === timeFilter);
-        if (t.max && r.duration_min > t.max) return false;
-        if (t.min && r.duration_min <= t.min) return false;
+        if (t.max !== undefined && r.duration_min > t.max) return false;
+        if (t.min !== undefined && r.duration_min < t.min) return false;
       }
       return true;
     });
-  }, [recos, levelFilter, axisFilter, timeFilter]);
+  }, [recos, levelFilter, axisFilter, timeFilter, hideDone, completedOverrides]);
 
   const musts = filtered.filter(r => r.priority === "must");
   const shoulds = filtered.filter(r => r.priority === "should");
   const nices = filtered.filter(r => r.priority === "nice");
 
-  // total time budget
-  const totalMin = filtered.reduce((s, r) => s + r.duration_min, 0);
+  // Budget: sum over items NOT marked done (what's left to do).
+  const remaining = filtered.filter(r => !isCompleted(r));
+  const totalMin = remaining.reduce((s, r) => s + r.duration_min, 0);
   const totalH = Math.floor(totalMin / 60);
   const totalRestMin = totalMin % 60;
-  const totalXP = filtered.reduce((s, r) => s + r.xp, 0);
+  const totalXP = remaining.reduce((s, r) => s + r.xp, 0);
+
+  // Hero: dynamic week number + real counts (done vs left).
+  const totalCount = recos.length;
+  const doneCount = recos.filter(r => isCompleted(r)).length;
+  const weekNum = String(isoWeekReco(new Date())).padStart(2, "0");
 
   return (
     <div className="panel-page" data-screen-label="Recommandations">
       {/* ── Hero ─────────────────────────────────────────── */}
       <div className="panel-hero">
-        <div className="panel-hero-eyebrow">Apprentissage · Recommandations · S17</div>
+        <div className="panel-hero-eyebrow">Apprentissage · Recommandations · S{weekNum}</div>
         <h1 className="panel-hero-title">
           Ce que <em className="serif-italic">tu devrais lire</em> cette semaine,<br/>
           trié pour ton niveau
         </h1>
         <p className="panel-hero-sub">
-          Jarvis sélectionne chaque jour <strong>{recos.length} lectures</strong> alignées sur ton radar compétences. Priorité calculée sur 3 axes : écart au niveau cible, actualité, et pertinence métier.
+          Jarvis sélectionne chaque semaine <strong>{totalCount} lectures</strong> alignées sur ton radar compétences — {doneCount}/{totalCount} déjà faites. Priorité calculée sur ton écart au niveau cible, l'actualité et la pertinence métier.
         </p>
       </div>
 
@@ -76,14 +133,28 @@ function PanelRecos({ data, onNavigate }) {
           ))}
         </div>
         <div className="panel-toolbar-divider" />
+        <button className={`pill ${hideDone ? "is-active" : ""}`} onClick={() => setHideDone(v => !v)}>
+          <Icon name="check" size={11} stroke={2} /> Masquer les faits
+        </button>
+        <div className="panel-toolbar-divider" />
         <div className="reco-budget">
           <span className="reco-budget-val">{totalH}h{String(totalRestMin).padStart(2, '0')}</span>
-          <span className="reco-budget-label">· {totalXP} XP · {filtered.length} items</span>
+          <span className="reco-budget-label">· {totalXP} XP · {remaining.length} à faire</span>
         </div>
       </div>
 
       {/* ── Contenu ─────────────────────────────────────── */}
-      <RecoFlux musts={musts} shoulds={shoulds} nices={nices} axes={axes} onAxis={setAxisFilter} axisFilter={axisFilter} />
+      <RecoFlux
+        musts={musts}
+        shoulds={shoulds}
+        nices={nices}
+        axes={axes}
+        onAxis={setAxisFilter}
+        axisFilter={axisFilter}
+        isCompleted={isCompleted}
+        onToggleCompleted={toggleCompleted}
+        pendingIds={pendingIds}
+      />
     </div>
   );
 }
@@ -91,7 +162,8 @@ function PanelRecos({ data, onNavigate }) {
 // ─────────────────────────────────────────────────────────
 // VARIANTE A : Flux priorisé (éditorial Dawn)
 // ─────────────────────────────────────────────────────────
-function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter }) {
+function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter, isCompleted, onToggleCompleted, pendingIds }) {
+  const cardProps = { axes, isCompleted, onToggleCompleted, pendingIds };
   return (
     <div className="reco-wrap reco-wrap--flux">
       {/* Sidebar axes */}
@@ -120,6 +192,12 @@ function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter }) {
 
       {/* Colonne principale */}
       <div className="reco-main">
+        {musts.length + shoulds.length + nices.length === 0 && (
+          <div className="reco-empty">
+            Aucune reco pour ces filtres — tente d'élargir le niveau ou la durée.
+          </div>
+        )}
+
         {musts.length > 0 && (
           <section className="reco-section">
             <header className="reco-section-head">
@@ -130,7 +208,7 @@ function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter }) {
               <span className="reco-section-meta">{musts.length} item{musts.length > 1 ? "s" : ""}</span>
             </header>
             <div className="reco-cards reco-cards--big">
-              {musts.map(r => <RecoCardBig key={r.id} reco={r} axes={axes} />)}
+              {musts.map(r => <RecoCardBig key={r.id} reco={r} {...cardProps} />)}
             </div>
           </section>
         )}
@@ -145,7 +223,7 @@ function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter }) {
               <span className="reco-section-meta">{shoulds.length} items</span>
             </header>
             <div className="reco-cards reco-cards--med">
-              {shoulds.map(r => <RecoCardMed key={r.id} reco={r} axes={axes} />)}
+              {shoulds.map(r => <RecoCardMed key={r.id} reco={r} {...cardProps} />)}
             </div>
           </section>
         )}
@@ -160,7 +238,7 @@ function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter }) {
               <span className="reco-section-meta">{nices.length} items</span>
             </header>
             <ul className="reco-list">
-              {nices.map(r => <RecoRow key={r.id} reco={r} />)}
+              {nices.map(r => <RecoRow key={r.id} reco={r} {...cardProps} />)}
             </ul>
           </section>
         )}
@@ -177,23 +255,25 @@ function openReco(r){
   window.open(r.url, "_blank", "noopener");
 }
 
-function RecoCardBig({ reco: r, axes }) {
+function RecoCardBig({ reco: r, axes, isCompleted, onToggleCompleted, pendingIds }) {
   const ax = axes.find(a => a.id === r.axis);
+  const done = isCompleted(r);
+  const pending = !!pendingIds[r.id];
   return (
     <article
-      className={`reco-big ${r.unread ? "is-unread" : ""}`}
+      className={`reco-big ${done ? "is-completed" : "is-unread"}`}
       onClick={() => openReco(r)}
       style={r.url ? { cursor: "pointer" } : null}
     >
       <div className="reco-big-head">
         <span className={`reco-type reco-type--${r.type}`}>
-          <Icon name={TYPE_ICON[r.type] || "file_text"} size={11} stroke={1.75} /> {TYPE_LABEL[r.type]}
+          <Icon name={TYPE_ICON[r.type] || "file_text"} size={11} stroke={1.75} /> {TYPE_LABEL[r.type] || (r.type ? r.type[0].toUpperCase() + r.type.slice(1) : "Ressource")}
         </span>
         <span className="reco-sep">·</span>
         <span className="reco-source">{r.source}</span>
         <span className="reco-sep">·</span>
         <span className="reco-duration"><Icon name="clock" size={11} stroke={1.75} /> {r.duration_min} min</span>
-        {r.unread && <span className="reco-dot" />}
+        {!done && <span className="reco-dot" />}
       </div>
       <h3 className="reco-big-title">{r.title}</h3>
       <blockquote className="reco-big-why">
@@ -213,8 +293,12 @@ function RecoCardBig({ reco: r, axes }) {
           <button className="btn btn--primary btn--sm" onClick={() => openReco(r)} disabled={!r.url}>
             <Icon name="arrow_right" size={12} stroke={2} /> Ouvrir
           </button>
-          <button className="btn btn--ghost btn--sm">
-            <Icon name="bookmark" size={12} stroke={1.75} /> Garder
+          <button
+            className={`btn btn--sm ${done ? "btn--primary" : "btn--ghost"}`}
+            disabled={pending}
+            onClick={() => onToggleCompleted(r)}
+          >
+            <Icon name="check" size={12} stroke={2} /> {done ? "Fait" : "Marquer fait"}
           </button>
           <span className="reco-big-xp">+{r.xp} XP</span>
         </div>
@@ -223,17 +307,20 @@ function RecoCardBig({ reco: r, axes }) {
   );
 }
 
-function RecoCardMed({ reco: r, axes }) {
+function RecoCardMed({ reco: r, axes, isCompleted, onToggleCompleted, pendingIds }) {
   const ax = axes.find(a => a.id === r.axis);
+  const done = isCompleted(r);
+  const pending = !!pendingIds[r.id];
+  const handleToggle = (e) => { e.stopPropagation(); onToggleCompleted(r); };
   return (
     <article
-      className={`reco-med ${r.unread ? "is-unread" : ""}`}
+      className={`reco-med ${done ? "is-completed" : "is-unread"}`}
       onClick={() => openReco(r)}
       style={r.url ? { cursor: "pointer" } : null}
     >
       <div className="reco-med-head">
         <span className={`reco-type reco-type--${r.type}`}>
-          <Icon name={TYPE_ICON[r.type] || "file_text"} size={11} stroke={1.75} /> {TYPE_LABEL[r.type]}
+          <Icon name={TYPE_ICON[r.type] || "file_text"} size={11} stroke={1.75} /> {TYPE_LABEL[r.type] || (r.type ? r.type[0].toUpperCase() + r.type.slice(1) : "Ressource")}
         </span>
         <span className="reco-sep">·</span>
         <span className="reco-source">{r.source}</span>
@@ -244,16 +331,29 @@ function RecoCardMed({ reco: r, axes }) {
       <p className="reco-med-why"><span className="reco-med-why-mark">→</span> {r.why_short}</p>
       <footer className="reco-med-foot">
         <span className="reco-med-axis">{ax?.label} · <strong>{ax?.score}</strong>/100</span>
-        <span className="reco-med-xp">+{r.xp} XP</span>
+        <span className="reco-med-foot-right">
+          <button
+            className={`reco-med-done ${done ? "is-done" : ""}`}
+            disabled={pending}
+            onClick={handleToggle}
+            title={done ? "Marquer comme à faire" : "Marquer comme fait"}
+          >
+            <Icon name="check" size={12} stroke={2} /> {done ? "Fait" : "À faire"}
+          </button>
+          <span className="reco-med-xp">+{r.xp} XP</span>
+        </span>
       </footer>
     </article>
   );
 }
 
-function RecoRow({ reco: r }) {
+function RecoRow({ reco: r, isCompleted, onToggleCompleted, pendingIds }) {
+  const done = isCompleted(r);
+  const pending = !!pendingIds[r.id];
+  const handleToggle = (e) => { e.stopPropagation(); onToggleCompleted(r); };
   return (
     <li
-      className="reco-row"
+      className={`reco-row ${done ? "is-completed" : ""}`}
       onClick={() => openReco(r)}
       style={r.url ? { cursor: "pointer" } : null}
     >
@@ -270,6 +370,14 @@ function RecoRow({ reco: r }) {
           <span>{r.axis_label}</span>
         </div>
       </div>
+      <button
+        className={`reco-row-done ${done ? "is-done" : ""}`}
+        disabled={pending}
+        onClick={handleToggle}
+        title={done ? "Marquer comme à faire" : "Marquer comme fait"}
+      >
+        <Icon name="check" size={12} stroke={2} />
+      </button>
       <span className="reco-row-xp">+{r.xp} XP</span>
     </li>
   );
@@ -283,12 +391,22 @@ const TYPE_ICON = {
   article: "file_text",
   video: "play",
   course: "target",
+  guide: "book",
+  book: "book",
+  doc: "file_text",
+  tutorial: "play",
+  podcast: "play",
 };
 const TYPE_LABEL = {
   paper: "Paper",
   article: "Article",
   video: "Vidéo",
   course: "Cours",
+  guide: "Guide",
+  book: "Livre",
+  doc: "Doc",
+  tutorial: "Tuto",
+  podcast: "Podcast",
 };
 
 window.PanelRecos = PanelRecos;
