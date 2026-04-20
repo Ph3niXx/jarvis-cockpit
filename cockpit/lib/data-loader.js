@@ -1105,7 +1105,7 @@
     const avgHoursDay = (minutesYtd / 60 / daysElapsed);
     // Unique artists YTD — approximated from weekly tops + raw scrobbles union.
     const ytdArtists = new Set();
-    artistRows.filter(r => (r.week_start || "") >= yearStart).forEach(r => r.item_name && ytdArtists.add(r.item_name));
+    (byCat.artist || []).filter(r => (r.week_start || "") >= yearStart).forEach(r => r.item_name && ytdArtists.add(r.item_name));
     (scrobbles || []).forEach(sc => { if (sc.artist_name) ytdArtists.add(sc.artist_name); });
     // Albums played ≥5× — count distinct album_name in music_top_weekly with max play_count >= 5.
     const albumMaxPlays = {};
