@@ -449,6 +449,7 @@
     async sport(){ return once("sport_articles", () => q("sport_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async gaming_news(){ return once("gaming_articles", () => q("gaming_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async anime(){ return once("anime_articles", () => q("anime_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
+    async news(){ return once("news_articles", () => q("news_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async jobs_scan_today(){
       const today = isoToday();
       return once("jobs_scan_" + today, async () => {
@@ -1425,6 +1426,54 @@
     });
   }
 
+  // News (actualités) feed transformer
+  const NEWS_CATEGORY_LABELS = {
+    paris: "Paris", france: "France", international: "International",
+  };
+  const NEWS_CATEGORY_ICONS = {
+    paris: "flag", france: "flag", international: "sparkles",
+  };
+  function normalizeNewsSource(src){
+    if (!src) return "—";
+    if (src.startsWith("Le Parisien")) return "Le Parisien";
+    if (src.startsWith("20 Minutes")) return "20 Minutes";
+    if (src.startsWith("Le Monde")) return "Le Monde";
+    if (src.startsWith("FranceInfo")) return "FranceInfo";
+    if (src.startsWith("RFI")) return "RFI";
+    return src;
+  }
+  function guessNewsType(title){
+    const t = (title || "").toLowerCase();
+    if (/interview|confie|explique|témoignage/.test(t)) return "Interview";
+    if (/tribune|édito|éditorial|opinion|point de vue/.test(t)) return "Tribune";
+    if (/analyse|décrypt|enquête|reportage/.test(t)) return "Analyse";
+    if (/direct|en direct|suivez|minute par minute/.test(t)) return "Live";
+    if (/annonce|déclare|confirme|assure/.test(t)) return "Annonce";
+    return "Actu";
+  }
+  function transformNewsFeed(articles){
+    const readMap = getReadMap();
+    return (articles || []).map(a => {
+      const when = a.date_published || a.date_fetched || Date.now();
+      const dateH = Math.max(0, Math.round((Date.now() - new Date(when).getTime()) / 3600000));
+      return {
+        id: a.id,
+        actor: normalizeNewsSource(a.source),
+        category: a.category || "france",
+        type: guessNewsType(a.title),
+        date_h: dateH,
+        date_label: relTime(when),
+        title: a.title || "",
+        summary: stripHtml(a.summary || "").slice(0, 260),
+        tags: ["#" + (a.category || "actu")],
+        unread: !readMap[a.id],
+        starred: false,
+        icon: NEWS_CATEGORY_ICONS[a.category] || "flag",
+        url: a.url,
+      };
+    });
+  }
+
   function transformVeilleFeed(articles){
     const readMap = getReadMap();
     return (articles || []).map(a => {
@@ -1848,9 +1897,93 @@
         return { articles };
       }
       case "news": {
-        // Non-AI verticals need articles.domain column + dedicated
-        // pipelines. Keep fake VEILLE_DATA corpora for now.
-        return { articles: [] };
+        const articles = await T2.news();
+        if (window.NEWS_DATA && articles.length) {
+          window.NEWS_DATA.feed = transformNewsFeed(articles);
+          const fresh = articles[0];
+          const now = Date.now();
+          const ageH = a => {
+            const t = new Date(a.date_published || a.date_fetched || 0).getTime();
+            return (now - t) / 3600000;
+          };
+          const last24h = articles.filter(a => ageH(a) <= 24).length;
+          const last7d = articles.filter(a => ageH(a) <= 24 * 7);
+          const catCounts7d = {};
+          last7d.forEach(a => {
+            const k = a.category || "france";
+            catCounts7d[k] = (catCounts7d[k] || 0) + 1;
+          });
+          const topCatEntry = Object.entries(catCounts7d).sort((a, b) => b[1] - a[1])[0];
+          const topCat = topCatEntry ? (NEWS_CATEGORY_LABELS[topCatEntry[0]] || topCatEntry[0]) : "—";
+          const topCatCount = topCatEntry ? topCatEntry[1] : 0;
+          const sourcesN = new Set(articles.map(a => normalizeNewsSource(a.source))).size;
+          if (fresh) {
+            const freshLabel = NEWS_CATEGORY_LABELS[fresh.category] || fresh.category || "Actu";
+            window.NEWS_DATA.headline = {
+              ...(window.NEWS_DATA.headline || {}),
+              kicker: freshLabel + " · " + (relTime(fresh.date_published || fresh.date_fetched) || "récent"),
+              actor: normalizeNewsSource(fresh.source),
+              version: freshLabel,
+              tagline: fresh.title || "",
+              body: stripHtml(fresh.summary || "").slice(0, 320) || fresh.title || "",
+              metrics: [
+                { label: "Articles 24h", value: String(last24h), delta: last24h ? "+" + last24h : "=" },
+                { label: "Articles 7j", value: String(last7d.length), delta: "=" },
+                { label: "Top zone", value: topCat, delta: topCatCount ? "+" + topCatCount : "=" },
+                { label: "Sources", value: String(sourcesN), delta: "=" },
+              ],
+              tags: ["#actu", "#" + (fresh.category || "france")],
+            };
+          }
+          // Actors = sources
+          const sourceColors = {
+            "Le Parisien": "#003594",
+            "20 Minutes": "#00ad97",
+            "BFM Paris": "#0066cc",
+            "Le Monde": "#000000",
+            "Le Figaro": "#1e3a8a",
+            "FranceInfo": "#e20613",
+            "Libération": "#d2142f",
+            "BBC World": "#bb1919",
+            "France 24": "#d9b15e",
+            "RFI": "#cc0000",
+          };
+          const srcMap = new Map();
+          articles.forEach(a => {
+            const name = normalizeNewsSource(a.source);
+            if (!srcMap.has(name)) {
+              srcMap.set(name, {
+                id: name.toLowerCase().replace(/\W+/g, "-"),
+                name,
+                mark: name.split(/[\s.]/).map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase(),
+                color: sourceColors[name] || "#555",
+                followed: true,
+                last_activity: relTime(a.date_published || a.date_fetched),
+                last_title: a.title || "",
+                momentum: "",
+                pulse: [0, 0, 0, 0, 0, 0, 0, 0],
+                note: "",
+              });
+            }
+            srcMap.get(name).pulse[7]++;
+          });
+          window.NEWS_DATA.actors = Array.from(srcMap.values());
+          // Trends = one per zone
+          window.NEWS_DATA.trends = Object.entries(catCounts7d)
+            .map(([cat, count]) => ({
+              id: "tn-" + cat,
+              label: NEWS_CATEGORY_LABELS[cat] || cat,
+              kicker: "Zone",
+              momentum: count + " articles · 7j",
+              pulse: [0, 0, 0, 0, 0, 0, 0, count],
+              articles_count: count,
+              summary: count + " articles récents pour " + (NEWS_CATEGORY_LABELS[cat] || cat) + ".",
+              actors_involved: [],
+              status: count >= 20 ? "rising" : count >= 10 ? "stable" : "new",
+            }))
+            .sort((a, b) => b.articles_count - a.articles_count);
+        }
+        return { articles };
       }
       case "wiki": {
         const concepts = await T2.wiki();
@@ -2030,7 +2163,7 @@
   const TIER2_PANELS = new Set([
     "updates", "wiki", "radar", "recos", "challenges", "opps", "ideas",
     "profile", "perf", "music", "gaming", "stacks", "history", "jobs",
-    "sport", "gaming_news", "anime",
+    "sport", "gaming_news", "anime", "news",
   ]);
 
   // Hydrate globals with real data on boot (Tier 1 already fetched the

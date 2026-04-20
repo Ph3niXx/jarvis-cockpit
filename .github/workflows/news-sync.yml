@@ -1,0 +1,28 @@
+name: Actualités — RSS Sync
+
+on:
+  schedule:
+    # Quotidien à 7h15 UTC (9h15 Paris)
+    - cron: '15 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  news-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r pipelines/requirements-news.txt
+
+      - name: Run news sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python pipelines/news_sync.py
