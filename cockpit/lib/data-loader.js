@@ -424,8 +424,8 @@
     async ideas(){ return once("ideas", () => q("business_ideas", "order=created_at.desc&limit=100")); },
     async strava(){ return once("strava", () => q("strava_activities", "order=start_date.desc&limit=300")); },
     async music_scrobbles(){ return once("music_scrobbles", () => q("music_scrobbles", "order=scrobbled_at.desc&limit=200")); },
-    async music_stats(){ return once("music_stats", () => q("music_stats_daily", "order=stat_date.desc&limit=90")); },
-    async music_top(){ return once("music_top", () => q("music_top_weekly", "order=week_start.desc&limit=120")); },
+    async music_stats(){ return once("music_stats", () => q("music_stats_daily", "order=stat_date.desc&limit=400")); },
+    async music_top(){ return once("music_top", () => q("music_top_weekly", "order=week_start.desc&limit=1000")); },
     async music_loved(){ return once("music_loved", () => q("music_loved_tracks", "order=loved_at.desc&limit=40")); },
     async music_genres(){ return once("music_genres", () => q("music_genre_weekly", "order=week_start.desc&limit=120")); },
     async music_insights(){ return once("music_insights", () => q("music_insights_weekly", "order=week_start.desc&limit=12")); },
@@ -1035,6 +1035,109 @@
       };
     }
 
+    // ── discoveries (nouveaux artistes 30 derniers jours) ──
+    // Panel shape: { artist, scrobbles, first_scrobble, genre, verdict, note }.
+    // An artist "discovered" means: appears in music_top_weekly (category=artist)
+    // in one of the last ~4 weeks, but NOT in any earlier week within the
+    // fetched window. We approximate first_scrobble via the earliest week
+    // they show up in, and classify verdict from total recent plays.
+    const artistRows = byCat.artist || [];
+    const firstWeekSeen = {};
+    const allWeeksSeen = {};
+    const playsByArtist30 = {};
+    const cutoffDiscoveryIso = cutoff30Iso;
+    // Window of "appeared for the first time this quarter".
+    const cutoff90Iso = new Date(now.getTime() - 90 * dayMs).toISOString().slice(0, 10);
+    // Earliest week fetched — if it's newer than cutoff90, we don't have
+    // enough history to tell "new artist" from "already known". In that
+    // case we fall back to the loved-tracks heuristic below.
+    let earliestWeekFetched = "9999-99-99";
+    artistRows.forEach(r => {
+      const name = r.item_name;
+      if (!name) return;
+      const w = r.week_start || "";
+      if (w && w < earliestWeekFetched) earliestWeekFetched = w;
+      if (!firstWeekSeen[name] || w < firstWeekSeen[name]) firstWeekSeen[name] = w;
+      if (!allWeeksSeen[name]) allWeeksSeen[name] = new Set();
+      allWeeksSeen[name].add(w);
+      if (w >= cutoffDiscoveryIso) {
+        playsByArtist30[name] = (playsByArtist30[name] || 0) + (Number(r.play_count) || 0);
+      }
+    });
+    const haveEnoughHistory = earliestWeekFetched <= cutoff90Iso;
+    const classifyVerdict = (plays) =>
+      plays >= 50 ? "accroché" : plays >= 15 ? "à creuser" : "abandonné";
+    const discoveries = !haveEnoughHistory ? [] : Object.keys(firstWeekSeen)
+      .filter(name => firstWeekSeen[name] >= cutoff90Iso)
+      .map(name => {
+        const plays = playsByArtist30[name] || 0;
+        const firstWeek = firstWeekSeen[name];
+        const firstDate = new Date(firstWeek + "T00:00:00");
+        const daysAgo = Math.max(1, Math.round((now.getTime() - firstDate.getTime()) / dayMs));
+        return {
+          artist: name,
+          scrobbles: plays,
+          first_scrobble: `il y a ${daysAgo}j`,
+          genre: "",
+          verdict: classifyVerdict(plays),
+          note: "",
+        };
+      })
+      .sort((a, b) => b.scrobbles - a.scrobbles)
+      .slice(0, 8);
+
+    // Fallback: if the weekly chart window is too short to detect new artists,
+    // use loved tracks as de-facto "discoveries".
+    const discoveriesFinal = discoveries.length ? discoveries : (loved || []).slice(0, 8).map(l => ({
+      artist: l.artist_name || l.artist || "—",
+      scrobbles: 0,
+      first_scrobble: relTime(l.loved_at),
+      genre: "",
+      verdict: "accroché",
+      note: l.track_name ? `Loved : ${l.track_name}` : "",
+    }));
+
+    // ── milestones (2026 YTD) ──
+    // Panel shape: { label, value, sub, progress? }.
+    const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+    const statsYtd = statsArr.filter(s => s.stat_date >= yearStart);
+    const scrobblesYtd = statsYtd.reduce((a, s) => a + (Number(s.scrobble_count) || 0), 0);
+    const minutesYtd = statsYtd.reduce((a, s) => a + (Number(s.listening_minutes) || 0), 0);
+    const hoursYtd = Math.round(minutesYtd / 60);
+    const daysElapsed = Math.max(1, Math.round((now.getTime() - new Date(yearStart + "T00:00:00").getTime()) / dayMs));
+    const avgHoursDay = (minutesYtd / 60 / daysElapsed);
+    // Unique artists YTD — approximated from weekly tops + raw scrobbles union.
+    const ytdArtists = new Set();
+    artistRows.filter(r => (r.week_start || "") >= yearStart).forEach(r => r.item_name && ytdArtists.add(r.item_name));
+    (scrobbles || []).forEach(sc => { if (sc.artist_name) ytdArtists.add(sc.artist_name); });
+    // Albums played ≥5× — count distinct album_name in music_top_weekly with max play_count >= 5.
+    const albumMaxPlays = {};
+    (byCat.album || []).filter(r => (r.week_start || "") >= yearStart).forEach(r => {
+      const n = r.item_name;
+      if (!n) return;
+      const p = Number(r.play_count) || 0;
+      if (!(n in albumMaxPlays) || p > albumMaxPlays[n]) albumMaxPlays[n] = p;
+    });
+    const albumsMin5 = Object.values(albumMaxPlays).filter(p => p >= 5).length;
+    const topGenre = genres_30d[0]?.label || null;
+    const topGenrePct = genres_30d[0] ? Math.round(genres_30d[0].share * 100) : null;
+    const YTD_TARGET = 35000;
+    const milestones = [
+      {
+        label: "Scrobbles " + now.getFullYear(),
+        value: scrobblesYtd.toLocaleString("fr-FR"),
+        sub: `objectif ${YTD_TARGET.toLocaleString("fr-FR")}`,
+        progress: Math.min(1, scrobblesYtd / YTD_TARGET),
+      },
+      { label: "Artistes uniques", value: ytdArtists.size.toLocaleString("fr-FR"), sub: "YTD" },
+      { label: "Nouvelles découvertes", value: String(discoveriesFinal.length), sub: "nouveaux artistes" },
+      { label: "Albums écoutés ≥5×", value: String(albumsMin5), sub: "sur l'année" },
+      { label: "Heure d'écoute estimée", value: `${hoursYtd.toLocaleString("fr-FR")} h`, sub: `~${avgHoursDay.toFixed(1)}h / jour` },
+      topGenre
+        ? { label: "Genre dominant", value: topGenre, sub: `${topGenrePct}% du temps` }
+        : { label: "Genre dominant", value: "—", sub: "" },
+    ];
+
     return {
       now_playing,
       totals: { last7, last30, last180: last180, all180: last180, ytd, hours_today, hours_week },
@@ -1045,13 +1148,8 @@
       daily_series: daily90,
       heatmap: grid,
       genres_30d,
-      discoveries: (loved || []).slice(0, 12).map(l => ({
-        artist: l.artist_name || l.artist || "—",
-        track: l.track_name || l.track || "",
-        first_heard: relTime(l.loved_at),
-        verdict: "accroché",
-      })),
-      milestones: [],
+      discoveries: discoveriesFinal,
+      milestones,
     };
   }
 
