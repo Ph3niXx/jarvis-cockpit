@@ -83,14 +83,23 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     try { window.location.hash = id; } catch {}
     try { window.track && window.track("section_opened", { section: id }); } catch {}
-    // Tier 2 lazy load for the panel we're entering — bump dataVersion on
-    // resolve so the panel re-mounts and re-reads window.*_DATA.
+    // Tier 2 lazy load happens in the effect below — triggering on every
+    // activePanel change including the first mount (deep-linked refresh).
+  };
+
+  // Tier 2 lazy load: fires whenever activePanel changes. Covers the case
+  // where the page is refreshed on a deep-link hash (#music, #perf, …) —
+  // handleNavigate doesn't run at mount, so without this effect the panel
+  // would render against the untouched fake *_DATA globals.
+  useEffect(() => {
     try {
       if (window.cockpitDataLoader && typeof window.cockpitDataLoader.loadPanel === "function") {
-        window.cockpitDataLoader.loadPanel(id).then(() => setDataVersion(v => v + 1)).catch(() => {});
+        window.cockpitDataLoader.loadPanel(activePanel)
+          .then(() => setDataVersion(v => v + 1))
+          .catch(() => {});
       }
     } catch {}
-  };
+  }, [activePanel]);
 
   // Hash deep-link: sync browser hash → activePanel (back/forward nav).
   useEffect(() => {
