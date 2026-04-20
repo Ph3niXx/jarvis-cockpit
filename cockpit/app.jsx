@@ -269,7 +269,7 @@ function App() {
       { id: "released", label: "Sorties récentes", color: "#1f1f1f" },
       { id: "upcoming", label: "À venir prochainement", color: "#2e6a4f" },
       { id: "industry", label: "Industrie", color: "#555" },
-    ]} prodSection={{ kicker: "Prochaines sorties anime", title: "Les animes à venir — source MyAnimeList" }} />;
+    ]} prodSection={{ kicker: "Prochaines sorties anime", title: "Les animes à venir — source MyAnimeList" }} prodTableMode={true} />;
   else if (activePanel === "news")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="NEWS_DATA" title="Actualités" showActors={false} categoryLabel="Zone" typeLabel="Rubrique" categories={[
       { id: "paris", label: "Paris", color: "#1a5f3f" },

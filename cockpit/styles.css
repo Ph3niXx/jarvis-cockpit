@@ -3359,6 +3359,122 @@ a { color: inherit; text-decoration: none; }
 .vl-prod-model { color: var(--tx2); }
 .vl-prod-impact { color: var(--positive); font-weight: 500; }
 
+/* ─── CAS PROD — MODE TABLEAU (sorties à venir) ─── */
+.vl-prod-filters {
+  display: flex; flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.vl-prod-filter {
+  background: var(--surface);
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tx2);
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: all 160ms ease;
+}
+.vl-prod-filter:hover {
+  border-color: var(--bd2);
+  color: var(--tx);
+}
+.vl-prod-filter.is-active {
+  background: var(--tx);
+  border-color: var(--tx);
+  color: var(--bg);
+}
+.vl-prod-filter-count {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  opacity: 0.6;
+}
+.vl-prod-filter.is-active .vl-prod-filter-count { opacity: 0.8; }
+.vl-prod-empty {
+  background: var(--surface);
+  border: 1px dashed var(--bd);
+  border-radius: var(--radius);
+  padding: 28px;
+  text-align: center;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: var(--tx3);
+}
+.vl-prod-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.vl-prod-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+}
+.vl-prod-table thead th {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+  font-weight: 500;
+  text-align: left;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--bd);
+  background: var(--bg);
+}
+.vl-prod-table tbody tr {
+  border-bottom: 1px solid var(--bd);
+  transition: background 140ms ease;
+}
+.vl-prod-table tbody tr:last-child { border-bottom: none; }
+.vl-prod-table tbody tr:hover { background: var(--bg); }
+.vl-prod-table td {
+  padding: 14px 18px;
+  font-size: 13.5px;
+  color: var(--tx2);
+  vertical-align: middle;
+}
+.vl-prod-date {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12.5px;
+  color: var(--tx);
+  white-space: nowrap;
+  font-weight: 500;
+}
+.vl-prod-title {
+  font-weight: 500;
+  color: var(--tx);
+  min-width: 220px;
+}
+.vl-prod-studio {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  color: var(--tx2);
+}
+.vl-prod-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: white;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+.vl-prod-link {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11.5px;
+  color: var(--brand);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.vl-prod-link:hover { text-decoration: underline; }
+
 /* ─── TENDANCES TRANSVERSES ─── */
 .vl-trends-grid {
   display: grid;

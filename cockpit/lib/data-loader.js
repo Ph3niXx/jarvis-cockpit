@@ -1814,32 +1814,31 @@
               status: count >= 15 ? "rising" : count >= 8 ? "stable" : "new",
             }))
             .sort((a, b) => b.articles_count - a.articles_count);
-          // prod_cases = animes Jikan upcoming triés par date de diffusion proche
-          // (articles source=MyAnimeList + category=upcoming).
+          // prod_cases = tous les animes Jikan upcoming triés par date de diffusion asc.
+          // Le panel affiche ces données en mode tableau + filtre 3 prochains mois.
           const MONTHS_FR = ["janv.","févr.","mars","avril","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
           const jikanUpcoming = articles
             .filter(a => a.source === "MyAnimeList" && a.category === "upcoming" && a.date_published)
-            .sort((a, b) => new Date(a.date_published) - new Date(b.date_published))
-            .slice(0, 6);
+            .sort((a, b) => new Date(a.date_published) - new Date(b.date_published));
           window.ANIME_DATA.prod_cases = jikanUpcoming.map(a => {
             const dt = new Date(a.date_published);
-            const whenLabel = isNaN(dt) ? "—" : `${MONTHS_FR[dt.getMonth()]} ${dt.getFullYear()}`;
-            // Extract [TV] / [Movie] / [OVA] prefix from our synthetic title
+            const isoValid = !isNaN(dt);
+            const whenLabel = isoValid ? `${dt.getDate()} ${MONTHS_FR[dt.getMonth()]} ${dt.getFullYear()}` : "—";
             const typeMatch = (a.title || "").match(/^\[(TV|Movie|OVA|Special|ONA)\]\s*/i);
-            const cleanTitle = a.title.replace(/^\[[^\]]+\]\s*/, "");
+            const cleanTitle = (a.title || "").replace(/^\[[^\]]+\]\s*/, "");
             const atype = typeMatch ? typeMatch[1] : "Anime";
-            // Extract studio from summary prefix "Studio : XXX · ..."
             const studioMatch = (a.summary || "").match(/Studio\s*:\s*([^·]+?)(?:\s*·|$)/);
             const studio = studioMatch ? studioMatch[1].trim() : "";
             const mark = cleanTitle.split(/\s+/).map(w => w[0]).filter(Boolean).join("").slice(0, 3).toUpperCase();
             return {
-              company: cleanTitle.slice(0, 60),
+              company: cleanTitle.slice(0, 80),
               logo_mark: mark || "??",
               color: "#2e51a2",
               scale: studio || "MyAnimeList",
               model: studio || "MAL",
               domain: atype,
               when: whenLabel,
+              air_iso: isoValid ? dt.toISOString() : null,
               headline: (a.summary || "").replace(/^Studio\s*:[^·]+·\s*(?:[^·]+·\s*)?/, "").slice(0, 200) || "À paraître prochainement.",
               impact: `Diffusion ${whenLabel}`,
               url: a.url,

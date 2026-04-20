@@ -31,7 +31,104 @@ function PulseBars({ pulse, color }) {
   );
 }
 
-function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille IA", actorsLabel = "labos + éditeurs", prodSection = { kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }, showActors = true, categoryLabel = "Acteur", categories = null, typeLabel = "Type" }) {
+const MONTHS_FR_FULL = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
+function monthLabel(d){ return `${MONTHS_FR_FULL[d.getMonth()]} ${d.getFullYear()}`; }
+
+function ProdTable({ prodSection, items }){
+  const today = new Date(); today.setDate(1); today.setHours(0, 0, 0, 0);
+  const monthOptions = [0, 1, 2].map(offset => {
+    const d = new Date(today); d.setMonth(today.getMonth() + offset);
+    return { key: monthKey(d), label: monthLabel(d) };
+  });
+  const [monthFilter, setMonthFilter] = useStateVeille("all"); // "all" | monthKey
+
+  const sorted = useMemoVeille(() => {
+    return (items || []).slice().sort((a, b) => {
+      const da = a.air_iso ? new Date(a.air_iso).getTime() : Infinity;
+      const db = b.air_iso ? new Date(b.air_iso).getTime() : Infinity;
+      return da - db;
+    });
+  }, [items]);
+
+  const filtered = useMemoVeille(() => {
+    if (monthFilter === "all") return sorted;
+    return sorted.filter(p => {
+      if (!p.air_iso) return false;
+      return monthKey(new Date(p.air_iso)) === monthFilter;
+    });
+  }, [sorted, monthFilter]);
+
+  const counts = useMemoVeille(() => {
+    const c = { all: sorted.length };
+    monthOptions.forEach(m => {
+      c[m.key] = sorted.filter(p => p.air_iso && monthKey(new Date(p.air_iso)) === m.key).length;
+    });
+    return c;
+  }, [sorted]);
+
+  return (
+    <section className="vl-section">
+      <div className="vl-section-head">
+        <div>
+          <div className="vl-section-kicker">{prodSection.kicker}</div>
+          <h2 className="vl-section-title">{prodSection.title}</h2>
+        </div>
+      </div>
+      <div className="vl-prod-filters">
+        <button
+          className={`vl-prod-filter ${monthFilter === "all" ? "is-active" : ""}`}
+          onClick={() => setMonthFilter("all")}
+        >
+          Tout <span className="vl-prod-filter-count">{counts.all}</span>
+        </button>
+        {monthOptions.map(m => (
+          <button
+            key={m.key}
+            className={`vl-prod-filter ${monthFilter === m.key ? "is-active" : ""}`}
+            onClick={() => setMonthFilter(m.key)}
+          >
+            {m.label} <span className="vl-prod-filter-count">{counts[m.key]}</span>
+          </button>
+        ))}
+      </div>
+      {filtered.length === 0 ? (
+        <div className="vl-prod-empty">Aucune sortie prévue sur cette période.</div>
+      ) : (
+        <div className="vl-prod-table-wrap">
+          <table className="vl-prod-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Titre</th>
+                <th>Type</th>
+                <th>Studio</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(p => (
+                <tr key={p.url || p.company}>
+                  <td className="vl-prod-date">{p.when}</td>
+                  <td className="vl-prod-title">{p.company}</td>
+                  <td><span className="vl-prod-pill" style={{ background: p.color }}>{p.domain}</span></td>
+                  <td className="vl-prod-studio">{p.model}</td>
+                  <td>
+                    {p.url && (
+                      <a className="vl-prod-link" href={p.url} target="_blank" rel="noopener noreferrer">MAL ↗</a>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille IA", actorsLabel = "labos + éditeurs", prodSection = { kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }, showActors = true, categoryLabel = "Acteur", categories = null, typeLabel = "Type", prodTableMode = false }) {
   const v = window[corpus];
   if (!v) return <div className="panel-page" style={{padding: 60}}>Corpus <code>{corpus}</code> introuvable.</div>;
   const [tone, setTone] = useStateVeille("dense"); // "dense" technique par défaut / "dawn" éditorial
@@ -373,35 +470,39 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
         )}
       </section>
 
-      {/* ═══════ CAS PROD ═══════ */}
+      {/* ═══════ CAS PROD / SORTIES À VENIR ═══════ */}
       {prodSection && (
-      <section className="vl-section">
-        <div className="vl-section-head">
-          <div>
-            <div className="vl-section-kicker">{prodSection.kicker}</div>
-            <h2 className="vl-section-title">{prodSection.title}</h2>
-          </div>
-        </div>
-        <div className="vl-prod-grid">
-          {v.prod_cases.map((p) => (
-            <article key={p.company} className="vl-prod-card">
-              <div className="vl-prod-head">
-                <span className="vl-prod-logo" style={{ background: p.color }}>{p.logo_mark}</span>
+        prodTableMode
+          ? <ProdTable prodSection={prodSection} items={v.prod_cases} />
+          : (
+            <section className="vl-section">
+              <div className="vl-section-head">
                 <div>
-                  <div className="vl-prod-company">{p.company}</div>
-                  <div className="vl-prod-domain">{p.domain}</div>
+                  <div className="vl-section-kicker">{prodSection.kicker}</div>
+                  <h2 className="vl-section-title">{prodSection.title}</h2>
                 </div>
               </div>
-              <div className="vl-prod-scale">{p.scale}</div>
-              <p className="vl-prod-head-line">{p.headline}</p>
-              <div className="vl-prod-foot">
-                <span className="vl-prod-model">{p.model}</span>
-                <span className="vl-prod-impact">{p.impact}</span>
+              <div className="vl-prod-grid">
+                {v.prod_cases.map((p) => (
+                  <article key={p.company} className="vl-prod-card">
+                    <div className="vl-prod-head">
+                      <span className="vl-prod-logo" style={{ background: p.color }}>{p.logo_mark}</span>
+                      <div>
+                        <div className="vl-prod-company">{p.company}</div>
+                        <div className="vl-prod-domain">{p.domain}</div>
+                      </div>
+                    </div>
+                    <div className="vl-prod-scale">{p.scale}</div>
+                    <p className="vl-prod-head-line">{p.headline}</p>
+                    <div className="vl-prod-foot">
+                      <span className="vl-prod-model">{p.model}</span>
+                      <span className="vl-prod-impact">{p.impact}</span>
+                    </div>
+                  </article>
+                ))}
               </div>
-            </article>
-          ))}
-        </div>
-      </section>
+            </section>
+          )
       )}
 
       {/* ═══════ TWEAK TONE TOGGLE ═══════ */}
