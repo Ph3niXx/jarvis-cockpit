@@ -459,23 +459,34 @@
     return target;
   }
 
-  // Deep merge: recursively copy source fields into target. Arrays and
-  // primitives REPLACE (arrays represent whole collections — half-real
-  // half-fake would be nonsense). Nested plain objects merge key-by-key
-  // so we keep fake fields the panel reads that the transformer hasn't
-  // produced yet. Guards against null, dates and React-style refs.
+  // Deep merge: recursively copy source fields into target.
+  //   - Arrays: replace wholesale ONLY if the incoming array is non-empty.
+  //     An empty real result would otherwise wipe the fake fallback the
+  //     panel still renders against.
+  //   - Objects: merge key-by-key so we keep fake fields the transformer
+  //     hasn't produced yet.
+  //   - Primitives: replace if the incoming value is non-empty (skip
+  //     empty strings too, for the same reason).
   function mergeInto(target, source){
     if (!target || !source || typeof source !== "object") return target;
     Object.keys(source).forEach(k => {
       const sv = source[k];
       const tv = target[k];
       if (sv === null || sv === undefined) return;
-      if (Array.isArray(sv) || Array.isArray(tv)) { target[k] = sv; return; }
+      if (Array.isArray(sv)) {
+        if (sv.length) target[k] = sv;
+        return;
+      }
+      if (Array.isArray(tv)) {
+        target[k] = sv;
+        return;
+      }
       if (typeof sv === "object" && typeof tv === "object" && !(sv instanceof Date)) {
         mergeInto(tv, sv);
-      } else {
-        target[k] = sv;
+        return;
       }
+      if (typeof sv === "string" && sv === "") return;
+      target[k] = sv;
     });
     return target;
   }
@@ -912,20 +923,28 @@
     });
 
     // ── genres_30d ─────────────────────────
+    // Panel shape (panel-musique.jsx): { label, share 0..1, color, change }.
+    // We also emit `name` as an alias — the hero line reads g.name.
     const cutoff30 = new Date(now); cutoff30.setDate(now.getDate() - 30);
     const cutoff30Iso = cutoff30.toISOString().slice(0, 10);
     const genreTally = {};
     (genres || []).filter(g => (g.week_start || "") >= cutoff30Iso).forEach(g => {
-      genreTally[g.genre] = (genreTally[g.genre] || 0) + (Number(g.scrobble_count) || 0);
+      const key = g.genre || g.top_tag || "autres";
+      genreTally[key] = (genreTally[key] || 0) + (Number(g.scrobble_count) || 0);
     });
     const genreTotal = Object.values(genreTally).reduce((a, b) => a + b, 0) || 1;
+    const GENRE_COLORS = ["#3a1e2e","#2a3d2e","#1a2438","#1a2a2a","#3a2e1a","#2a1e38","#2e2a1e","#1e2e3a"];
     const genres_30d = Object.entries(genreTally)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
-      .map(([name, count]) => ({
+      .map(([name, count], i) => ({
         name,
+        label: name,
         scrobbles: count,
+        share: count / genreTotal,
         pct: Math.round((count / genreTotal) * 100),
+        color: GENRE_COLORS[i % GENRE_COLORS.length],
+        change: 0,
       }));
 
     // ── now_playing ────────────────────────
@@ -1315,7 +1334,16 @@
           T2.music_scrobbles(), T2.music_stats(), T2.music_top(),
           T2.music_loved(), T2.music_genres(), T2.music_insights(),
         ]);
-        if (window.MUSIC_DATA && (stats || []).length) {
+        // Run the transformer whenever ANY real source returned rows.
+        // music_stats_daily is often empty at first install — but we still
+        // have raw scrobbles to reconstruct totals, now_playing, top artists
+        // and the heatmap. Gating on stats.length alone leaves fake data on.
+        const hasAny = (scrobbles || []).length
+                    || (stats || []).length
+                    || (top || []).length
+                    || (loved || []).length
+                    || (genres || []).length;
+        if (window.MUSIC_DATA && hasAny) {
           const shape = transformMusic({ scrobbles, stats, top, loved, genres });
           mergeInto(window.MUSIC_DATA, shape);
           window.MUSIC_DATA._raw = { scrobbles, stats, top, loved, genres, insights };
