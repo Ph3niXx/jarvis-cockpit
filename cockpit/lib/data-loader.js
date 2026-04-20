@@ -220,27 +220,48 @@
       const s = Number(r.score || 0);
       return s <= 10 ? s * 10 : Math.min(100, s);
     };
+    // 30-day delta from the per-axis history JSONB (written by the
+    // diagnostic + weekly scoring). Falls back to 0 if the axis has no
+    // point older than 30 days.
+    const CUTOFF_MS = Date.now() - 30 * 86400000;
+    function delta30(rawHistory, currentScore){
+      let hist = rawHistory;
+      if (typeof hist === "string") {
+        try { hist = JSON.parse(hist); } catch { return 0; }
+      }
+      if (!Array.isArray(hist) || hist.length < 2) return 0;
+      const older = hist
+        .map(h => ({ t: new Date(h.date).getTime(), s: Number(h.score) }))
+        .filter(h => !Number.isNaN(h.t) && h.t <= CUTOFF_MS)
+        .sort((a, b) => b.t - a.t)[0];
+      if (!older) return 0;
+      const oldNorm = older.s <= 10 ? older.s * 10 : Math.min(100, older.s);
+      return Math.round(currentScore - oldNorm);
+    }
     const axes = rows.map(r => {
       const label = r.axis_label || r.axis;
+      const score = Math.round(norm(r));
       return {
         id: r.axis,
         // Keep BOTH name and label — home.jsx/RadarSVG reads .name,
         // panel-radar.jsx reads .label. Same value, both aliases.
         name: label,
         label: label,
-        score: Math.round(norm(r)),
-        gap: norm(r) < 50,
+        score,
+        gap: score < 50,
         target: Number(r.target || 85),
-        delta_30d: 0,
+        delta_30d: delta30(r.history, score),
         axis: r.axis,
         axis_label: label,
         strengths: r.strengths || "",
         gaps: r.gaps || "",
-        level: norm(r) >= 75 ? "Avancé" : norm(r) >= 50 ? "Intermédiaire" : "Débutant",
+        level: score >= 75 ? "Avancé" : score >= 50 ? "Intermédiaire" : "Débutant",
         note: r.gaps || r.strengths || "",
       };
     });
     const lowest = axes.slice().sort((a, b) => a.score - b.score)[0];
+    const avg = Math.round(axes.reduce((s, a) => s + a.score, 0) / Math.max(1, axes.length));
+    const levelGlobal = avg >= 75 ? "Niveau avancé" : avg >= 50 ? "Niveau intermédiaire" : avg >= 20 ? "Niveau débutant" : "À démarrer";
     return {
       axes,
       next_gap: lowest ? {
@@ -249,11 +270,11 @@
         action: "Faire un challenge de la semaine",
       } : EMPTY_GAP,
       summary: {
-        avg: Math.round(axes.reduce((s, a) => s + a.score, 0) / Math.max(1, axes.length)),
+        avg,
         strongest: axes.slice().sort((a, b) => b.score - a.score)[0]?.id,
         weakest: lowest?.id,
-        level_global: "Intermédiaire +",
-        position_peers: "Top 12% de ton réseau pro",
+        level_global: levelGlobal,
+        // position_peers intentionally omitted — we have no peer data.
       },
     };
   }

@@ -1,6 +1,13 @@
 // Panel : Apprentissage → Radar compétences
-// Deux variantes : "spider" (éditorial Dawn) et "carte" (territoire)
 const { useState: useStateRadar, useMemo: useMemoRadar } = React;
+
+function isoWeekRadar(d){
+  const t = new Date(d);
+  t.setHours(0,0,0,0);
+  t.setDate(t.getDate() + 3 - (t.getDay() + 6) % 7);
+  const firstThursday = new Date(t.getFullYear(), 0, 4);
+  return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + (firstThursday.getDay() + 6) % 7) / 7);
+}
 
 function PanelRadar({ data, onNavigate }) {
   const a = window.APPRENTISSAGE_DATA;
@@ -10,17 +17,25 @@ function PanelRadar({ data, onNavigate }) {
   const [selectedAxis, setSelectedAxis] = useStateRadar(null);
 
   const selected = selectedAxis ? axes.find(x => x.id === selectedAxis) : null;
+  const weekNum = String(isoWeekRadar(new Date())).padStart(2, "0");
+
+  // Real stats from axes — no more hardcoded "+12 agents" / "Fine-tuning".
+  const sortedByScore = [...axes].sort((a, b) => b.score - a.score);
+  const sortedByDelta = [...axes].sort((a, b) => b.delta_30d - a.delta_30d);
+  const strongest = sortedByScore[0];
+  const weakest = sortedByScore[sortedByScore.length - 1];
+  const topGainer = sortedByDelta[0];
 
   return (
     <div className="panel-page" data-screen-label="Radar compétences">
       {/* ── Hero ───────────────────────────────────────── */}
       <div className="panel-hero">
-        <div className="panel-hero-eyebrow">Apprentissage · Radar compétences · S17</div>
+        <div className="panel-hero-eyebrow">Apprentissage · Radar compétences · S{weekNum}</div>
         <h1 className="panel-hero-title">
           Ton niveau IA, <em className="serif-italic">axe par axe</em>
         </h1>
         <p className="panel-hero-sub">
-          Moyenne générale <strong>{summary.avg}/100</strong>, <strong>{summary.level_global}</strong>. {summary.position_peers}. Score calculé sur tes lectures, challenges complétés et auto-évaluation.
+          Moyenne générale <strong>{summary.avg}/100</strong> — <strong>{summary.level_global}</strong>. Score calculé sur tes lectures, challenges complétés et diagnostic. Clique un axe pour le détail et les recos associées.
         </p>
       </div>
 
@@ -33,18 +48,33 @@ function PanelRadar({ data, onNavigate }) {
           </span>
           <span className="radar-tb-stat">
             <span className="radar-tb-stat-label">Plus forte progression</span>
-            <span className="radar-tb-stat-val radar-tb-stat-val--gain">+12 agents</span>
+            <span className={`radar-tb-stat-val ${topGainer && topGainer.delta_30d > 0 ? "radar-tb-stat-val--gain" : ""}`}>
+              {topGainer && topGainer.delta_30d > 0
+                ? `+${topGainer.delta_30d} ${topGainer.label}`
+                : "Pas encore de mouvement"}
+            </span>
           </span>
           <span className="radar-tb-stat">
-            <span className="radar-tb-stat-label">Axe faible</span>
-            <span className="radar-tb-stat-val radar-tb-stat-val--weak">Fine-tuning</span>
+            <span className="radar-tb-stat-label">Axe le plus faible</span>
+            <span className="radar-tb-stat-val radar-tb-stat-val--weak">
+              {weakest ? `${weakest.label} · ${weakest.score}` : "—"}
+            </span>
           </span>
         </div>
       </div>
 
       {/* ── Contenu ────────────────────────────────────── */}
-      <RadarSpider axes={axes} summary={summary}
-        selectedAxis={selectedAxis} onSelectAxis={setSelectedAxis} selected={selected} />
+      <RadarSpider
+        axes={axes}
+        summary={summary}
+        selectedAxis={selectedAxis}
+        onSelectAxis={setSelectedAxis}
+        selected={selected}
+        strongest={strongest}
+        weakest={weakest}
+        topGainer={topGainer}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }
@@ -52,7 +82,7 @@ function PanelRadar({ data, onNavigate }) {
 // ─────────────────────────────────────────────────────────
 // VARIANTE A : Spider chart éditorial (Dawn)
 // ─────────────────────────────────────────────────────────
-function RadarSpider({ axes, summary, selectedAxis, onSelectAxis, selected }) {
+function RadarSpider({ axes, summary, selectedAxis, onSelectAxis, selected, strongest, weakest, topGainer, onNavigate }) {
   const W = 680;
   const H = 520;
   const CX = W / 2;
@@ -85,42 +115,53 @@ function RadarSpider({ axes, summary, selectedAxis, onSelectAxis, selected }) {
   // current polygon (niveau actuel)
   const currentPts = axes.map((a, i) => pt(i, (R * a.score) / 100).join(",")).join(" ");
 
-  // Best strengths / gaps
-  const sorted = [...axes].sort((a, b) => b.score - a.score);
-  const strengths = sorted.slice(0, 3);
-  const weaknesses = sorted.slice(-3).reverse();
-  const gainers = [...axes].sort((a, b) => b.delta_30d - a.delta_30d).slice(0, 3);
+  // Stats narratives calculées depuis les vraies données.
+  const atTargetCount = axes.filter(a => a.score >= a.target).length;
+  const biggestLoss = [...axes].sort((a, b) => a.delta_30d - b.delta_30d)[0];
+  const gapToTarget = weakest ? Math.max(0, weakest.target - weakest.score) : 0;
 
   return (
     <div className="radar-wrap radar-wrap--spider">
-      {/* Colonne gauche : stats narratives */}
+      {/* Colonne gauche : stats calculées depuis les vraies data */}
       <aside className="radar-aside radar-aside--left">
-        <div className="section-kicker">Ce qui ressort ce mois</div>
-        <h3 className="radar-aside-title">En <em className="serif-italic">trois coups d'œil</em></h3>
+        <div className="section-kicker">Ce que dit ton radar</div>
+        <h3 className="radar-aside-title">En <em className="serif-italic">quatre coups d'œil</em></h3>
 
         <div className="radar-narrative">
           <div className="radar-narrative-item">
-            <span className="radar-narrative-label">Ton arme</span>
+            <span className="radar-narrative-label">Ton point fort</span>
             <p className="radar-narrative-body">
-              Tu domines sur <strong>Régulation / AI Act</strong> (82/100). Top 5% de ton réseau. Avantage décisif en interne Malakoff.
+              {strongest ? (
+                <>Tu domines sur <strong>{strongest.label}</strong> ({strongest.score}/100, niveau {strongest.level.toLowerCase()}). C'est là où tu peux rayonner auprès de tes pairs.</>
+              ) : "Radar non initialisé — lance le diagnostic pour voir tes forces."}
             </p>
           </div>
           <div className="radar-narrative-item">
             <span className="radar-narrative-label">Ton angle mort</span>
             <p className="radar-narrative-body">
-              <strong>Fine-tuning</strong> reste à 38/100, stagne depuis 30j. LoRA 8-bit est devenu accessible — temps d'y aller.
+              {weakest ? (
+                <><strong>{weakest.label}</strong> reste à {weakest.score}/100 — cible à {weakest.target}, soit un écart de {gapToTarget} points. C'est le gain le plus rapide à aller chercher.</>
+              ) : "—"}
             </p>
           </div>
           <div className="radar-narrative-item">
             <span className="radar-narrative-label">La vague qui monte</span>
             <p className="radar-narrative-body">
-              <strong>Agents & outils</strong> : +12 points ce mois grâce au cycle Claude Agents. Continue sur la lancée.
+              {topGainer && topGainer.delta_30d > 0 ? (
+                <><strong>{topGainer.label}</strong> : +{topGainer.delta_30d} pts sur 30 jours. Continue sur la lancée.</>
+              ) : "Pas encore assez d'historique pour détecter une tendance sur 30 jours."}
             </p>
           </div>
-          <div className="radar-narrative-item radar-narrative-item--warn">
-            <span className="radar-narrative-label">Attention</span>
+          <div className={`radar-narrative-item ${biggestLoss && biggestLoss.delta_30d < 0 ? "radar-narrative-item--warn" : ""}`}>
+            <span className="radar-narrative-label">
+              {biggestLoss && biggestLoss.delta_30d < 0 ? "Attention" : "Cap atteint"}
+            </span>
             <p className="radar-narrative-body">
-              <strong>MLOps / déploiement</strong> perd 1 point. Tu n'as rien lu de pratique sur vLLM/Triton ce mois.
+              {biggestLoss && biggestLoss.delta_30d < 0 ? (
+                <><strong>{biggestLoss.label}</strong> perd {Math.abs(biggestLoss.delta_30d)} pts sur 30 jours. Prévois une session pour arrêter la glissade.</>
+              ) : (
+                <>{atTargetCount} axe{atTargetCount > 1 ? "s" : ""} sur {axes.length} {atTargetCount > 1 ? "ont" : "a"} atteint la cible. Prochain objectif : pousser {weakest ? weakest.label : "tes axes faibles"}.</>
+              )}
             </p>
           </div>
         </div>
@@ -202,19 +243,19 @@ function RadarSpider({ axes, summary, selectedAxis, onSelectAxis, selected }) {
       {/* Colonne droite : liste des axes ou détail */}
       <aside className="radar-aside radar-aside--right">
         {selected ? (
-          <AxisDetail axis={selected} onClose={() => onSelectAxis(null)} />
+          <AxisDetail axis={selected} onClose={() => onSelectAxis(null)} onNavigate={onNavigate} />
         ) : (
-          <AxisList axes={axes} gainers={gainers} onSelect={onSelectAxis} />
+          <AxisList axes={axes} onSelect={onSelectAxis} />
         )}
       </aside>
     </div>
   );
 }
 
-function AxisList({ axes, gainers, onSelect }) {
+function AxisList({ axes, onSelect }) {
   return (
     <>
-      <div className="section-kicker">Les 10 axes</div>
+      <div className="section-kicker">Les {axes.length} axes</div>
       <h3 className="radar-aside-title">Détail complet</h3>
       <ul className="radar-axis-list">
         {axes.map(ax => {
@@ -248,7 +289,7 @@ function AxisList({ axes, gainers, onSelect }) {
   );
 }
 
-function AxisDetail({ axis, onClose }) {
+function AxisDetail({ axis, onClose, onNavigate }) {
   const trend = axis.delta_30d > 0 ? "up" : axis.delta_30d < 0 ? "down" : "flat";
   const gap = axis.target - axis.score;
   return (
@@ -290,102 +331,20 @@ function AxisDetail({ axis, onClose }) {
         <span className="radar-detail-note-text">{axis.note}</span>
       </blockquote>
       <div className="radar-detail-actions">
-        <button className="btn btn--primary btn--sm">
+        <button
+          className="btn btn--primary btn--sm"
+          onClick={() => onNavigate && onNavigate("recos")}
+        >
           <Icon name="arrow_right" size={12} stroke={2} /> Voir recos
         </button>
-        <button className="btn btn--ghost btn--sm">
+        <button
+          className="btn btn--ghost btn--sm"
+          onClick={() => onNavigate && onNavigate("challenges")}
+        >
           <Icon name="trophy" size={12} stroke={1.75} /> Défi cet axe
         </button>
       </div>
     </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────
-// VARIANTE B : Carte d'exploration (territoires)
-// ─────────────────────────────────────────────────────────
-function RadarCarte({ axes, summary, selectedAxis, onSelectAxis, selected }) {
-  // Chaque axe devient un "territoire" avec un score = surface conquise
-  // On range par score décroissant — terres conquises en haut, inconnues en bas
-  const sorted = [...axes].sort((a, b) => b.score - a.score);
-
-  const zones = sorted.map(ax => {
-    let zone, tone;
-    if (ax.score >= 70) { zone = "conquis"; tone = "Terres conquises"; }
-    else if (ax.score >= 50) { zone = "frontiere"; tone = "Frontières actives"; }
-    else { zone = "inconnu"; tone = "Terres inconnues"; }
-    return { ...ax, zone, tone };
-  });
-
-  const conquis = zones.filter(z => z.zone === "conquis");
-  const frontiere = zones.filter(z => z.zone === "frontiere");
-  const inconnu = zones.filter(z => z.zone === "inconnu");
-
-  return (
-    <div className="radar-wrap radar-wrap--carte">
-      <div className="radar-carte-intro">
-        <div className="section-kicker">Ta carte IA</div>
-        <h2 className="radar-carte-intro-title">
-          Trois <em className="serif-italic">territoires</em>, dix axes,<br/>
-          un chemin à suivre
-        </h2>
-        <p className="radar-carte-intro-body">
-          Les <strong>terres conquises</strong> sont celles où tu as passé le seuil d'expertise. Les <strong>frontières actives</strong> sont en progression. Les <strong>terres inconnues</strong> attendent d'être explorées — c'est là que la progression la plus forte se trouve.
-        </p>
-      </div>
-
-      <CarteZone title="Terres conquises" tone="conquis" count={conquis.length}
-        desc="Tu peux compter sur ces axes. Maintiens le niveau, partage ton expertise."
-        axes={conquis} onSelect={onSelectAxis} selectedAxis={selectedAxis} />
-      <CarteZone title="Frontières actives" tone="frontiere" count={frontiere.length}
-        desc="Zone de progression. Continue à lire, pratique régulièrement."
-        axes={frontiere} onSelect={onSelectAxis} selectedAxis={selectedAxis} />
-      <CarteZone title="Terres inconnues" tone="inconnu" count={inconnu.length}
-        desc="Gains potentiels les plus forts. Un challenge peut débloquer +20 pts."
-        axes={inconnu} onSelect={onSelectAxis} selectedAxis={selectedAxis} />
-    </div>
-  );
-}
-
-function CarteZone({ title, tone, count, desc, axes, onSelect, selectedAxis }) {
-  return (
-    <section className={`radar-carte-zone radar-carte-zone--${tone}`}>
-      <header className="radar-carte-zone-head">
-        <div>
-          <div className="section-kicker">{title}</div>
-          <div className="radar-carte-zone-count">{count} axe{count > 1 ? "s" : ""}</div>
-        </div>
-        <p className="radar-carte-zone-desc">{desc}</p>
-      </header>
-      <div className="radar-carte-axes">
-        {axes.map(ax => (
-          <CarteAxisCard key={ax.id} axis={ax} selected={selectedAxis === ax.id} onClick={() => onSelect(selectedAxis === ax.id ? null : ax.id)} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function CarteAxisCard({ axis, selected, onClick }) {
-  const trend = axis.delta_30d > 0 ? "up" : axis.delta_30d < 0 ? "down" : "flat";
-  return (
-    <button className={`radar-carte-card ${selected ? "is-selected" : ""}`} onClick={onClick}>
-      <div className="radar-carte-card-head">
-        <span className="radar-carte-card-label">{axis.label}</span>
-        <span className="radar-carte-card-score">{axis.score}</span>
-      </div>
-      <div className="radar-carte-card-bar">
-        <span className="radar-carte-card-bar-fill" style={{ width: `${axis.score}%` }} />
-      </div>
-      <div className="radar-carte-card-meta">
-        <span>{axis.level}</span>
-        <span className="radar-carte-card-sep">·</span>
-        <span className={`radar-carte-card-delta radar-carte-card-delta--${trend}`}>
-          {axis.delta_30d > 0 ? "+" : ""}{axis.delta_30d} pts 30j
-        </span>
-      </div>
-      <p className="radar-carte-card-note">{axis.note}</p>
-    </button>
   );
 }
 
