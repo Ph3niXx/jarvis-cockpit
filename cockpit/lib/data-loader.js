@@ -805,36 +805,84 @@
       const cat = r.category;
       if (byCat[cat]) byCat[cat].push(r);
     });
+    // music_top_weekly columns: week_start, category, item_name,
+    // secondary_name (artist for track/album rows), play_count, rank.
     const aggregateTop = (rows, weeks) => {
       const cutoff = new Date(now); cutoff.setDate(now.getDate() - weeks * 7);
       const cutoffIso = cutoff.toISOString().slice(0, 10);
       const tally = {};
       rows.filter(r => (r.week_start || "") >= cutoffIso).forEach(r => {
-        tally[r.item_name] = (tally[r.item_name] || 0) + (Number(r.play_count) || 0);
+        const key = r.item_name + "\u0001" + (r.secondary_name || "");
+        tally[key] = (tally[key] || 0) + (Number(r.play_count) || 0);
       });
       return Object.entries(tally)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 20)
-        .map(([name, count], i) => ({ name, scrobbles: count, rank: i + 1, delta: 0 }));
+        .map(([key, count], i) => {
+          const [name, secondary] = key.split("\u0001");
+          return { name, secondary, scrobbles: count, rank: i + 1, delta: 0 };
+        });
     };
-    // Panel keys: "7d" / "30d" / "6m" / "all".
+
+    // Fallback artists from raw scrobbles when weekly rollup is empty.
+    const scrobbleArtistTally = {};
+    (scrobbles || []).forEach(sc => {
+      const n = sc.artist_name;
+      if (n) scrobbleArtistTally[n] = (scrobbleArtistTally[n] || 0) + 1;
+    });
+    const scrobbleArtistsTop = Object.entries(scrobbleArtistTally)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([name, count], i) => ({ name, scrobbles: count, rank: i + 1, delta: 0 }));
+    const pickArtists = (weeks) => {
+      const fromWeekly = aggregateTop(byCat.artist, weeks);
+      return fromWeekly.length ? fromWeekly : scrobbleArtistsTop;
+    };
+    const artistsAllTime = aggregateTop(byCat.artist, 999);
     const top_artists = {
-      "7d":  aggregateTop(byCat.artist, 1),
-      "30d": aggregateTop(byCat.artist, 4),
-      "6m":  aggregateTop(byCat.artist, 26),
-      "all": aggregateTop(byCat.artist, 999),
+      "7d":  pickArtists(1),
+      "30d": pickArtists(4),
+      "6m":  pickArtists(26),
+      "all": artistsAllTime.length ? artistsAllTime : scrobbleArtistsTop,
     };
-    const top_tracks_list = aggregateTop(byCat.track, 4);
-    const top_tracks = top_tracks_list.map(t => {
-      // Parse "Track - Artist" if item_name looks like that, else show raw.
-      const parts = (t.name || "").split(" — ");
-      return { title: parts[0] || t.name, artist: parts[1] || "—", plays: t.scrobbles };
+
+    // Tracks — weekly rollup first, fallback on raw scrobbles.
+    const tracksFromWeekly = aggregateTop(byCat.track, 4).map(t => ({
+      title: t.name, artist: t.secondary || "—", plays: t.scrobbles,
+    }));
+    const scrobbleTrackTally = {};
+    (scrobbles || []).forEach(sc => {
+      if (!sc.track_name) return;
+      const key = sc.track_name + "\u0001" + (sc.artist_name || "");
+      scrobbleTrackTally[key] = (scrobbleTrackTally[key] || 0) + 1;
     });
-    const top_albums_list = aggregateTop(byCat.album, 4);
-    const top_albums = top_albums_list.map(t => {
-      const parts = (t.name || "").split(" — ");
-      return { title: parts[0] || t.name, artist: parts[1] || "—", plays: t.scrobbles };
+    const tracksFromScrobbles = Object.entries(scrobbleTrackTally)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([k, count]) => {
+        const [title, artist] = k.split("\u0001");
+        return { title, artist: artist || "—", plays: count };
+      });
+    const top_tracks = tracksFromWeekly.length ? tracksFromWeekly : tracksFromScrobbles;
+
+    // Albums — weekly rollup, fallback on raw scrobbles with album_name.
+    const albumsFromWeekly = aggregateTop(byCat.album, 4).map(t => ({
+      title: t.name, artist: t.secondary || "—", plays: t.scrobbles,
+    }));
+    const scrobbleAlbumTally = {};
+    (scrobbles || []).forEach(sc => {
+      if (!sc.album_name) return;
+      const key = sc.album_name + "\u0001" + (sc.artist_name || "");
+      scrobbleAlbumTally[key] = (scrobbleAlbumTally[key] || 0) + 1;
     });
+    const albumsFromScrobbles = Object.entries(scrobbleAlbumTally)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([k, count]) => {
+        const [title, artist] = k.split("\u0001");
+        return { title, artist: artist || "—", plays: count };
+      });
+    const top_albums = albumsFromWeekly.length ? albumsFromWeekly : albumsFromScrobbles;
 
     // ── daily_series ───────────────────────
     // Chart: last 90 days, each day = { date, scrobbles, moving_avg }.
@@ -883,9 +931,9 @@
     // ── now_playing ────────────────────────
     const latest = (scrobbles || [])[0];
     const now_playing = latest ? {
-      track: latest.track || "—",
-      artist: latest.artist || "—",
-      album: latest.album || "",
+      track: latest.track_name || "—",
+      artist: latest.artist_name || "—",
+      album: latest.album_name || "",
       ago: relTime(latest.scrobbled_at),
     } : null;
 
@@ -900,8 +948,8 @@
       heatmap: grid,
       genres_30d,
       discoveries: (loved || []).slice(0, 12).map(l => ({
-        artist: l.artist || "—",
-        track: l.track || "",
+        artist: l.artist_name || l.artist || "—",
+        track: l.track_name || l.track || "",
         first_heard: relTime(l.loved_at),
         verdict: "accroché",
       })),
