@@ -505,9 +505,43 @@
     return target;
   }
 
+  // The Claude pipeline writes target_axis as a free-form slug
+  // (e.g. "agents_automation") that doesn't always match skill_radar.axis
+  // ("agents"). Canonicalise here so the sidebar filter actually works.
+  const RECO_AXIS_ALIASES = {
+    agents_automation: "agents",
+    agents_et_automatisation: "agents",
+    business_strategie: "business",
+    business_et_strategie: "business",
+    ethique_regulation: "ethics",
+    ethique_et_regulation: "ethics",
+    fondamentaux_llm: "llm_fundamentals",
+    fondamentaux_des_llm: "llm_fundamentals",
+    integration_code: "code_integration",
+    code_et_integration: "code_integration",
+    mlops_et_production: "mlops",
+    production_mlops: "mlops",
+    rag_et_donnees: "rag_data",
+    prompting: "prompt_engineering",
+    prompt_eng: "prompt_engineering",
+  };
+  function resolveAxisId(rawId, axesList){
+    if (!rawId) return rawId;
+    const normalised = String(rawId).toLowerCase().trim();
+    if ((axesList || []).some(a => a.id === normalised)) return normalised;
+    if (RECO_AXIS_ALIASES[normalised]) return RECO_AXIS_ALIASES[normalised];
+    // Fallback: longest-prefix match (e.g. "agents_foo" -> "agents").
+    const firstToken = normalised.split(/[_\s-]+/)[0];
+    const fuzzy = (axesList || []).find(a => a.id && (
+      a.id === firstToken || a.id.startsWith(firstToken) || firstToken.startsWith(a.id)
+    ));
+    return fuzzy ? fuzzy.id : normalised;
+  }
+
   function transformRecos(rows, axes){
     return (rows || []).map((r, i) => {
-      const axisId = r.target_axis || r.axis || "prompting";
+      const rawAxisId = r.target_axis || r.axis || "prompting";
+      const axisId = resolveAxisId(rawAxisId, axes);
       const ax = (axes || []).find(a => (a.axis || a.id) === axisId);
       const duration_min = r.duration_min || (r.resource_type === "course" ? 240 : r.resource_type === "video" ? 45 : r.resource_type === "paper" ? 30 : 15);
       const lvl = (r.difficulty || r.level || "intermediate").toLowerCase();

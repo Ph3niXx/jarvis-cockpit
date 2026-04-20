@@ -328,11 +328,12 @@ def generate_recommendations():
 
     # Construire le profil complet
     profile = "\n".join([
-        f"- {a['axis_label']}: {a['score']}/5 | Forces: {a.get('strengths','?')} | Lacunes: {a.get('gaps','?')} | Objectifs: {a.get('goals','non défini')}"
+        f"- [{a['axis']}] {a['axis_label']}: {a['score']}/5 | Forces: {a.get('strengths','?')} | Lacunes: {a.get('gaps','?')} | Objectifs: {a.get('goals','non défini')}"
         for a in radar
     ])
-    focus = "\n".join([f"  → PRIORITÉ: {a['axis_label']} ({a['score']}/5) — Lacunes: {a.get('gaps','?')}" for a in weak_axes])
+    focus = "\n".join([f"  → PRIORITÉ: [{a['axis']}] {a['axis_label']} ({a['score']}/5) — Lacunes: {a.get('gaps','?')}" for a in weak_axes])
     articles_info = "\n".join([f"- [{a['source']}] {a['title']} ({a['url']})" for a in articles[:20]])
+    allowed_axes = ", ".join(sorted({a['axis'] for a in radar}))
 
     system = """Tu es un coach IA personnalisé. Tu connais le profil exact de l'apprenant — ses forces, ses lacunes, et ses objectifs.
 Tu recommandes du contenu CIBLÉ sur ses lacunes spécifiques, pas du contenu générique.
@@ -363,6 +364,8 @@ Génère 3-5 recommandations ULTRA-CIBLÉES sur ses lacunes spécifiques. Format
 ]
 
 RÈGLES :
+- target_axis DOIT être EXACTEMENT l'un de ces slugs du radar : {allowed_axes}
+  (pas d'invention, pas de variante ni de pluriel — recopie le slug tel quel).
 - Si son score est 0-1 sur un axe → difficulté beginner, contenus d'introduction
 - Si son score est 1.5-3 → difficulté intermediate, contenus pratiques
 - Si son score est 3.5-5 → difficulté advanced, contenus de pointe
