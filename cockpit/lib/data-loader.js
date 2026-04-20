@@ -459,6 +459,27 @@
     return target;
   }
 
+  // Deep merge: recursively copy source fields into target. Arrays and
+  // primitives REPLACE (arrays represent whole collections — half-real
+  // half-fake would be nonsense). Nested plain objects merge key-by-key
+  // so we keep fake fields the panel reads that the transformer hasn't
+  // produced yet. Guards against null, dates and React-style refs.
+  function mergeInto(target, source){
+    if (!target || !source || typeof source !== "object") return target;
+    Object.keys(source).forEach(k => {
+      const sv = source[k];
+      const tv = target[k];
+      if (sv === null || sv === undefined) return;
+      if (Array.isArray(sv) || Array.isArray(tv)) { target[k] = sv; return; }
+      if (typeof sv === "object" && typeof tv === "object" && !(sv instanceof Date)) {
+        mergeInto(tv, sv);
+      } else {
+        target[k] = sv;
+      }
+    });
+    return target;
+  }
+
   function transformRecos(rows, axes){
     return (rows || []).map((r, i) => {
       const axisId = r.target_axis || r.axis || "prompting";
@@ -796,10 +817,12 @@
         .slice(0, 20)
         .map(([name, count], i) => ({ name, scrobbles: count, rank: i + 1, delta: 0 }));
     };
+    // Panel keys: "7d" / "30d" / "6m" / "all".
     const top_artists = {
-      "30": aggregateTop(byCat.artist, 4),
-      "90": aggregateTop(byCat.artist, 12),
-      "180": aggregateTop(byCat.artist, 26),
+      "7d":  aggregateTop(byCat.artist, 1),
+      "30d": aggregateTop(byCat.artist, 4),
+      "6m":  aggregateTop(byCat.artist, 26),
+      "all": aggregateTop(byCat.artist, 999),
     };
     const top_tracks_list = aggregateTop(byCat.track, 4);
     const top_tracks = top_tracks_list.map(t => {
@@ -830,12 +853,12 @@
     }
 
     // ── heatmap (hour × weekday) ───────────
-    // Use scrobbles: group by (day-of-week, hour). Values are play counts.
+    // Panel expects grid[0]=Sunday (it reorders [1..6,0] → Mon first).
     const grid = Array.from({ length: 7 }, () => Array(24).fill(0));
     (scrobbles || []).forEach(sc => {
       if (!sc.scrobbled_at) return;
       const d = new Date(sc.scrobbled_at);
-      const dow = (d.getDay() + 6) % 7; // Monday=0
+      const dow = d.getDay(); // 0=Sunday, 1=Monday…
       const hr = d.getHours();
       grid[dow][hr] += 1;
     });
@@ -1212,9 +1235,10 @@
         const activities = await T2.strava();
         if (window.FORME_DATA && activities.length) {
           const shape = transformForme(activities);
-          // Non-destructive merge: overwrite totals/weeks/journal, keep
-          // any legacy keys the panel might still reference.
-          Object.assign(window.FORME_DATA, shape);
+          // Deep-merge: real data overrides matching keys, unknown fake
+          // keys (weight_series, today.*, sessions[], etc.) stay so the
+          // panel never reads undefined on fields we can't produce yet.
+          mergeInto(window.FORME_DATA, shape);
           window.FORME_DATA._raw = activities;
         }
         return { activities };
@@ -1226,9 +1250,7 @@
         ]);
         if (window.MUSIC_DATA && (stats || []).length) {
           const shape = transformMusic({ scrobbles, stats, top, loved, genres });
-          // Overwrite top-level fields with real data. Panel reads
-          // D.totals, D.streaks, D.top_artists, D.daily_series, etc.
-          Object.keys(shape).forEach(k => { window.MUSIC_DATA[k] = shape[k]; });
+          mergeInto(window.MUSIC_DATA, shape);
           window.MUSIC_DATA._raw = { scrobbles, stats, top, loved, genres, insights };
         }
         return { scrobbles, stats, top, loved, genres, insights };
@@ -1239,7 +1261,7 @@
         ]);
         if (window.GAMING_PERSO_DATA && (snapshot || []).length) {
           const shape = transformGaming({ snapshot, stats, achievements });
-          Object.keys(shape).forEach(k => { window.GAMING_PERSO_DATA[k] = shape[k]; });
+          mergeInto(window.GAMING_PERSO_DATA, shape);
           window.GAMING_PERSO_DATA._raw = { snapshot, stats, achievements };
         }
         return { snapshot, stats, achievements };
