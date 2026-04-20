@@ -149,7 +149,9 @@ function PanelMusique() {
 
         <div className="mz-hero-np">
           <div className="mz-hero-np-art" style={{ background: np.album_art_hint || "var(--tx)" }}>
-            <span>{np.album || "—"}</span>
+            {np.image_url
+              ? <img src={np.image_url} alt={np.album || np.track || ""} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+              : <span>{np.album || "—"}</span>}
           </div>
           <div className="mz-hero-np-meta">
             <div className="mz-hero-np-label">now playing{np.started_at || np.ago ? " · " + (np.started_at || np.ago) : ""}</div>
@@ -280,16 +282,16 @@ function PanelMusique() {
             <div style={{textAlign:"right"}}>plays</div>
             <div style={{textAlign:"right"}}>durée</div>
           </div>
-          {D.top_tracks.map((t) => (
-            <div className="mz-tracks" key={t.rank}>
-              <div className="mz-track-rank">{String(t.rank).padStart(2, "0")}</div>
+          {D.top_tracks.map((t, i) => (
+            <div className="mz-tracks" key={`${t.rank || i}-${t.title}`}>
+              <div className="mz-track-rank">{String(t.rank || i + 1).padStart(2, "0")}</div>
               <div>
                 <div className="mz-track-title">{t.title}</div>
                 <div className="mz-track-title-sub">{t.artist}</div>
               </div>
               <div className="mz-track-artist">{t.album}</div>
               <div className="mz-track-plays">{t.plays}</div>
-              <div className="mz-track-dur">{t.duration}</div>
+              <div className="mz-track-dur">{t.duration || ""}</div>
             </div>
           ))}
         </div>
@@ -303,15 +305,23 @@ function PanelMusique() {
           <span className="mz-section-meta">écoutes full-album, pas juste singles</span>
         </div>
         <div className="mz-albums">
-          {D.top_albums.map((a) => (
-            <div className="mz-album" key={a.rank}>
-              <div className="mz-album-art" style={{ background: a.bg }}>
-                <div className="mz-album-rank">{String(a.rank).padStart(2, "0")}</div>
+          {D.top_albums.map((a, i) => (
+            <div className="mz-album" key={`${a.rank || i}-${a.title}`}>
+              <div className="mz-album-art" style={{ background: a.bg || "#2a2a2a" }}>
+                {a.image_url && (
+                  <img
+                    className="mz-album-img"
+                    src={a.image_url}
+                    alt={a.title || ""}
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  />
+                )}
+                <div className="mz-album-rank">{String(a.rank || i + 1).padStart(2, "0")}</div>
                 <div className="mz-album-plays"><strong>{a.plays}</strong><br />plays</div>
               </div>
               <div>
                 <div className="mz-album-title">{a.title}</div>
-                <div className="mz-album-artist">{a.artist} · {a.year}</div>
+                <div className="mz-album-artist">{a.artist}{a.year ? ` · ${a.year}` : ""}</div>
               </div>
             </div>
           ))}

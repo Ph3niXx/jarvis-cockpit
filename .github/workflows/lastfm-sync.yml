@@ -4,7 +4,12 @@ on:
   schedule:
     # Quotidien à 5h UTC (7h Paris), après les autres pipelines
     - cron: '0 5 * * *'
-  workflow_dispatch:  # Lancement manuel
+  workflow_dispatch:
+    inputs:
+      lookback_days:
+        description: "Nombre de jours à re-synchroniser (défaut: 1)"
+        required: false
+        default: "1"
 
 jobs:
   lastfm-sync:
@@ -27,7 +32,7 @@ jobs:
           LASTFM_USERNAME: ${{ secrets.LASTFM_USERNAME }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python pipelines/lastfm_sync.py
+        run: python pipelines/lastfm_sync.py --days=${{ github.event.inputs.lookback_days || '1' }}
 
       - name: Enrich music data (Monday or manual)
         if: github.event_name == 'workflow_dispatch' || contains('1', steps.day.outputs.dow)

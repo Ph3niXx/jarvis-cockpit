@@ -417,6 +417,19 @@
   background:
     radial-gradient(circle at 25% 22%, rgba(255,255,255,0.18), transparent 55%),
     linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.55));
+  z-index: 1;
+}
+.mz-album-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.mz-hero-np-art { position: relative; overflow: hidden; }
+.mz-hero-np-art img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
 }
 .mz-album-rank {
   position: relative; z-index: 1;

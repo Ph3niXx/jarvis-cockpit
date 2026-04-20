@@ -817,21 +817,27 @@
       if (byCat[cat]) byCat[cat].push(r);
     });
     // music_top_weekly columns: week_start, category, item_name,
-    // secondary_name (artist for track/album rows), play_count, rank.
+    // secondary_name (artist for track/album rows), play_count, rank,
+    // image_url (added in migration 009, may be null on older rows).
     const aggregateTop = (rows, weeks) => {
       const cutoff = new Date(now); cutoff.setDate(now.getDate() - weeks * 7);
       const cutoffIso = cutoff.toISOString().slice(0, 10);
       const tally = {};
+      const imageByKey = {};
       rows.filter(r => (r.week_start || "") >= cutoffIso).forEach(r => {
         const key = r.item_name + "\u0001" + (r.secondary_name || "");
         tally[key] = (tally[key] || 0) + (Number(r.play_count) || 0);
+        if (r.image_url && !imageByKey[key]) imageByKey[key] = r.image_url;
       });
       return Object.entries(tally)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 20)
         .map(([key, count], i) => {
           const [name, secondary] = key.split("\u0001");
-          return { name, secondary, scrobbles: count, rank: i + 1, delta: 0 };
+          return {
+            name, secondary, scrobbles: count, rank: i + 1, delta: 0,
+            image_url: imageByKey[key] || null,
+          };
         });
     };
 
@@ -857,9 +863,41 @@
       "all": artistsAllTime.length ? artistsAllTime : scrobbleArtistsTop,
     };
 
+    // ── Deterministic color from a string ──
+    // Same artist/album always maps to the same pleasing dark tone, so
+    // album tiles look distinct even when cover art is missing.
+    const hashStr = (s) => {
+      let h = 0;
+      for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+      return Math.abs(h);
+    };
+    const tintFor = (s) => {
+      const h = hashStr(s || "x") % 360;
+      return `hsl(${h}, 38%, 22%)`;
+    };
+
+    // Build a track→image_url lookup from raw scrobbles (pipeline writes
+    // image_url per scrobble). Key is "track\u0001artist".
+    const scrobbleImages = {};
+    (scrobbles || []).forEach(sc => {
+      if (!sc.image_url) return;
+      const key = (sc.track_name || "") + "\u0001" + (sc.artist_name || "");
+      if (!scrobbleImages[key]) scrobbleImages[key] = sc.image_url;
+      // Also index by album+artist for album cover lookup.
+      if (sc.album_name) {
+        const aKey = "album\u0001" + sc.album_name + "\u0001" + (sc.artist_name || "");
+        if (!scrobbleImages[aKey]) scrobbleImages[aKey] = sc.image_url;
+      }
+    });
+
     // Tracks — weekly rollup first, fallback on raw scrobbles.
-    const tracksFromWeekly = aggregateTop(byCat.track, 4).map(t => ({
-      title: t.name, artist: t.secondary || "—", plays: t.scrobbles,
+    const tracksFromWeekly = aggregateTop(byCat.track, 4).map((t, i) => ({
+      rank: i + 1,
+      title: t.name,
+      artist: t.secondary || "—",
+      plays: t.scrobbles,
+      duration: "",
+      image_url: t.image_url || scrobbleImages[(t.name || "") + "\u0001" + (t.secondary || "")] || null,
     }));
     const scrobbleTrackTally = {};
     (scrobbles || []).forEach(sc => {
@@ -870,15 +908,28 @@
     const tracksFromScrobbles = Object.entries(scrobbleTrackTally)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 20)
-      .map(([k, count]) => {
+      .map(([k, count], i) => {
         const [title, artist] = k.split("\u0001");
-        return { title, artist: artist || "—", plays: count };
+        return {
+          rank: i + 1,
+          title,
+          artist: artist || "—",
+          plays: count,
+          duration: "",
+          image_url: scrobbleImages[k] || null,
+        };
       });
     const top_tracks = tracksFromWeekly.length ? tracksFromWeekly : tracksFromScrobbles;
 
     // Albums — weekly rollup, fallback on raw scrobbles with album_name.
-    const albumsFromWeekly = aggregateTop(byCat.album, 4).map(t => ({
-      title: t.name, artist: t.secondary || "—", plays: t.scrobbles,
+    const albumsFromWeekly = aggregateTop(byCat.album, 4).map((t, i) => ({
+      rank: i + 1,
+      title: t.name,
+      artist: t.secondary || "—",
+      plays: t.scrobbles,
+      year: "",
+      bg: tintFor((t.name || "") + (t.secondary || "")),
+      image_url: t.image_url || scrobbleImages["album\u0001" + (t.name || "") + "\u0001" + (t.secondary || "")] || null,
     }));
     const scrobbleAlbumTally = {};
     (scrobbles || []).forEach(sc => {
@@ -889,9 +940,17 @@
     const albumsFromScrobbles = Object.entries(scrobbleAlbumTally)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 20)
-      .map(([k, count]) => {
+      .map(([k, count], i) => {
         const [title, artist] = k.split("\u0001");
-        return { title, artist: artist || "—", plays: count };
+        return {
+          rank: i + 1,
+          title,
+          artist: artist || "—",
+          plays: count,
+          year: "",
+          bg: tintFor(title + artist),
+          image_url: scrobbleImages["album\u0001" + k] || null,
+        };
       });
     const top_albums = albumsFromWeekly.length ? albumsFromWeekly : albumsFromScrobbles;
 
@@ -971,7 +1030,8 @@
         scrobble_count_track: trackPlays,
         scrobble_count_artist: artistPlays,
         loved: isLoved,
-        album_art_hint: null,
+        image_url: latest.image_url || null,
+        album_art_hint: tintFor((latest.album_name || "") + (latest.artist_name || "x")),
       };
     }
 

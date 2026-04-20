@@ -141,7 +141,34 @@ def parse_scrobble(track):
         "artist_mbid": track.get("artist", {}).get("mbid") or None,
         "album_mbid": track.get("album", {}).get("mbid") or None,
         "track_url": track.get("url") or None,
+        "image_url": _best_image(track.get("image")),
     }
+
+
+def _best_image(images):
+    """Pick the biggest image URL from a Last.fm image array.
+
+    Last.fm returns a list like
+        [{"size": "small", "#text": "..."}, {"size": "medium", ...},
+         {"size": "large", ...}, {"size": "extralarge", ...}, {"size": "mega", ...}]
+    Some entries are empty strings — we fall back to the next size down.
+    Returns None if nothing usable is found.
+    """
+    if not isinstance(images, list):
+        return None
+    preferred = ["mega", "extralarge", "large", "medium", "small"]
+    by_size = {}
+    for img in images:
+        if not isinstance(img, dict):
+            continue
+        url = (img.get("#text") or "").strip()
+        size = img.get("size") or ""
+        if url:
+            by_size[size] = url
+    for size in preferred:
+        if by_size.get(size):
+            return by_size[size]
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -379,6 +406,7 @@ def sync_weekly_tops(api_key, username, supabase_url, service_key, dry_run):
                 "secondary_name": secondary,
                 "play_count": play_count,
                 "rank": i + 1,
+                "image_url": _best_image(item.get("image")),
             })
 
         time.sleep(DELAY_BETWEEN_REQUESTS)
@@ -408,6 +436,7 @@ def sync_weekly_tops(api_key, username, supabase_url, service_key, dry_run):
             "artist_name": item.get("artist", {}).get("name", ""),
             "track_url": item.get("url") or None,
             "loved_at": datetime.fromtimestamp(int(uts), tz=timezone.utc).isoformat(),
+            "image_url": _best_image(item.get("image")),
         })
 
     if dry_run:
