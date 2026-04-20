@@ -1456,6 +1456,23 @@
         if (window.SPORT_DATA && articles.length) {
           window.SPORT_DATA.feed = transformSportFeed(articles);
           const fresh = articles[0];
+          // KPIs: volume 24h / 7j, top discipline (7j), distinct sources.
+          const now = Date.now();
+          const ageH = a => {
+            const t = new Date(a.date_published || a.date_fetched || 0).getTime();
+            return (now - t) / 3600000;
+          };
+          const last24h = articles.filter(a => ageH(a) <= 24).length;
+          const last7d = articles.filter(a => ageH(a) <= 24 * 7);
+          const catCounts7d = {};
+          last7d.forEach(a => {
+            const k = a.category || "autre";
+            catCounts7d[k] = (catCounts7d[k] || 0) + 1;
+          });
+          const topCatEntry = Object.entries(catCounts7d).sort((a, b) => b[1] - a[1])[0];
+          const topCat = topCatEntry ? (SPORT_CATEGORY_LABELS[topCatEntry[0]] || topCatEntry[0]) : "—";
+          const topCatCount = topCatEntry ? topCatEntry[1] : 0;
+          const sourcesN = new Set(articles.map(a => normalizeSportSource(a.source))).size;
           if (fresh) {
             const freshLabel = SPORT_CATEGORY_LABELS[fresh.category] || fresh.category || "Sport";
             window.SPORT_DATA.headline = {
@@ -1466,10 +1483,10 @@
               tagline: fresh.title || "",
               body: stripHtml(fresh.summary || "").slice(0, 320) || fresh.title || "",
               metrics: [
-                { label: "Discipline", value: freshLabel, delta: "=" },
-                { label: "Source", value: normalizeSportSource(fresh.source), delta: "=" },
-                { label: "Publié", value: relTime(fresh.date_published || fresh.date_fetched) || "—", delta: "=" },
-                { label: "Articles", value: String(articles.length), delta: "+" + articles.length },
+                { label: "Articles 24h", value: String(last24h), delta: last24h ? "+" + last24h : "=" },
+                { label: "Articles 7j", value: String(last7d.length), delta: "=" },
+                { label: "Top discipline", value: topCat, delta: topCatCount ? "+" + topCatCount : "=" },
+                { label: "Sources", value: String(sourcesN), delta: "=" },
               ],
               tags: ["#sport", "#" + (fresh.category || "actu")],
             };
