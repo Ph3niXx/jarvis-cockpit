@@ -185,32 +185,42 @@ def supabase_headers(service_key):
 
 
 def supabase_upsert(url, key, table, rows, on_conflict=None):
-    """Upsert rows with optional conflict resolution."""
+    """Upsert rows using ON CONFLICT DO UPDATE.
+
+    `on_conflict` must be a comma-separated list of columns that match a
+    UNIQUE index on the table — PostgREST requires the query string to
+    select which constraint to conflict on for updates to happen.
+    Without it, a duplicate insert returns 409 and the row is skipped,
+    which means newly added columns like image_url never get backfilled
+    on existing rows. Callers must pass the right conflict key.
+    """
     if not rows:
         return 0
     headers = supabase_headers(key)
     headers["Prefer"] = "resolution=merge-duplicates"
-    # Batch in chunks of 500
+    query = f"?on_conflict={on_conflict}" if on_conflict else ""
     total = 0
     for i in range(0, len(rows), 500):
         batch = rows[i:i + 500]
         resp = requests.post(
-            f"{url}/rest/v1/{table}",
+            f"{url}/rest/v1/{table}{query}",
             headers=headers,
             data=json.dumps(batch, default=str),
             timeout=30,
         )
-        if resp.status_code == 409:
-            # Duplicates — use ON CONFLICT DO NOTHING approach via individual inserts
-            headers_single = {**headers, "Prefer": "resolution=ignore-duplicates"}
-            resp = requests.post(
-                f"{url}/rest/v1/{table}",
-                headers=headers_single,
-                data=json.dumps(batch, default=str),
-                timeout=30,
-            )
-        if resp.status_code not in (200, 201):
-            print(f"[supabase] WARNING: upsert to {table} got {resp.status_code}: {resp.text[:200]}")
+        if resp.status_code not in (200, 201, 204):
+            # Fall back to ignore-duplicates only when no on_conflict was
+            # declared — in that mode we can't UPDATE, we can only skip.
+            if on_conflict is None and resp.status_code == 409:
+                headers_single = {**headers, "Prefer": "resolution=ignore-duplicates"}
+                resp = requests.post(
+                    f"{url}/rest/v1/{table}",
+                    headers=headers_single,
+                    data=json.dumps(batch, default=str),
+                    timeout=30,
+                )
+            if resp.status_code not in (200, 201, 204):
+                print(f"[supabase] WARNING: upsert to {table} got {resp.status_code}: {resp.text[:200]}")
         total += len(batch)
     return total
 
@@ -279,7 +289,10 @@ def sync_scrobbles(api_key, username, supabase_url, service_key, lookback_days, 
 
     # Upsert scrobbles
     if all_scrobbles:
-        n = supabase_upsert(supabase_url, service_key, "music_scrobbles", all_scrobbles)
+        n = supabase_upsert(
+            supabase_url, service_key, "music_scrobbles", all_scrobbles,
+            on_conflict="artist_name,track_name,scrobbled_at",
+        )
         print(f"[supabase] Upserted {n} scrobbles")
 
     return all_scrobbles
@@ -348,7 +361,10 @@ def compute_daily_stats(scrobbles, supabase_url, service_key, dry_run):
             print(f"  {r['stat_date']}: {r['scrobble_count']} scrobbles, top={r['top_artist']} ({r['top_artist_count']})")
         return
 
-    supabase_upsert(supabase_url, service_key, "music_stats_daily", stats_rows)
+    supabase_upsert(
+        supabase_url, service_key, "music_stats_daily", stats_rows,
+        on_conflict="stat_date",
+    )
     print(f"[supabase] Upserted {len(stats_rows)} daily stats")
 
 
@@ -416,7 +432,10 @@ def sync_weekly_tops(api_key, username, supabase_url, service_key, dry_run):
         for r in top_rows[:5]:
             print(f"  #{r['rank']} {r['category']}: {r['item_name']} ({r['play_count']})")
     else:
-        supabase_upsert(supabase_url, service_key, "music_top_weekly", top_rows)
+        supabase_upsert(
+            supabase_url, service_key, "music_top_weekly", top_rows,
+            on_conflict="week_start,category,rank",
+        )
         print(f"[supabase] Upserted {len(top_rows)} weekly tops")
 
     # Loved tracks
@@ -442,7 +461,10 @@ def sync_weekly_tops(api_key, username, supabase_url, service_key, dry_run):
     if dry_run:
         print(f"[dry-run] Would upsert {len(loved_rows)} loved tracks")
     else:
-        supabase_upsert(supabase_url, service_key, "music_loved_tracks", loved_rows)
+        supabase_upsert(
+            supabase_url, service_key, "music_loved_tracks", loved_rows,
+            on_conflict="artist_name,track_name",
+        )
         print(f"[supabase] Upserted {len(loved_rows)} loved tracks")
 
 
