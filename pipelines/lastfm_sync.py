@@ -176,6 +176,133 @@ def _best_image(images):
     return None
 
 
+def _deezer_album_cover(artist, album, session):
+    """Fallback: search Deezer for the album and return the XL artwork URL.
+
+    Deezer has notably better coverage than Last.fm for Japanese / niche
+    genres (city pop, OSTs, anime, lofi, etc.) where Last.fm's DB is thin.
+    No auth required, no hard rate limit — be gentle (1 req/sec) anyway.
+    """
+    if not artist or not album:
+        return None
+    try:
+        q = f'artist:"{artist}" album:"{album}"'
+        resp = session.get(
+            "https://api.deezer.com/search/album",
+            params={"q": q, "limit": 1},
+            timeout=8,
+        )
+        if resp.status_code != 200:
+            return None
+        data = resp.json().get("data") or []
+        if not data:
+            # Second try: just "artist album" without field qualifiers.
+            resp = session.get(
+                "https://api.deezer.com/search/album",
+                params={"q": f"{artist} {album}", "limit": 1},
+                timeout=8,
+            )
+            if resp.status_code != 200:
+                return None
+            data = resp.json().get("data") or []
+            if not data:
+                return None
+        first = data[0]
+        return first.get("cover_xl") or first.get("cover_big") or first.get("cover") or None
+    except Exception as e:
+        print(f"[deezer] lookup failed for {artist} / {album}: {e}")
+        return None
+
+
+def _fetch_existing_covers(url, key, pairs):
+    """Pull image_url from DB for every (artist, album) pair that already
+    has one. Lets us keep previously-backfilled Deezer/iTunes covers even
+    when Last.fm is empty for that track on subsequent syncs.
+    Returns {(artist, album): url}.
+    """
+    if not pairs:
+        return {}
+    headers = supabase_headers(key)
+    # One bulk fetch: every music_scrobbles row with a non-null image_url,
+    # deduped in-memory. Cheaper than N individual queries at 143+ pairs.
+    resp = requests.get(
+        f"{url}/rest/v1/music_scrobbles",
+        headers=headers,
+        params={
+            "image_url": "not.is.null",
+            "select": "artist_name,album_name,image_url",
+            "limit": "10000",
+        },
+        timeout=20,
+    )
+    if resp.status_code != 200:
+        return {}
+    out = {}
+    for row in resp.json():
+        k = (row.get("artist_name"), row.get("album_name"))
+        if k in pairs and k not in out:
+            out[k] = row.get("image_url")
+    return out
+
+
+def backfill_missing_covers(scrobbles, supabase_url, service_key):
+    """Fill image_url on scrobbles that Last.fm didn't cover.
+
+    Order of preference:
+    1. Image already set by Last.fm (no-op).
+    2. An image previously stored in DB for the same (artist, album) —
+       preserves prior Deezer/iTunes backfills across syncs.
+    3. Fresh Deezer album search.
+    Everything else stays None; the frontend falls back to a tinted
+    gradient.
+    """
+    needs_cover = [
+        s for s in scrobbles
+        if not s.get("image_url")
+        and s.get("artist_name")
+        and s.get("album_name")
+    ]
+    if not needs_cover:
+        return 0
+
+    pairs = {(s["artist_name"], s["album_name"]) for s in needs_cover}
+    print(f"[covers] {len(needs_cover)} scrobbles missing cover across {len(pairs)} unique albums")
+
+    existing = _fetch_existing_covers(supabase_url, service_key, pairs)
+    if existing:
+        print(f"[covers] {len(existing)} covers already in DB from a prior sync")
+    for s in needs_cover:
+        k = (s["artist_name"], s["album_name"])
+        if k in existing:
+            s["image_url"] = existing[k]
+
+    still_missing = {
+        (s["artist_name"], s["album_name"])
+        for s in needs_cover
+        if not s.get("image_url")
+    }
+    if not still_missing:
+        return len(existing)
+
+    print(f"[covers] {len(still_missing)} albums → Deezer lookup")
+    session = requests.Session()
+    deezer_hits = {}
+    for i, (artist, album) in enumerate(sorted(still_missing)):
+        if i > 0:
+            time.sleep(0.4)  # ~2.5 req/sec, well under Deezer's limit
+        url = _deezer_album_cover(artist, album, session)
+        if url:
+            deezer_hits[(artist, album)] = url
+    print(f"[covers] Deezer returned covers for {len(deezer_hits)}/{len(still_missing)} albums")
+
+    for s in needs_cover:
+        k = (s["artist_name"], s["album_name"])
+        if not s.get("image_url") and k in deezer_hits:
+            s["image_url"] = deezer_hits[k]
+
+    return len(existing) + len(deezer_hits)
+
+
 # ---------------------------------------------------------------------------
 # Supabase helpers
 # ---------------------------------------------------------------------------
@@ -291,6 +418,14 @@ def sync_scrobbles(api_key, username, supabase_url, service_key, lookback_days, 
     if raw_pages:
         supabase_upsert(supabase_url, service_key, "music_scrobbles_raw", raw_pages)
         print(f"[supabase] Stored {len(raw_pages)} raw pages")
+
+    # Backfill missing covers (Last.fm only serves ~40% real cover art).
+    # Tries DB cache first, then Deezer for truly unknown albums.
+    if all_scrobbles:
+        try:
+            backfill_missing_covers(all_scrobbles, supabase_url, service_key)
+        except Exception as e:
+            print(f"[covers] backfill skipped due to error: {e}")
 
     # Upsert scrobbles
     if all_scrobbles:
