@@ -727,6 +727,272 @@
     };
   }
 
+  // Build MUSIC_DATA shape from real Last.fm tables.
+  // Sources: music_scrobbles, music_stats_daily, music_top_weekly,
+  // music_loved_tracks, music_genre_weekly.
+  function transformMusic({ scrobbles, stats, top, loved, genres }){
+    const now = new Date(); now.setHours(0,0,0,0);
+    const dayMs = 24 * 3600 * 1000;
+    const today = now.toISOString().slice(0, 10);
+    const inRange = (d, days) => {
+      const t = new Date(d + "T00:00:00").getTime();
+      return t >= (now.getTime() - days * dayMs);
+    };
+
+    // ── totals ─────────────────────────────
+    const statsArr = stats || [];
+    const sumScrobbles = (filter) => statsArr
+      .filter(s => filter(s.stat_date))
+      .reduce((a, s) => a + (Number(s.scrobble_count) || 0), 0);
+    const sumMinutes = (filter) => statsArr
+      .filter(s => filter(s.stat_date))
+      .reduce((a, s) => a + (Number(s.listening_minutes) || 0), 0);
+    const last7 = sumScrobbles(d => inRange(d, 7));
+    const last30 = sumScrobbles(d => inRange(d, 30));
+    const last180 = sumScrobbles(d => inRange(d, 180));
+    const todayStats = statsArr.find(s => s.stat_date === today);
+    const hours_today = Math.round(((todayStats?.listening_minutes || 0) / 60) * 10) / 10;
+    const hours_week = Math.round((sumMinutes(d => inRange(d, 7)) / 60) * 10) / 10;
+    const ytd_start = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+    const ytd = statsArr
+      .filter(s => s.stat_date >= ytd_start)
+      .reduce((a, s) => a + (Number(s.scrobble_count) || 0), 0);
+
+    // ── streak ─────────────────────────────
+    // Consecutive days with scrobbles ending on today.
+    const dateSet = new Set(statsArr.filter(s => (s.scrobble_count || 0) > 0).map(s => s.stat_date));
+    let streak = 0;
+    for (let i = 0; i < 400; i++) {
+      const d = new Date(now); d.setDate(now.getDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      if (dateSet.has(iso)) streak++;
+      else if (i > 0) break;
+    }
+    // Longest streak across the full series.
+    let longest = 0, run = 0;
+    const sortedDates = statsArr.map(s => s.stat_date).filter(Boolean).sort();
+    for (let i = 0; i < sortedDates.length; i++) {
+      if (i === 0 || (new Date(sortedDates[i]) - new Date(sortedDates[i - 1])) / dayMs === 1) run++;
+      else run = 1;
+      if (run > longest) longest = run;
+    }
+
+    // ── top artists / tracks / albums ──────
+    // music_top_weekly categories: "artist", "track", "album".
+    const byCat = { artist: [], track: [], album: [] };
+    (top || []).forEach(r => {
+      const cat = r.category;
+      if (byCat[cat]) byCat[cat].push(r);
+    });
+    const aggregateTop = (rows, weeks) => {
+      const cutoff = new Date(now); cutoff.setDate(now.getDate() - weeks * 7);
+      const cutoffIso = cutoff.toISOString().slice(0, 10);
+      const tally = {};
+      rows.filter(r => (r.week_start || "") >= cutoffIso).forEach(r => {
+        tally[r.item_name] = (tally[r.item_name] || 0) + (Number(r.play_count) || 0);
+      });
+      return Object.entries(tally)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20)
+        .map(([name, count], i) => ({ name, scrobbles: count, rank: i + 1, delta: 0 }));
+    };
+    const top_artists = {
+      "30": aggregateTop(byCat.artist, 4),
+      "90": aggregateTop(byCat.artist, 12),
+      "180": aggregateTop(byCat.artist, 26),
+    };
+    const top_tracks_list = aggregateTop(byCat.track, 4);
+    const top_tracks = top_tracks_list.map(t => {
+      // Parse "Track - Artist" if item_name looks like that, else show raw.
+      const parts = (t.name || "").split(" — ");
+      return { title: parts[0] || t.name, artist: parts[1] || "—", plays: t.scrobbles };
+    });
+    const top_albums_list = aggregateTop(byCat.album, 4);
+    const top_albums = top_albums_list.map(t => {
+      const parts = (t.name || "").split(" — ");
+      return { title: parts[0] || t.name, artist: parts[1] || "—", plays: t.scrobbles };
+    });
+
+    // ── daily_series ───────────────────────
+    // Chart: last 90 days, each day = { date, scrobbles, moving_avg }.
+    const daily90 = [];
+    for (let i = 89; i >= 0; i--) {
+      const d = new Date(now); d.setDate(now.getDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      const s = statsArr.find(x => x.stat_date === iso);
+      daily90.push({ date: iso, scrobbles: s?.scrobble_count || 0 });
+    }
+    for (let i = 0; i < daily90.length; i++) {
+      const from = Math.max(0, i - 6);
+      const slice = daily90.slice(from, i + 1);
+      const avg = slice.reduce((a, x) => a + x.scrobbles, 0) / slice.length;
+      daily90[i].moving_avg = Math.round(avg);
+    }
+
+    // ── heatmap (hour × weekday) ───────────
+    // Use scrobbles: group by (day-of-week, hour). Values are play counts.
+    const grid = Array.from({ length: 7 }, () => Array(24).fill(0));
+    (scrobbles || []).forEach(sc => {
+      if (!sc.scrobbled_at) return;
+      const d = new Date(sc.scrobbled_at);
+      const dow = (d.getDay() + 6) % 7; // Monday=0
+      const hr = d.getHours();
+      grid[dow][hr] += 1;
+    });
+
+    // ── genres_30d ─────────────────────────
+    const cutoff30 = new Date(now); cutoff30.setDate(now.getDate() - 30);
+    const cutoff30Iso = cutoff30.toISOString().slice(0, 10);
+    const genreTally = {};
+    (genres || []).filter(g => (g.week_start || "") >= cutoff30Iso).forEach(g => {
+      genreTally[g.genre] = (genreTally[g.genre] || 0) + (Number(g.scrobble_count) || 0);
+    });
+    const genreTotal = Object.values(genreTally).reduce((a, b) => a + b, 0) || 1;
+    const genres_30d = Object.entries(genreTally)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([name, count]) => ({
+        name,
+        scrobbles: count,
+        pct: Math.round((count / genreTotal) * 100),
+      }));
+
+    // ── now_playing ────────────────────────
+    const latest = (scrobbles || [])[0];
+    const now_playing = latest ? {
+      track: latest.track || "—",
+      artist: latest.artist || "—",
+      album: latest.album || "",
+      ago: relTime(latest.scrobbled_at),
+    } : null;
+
+    return {
+      now_playing,
+      totals: { last7, last30, last180: last180, all180: last180, ytd, hours_today, hours_week },
+      streaks: { current_daily: streak, longest_daily: longest, current_top_artist_weeks: 0 },
+      top_artists,
+      top_tracks,
+      top_albums,
+      daily_series: daily90,
+      heatmap: grid,
+      genres_30d,
+      discoveries: (loved || []).slice(0, 12).map(l => ({
+        artist: l.artist || "—",
+        track: l.track || "",
+        first_heard: relTime(l.loved_at),
+        verdict: "accroché",
+      })),
+      milestones: [],
+    };
+  }
+
+  // Build FORME_DATA shape from strava_activities.
+  function transformForme(activities){
+    const now = Date.now();
+    const dayMs = 24 * 3600 * 1000;
+    const acts = (activities || []).slice();
+    const inLastN = (iso, n) => iso && (now - new Date(iso).getTime()) <= n * dayMs;
+    const last7 = acts.filter(a => inLastN(a.start_date, 7));
+    const last30 = acts.filter(a => inLastN(a.start_date, 30));
+    const last365 = acts.filter(a => inLastN(a.start_date, 365));
+    const sumKm = rows => rows.reduce((s, a) => s + (Number(a.distance_m) || 0) / 1000, 0);
+    const sumMin = rows => rows.reduce((s, a) => s + (Number(a.moving_time_s) || 0) / 60, 0);
+    const sumHours = rows => sumMin(rows) / 60;
+
+    // Week-by-week training load for the chart (last 12 weeks).
+    const weeks = [];
+    for (let w = 11; w >= 0; w--) {
+      const to = new Date(now - w * 7 * dayMs);
+      const from = new Date(now - (w + 1) * 7 * dayMs);
+      const acsWk = acts.filter(a => {
+        const t = new Date(a.start_date).getTime();
+        return t >= from.getTime() && t < to.getTime();
+      });
+      weeks.push({
+        week_start: from.toISOString().slice(0, 10),
+        sessions: acsWk.length,
+        km: Math.round(sumKm(acsWk)),
+        minutes: Math.round(sumMin(acsWk)),
+        suffer: acsWk.reduce((s, a) => s + (Number(a.suffer_score) || 0), 0),
+      });
+    }
+
+    // Journal: last 20 activities.
+    const journal = acts.slice(0, 20).map(a => ({
+      id: a.id,
+      date: (a.start_date || "").slice(0, 10),
+      sport_type: a.sport_type || "—",
+      name: a.name || a.sport_type || "Activité",
+      distance_km: Math.round((Number(a.distance_m) || 0) / 100) / 10,
+      moving_min: Math.round((Number(a.moving_time_s) || 0) / 60),
+      avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
+      calories: a.calories || null,
+      suffer: a.suffer_score || null,
+    }));
+
+    return {
+      totals: {
+        sessions_7d: last7.length,
+        sessions_30d: last30.length,
+        km_7d: Math.round(sumKm(last7)),
+        km_30d: Math.round(sumKm(last30)),
+        minutes_7d: Math.round(sumMin(last7)),
+        hours_30d: Math.round(sumHours(last30)),
+        km_ytd: Math.round(sumKm(last365.filter(a => a.start_date.startsWith(new Date(now).getFullYear())))),
+      },
+      weeks,
+      journal,
+      latest: acts[0] || null,
+    };
+  }
+
+  // Build GAMING_PERSO_DATA shape from Steam tables.
+  function transformGaming({ snapshot, stats, achievements }){
+    const now = Date.now();
+    const dayMs = 24 * 3600 * 1000;
+    const statsArr = stats || [];
+    const snap = snapshot || [];
+    const ach = achievements || [];
+    const inRange = (d, days) => d && (new Date(d + "T00:00:00").getTime() >= now - days * dayMs);
+
+    const minutes_7d = statsArr.filter(s => inRange(s.stat_date, 7)).reduce((a, s) => a + (Number(s.total_playtime_minutes) || 0), 0);
+    const minutes_30d = statsArr.filter(s => inRange(s.stat_date, 30)).reduce((a, s) => a + (Number(s.total_playtime_minutes) || 0), 0);
+
+    // Daily chart last 30 days.
+    const daily30 = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now - i * dayMs);
+      const iso = d.toISOString().slice(0, 10);
+      const s = statsArr.find(x => x.stat_date === iso);
+      daily30.push({ date: iso, minutes: s?.total_playtime_minutes || 0 });
+    }
+
+    const top_games = snap.slice(0, 10).map(g => ({
+      name: g.name || "—",
+      playtime_minutes: g.playtime_forever_minutes || 0,
+      playtime_2weeks: g.playtime_2weeks_minutes || 0,
+      header: g.img_icon_url,
+    }));
+
+    return {
+      totals: {
+        library_size: snap.length,
+        minutes_7d,
+        minutes_30d,
+        hours_30d: Math.round(minutes_30d / 60),
+        achievements_total: ach.length,
+      },
+      top_games,
+      recent_achievements: ach.slice(0, 20).map(a => ({
+        game: a.appid || "—",
+        name: a.display_name || a.api_name || "—",
+        when: relTime(a.unlocked_at),
+      })),
+      daily_series: daily30,
+      now_playing: snap.find(g => (g.playtime_2weeks_minutes || 0) > 0) || null,
+    };
+  }
+
   // Build VEILLE_DATA.feed from real articles. Keeps headline/actors/
   // prod_cases/trends from the fake (AI-curated content, no backend
   // pipeline yet). Feed is the main list users scan, so it MUST be real.
@@ -945,24 +1211,11 @@
       case "perf": {
         const activities = await T2.strava();
         if (window.FORME_DATA && activities.length) {
-          const now = Date.now();
-          const seven = now - 7 * 24 * 3600 * 1000;
-          const thirty = now - 30 * 24 * 3600 * 1000;
-          const inRange = (iso, from) => new Date(iso).getTime() >= from;
-          const last7 = activities.filter(a => inRange(a.start_date, seven));
-          const last30 = activities.filter(a => inRange(a.start_date, thirty));
-          const sumKm = rows => rows.reduce((s, a) => s + (Number(a.distance_m) || 0) / 1000, 0);
-          const sumMin = rows => rows.reduce((s, a) => s + (Number(a.moving_time_s) || 0) / 60, 0);
+          const shape = transformForme(activities);
+          // Non-destructive merge: overwrite totals/weeks/journal, keep
+          // any legacy keys the panel might still reference.
+          Object.assign(window.FORME_DATA, shape);
           window.FORME_DATA._raw = activities;
-          window.FORME_DATA._live = {
-            count_7d: last7.length,
-            count_30d: last30.length,
-            km_7d: Math.round(sumKm(last7)),
-            km_30d: Math.round(sumKm(last30)),
-            minutes_7d: Math.round(sumMin(last7)),
-            minutes_30d: Math.round(sumMin(last30)),
-            latest: activities[0] || null,
-          };
         }
         return { activities };
       }
@@ -972,18 +1225,10 @@
           T2.music_loved(), T2.music_genres(), T2.music_insights(),
         ]);
         if (window.MUSIC_DATA && (stats || []).length) {
-          const now = Date.now();
-          const seven = now - 7 * 24 * 3600 * 1000;
-          const thirty = now - 30 * 24 * 3600 * 1000;
-          const inRange = (d, from) => new Date(d + "T00:00:00").getTime() >= from;
-          const total7 = (stats || []).filter(s => inRange(s.stat_date, seven)).reduce((a, s) => a + (Number(s.scrobble_count) || 0), 0);
-          const total30 = (stats || []).filter(s => inRange(s.stat_date, thirty)).reduce((a, s) => a + (Number(s.scrobble_count) || 0), 0);
-          const totalAll = (stats || []).reduce((a, s) => a + (Number(s.scrobble_count) || 0), 0);
-          if (window.MUSIC_DATA.totals) {
-            window.MUSIC_DATA.totals.last7 = total7;
-            window.MUSIC_DATA.totals.last30 = total30;
-            window.MUSIC_DATA.totals.all180 = totalAll;
-          }
+          const shape = transformMusic({ scrobbles, stats, top, loved, genres });
+          // Overwrite top-level fields with real data. Panel reads
+          // D.totals, D.streaks, D.top_artists, D.daily_series, etc.
+          Object.keys(shape).forEach(k => { window.MUSIC_DATA[k] = shape[k]; });
           window.MUSIC_DATA._raw = { scrobbles, stats, top, loved, genres, insights };
         }
         return { scrobbles, stats, top, loved, genres, insights };
@@ -992,20 +1237,10 @@
         const [snapshot, stats, achievements] = await Promise.all([
           T2.steam_snapshot(), T2.steam_stats(), T2.steam_achievements(),
         ]);
-        if (window.GAMING_PERSO_DATA && snapshot) {
-          const now = Date.now();
-          const thirty = now - 30 * 24 * 3600 * 1000;
-          const totalMinutes30 = (stats || [])
-            .filter(s => new Date(s.stat_date + "T00:00:00").getTime() >= thirty)
-            .reduce((a, s) => a + (Number(s.total_playtime_minutes) || 0), 0);
-          const topGame = snapshot && snapshot[0] ? snapshot[0].name : null;
+        if (window.GAMING_PERSO_DATA && (snapshot || []).length) {
+          const shape = transformGaming({ snapshot, stats, achievements });
+          Object.keys(shape).forEach(k => { window.GAMING_PERSO_DATA[k] = shape[k]; });
           window.GAMING_PERSO_DATA._raw = { snapshot, stats, achievements };
-          window.GAMING_PERSO_DATA._live = {
-            library_size: (snapshot || []).length,
-            playtime_minutes_30d: totalMinutes30,
-            top_game: topGame,
-            achievements_recent: (achievements || []).slice(0, 10),
-          };
         }
         return { snapshot, stats, achievements };
       }
