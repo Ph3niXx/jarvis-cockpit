@@ -152,7 +152,12 @@ def _best_image(images):
         [{"size": "small", "#text": "..."}, {"size": "medium", ...},
          {"size": "large", ...}, {"size": "extralarge", ...}, {"size": "mega", ...}]
     Some entries are empty strings — we fall back to the next size down.
-    Returns None if nothing usable is found.
+
+    Returns None for:
+    - missing / malformed payload
+    - the generic "2a96cbd8..." star placeholder Last.fm serves when it
+      has no real cover art for that track (renders as a gray star icon,
+      which is worse than our tinted fallback gradient).
     """
     if not isinstance(images, list):
         return None
@@ -163,7 +168,7 @@ def _best_image(images):
             continue
         url = (img.get("#text") or "").strip()
         size = img.get("size") or ""
-        if url:
+        if url and "2a96cbd8b46e442fc41c2b86b821562f" not in url:
             by_size[size] = url
     for size in preferred:
         if by_size.get(size):

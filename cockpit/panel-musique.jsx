@@ -39,7 +39,11 @@ function useLiveNowPlaying(initial) {
         if (!first || !alive) return;
         const isLive = first["@attr"]?.nowplaying === "true";
         const imgArr = first.image || [];
-        const image_url = imgArr.reverse().find(i => i && i["#text"])?.["#text"] || null;
+        // Skip Last.fm's generic star placeholder — it's worse UX than
+        // our tinted fallback. Same filter applies server-side in
+        // pipelines/lastfm_sync.py::_best_image.
+        const imgRaw = imgArr.reverse().find(i => i && i["#text"])?.["#text"] || null;
+        const image_url = imgRaw && !imgRaw.includes("2a96cbd8b46e442fc41c2b86b821562f") ? imgRaw : null;
         const ts = first.date?.uts ? Number(first.date.uts) * 1000 : null;
         setNp(prev => {
           const merged = {
