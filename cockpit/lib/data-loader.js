@@ -429,6 +429,11 @@
     async music_loved(){ return once("music_loved", () => q("music_loved_tracks", "order=loved_at.desc&limit=40")); },
     async music_genres(){ return once("music_genres", () => q("music_genre_weekly", "order=week_start.desc&limit=120")); },
     async music_insights(){ return once("music_insights", () => q("music_insights_weekly", "order=week_start.desc&limit=12")); },
+    async music_discoveries(){
+      return once("music_discoveries", () =>
+        window.sb.rpc("music_discoveries", { p_window_days: 90, p_recent_days: 30 }).catch(() => [])
+      );
+    },
     async steam_snapshot(){
       const today = isoToday();
       return once("steam_snapshot_" + today, () => q("steam_games_snapshot", `snapshot_date=eq.${today}&order=playtime_2weeks_minutes.desc&limit=500`));
@@ -762,7 +767,7 @@
   // Build MUSIC_DATA shape from real Last.fm tables.
   // Sources: music_scrobbles, music_stats_daily, music_top_weekly,
   // music_loved_tracks, music_genre_weekly.
-  function transformMusic({ scrobbles, stats, top, loved, genres }){
+  function transformMusic({ scrobbles, stats, top, loved, genres, newArtists }){
     const now = new Date(); now.setHours(0,0,0,0);
     const dayMs = 24 * 3600 * 1000;
     const today = now.toISOString().slice(0, 10);
@@ -1035,60 +1040,34 @@
       };
     }
 
-    // ── discoveries (nouveaux artistes 30 derniers jours) ──
+    // ── discoveries (nouveaux artistes 90 derniers jours) ──
     // Panel shape: { artist, scrobbles, first_scrobble, genre, verdict, note }.
-    // An artist "discovered" means: appears in music_top_weekly (category=artist)
-    // in one of the last ~4 weeks, but NOT in any earlier week within the
-    // fetched window. We approximate first_scrobble via the earliest week
-    // they show up in, and classify verdict from total recent plays.
-    const artistRows = byCat.artist || [];
-    const firstWeekSeen = {};
-    const allWeeksSeen = {};
-    const playsByArtist30 = {};
-    const cutoffDiscoveryIso = cutoff30Iso;
-    // Window of "appeared for the first time this quarter".
-    const cutoff90Iso = new Date(now.getTime() - 90 * dayMs).toISOString().slice(0, 10);
-    // Earliest week fetched — if it's newer than cutoff90, we don't have
-    // enough history to tell "new artist" from "already known". In that
-    // case we fall back to the loved-tracks heuristic below.
-    let earliestWeekFetched = "9999-99-99";
-    artistRows.forEach(r => {
-      const name = r.item_name;
-      if (!name) return;
-      const w = r.week_start || "";
-      if (w && w < earliestWeekFetched) earliestWeekFetched = w;
-      if (!firstWeekSeen[name] || w < firstWeekSeen[name]) firstWeekSeen[name] = w;
-      if (!allWeeksSeen[name]) allWeeksSeen[name] = new Set();
-      allWeeksSeen[name].add(w);
-      if (w >= cutoffDiscoveryIso) {
-        playsByArtist30[name] = (playsByArtist30[name] || 0) + (Number(r.play_count) || 0);
-      }
-    });
-    const haveEnoughHistory = earliestWeekFetched <= cutoff90Iso;
+    // Data source is the `music_discoveries` Supabase RPC which aggregates
+    // music_scrobbles server-side to find artists whose FIRST scrobble
+    // landed in the last 90 days. `newArtists` = RPC rows:
+    // { artist_name, first_scrobble, scrobbles_recent, scrobbles_total, image_url }.
     const classifyVerdict = (plays) =>
       plays >= 50 ? "accroché" : plays >= 15 ? "à creuser" : "abandonné";
-    const discoveries = !haveEnoughHistory ? [] : Object.keys(firstWeekSeen)
-      .filter(name => firstWeekSeen[name] >= cutoff90Iso)
-      .map(name => {
-        const plays = playsByArtist30[name] || 0;
-        const firstWeek = firstWeekSeen[name];
-        const firstDate = new Date(firstWeek + "T00:00:00");
-        const daysAgo = Math.max(1, Math.round((now.getTime() - firstDate.getTime()) / dayMs));
-        return {
-          artist: name,
-          scrobbles: plays,
-          first_scrobble: `il y a ${daysAgo}j`,
-          genre: "",
-          verdict: classifyVerdict(plays),
-          note: "",
-        };
-      })
-      .sort((a, b) => b.scrobbles - a.scrobbles)
-      .slice(0, 8);
+    const rpcDiscoveries = Array.isArray(newArtists) ? newArtists : [];
+    const discoveriesFromRpc = rpcDiscoveries.slice(0, 12).map(r => {
+      const first = r.first_scrobble ? new Date(r.first_scrobble) : null;
+      const daysAgo = first ? Math.max(1, Math.round((now.getTime() - first.getTime()) / dayMs)) : null;
+      const plays = Number(r.scrobbles_recent) || 0;
+      return {
+        artist: r.artist_name || "—",
+        scrobbles: plays,
+        first_scrobble: daysAgo != null ? `il y a ${daysAgo}j` : "—",
+        genre: "",
+        verdict: classifyVerdict(plays),
+        note: r.scrobbles_total && r.scrobbles_total > plays
+          ? `${r.scrobbles_total} plays au total`
+          : "",
+      };
+    });
 
-    // Fallback: if the weekly chart window is too short to detect new artists,
-    // use loved tracks as de-facto "discoveries".
-    const discoveriesFinal = discoveries.length ? discoveries : (loved || []).slice(0, 8).map(l => ({
+    // Fallback: if the RPC returned nothing (brand new DB, or pre-migration),
+    // use loved tracks so the section is at least meaningful.
+    const discoveriesFinal = discoveriesFromRpc.length ? discoveriesFromRpc : (loved || []).slice(0, 8).map(l => ({
       artist: l.artist_name || l.artist || "—",
       scrobbles: 0,
       first_scrobble: relTime(l.loved_at),
@@ -1488,9 +1467,10 @@
         return { activities };
       }
       case "music": {
-        const [scrobbles, stats, top, loved, genres, insights] = await Promise.all([
+        const [scrobbles, stats, top, loved, genres, insights, newArtists] = await Promise.all([
           T2.music_scrobbles(), T2.music_stats(), T2.music_top(),
           T2.music_loved(), T2.music_genres(), T2.music_insights(),
+          T2.music_discoveries(),
         ]);
         // Run the transformer whenever ANY real source returned rows.
         // music_stats_daily is often empty at first install — but we still
@@ -1502,11 +1482,11 @@
                     || (loved || []).length
                     || (genres || []).length;
         if (window.MUSIC_DATA && hasAny) {
-          const shape = transformMusic({ scrobbles, stats, top, loved, genres });
+          const shape = transformMusic({ scrobbles, stats, top, loved, genres, newArtists });
           mergeInto(window.MUSIC_DATA, shape);
-          window.MUSIC_DATA._raw = { scrobbles, stats, top, loved, genres, insights };
+          window.MUSIC_DATA._raw = { scrobbles, stats, top, loved, genres, insights, newArtists };
         }
-        return { scrobbles, stats, top, loved, genres, insights };
+        return { scrobbles, stats, top, loved, genres, insights, newArtists };
       }
       case "gaming": {
         const [snapshot, stats, achievements] = await Promise.all([
