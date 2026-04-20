@@ -101,7 +101,12 @@ function HiDrawer({ day, onClose, onLoadInCockpit }) {
               <div className="hi-drawer-section-label">Top {day.top.length} incontournables</div>
               <div className="hi-drawer-top">
                 {day.top.map((t) => (
-                  <div key={t.rank} className="hi-drawer-top-item">
+                  <div
+                    key={t.rank}
+                    className="hi-drawer-top-item"
+                    onClick={() => { if (t.url) window.open(t.url, "_blank", "noopener"); }}
+                    style={t.url ? { cursor: "pointer" } : null}
+                  >
                     <div className="hi-drawer-top-rank">{t.rank}</div>
                     <div className="hi-drawer-top-main">
                       <div className="hi-drawer-top-title">{t.title}</div>

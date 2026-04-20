@@ -318,8 +318,24 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
             {filtered.map((f) => {
               const actor = actors.find(a => a.name === f.actor);
               const isRead = readState[f.id] === "read" || !f.unread;
+              const openArticle = () => {
+                if (!f.url) return;
+                try {
+                  // Persist read state across sessions (localStorage).
+                  const rm = JSON.parse(localStorage.getItem("read-articles") || "{}");
+                  rm[f.id] = { ts: Date.now(), kept: !!rm[f.id]?.kept };
+                  localStorage.setItem("read-articles", JSON.stringify(rm));
+                } catch {}
+                markRead(f.id);
+                window.open(f.url, "_blank", "noopener");
+              };
               return (
-                <article key={f.id} className={`vl-feed-item ${isRead ? "is-read" : "is-unread"} ${f.starred ? "is-starred" : ""}`}>
+                <article
+                  key={f.id}
+                  className={`vl-feed-item ${isRead ? "is-read" : "is-unread"} ${f.starred ? "is-starred" : ""}`}
+                  onClick={openArticle}
+                  style={f.url ? { cursor: "pointer" } : null}
+                >
                   <div className="vl-feed-rail">
                     {actor ? <ActorMark actor={actor} size={30}/> : <span className="vl-actor-mark vl-actor-mark--neutral" style={{ width: 30, height: 30, fontSize: 13 }}>{f.actor.slice(0,1)}</span>}
                     {!isRead && <span className="vl-feed-unread-dot" />}
@@ -339,14 +355,14 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
                       {f.tags.map((t) => <span key={t} className="vl-tag">{t}</span>)}
                     </div>
                   </div>
-                  <div className="vl-feed-actions-col">
+                  <div className="vl-feed-actions-col" onClick={(e) => e.stopPropagation()}>
                     <button className="vl-iconbtn" title={isRead ? "Marquer non-lu" : "Marquer lu"} onClick={() => markRead(f.id)}>
                       <Icon name={isRead ? "envelope" : "check"} size={13} stroke={2}/>
                     </button>
                     <button className="vl-iconbtn" title="Archiver" onClick={() => archive(f.id)}>
                       <Icon name="archive" size={13} stroke={2}/>
                     </button>
-                    <button className="vl-iconbtn" title="Ouvrir">
+                    <button className="vl-iconbtn" title="Ouvrir l'article" onClick={openArticle}>
                       <Icon name="arrow_right" size={13} stroke={2}/>
                     </button>
                   </div>

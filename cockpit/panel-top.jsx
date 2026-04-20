@@ -1,6 +1,21 @@
 // Panel : Top du jour — magazine style
 const { useState: useStateTop } = React;
 
+// Opens article URL + marks read in localStorage (shared helper).
+function openArticleTop(t){
+  const url = t._url || t.url;
+  if (!url) return;
+  try {
+    const id = t._id || t.id;
+    if (id) {
+      const rm = JSON.parse(localStorage.getItem("read-articles") || "{}");
+      rm[id] = { ts: Date.now() };
+      localStorage.setItem("read-articles", JSON.stringify(rm));
+    }
+  } catch {}
+  window.open(url, "_blank", "noopener");
+}
+
 // Additional fake items for a fuller "top 8" list
 const TOP_EXTRA = [
   { rank: 4, source: "Hugging Face", section: "LLMs", date: "il y a 7h", score: 76, title: "Phi-4 mini publié — 3.8B paramètres, niveau GPT-4o-mini sur le raisonnement", summary: "Microsoft publie les poids sous licence MIT. Benchmarks serrés face à Llama 3.3 8B. Déploiement edge mobile désormais viable.", tags: ["#llms", "#opensource", "#edge"] },
@@ -51,7 +66,7 @@ function PanelTop({ data, onNavigate }) {
       <div className="top-list-wrap">
         {feat1 && (
           <div className="top-list-feat">
-            <article className="top-feat-main">
+            <article className="top-feat-main" onClick={() => openArticleTop(feat1)} style={feat1._url ? { cursor: "pointer" } : null}>
               <div className="top-feat-rank">01</div>
               <div className="top-feat-meta">
                 <span>{feat1.source}</span>
@@ -71,7 +86,7 @@ function PanelTop({ data, onNavigate }) {
               </div>
             </article>
             {feat2 && (
-              <article className="top-feat-side">
+              <article className="top-feat-side" onClick={() => openArticleTop(feat2)} style={feat2._url ? { cursor: "pointer" } : null}>
                 <div className="top-feat-side-rank">02</div>
                 <div className="top-feat-side-meta">
                   <span>{feat2.source}</span><span>·</span><span>{feat2.date}</span>
@@ -85,7 +100,7 @@ function PanelTop({ data, onNavigate }) {
               </article>
             )}
             {feat3 && (
-              <article className="top-feat-side">
+              <article className="top-feat-side" onClick={() => openArticleTop(feat3)} style={feat3._url ? { cursor: "pointer" } : null}>
                 <div className="top-feat-side-rank">03</div>
                 <div className="top-feat-side-meta">
                   <span>{feat3.source}</span><span>·</span><span>{feat3.date}</span>
@@ -106,7 +121,7 @@ function PanelTop({ data, onNavigate }) {
             <div className="top-rest-title">La suite du classement</div>
             <div className="top-rest-list">
               {rest.map((t) => (
-                <div key={t.rank} className="top-rest-item">
+                <div key={t.rank} className="top-rest-item" onClick={() => openArticleTop(t)} style={t._url ? { cursor: "pointer" } : null}>
                   <span className="top-rest-rank">{String(t.rank).padStart(2, "0")}</span>
                   <span className="top-rest-source top-rest-col--source">{t.source}</span>
                   <span className="top-rest-title-text">{t.title}</span>

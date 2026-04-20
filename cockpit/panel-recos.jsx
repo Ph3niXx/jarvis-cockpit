@@ -172,10 +172,19 @@ function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter }) {
 // ─────────────────────────────────────────────────────────
 // Cards
 // ─────────────────────────────────────────────────────────
+function openReco(r){
+  if (!r || !r.url) return;
+  window.open(r.url, "_blank", "noopener");
+}
+
 function RecoCardBig({ reco: r, axes }) {
   const ax = axes.find(a => a.id === r.axis);
   return (
-    <article className={`reco-big ${r.unread ? "is-unread" : ""}`}>
+    <article
+      className={`reco-big ${r.unread ? "is-unread" : ""}`}
+      onClick={() => openReco(r)}
+      style={r.url ? { cursor: "pointer" } : null}
+    >
       <div className="reco-big-head">
         <span className={`reco-type reco-type--${r.type}`}>
           <Icon name={TYPE_ICON[r.type] || "file_text"} size={11} stroke={1.75} /> {TYPE_LABEL[r.type]}
@@ -191,7 +200,7 @@ function RecoCardBig({ reco: r, axes }) {
         <span className="reco-big-why-mark">Pourquoi</span>
         <span className="reco-big-why-text">{r.why}</span>
       </blockquote>
-      <div className="reco-big-meta">
+      <div className="reco-big-meta" onClick={(e) => e.stopPropagation()}>
         <div className="reco-big-axis">
           <span className="reco-big-axis-label">{ax?.label}</span>
           <span className="reco-big-axis-score-wrap">
@@ -201,7 +210,7 @@ function RecoCardBig({ reco: r, axes }) {
           </span>
         </div>
         <div className="reco-big-actions">
-          <button className="btn btn--primary btn--sm">
+          <button className="btn btn--primary btn--sm" onClick={() => openReco(r)} disabled={!r.url}>
             <Icon name="arrow_right" size={12} stroke={2} /> Ouvrir
           </button>
           <button className="btn btn--ghost btn--sm">
@@ -217,7 +226,11 @@ function RecoCardBig({ reco: r, axes }) {
 function RecoCardMed({ reco: r, axes }) {
   const ax = axes.find(a => a.id === r.axis);
   return (
-    <article className={`reco-med ${r.unread ? "is-unread" : ""}`}>
+    <article
+      className={`reco-med ${r.unread ? "is-unread" : ""}`}
+      onClick={() => openReco(r)}
+      style={r.url ? { cursor: "pointer" } : null}
+    >
       <div className="reco-med-head">
         <span className={`reco-type reco-type--${r.type}`}>
           <Icon name={TYPE_ICON[r.type] || "file_text"} size={11} stroke={1.75} /> {TYPE_LABEL[r.type]}
@@ -239,7 +252,11 @@ function RecoCardMed({ reco: r, axes }) {
 
 function RecoRow({ reco: r }) {
   return (
-    <li className="reco-row">
+    <li
+      className="reco-row"
+      onClick={() => openReco(r)}
+      style={r.url ? { cursor: "pointer" } : null}
+    >
       <span className={`reco-type reco-type--${r.type}`}>
         <Icon name={TYPE_ICON[r.type] || "file_text"} size={11} stroke={1.75} />
       </span>

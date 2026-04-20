@@ -471,6 +471,7 @@
         tags: r.tags || [],
         unread: !r.completed,
         momentum: r.momentum || "standard",
+        url: r.resource_url || r.url || null,
       };
     });
   }
@@ -780,10 +781,14 @@
       if (stillStreak) { if (count > 0) streak++; else if (i > 0) stillStreak = false; }
       if (count > peak.articles) peak = { iso, articles: count, day_label: DAYS_FR[d.getDay()] + " " + d.getDate() + " " + MONTHS_FR[d.getMonth()] };
       const brief = briefByDate[iso];
-      const top = arts.slice(0, 3).map(a => ({
+      const top = arts.slice(0, 3).map((a, idx) => ({
+        rank: idx + 1,
         source: a.source || "—",
         section: a.section || "",
         title: a.title || "",
+        score: 100 - idx * 6,
+        url: a.url,
+        _id: a.id,
       }));
       days.push({
         iso,

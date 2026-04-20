@@ -237,8 +237,29 @@ function Home({ theme, data, onNavigate }) {
         </div>
 
         <div className="top-grid">
-          {top.map((t) => (
-            <article key={t.rank} className={`top-card ${readTop[t.rank] ? "is-read" : t.unread ? "is-unread" : ""} top-card--rank${t.rank}`}>
+          {top.map((t) => {
+            const openArticle = () => {
+              const url = t._url || t.url;
+              if (!url) return;
+              try {
+                const id = t._id || t.id;
+                if (id) {
+                  const rm = JSON.parse(localStorage.getItem("read-articles") || "{}");
+                  rm[id] = { ts: Date.now() };
+                  localStorage.setItem("read-articles", JSON.stringify(rm));
+                }
+              } catch {}
+              toggleRead(t.rank);
+              window.open(url, "_blank", "noopener");
+            };
+            const hasUrl = !!(t._url || t.url);
+            return (
+            <article
+              key={t.rank}
+              className={`top-card ${readTop[t.rank] ? "is-read" : t.unread ? "is-unread" : ""} top-card--rank${t.rank}`}
+              onClick={openArticle}
+              style={hasUrl ? { cursor: "pointer" } : null}
+            >
               <div className="top-card-rail">
                 <span className="top-rank">{String(t.rank).padStart(2, "0")}</span>
                 <span className="top-score" title="Score de pertinence">
@@ -255,7 +276,7 @@ function Home({ theme, data, onNavigate }) {
                 </div>
                 <h3 className="top-title">{t.title}</h3>
                 <p className="top-summary">{t.summary}</p>
-                <div className="top-card-foot">
+                <div className="top-card-foot" onClick={(e) => e.stopPropagation()}>
                   <div className="top-tags">
                     {t.tags.map(tag => <span key={tag} className="top-tag">{tag}</span>)}
                   </div>
@@ -269,7 +290,8 @@ function Home({ theme, data, onNavigate }) {
                 </div>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
 
