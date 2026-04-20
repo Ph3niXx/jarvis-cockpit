@@ -103,6 +103,7 @@ function App() {
     return window.__cockpitInitialPanelReady ? { [window.__cockpitInitialPanelReady]: "ready" } : {};
   });
   const [retryTick, setRetryTick] = useState(0);
+  const [sbMobileOpen, setSbMobileOpen] = useState(false);
   const [themeId, setThemeId] = useState(() => {
     try {
       const stored = localStorage.getItem("cockpit-theme");
@@ -123,6 +124,7 @@ function App() {
 
   const handleNavigate = (id) => {
     setActivePanel(id);
+    setSbMobileOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
     try { window.location.hash = id; } catch {}
     try { window.track && window.track("section_opened", { section: id }); } catch {}
@@ -279,8 +281,18 @@ function App() {
   else content = <Stub id={activePanel} theme={theme} onBack={() => setActivePanel("brief")} />;
 
   return (
-    <div className="app">
-      <Sidebar theme={theme} activeId={activePanel} onSelect={handleNavigate} data={data} onThemeChange={setThemeId} />
+    <div className={`app ${sbMobileOpen ? "is-sb-mobile-open" : ""}`}>
+      <button
+        className="sb-mobile-trigger"
+        onClick={() => setSbMobileOpen(v => !v)}
+        aria-label={sbMobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
+      >
+        <span /><span /><span />
+      </button>
+      {sbMobileOpen && (
+        <div className="sb-mobile-backdrop" onClick={() => setSbMobileOpen(false)} />
+      )}
+      <Sidebar theme={theme} activeId={activePanel} onSelect={handleNavigate} data={data} onThemeChange={setThemeId} mobileOpen={sbMobileOpen} onMobileClose={() => setSbMobileOpen(false)} />
       <main className="main">
         {historicalDay && activePanel !== "history" && (
           <div style={{

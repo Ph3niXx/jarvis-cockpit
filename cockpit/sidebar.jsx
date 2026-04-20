@@ -39,7 +39,7 @@ function SbSparkline({ values, width = 48, height = 14 }) {
   );
 }
 
-function Sidebar({ theme, activeId, onSelect, data, onThemeChange }) {
+function Sidebar({ theme, activeId, onSelect, data, onThemeChange, mobileOpen = false, onMobileClose }) {
   const [openGroups, setOpenGroups] = React.useState(
     () => Object.fromEntries(data.nav.map((g) => [g.group, true]))
   );
@@ -80,7 +80,7 @@ function Sidebar({ theme, activeId, onSelect, data, onThemeChange }) {
 
   return (
     <aside
-      className={`sb ${collapsed ? "is-collapsed" : ""}`}
+      className={`sb ${collapsed ? "is-collapsed" : ""} ${mobileOpen ? "is-mobile-open" : ""}`}
       data-vibe-density={vibe.density}
     >
       <div className="sb-head">

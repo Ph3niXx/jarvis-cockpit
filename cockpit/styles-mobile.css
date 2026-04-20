@@ -1,0 +1,284 @@
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE OVERRIDES — loaded last, breakpoint 760px
+   Single-file mobile responsive layer to avoid touching 16 CSS files.
+   Pattern: override desktop-first grids, paddings, and the sidebar
+   which becomes a drawer overlay.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Hamburger trigger + backdrop are always present in DOM but hidden
+   on desktop. Desktop sidebar stays in its normal grid column. */
+.sb-mobile-trigger {
+  display: none;
+  position: fixed;
+  top: 10px; left: 10px;
+  z-index: 100;
+  width: 40px; height: 40px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 0;
+  cursor: pointer;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.sb-mobile-trigger span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--tx);
+  border-radius: 2px;
+}
+.sb-mobile-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
+}
+
+@media (max-width: 760px) {
+  /* ─── App shell: single column, sidebar in drawer overlay ─── */
+  .app,
+  .app:has(.sb.is-collapsed) {
+    grid-template-columns: 1fr;
+  }
+  .sb-mobile-trigger { display: flex; }
+  .sb-mobile-backdrop { display: block; }
+
+  /* Sidebar becomes a left drawer */
+  .sb,
+  .sb.is-collapsed {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: min(85vw, 320px);
+    height: 100vh;
+    z-index: 95;
+    transform: translateX(-105%);
+    transition: transform 220ms ease;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.18);
+  }
+  .sb.is-mobile-open,
+  .sb.is-collapsed.is-mobile-open {
+    transform: translateX(0);
+    width: min(85vw, 320px);
+  }
+  /* Force the expanded (not rail) layout inside the drawer even if
+     the user had the rail mode saved. */
+  .sb.is-collapsed.is-mobile-open .sb-logo-text,
+  .sb.is-collapsed.is-mobile-open .sb-nav-label,
+  .sb.is-collapsed.is-mobile-open .sb-group-title,
+  .sb.is-collapsed.is-mobile-open .sb-foot-expanded {
+    display: revert;
+  }
+  .sb-rail-toggle { display: none; }
+
+  /* Main: full width, reduced side padding, leave room for the
+     floating hamburger button on top. */
+  .main { padding-top: 52px; }
+
+  /* ─── Top bar ─── */
+  .top {
+    padding-left: 60px;
+    padding-right: 14px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    gap: 8px;
+  }
+  .top-right { gap: 8px; }
+  .top-section { display: none; }
+
+  /* ─── Panel hero (common pattern) ─── */
+  .hero-frame,
+  .vl-hero {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+    padding: 24px 18px !important;
+    margin-bottom: 24px !important;
+  }
+  .vl-hero-title { font-size: 22px !important; line-height: 1.2 !important; }
+  .vl-hero-body { font-size: 13.5px !important; }
+  .vl-hero-metrics {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .vl-hero-metrics-label { margin-bottom: 10px !important; }
+  .vl-metric-value { font-size: 20px !important; }
+
+  /* ─── Panel page padding (most panels use padding 40-48px) ─── */
+  .panel-page,
+  .vl-section,
+  .vl-feed-wrap,
+  .vl-trends-section {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+  .vl-section { margin-bottom: 28px !important; }
+  .vl-section-title { font-size: 18px !important; }
+
+  /* ─── Filter rows (DISCIPLINE / FORMAT / PÉRIODE) ─── */
+  .vl-filter-row,
+  .vl-prod-filter-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .vl-filter-pills,
+  .vl-prod-filters {
+    flex-wrap: wrap;
+    gap: 6px !important;
+  }
+  .vl-filter-pill,
+  .vl-prod-filter {
+    font-size: 12.5px !important;
+    padding: 5px 10px !important;
+  }
+
+  /* ─── Feed items ─── */
+  .vl-item {
+    padding: 14px 0 !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    align-items: flex-start !important;
+  }
+  .vl-item-meta { width: 100% !important; }
+  .vl-item-title { font-size: 15px !important; line-height: 1.35 !important; }
+  .vl-item-summary { font-size: 13px !important; }
+  .vl-item-actions {
+    width: 100% !important;
+    justify-content: flex-end;
+  }
+
+  /* ─── Trends grid ─── */
+  .vl-trends-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .vl-trend-card { padding: 18px !important; }
+
+  /* ─── Prod cases grid (anime table, gaming cards) ─── */
+  .vl-prod-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+  .vl-prod-card { padding: 18px !important; }
+
+  /* Prod table → horizontal scroll so columns stay readable */
+  .vl-prod-table-wrap { overflow-x: auto; }
+  .vl-prod-table { min-width: 560px; }
+  .vl-prod-table td, .vl-prod-table th {
+    padding: 10px 12px !important;
+    font-size: 12.5px !important;
+  }
+
+  /* ─── Home (hero-frame, top-grid, radar-box) ─── */
+  .hero-frame { padding: 24px 18px !important; }
+  .top-grid { grid-template-columns: 1fr !important; }
+  .radar-box { grid-template-columns: 1fr !important; padding: 24px !important; }
+  .block { padding: 24px 18px !important; }
+  .block--two { grid-template-columns: 1fr !important; }
+  .block--two .col { padding: 24px 18px !important; border-right: none !important; }
+
+  .week-stats-row { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+  .day-strip { grid-template-columns: repeat(3, 1fr) !important; }
+  .week-edito-nums { grid-template-columns: repeat(2, 1fr) !important; }
+  .week-perso-grid { grid-template-columns: 1fr !important; }
+  .week-split { grid-template-columns: 1fr !important; }
+  .week-summary { grid-template-columns: 1fr !important; }
+
+  /* ─── Radar v2 hero ─── */
+  .radar-hero-v2 { grid-template-columns: 1fr !important; padding: 24px !important; }
+
+  /* ─── Signals ─── */
+  .sig-grid { grid-template-columns: 1fr !important; }
+
+  /* ─── Forme / Perf ─── */
+  .forme-hero,
+  .forme-kpis,
+  .forme-kpi-row,
+  .forme-split {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .forme-hero { padding: 22px 18px !important; }
+
+  /* ─── Musique ─── */
+  .music-hero,
+  .music-kpis,
+  .music-top-split,
+  .music-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* ─── Gaming (panel perso, not gaming_news) ─── */
+  .gaming-hero,
+  .gaming-kpis,
+  .gaming-split {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* ─── Jarvis chat ─── */
+  .jrv-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .jrv-panel-left { display: none !important; }
+  .jrv-message { font-size: 14px !important; }
+
+  /* ─── Wiki ─── */
+  .wiki-layout { grid-template-columns: 1fr !important; }
+  .wiki-sidebar { display: none !important; }
+
+  /* ─── Opportunities ─── */
+  .opp-grid,
+  .opp-hero,
+  .opp-kpis { grid-template-columns: 1fr !important; }
+
+  /* ─── Profile ─── */
+  .profile-grid,
+  .profile-split { grid-template-columns: 1fr !important; }
+
+  /* ─── Jobs radar ─── */
+  .jr-layout,
+  .jr-grid { grid-template-columns: 1fr !important; }
+
+  /* ─── History ─── */
+  .hist-layout { grid-template-columns: 1fr !important; }
+  .hist-day-card { padding: 16px !important; }
+
+  /* ─── Search ─── */
+  .search-results { padding: 16px !important; }
+
+  /* ─── Ideas ─── */
+  .ideas-grid { grid-template-columns: 1fr !important; }
+
+  /* ─── Stacks ─── */
+  .stacks-grid { grid-template-columns: 1fr !important; }
+
+  /* ─── Recos / Challenges ─── */
+  .recos-grid,
+  .ch-grid { grid-template-columns: 1fr !important; }
+  .recos-hero,
+  .ch-hero { grid-template-columns: 1fr !important; padding: 22px 18px !important; }
+
+  /* ─── Tone toggle floating button ─── */
+  .vl-tone-toggle {
+    position: fixed !important;
+    bottom: 14px !important;
+    right: 14px !important;
+    font-size: 11px !important;
+  }
+
+  /* ─── Historical mode banner ─── */
+  .main > div[style*="sticky"] {
+    padding: 8px 14px !important;
+    font-size: 12px !important;
+    gap: 8px !important;
+  }
+}
+
+/* Very narrow phones (≤380px): tighter paddings */
+@media (max-width: 380px) {
+  .hero-frame,
+  .vl-hero,
+  .panel-page { padding-left: 14px !important; padding-right: 14px !important; }
+  .vl-hero-metrics { grid-template-columns: 1fr !important; }
+  .week-stats-row { grid-template-columns: 1fr !important; }
+}
