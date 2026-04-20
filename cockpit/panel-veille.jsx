@@ -32,17 +32,8 @@ function PulseBars({ pulse, color }) {
 }
 
 const MONTHS_FR_FULL = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
-function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
-function monthLabel(d){ return `${MONTHS_FR_FULL[d.getMonth()]} ${d.getFullYear()}`; }
 
 function ProdTable({ prodSection, items }){
-  const today = new Date(); today.setDate(1); today.setHours(0, 0, 0, 0);
-  const monthOptions = [0, 1, 2].map(offset => {
-    const d = new Date(today); d.setMonth(today.getMonth() + offset);
-    return { key: monthKey(d), label: monthLabel(d) };
-  });
-  const [monthFilter, setMonthFilter] = useStateVeille("all"); // "all" | monthKey
-
   const sorted = useMemoVeille(() => {
     return (items || []).slice().sort((a, b) => {
       const da = a.air_iso ? new Date(a.air_iso).getTime() : Infinity;
@@ -51,21 +42,51 @@ function ProdTable({ prodSection, items }){
     });
   }, [items]);
 
+  // Years with at least one release, asc
+  const years = useMemoVeille(() => {
+    const set = new Set();
+    sorted.forEach(p => {
+      if (p.air_iso) set.add(new Date(p.air_iso).getFullYear());
+    });
+    return Array.from(set).sort((a, b) => a - b);
+  }, [sorted]);
+
+  const currentYear = new Date().getFullYear();
+  const defaultYear = years.includes(currentYear) ? currentYear : (years[0] || currentYear);
+  const [yearFilter, setYearFilter] = useStateVeille(defaultYear); // number | "all"
+  const [monthFilter, setMonthFilter] = useStateVeille("all");    // "all" | 0-11
+
+  // Reset month when year changes to avoid stale selection
+  React.useEffect(() => { setMonthFilter("all"); }, [yearFilter]);
+
+  // Months within the selected year (or all months across years if yearFilter === "all")
+  const monthsAvailable = useMemoVeille(() => {
+    const set = new Set();
+    sorted.forEach(p => {
+      if (!p.air_iso) return;
+      const d = new Date(p.air_iso);
+      if (yearFilter === "all" || d.getFullYear() === yearFilter) set.add(d.getMonth());
+    });
+    return Array.from(set).sort((a, b) => a - b);
+  }, [sorted, yearFilter]);
+
   const filtered = useMemoVeille(() => {
-    if (monthFilter === "all") return sorted;
     return sorted.filter(p => {
       if (!p.air_iso) return false;
-      return monthKey(new Date(p.air_iso)) === monthFilter;
+      const d = new Date(p.air_iso);
+      if (yearFilter !== "all" && d.getFullYear() !== yearFilter) return false;
+      if (monthFilter !== "all" && d.getMonth() !== monthFilter) return false;
+      return true;
     });
-  }, [sorted, monthFilter]);
+  }, [sorted, yearFilter, monthFilter]);
 
-  const counts = useMemoVeille(() => {
-    const c = { all: sorted.length };
-    monthOptions.forEach(m => {
-      c[m.key] = sorted.filter(p => p.air_iso && monthKey(new Date(p.air_iso)) === m.key).length;
-    });
-    return c;
-  }, [sorted]);
+  const yearCount = (y) => sorted.filter(p => p.air_iso && new Date(p.air_iso).getFullYear() === y).length;
+  const monthCount = (m) => sorted.filter(p => {
+    if (!p.air_iso) return false;
+    const d = new Date(p.air_iso);
+    if (yearFilter !== "all" && d.getFullYear() !== yearFilter) return false;
+    return d.getMonth() === m;
+  }).length;
 
   return (
     <section className="vl-section">
@@ -75,22 +96,45 @@ function ProdTable({ prodSection, items }){
           <h2 className="vl-section-title">{prodSection.title}</h2>
         </div>
       </div>
-      <div className="vl-prod-filters">
-        <button
-          className={`vl-prod-filter ${monthFilter === "all" ? "is-active" : ""}`}
-          onClick={() => setMonthFilter("all")}
-        >
-          Tout <span className="vl-prod-filter-count">{counts.all}</span>
-        </button>
-        {monthOptions.map(m => (
+      <div className="vl-prod-filter-row">
+        <span className="vl-prod-filter-label">Année</span>
+        <div className="vl-prod-filters">
           <button
-            key={m.key}
-            className={`vl-prod-filter ${monthFilter === m.key ? "is-active" : ""}`}
-            onClick={() => setMonthFilter(m.key)}
+            className={`vl-prod-filter ${yearFilter === "all" ? "is-active" : ""}`}
+            onClick={() => setYearFilter("all")}
           >
-            {m.label} <span className="vl-prod-filter-count">{counts[m.key]}</span>
+            Tout <span className="vl-prod-filter-count">{sorted.length}</span>
           </button>
-        ))}
+          {years.map(y => (
+            <button
+              key={y}
+              className={`vl-prod-filter ${yearFilter === y ? "is-active" : ""}`}
+              onClick={() => setYearFilter(y)}
+            >
+              {y} <span className="vl-prod-filter-count">{yearCount(y)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="vl-prod-filter-row">
+        <span className="vl-prod-filter-label">Mois</span>
+        <div className="vl-prod-filters">
+          <button
+            className={`vl-prod-filter ${monthFilter === "all" ? "is-active" : ""}`}
+            onClick={() => setMonthFilter("all")}
+          >
+            Tout
+          </button>
+          {monthsAvailable.map(m => (
+            <button
+              key={m}
+              className={`vl-prod-filter ${monthFilter === m ? "is-active" : ""}`}
+              onClick={() => setMonthFilter(m)}
+            >
+              {MONTHS_FR_FULL[m]} <span className="vl-prod-filter-count">{monthCount(m)}</span>
+            </button>
+          ))}
+        </div>
       </div>
       {filtered.length === 0 ? (
         <div className="vl-prod-empty">Aucune sortie prévue sur cette période.</div>

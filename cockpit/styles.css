@@ -3360,10 +3360,23 @@ a { color: inherit; text-decoration: none; }
 .vl-prod-impact { color: var(--positive); font-weight: 500; }
 
 /* ─── CAS PROD — MODE TABLEAU (sorties à venir) ─── */
+.vl-prod-filter-row {
+  display: flex; align-items: baseline;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.vl-prod-filter-row:last-of-type { margin-bottom: 18px; }
+.vl-prod-filter-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+  min-width: 58px;
+}
 .vl-prod-filters {
   display: flex; flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 18px;
 }
 .vl-prod-filter {
   background: var(--surface);
