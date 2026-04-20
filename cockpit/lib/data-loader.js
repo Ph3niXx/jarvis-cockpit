@@ -1709,6 +1709,7 @@
   const TIER2_PANELS = new Set([
     "updates", "wiki", "radar", "recos", "challenges", "opps", "ideas",
     "profile", "perf", "music", "gaming", "stacks", "history", "jobs",
+    "sport",
   ]);
 
   // Hydrate globals with real data on boot (Tier 1 already fetched the
