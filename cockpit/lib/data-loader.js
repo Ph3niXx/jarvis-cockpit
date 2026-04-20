@@ -431,7 +431,11 @@
     async music_insights(){ return once("music_insights", () => q("music_insights_weekly", "order=week_start.desc&limit=12")); },
     async music_discoveries(){
       return once("music_discoveries", () =>
-        window.sb.rpc("music_discoveries", { p_window_days: 90, p_recent_days: 30 }).catch(() => [])
+        window.sb.rpc("music_discoveries", { p_window_days: 90, p_recent_days: 30 })
+          .catch((err) => {
+            console.error("[T2.music_discoveries] RPC failed:", err);
+            return [];
+          })
       );
     },
     async steam_snapshot(){
@@ -464,35 +468,36 @@
     return target;
   }
 
-  // Deep merge: recursively copy source fields into target.
-  //   - Arrays: replace wholesale ONLY if the incoming array is non-empty.
-  //     An empty real result would otherwise wipe the fake fallback the
-  //     panel still renders against.
-  //   - Objects: merge key-by-key so we keep fake fields the transformer
-  //     hasn't produced yet.
-  //   - Primitives: replace if the incoming value is non-empty (skip
-  //     empty strings too, for the same reason).
+  // Deep merge: recursively copy source fields into target, preserving
+  // the target fields the transformer doesn't produce. Used by the
+  // partial-transform panels (Forme, Gaming) where some sections have
+  // no real-data counterpart yet. For panels with complete transformers
+  // (Music), prefer `replaceShape` below — it overwrites wholesale, so
+  // an empty real result doesn't leak fake data.
   function mergeInto(target, source){
     if (!target || !source || typeof source !== "object") return target;
     Object.keys(source).forEach(k => {
       const sv = source[k];
       const tv = target[k];
       if (sv === null || sv === undefined) return;
-      if (Array.isArray(sv)) {
-        if (sv.length) target[k] = sv;
-        return;
-      }
-      if (Array.isArray(tv)) {
-        target[k] = sv;
-        return;
-      }
+      if (Array.isArray(sv)) { target[k] = sv; return; }
+      if (Array.isArray(tv)) { target[k] = sv; return; }
       if (typeof sv === "object" && typeof tv === "object" && !(sv instanceof Date)) {
         mergeInto(tv, sv);
         return;
       }
-      if (typeof sv === "string" && sv === "") return;
       target[k] = sv;
     });
+    return target;
+  }
+
+  // Shallow replace: overwrite every top-level key of `target` with the
+  // matching key from `source`. Use this when the transformer produces
+  // the complete shape the panel reads — fake fields left over from
+  // data-*.js get replaced, not merged.
+  function replaceShape(target, source){
+    if (!target || !source || typeof source !== "object") return target;
+    Object.keys(source).forEach(k => { target[k] = source[k]; });
     return target;
   }
 
@@ -1012,8 +1017,21 @@
       }));
 
     // ── now_playing ────────────────────────
+    // Always emit a safe placeholder so the hero never crashes on
+    // D.now_playing.album_art_hint when the DB is empty.
     const latest = (scrobbles || [])[0];
-    let now_playing = null;
+    let now_playing = {
+      track: "—",
+      artist: "—",
+      album: "",
+      ago: "",
+      started_at: "",
+      scrobble_count_track: 0,
+      scrobble_count_artist: 0,
+      loved: false,
+      image_url: null,
+      album_art_hint: "var(--tx)",
+    };
     if (latest) {
       // Count total plays of this exact track + total plays of this artist
       // across the 200-scrobble window we fetched.
@@ -1467,23 +1485,20 @@
         return { activities };
       }
       case "music": {
+        // Fail-hard version: if any of the 7 fetches throws, let the
+        // caller see it so the UI can surface an error instead of
+        // silently keeping the fake data.
         const [scrobbles, stats, top, loved, genres, insights, newArtists] = await Promise.all([
           T2.music_scrobbles(), T2.music_stats(), T2.music_top(),
           T2.music_loved(), T2.music_genres(), T2.music_insights(),
           T2.music_discoveries(),
         ]);
-        // Run the transformer whenever ANY real source returned rows.
-        // music_stats_daily is often empty at first install — but we still
-        // have raw scrobbles to reconstruct totals, now_playing, top artists
-        // and the heatmap. Gating on stats.length alone leaves fake data on.
-        const hasAny = (scrobbles || []).length
-                    || (stats || []).length
-                    || (top || []).length
-                    || (loved || []).length
-                    || (genres || []).length;
-        if (window.MUSIC_DATA && hasAny) {
-          const shape = transformMusic({ scrobbles, stats, top, loved, genres, newArtists });
-          mergeInto(window.MUSIC_DATA, shape);
+        // Always run the transformer. Even with every source empty, it
+        // produces a complete shape with zeros / empty arrays — that's
+        // the honest state of the DB. Leaving fake in place would lie.
+        const shape = transformMusic({ scrobbles, stats, top, loved, genres, newArtists });
+        if (window.MUSIC_DATA) {
+          replaceShape(window.MUSIC_DATA, shape);
           window.MUSIC_DATA._raw = { scrobbles, stats, top, loved, genres, insights, newArtists };
         }
         return { scrobbles, stats, top, loved, genres, insights, newArtists };

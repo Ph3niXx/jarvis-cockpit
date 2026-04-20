@@ -48,6 +48,42 @@ function Stub({ id, theme, onBack }) {
   );
 }
 
+// Loader shown while a Tier 2 panel fetches its data. Keeps the fake
+// skeleton hidden until real data lands — no more "is this my data?" UX.
+function PanelLoader({ id }) {
+  return (
+    <div style={{ padding: "120px 48px", maxWidth: 680, margin: "0 auto", fontFamily: "var(--font-body, Inter)", textAlign: "left" }}>
+      <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--tx3, #9A8D82)", marginBottom: 14 }}>
+        Chargement · {id}
+      </div>
+      <h2 style={{ fontFamily: "var(--font-display, 'Fraunces', serif)", fontSize: 26, fontWeight: 500, color: "var(--tx, #1F1815)", margin: "0 0 10px", letterSpacing: "-.01em" }}>
+        On récupère tes données…
+      </h2>
+      <p style={{ fontSize: 13, color: "var(--tx2, #5E524A)", lineHeight: 1.6, margin: 0 }}>
+        Premier chargement de ce panel depuis Supabase. Ça prend 2-3 secondes.
+      </p>
+    </div>
+  );
+}
+
+function PanelError({ id, err, onRetry }) {
+  return (
+    <div style={{ padding: "120px 48px", maxWidth: 680, margin: "0 auto", fontFamily: "var(--font-body, Inter)" }}>
+      <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--acc, #C2410C)", marginBottom: 14 }}>
+        Erreur · {id}
+      </div>
+      <h2 style={{ fontFamily: "var(--font-display, 'Fraunces', serif)", fontSize: 26, fontWeight: 500, color: "var(--tx, #1F1815)", margin: "0 0 10px", letterSpacing: "-.01em" }}>
+        Impossible de charger ce panel
+      </h2>
+      <p style={{ fontSize: 13, color: "var(--tx2, #5E524A)", lineHeight: 1.6, margin: "0 0 14px" }}>
+        Supabase n'a pas répondu. Vérifie ta connexion, ou réessaie.
+      </p>
+      {err && <pre style={{ fontSize: 11, color: "var(--tx3, #9A8D82)", background: "var(--bg2)", padding: "10px 14px", borderRadius: 6, overflow: "auto", maxHeight: 140, marginBottom: 14 }}>{String(err).slice(0, 300)}</pre>}
+      <button className="btn btn--primary btn--sm" onClick={onRetry}>Réessayer</button>
+    </div>
+  );
+}
+
 function App() {
   const [activePanel, setActivePanel] = useState(() => {
     try {
@@ -60,6 +96,13 @@ function App() {
   // Incremented when a Tier 2 loadPanel resolves — used as part of the
   // panel key so React re-mounts the panel after real data hydrates.
   const [dataVersion, setDataVersion] = useState(0);
+  // Per-panel loading / error state for Tier 2 panels. Each entry is
+  // "loading" | "ready" | { error }. Absence = not-yet-requested.
+  const [panelStatus, setPanelStatus] = useState(() => {
+    // If bootstrap already preloaded the initial panel, it sets this.
+    return window.__cockpitInitialPanelReady ? { [window.__cockpitInitialPanelReady]: "ready" } : {};
+  });
+  const [retryTick, setRetryTick] = useState(0);
   const [themeId, setThemeId] = useState(() => {
     try {
       const stored = localStorage.getItem("cockpit-theme");
@@ -87,26 +130,54 @@ function App() {
     // activePanel change including the first mount (deep-linked refresh).
   };
 
-  // Tier 2 lazy load: fires whenever activePanel changes. Covers the case
-  // where the page is refreshed on a deep-link hash (#music, #perf, …) —
-  // handleNavigate doesn't run at mount, so without this effect the panel
-  // would render against the untouched fake *_DATA globals.
+  // Tier 2 lazy load: fires whenever activePanel changes or retry is
+  // requested. Covers deep-link refreshes (#music, #perf…) — the panel
+  // never renders against untouched fake *_DATA globals: we either
+  // show a loader until real data arrives, or an error with retry.
   //
-  // Only panels in TIER2_PANELS trigger a dataVersion bump after resolve,
-  // so Tier 1-only screens (brief, top, week, jarvis, search) aren't
-  // subjected to a cosmetic re-mount for a no-op loader.
+  // Tier 1-only panels (brief/top/week/jarvis/search) don't go through
+  // this path (their data is already populated by bootTier1 before
+  // React mounts).
   useEffect(() => {
+    const dl = window.cockpitDataLoader;
+    if (!dl || typeof dl.loadPanel !== "function") return;
+    const isTier2 = dl.TIER2_PANELS && dl.TIER2_PANELS.has(activePanel);
+    if (!isTier2) return;
+
+    // If we've already loaded this panel once in this session, the
+    // T2 cache (once()) resolves synchronously — but we still go
+    // through the async path so `ready` is set correctly.
+    setPanelStatus(prev => {
+      if (prev[activePanel] === "ready") return prev;
+      return { ...prev, [activePanel]: "loading" };
+    });
+
+    let cancelled = false;
+    dl.loadPanel(activePanel).then((result) => {
+      if (cancelled) return;
+      setPanelStatus(prev => ({ ...prev, [activePanel]: "ready" }));
+      if (result !== null) setDataVersion(v => v + 1);
+    }).catch((err) => {
+      if (cancelled) return;
+      console.error("[loadPanel]", activePanel, err);
+      setPanelStatus(prev => ({ ...prev, [activePanel]: { error: err } }));
+    });
+    return () => { cancelled = true; };
+  }, [activePanel, retryTick]);
+
+  // Clear the T2 cache for the active panel and re-run the effect.
+  const retryActivePanel = () => {
     try {
       const dl = window.cockpitDataLoader;
-      if (!dl || typeof dl.loadPanel !== "function") return;
-      const p = dl.loadPanel(activePanel);
-      if (!p || typeof p.then !== "function") return;
-      p.then((result) => {
-        const isTier2 = dl.TIER2_PANELS && dl.TIER2_PANELS.has(activePanel);
-        if (result !== null && isTier2) setDataVersion(v => v + 1);
-      }).catch(() => {});
+      if (dl && dl.cache) {
+        // Drop every cache key that mentions this panel. Keys are
+        // table names, so we clear them all — heavy-handed but safe.
+        Object.keys(dl.cache).forEach(k => { delete dl.cache[k]; });
+      }
     } catch {}
-  }, [activePanel]);
+    setPanelStatus(prev => { const next = { ...prev }; delete next[activePanel]; return next; });
+    setRetryTick(t => t + 1);
+  };
 
   // Hash deep-link: sync browser hash → activePanel (back/forward nav).
   useEffect(() => {
@@ -144,8 +215,19 @@ function App() {
   // Panel key — remount on activePanel or dataVersion change so panels
   // pick up the latest window.*_DATA after Tier 2 hydration.
   const panelKey = activePanel + ":" + dataVersion;
+
+  // Tier 2 panels are only rendered once their data has landed. While
+  // pending, we show a loader so the fake skeleton baked into
+  // data-*.js never surfaces. On error we surface a retry card.
+  const dl = window.cockpitDataLoader;
+  const isTier2 = dl && dl.TIER2_PANELS && dl.TIER2_PANELS.has(activePanel);
+  const status = panelStatus[activePanel];
   let content;
-  if (activePanel === "brief") content = <Home key={panelKey} theme={theme} data={data} onNavigate={handleNavigate} />;
+  if (isTier2 && (!status || status === "loading")) {
+    content = <PanelLoader key={`loader:${activePanel}:${retryTick}`} id={activePanel} />;
+  } else if (isTier2 && status && typeof status === "object" && status.error) {
+    content = <PanelError key={`err:${activePanel}:${retryTick}`} id={activePanel} err={status.error} onRetry={retryActivePanel} />;
+  } else if (activePanel === "brief") content = <Home key={panelKey} theme={theme} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "top") content = <PanelTop key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "signals") content = <PanelSignals key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "radar") content = <PanelRadar key={panelKey} data={data} onNavigate={handleNavigate} />;

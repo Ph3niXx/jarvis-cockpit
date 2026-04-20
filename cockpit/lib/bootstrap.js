@@ -46,6 +46,24 @@ window.__cockpitBootstrapPending = true;
     } catch (e) {
       console.error("[bootstrap] Tier 1 failed, keeping fake data", e);
     }
+
+    // Phase 2.5: if we're deep-linked into a Tier 2 panel (#music, #perf…),
+    // preload its data BEFORE mounting React. This kills the
+    // refresh-shows-fake-for-a-second flash — by the time React renders,
+    // window.*_DATA already holds real values (or we've failed and the
+    // panel will show the error state).
+    try {
+      const initialPanel = (window.location.hash || "").replace(/^#/, "").trim();
+      const dl = window.cockpitDataLoader;
+      if (initialPanel && dl?.TIER2_PANELS?.has(initialPanel)) {
+        await dl.loadPanel(initialPanel);
+        // Flag consumed by App on first render so it skips the loader.
+        window.__cockpitInitialPanelReady = initialPanel;
+      }
+    } catch (e) {
+      console.error("[bootstrap] initial Tier 2 preload failed", e);
+      // Fall through — App will surface an error state for this panel.
+    }
   } catch (e) {
     console.error("[bootstrap]", e);
   }
