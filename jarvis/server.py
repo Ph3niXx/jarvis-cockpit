@@ -218,11 +218,18 @@ def _save_conversation(session_id: str, role: str, content: str, mode: str, toke
 
 
 async def _call_local_llm(messages: list, mode: str) -> tuple[str, int]:
-    """Call LM Studio local LLM via centralized client. Returns (answer, tokens)."""
+    """Call LM Studio local LLM via centralized client. Returns (answer, tokens).
+
+    Qwen3 4B Thinking 2507 is trained to always reason before answering,
+    so even with /no_think injected we often see most of the budget spent
+    inside <think>…</think> blocks. We give 'quick' 1536 tokens (was 512)
+    to leave room for both a short reasoning trace AND a final answer —
+    otherwise the stripper eats everything and the user sees '—'.
+    """
     is_quick = mode == "quick"
     return await chat_completion_async(
         messages,
-        max_tokens=512 if is_quick else LLM_MAX_TOKENS,
+        max_tokens=1536 if is_quick else LLM_MAX_TOKENS,
         temperature=0.3,
     )
 

@@ -348,6 +348,27 @@ function PanelJarvis({ data, onNavigate }) {
   // We give each candidate 120s before giving up.
   const JV_TIMEOUT_MS = 120000;
 
+  // jarvis_conversations.session_id is a UUID column — send a real UUID,
+  // not the literal string "cockpit" (which Postgres rejects with 22P02).
+  // Stable across refreshes so a returning user continues the same session.
+  function getJarvisSessionId(){
+    try {
+      let sid = localStorage.getItem("jarvis-session-id");
+      if (sid && /^[0-9a-f-]{36}$/i.test(sid)) return sid;
+      sid = (typeof crypto !== "undefined" && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            const v = c === "x" ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+      localStorage.setItem("jarvis-session-id", sid);
+      return sid;
+    } catch {
+      return "00000000-0000-4000-8000-000000000000";
+    }
+  }
+
   async function callJarvis(base, text, chatMode){
     const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
     // Local LLM can be much slower on cold start or when the GPU is busy;
@@ -359,7 +380,7 @@ function PanelJarvis({ data, onNavigate }) {
       const resp = await fetch(base + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text, mode: chatMode, session_id: "cockpit", history: [] }),
+        body: JSON.stringify({ question: text, mode: chatMode, session_id: getJarvisSessionId(), history: [] }),
         signal: ctrl ? ctrl.signal : undefined,
       });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
