@@ -471,6 +471,8 @@
     async gaming_news(){ return once("gaming_articles", () => q("gaming_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async anime(){ return once("anime_articles", () => q("anime_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async news(){ return once("news_articles", () => q("news_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
+    async jarvis_messages(){ return once("jarvis_messages", () => q("jarvis_conversations", "order=created_at.desc&limit=200")); },
+    async jarvis_facts(){ return once("jarvis_facts", () => q("profile_facts", "superseded_by=is.null&order=created_at.desc&limit=200")); },
     async jobs_scan_today(){
       const today = isoToday();
       return once("jobs_scan_" + today, async () => {
@@ -1529,6 +1531,77 @@
     });
   }
 
+  // ─── Jarvis transformers ──────────────────────────────────
+  // Conversations are stored oldest→newest chronologically but the
+  // query returns desc; we reverse and inject day-level "stamp" entries
+  // so the UI's existing stamp component keeps working.
+  function transformJarvisMessages(rows){
+    if (!rows || !rows.length) return [];
+    const chrono = rows.slice().reverse();
+    const out = [];
+    let lastStamp = null;
+    const DAY = 86400000;
+    chrono.forEach(r => {
+      const d = r.created_at ? new Date(r.created_at) : new Date();
+      const dayKey = d.toISOString().slice(0, 10);
+      if (dayKey !== lastStamp) {
+        const daysAgo = Math.floor((Date.now() - d.getTime()) / DAY);
+        const label = daysAgo === 0 ? "Aujourd'hui"
+          : daysAgo === 1 ? "Hier"
+          : daysAgo < 7 ? `Il y a ${daysAgo} jours`
+          : d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+        out.push({ kind: "stamp", label });
+        lastStamp = dayKey;
+      }
+      out.push({
+        kind: r.role === "user" ? "user" : "jarvis",
+        text: r.content || "",
+        ts: d.getTime(),
+        mode: r.mode || null,
+        id: r.id,
+      });
+    });
+    return out;
+  }
+
+  // fact_type → category mapping for the memory column.
+  const FACT_CATEGORY = {
+    context: "profil",
+    profile: "profil",
+    skill: "profil",
+    preference: "préférences",
+    opinion: "positions",
+    position: "positions",
+    goal: "projets",
+    project: "projets",
+    constraint: "contraintes",
+    interest: "intérêts",
+  };
+  function transformJarvisFacts(rows){
+    const pinned = (() => {
+      try { return JSON.parse(localStorage.getItem("jarvis-fact-pinned") || "{}"); }
+      catch { return {}; }
+    })();
+    return (rows || []).map(f => {
+      const category = FACT_CATEGORY[f.fact_type] || "profil";
+      const text = f.fact_text || "";
+      const label = (f.fact_type || "fait").replace(/^\w/, c => c.toUpperCase());
+      const learnedDate = f.created_at ? relTime(f.created_at) : "—";
+      const strength = f.confidence >= 0.85 ? "strong" : f.confidence >= 0.6 ? "medium" : "weak";
+      return {
+        id: f.id,
+        category,
+        label,
+        value: text.length > 240 ? text.slice(0, 240) + "…" : text,
+        source: f.source || "conversation",
+        learned: learnedDate,
+        strength,
+        pinned: !!pinned[f.id],
+        editable: true,
+      };
+    });
+  }
+
   function transformVeilleFeed(articles){
     const readMap = getReadMap();
     return (articles || []).map(a => {
@@ -1951,6 +2024,44 @@
         }
         return { articles };
       }
+      case "jarvis": {
+        const [rawMessages, rawFacts] = await Promise.all([T2.jarvis_messages(), T2.jarvis_facts()]);
+        if (window.JARVIS_DATA) {
+          if (rawMessages.length) {
+            window.JARVIS_DATA.messages = transformJarvisMessages(rawMessages);
+            const first = rawMessages[rawMessages.length - 1]; // oldest after desc fetch
+            const last = rawMessages[0];
+            const totalMs = first && last ? (new Date(last.created_at) - new Date(first.created_at)) : 0;
+            window.JARVIS_DATA.meta = {
+              ...(window.JARVIS_DATA.meta || {}),
+              first_conversation: first?.created_at?.slice(0, 10) || window.JARVIS_DATA.meta?.first_conversation,
+              total_messages: rawMessages.length,
+              total_hours: Math.max(1, Math.round(totalMs / 3600000)),
+              last_active: last?.created_at ? relTime(last.created_at) : "—",
+            };
+            const today = isoToday();
+            const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+            const costToday = rawMessages
+              .filter(r => (r.created_at || "").slice(0, 10) === today)
+              .reduce((s, r) => s + (r.mode === "cloud" ? (r.tokens_used || 0) * 0.000004 : 0), 0);
+            window.JARVIS_DATA.stats = {
+              ...(window.JARVIS_DATA.stats || {}),
+              messages_today: rawMessages.filter(r => (r.created_at || "").slice(0, 10) === today).length,
+              messages_week: rawMessages.filter(r => (r.created_at || "") >= weekAgo).length,
+              cost_today_eur: Math.round(costToday * 100) / 100,
+              cost_budget_eur: window.JARVIS_DATA.stats?.cost_budget_eur ?? 3,
+            };
+          }
+          if (rawFacts.length) {
+            window.JARVIS_DATA.memory = transformJarvisFacts(rawFacts);
+            if (window.JARVIS_DATA.stats) {
+              window.JARVIS_DATA.stats.memory_items = rawFacts.length;
+              window.JARVIS_DATA.stats.memory_pinned = window.JARVIS_DATA.memory.filter(m => m.pinned).length;
+            }
+          }
+        }
+        return { messages: rawMessages, facts: rawFacts };
+      }
       case "news": {
         const articles = await T2.news();
         if (window.NEWS_DATA && articles.length) {
@@ -2218,7 +2329,7 @@
   const TIER2_PANELS = new Set([
     "updates", "wiki", "radar", "recos", "challenges", "opps", "ideas",
     "profile", "perf", "music", "gaming", "stacks", "history", "jobs",
-    "sport", "gaming_news", "anime", "news",
+    "sport", "gaming_news", "anime", "news", "jarvis",
   ]);
 
   // Hydrate globals with real data on boot (Tier 1 already fetched the

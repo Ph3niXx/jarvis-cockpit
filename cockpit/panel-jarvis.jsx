@@ -92,7 +92,7 @@ function JvCite({ cite, onNavigate }) {
 }
 
 // ─── Message single ──────────────────────────────────────
-function JvMessage({ m, onNavigate }) {
+function JvMessage({ m, onNavigate, onCopy, onRegenerate, canRegenerate }) {
   if (m.kind === "stamp") {
     return (
       <div className="jv-stamp">
@@ -125,11 +125,12 @@ function JvMessage({ m, onNavigate }) {
         )}
         {m.kind === "jarvis" && !m.kind_aside && (
           <div className="jv-meta">
-            <span>Jarvis</span>
+            <span>Jarvis{m.mode ? ` · ${m.mode}` : ""}</span>
             <span className="jv-meta-actions">
-              <button>Copier</button>
-              <button>Régénérer</button>
-              <button>Éditer mémoire</button>
+              <button onClick={() => onCopy && onCopy(m.text)}>Copier</button>
+              {canRegenerate && (
+                <button onClick={() => onRegenerate && onRegenerate()}>Régénérer</button>
+              )}
             </span>
           </div>
         )}
@@ -139,7 +140,7 @@ function JvMessage({ m, onNavigate }) {
 }
 
 // ─── Mémoire : un item ───────────────────────────────────
-function JvMemItem({ item, onNavigate }) {
+function JvMemItem({ item, onNavigate, onPin, onForget, pending }) {
   const [expanded, setExpanded] = useStateJv(false);
   const strength = item.strength || "strong";
   return (
@@ -159,9 +160,19 @@ function JvMemItem({ item, onNavigate }) {
       </div>
       {expanded && item.editable && (
         <div className="jv-mem-expand" onClick={(e) => e.stopPropagation()}>
-          <button><JvIcon name="edit" size={11} /> Éditer</button>
-          <button><JvIcon name="pin" size={11} /> {item.pinned ? "Détacher" : "Épingler"}</button>
-          <button className="is-danger"><JvIcon name="close" size={11} /> Oublier</button>
+          <button
+            onClick={() => onPin && onPin(item)}
+            disabled={pending}
+          >
+            <JvIcon name="pin" size={11} /> {item.pinned ? "Détacher" : "Épingler"}
+          </button>
+          <button
+            className="is-danger"
+            onClick={() => onForget && onForget(item)}
+            disabled={pending}
+          >
+            <JvIcon name="close" size={11} /> Oublier
+          </button>
         </div>
       )}
     </div>
@@ -169,7 +180,7 @@ function JvMemItem({ item, onNavigate }) {
 }
 
 // ─── Mémoire : colonne droite ─────────────────────────────
-function JvMemory({ memory, onNavigate }) {
+function JvMemory({ memory, onNavigate, onPin, onForget, pendingIds }) {
   const [activeFilter, setActiveFilter] = useStateJv("all");
   const categories = useMemoJv(() => {
     const order = ["profil", "préférences", "intérêts", "positions", "projets", "contraintes"];
@@ -227,7 +238,14 @@ function JvMemory({ memory, onNavigate }) {
               </div>
             </div>
             {cat.items.map(item => (
-              <JvMemItem key={item.id} item={item} onNavigate={onNavigate} />
+              <JvMemItem
+                key={item.id}
+                item={item}
+                onNavigate={onNavigate}
+                onPin={onPin}
+                onForget={onForget}
+                pending={!!pendingIds?.[item.id]}
+              />
             ))}
           </div>
         ))}
@@ -244,11 +262,19 @@ function JvMemory({ memory, onNavigate }) {
 // ═══════════════════════════════════════════════════════════════
 //  MAIN PANEL
 // ═══════════════════════════════════════════════════════════════
+const JV_MODE_LABELS = {
+  quick: "Rapide (LLM local · sans RAG)",
+  deep:  "Deep (LLM local · RAG)",
+  cloud: "Cloud (Claude Haiku · RAG)",
+};
+
 function PanelJarvis({ data, onNavigate }) {
   const JV = window.JARVIS_DATA;
   const [input, setInput] = useStateJv("");
   const [messages, setMessages] = useStateJv(() => JV.messages.slice());
+  const [memory, setMemory] = useStateJv(() => JV.memory.slice());
   const [sending, setSending] = useStateJv(false);
+  const [pendingFacts, setPendingFacts] = useStateJv({});
   const [mode, setMode] = useStateJv(() => {
     try { return localStorage.getItem("jarvis-mode") || "quick"; } catch { return "quick"; }
   });
@@ -328,6 +354,85 @@ function PanelJarvis({ data, onNavigate }) {
     }
   };
 
+  // ── Message actions ─────────────────────────────────────
+  const handleCopy = async (text) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback for file:// or non-secure contexts
+        const ta = document.createElement("textarea");
+        ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand("copy"); ta.remove();
+      }
+    } catch (e) { console.warn("[jarvis] copy failed", e); }
+  };
+
+  const handleRegenerate = async () => {
+    // Resend the most recent user message as a new turn
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.kind === "user" && typeof m.text === "string") {
+        setInput(m.text);
+        // Defer send so React commits the input change first
+        setTimeout(() => { handleSend(); }, 0);
+        return;
+      }
+    }
+  };
+
+  // ── Memory actions (pin = local, forget = soft-delete via superseded_by)
+  const handlePin = (item) => {
+    setMemory(prev => prev.map(m => m.id === item.id ? { ...m, pinned: !m.pinned } : m));
+    try {
+      const raw = localStorage.getItem("jarvis-fact-pinned") || "{}";
+      const map = JSON.parse(raw);
+      if (map[item.id]) delete map[item.id]; else map[item.id] = true;
+      localStorage.setItem("jarvis-fact-pinned", JSON.stringify(map));
+    } catch {}
+    // Keep the global in sync so a re-render from somewhere else still
+    // sees the new pinned state.
+    if (window.JARVIS_DATA) {
+      window.JARVIS_DATA.memory = window.JARVIS_DATA.memory.map(
+        m => m.id === item.id ? { ...m, pinned: !m.pinned } : m
+      );
+    }
+  };
+
+  const handleForget = async (item) => {
+    if (!window.sb || !window.SUPABASE_URL) return;
+    if (!confirm(`Oublier ce fait ?\n\n"${item.value}"`)) return;
+    setPendingFacts(p => ({ ...p, [item.id]: true }));
+    // Optimistic remove
+    const prevMem = memory;
+    setMemory(prev => prev.filter(m => m.id !== item.id));
+    try {
+      const url = `${window.SUPABASE_URL}/rest/v1/profile_facts?id=eq.${encodeURIComponent(item.id)}`;
+      // Soft-delete: superseded_by pointing to itself so nightly_learner
+      // treats it as obsolete without losing the audit trail.
+      const r = await window.sb.patchJSON(url, { superseded_by: item.id });
+      if (!r.ok) throw new Error("patch " + r.status);
+      if (window.JARVIS_DATA) {
+        window.JARVIS_DATA.memory = window.JARVIS_DATA.memory.filter(m => m.id !== item.id);
+      }
+      try { window.track && window.track("jarvis_fact_forgotten", { id: item.id }); } catch {}
+    } catch (e) {
+      console.error("[jarvis] forget failed", e);
+      setMemory(prevMem);
+      alert("Impossible d'oublier ce fait. Réessaie dans un instant.");
+    } finally {
+      setPendingFacts(p => {
+        const n = { ...p }; delete n[item.id]; return n;
+      });
+    }
+  };
+
+  // Last jarvis message has a "Régénérer" button
+  let lastJarvisIdx = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].kind === "jarvis" && !messages[i].kind_aside) { lastJarvisIdx = i; break; }
+  }
+
   return (
     <div className="jv-wrap" data-screen-label="Jarvis">
       {/* ═════ CHAT COLUMN ═════════════════════════════ */}
@@ -353,8 +458,21 @@ function PanelJarvis({ data, onNavigate }) {
 
         <div className="jv-scroll" ref={scrollRef}>
           <div className="jv-feed">
+            {messages.length === 0 && !sending && (
+              <div className="jv-empty">
+                Pas encore de conversation synchronisée.<br/>
+                Lance <code>start_jarvis.bat</code> et écris un message ci-dessous pour démarrer.
+              </div>
+            )}
             {messages.map((m, i) => (
-              <JvMessage key={i} m={m} onNavigate={handleNav} />
+              <JvMessage
+                key={m.id || i}
+                m={m}
+                onNavigate={handleNav}
+                onCopy={handleCopy}
+                onRegenerate={handleRegenerate}
+                canRegenerate={i === lastJarvisIdx}
+              />
             ))}
             {sending && (
               <div className="jv-msg jv-msg--jarvis" style={{ opacity: 0.6 }}>
@@ -407,14 +525,20 @@ function PanelJarvis({ data, onNavigate }) {
             </div>
             <div className="jv-composer-foot">
               <span><span className="jv-kbd">⏎</span> envoyer · <span className="jv-kbd">⇧⏎</span> nouvelle ligne</span>
-              <span>Claude Sonnet 4.5 · mémoire activée</span>
+              <span>{JV_MODE_LABELS[mode] || mode} · mémoire activée</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* ═════ MEMORY COLUMN ═══════════════════════════ */}
-      <JvMemory memory={JV.memory} onNavigate={handleNav} />
+      <JvMemory
+        memory={memory}
+        onNavigate={handleNav}
+        onPin={handlePin}
+        onForget={handleForget}
+        pendingIds={pendingFacts}
+      />
     </div>
   );
 }
