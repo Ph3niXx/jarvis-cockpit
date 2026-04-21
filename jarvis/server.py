@@ -54,13 +54,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SYSTEM_PROMPT = (
+SYSTEM_PROMPT_BASE = (
     "Tu es Jarvis, l'assistant IA personnel de Jean. "
     "Tu es concis, précis, et tu parles français. "
     "Tu te bases sur le contexte fourni pour répondre. "
-    "Si le contexte ne contient pas l'information demandée, dis-le honnêtement. "
-    "/no_think"
+    "Si le contexte ne contient pas l'information demandée, dis-le honnêtement."
 )
+
+def system_prompt_for(mode: str) -> str:
+    """Append /no_think on quick mode only.
+
+    On Qwen3 Thinking variants this flag switches off the <think>…</think>
+    chain-of-thought. We want thinking OFF for 'quick' (chat answers should
+    be instant) but ON for 'deep' (RAG + reasoning over retrieved context).
+    'cloud' goes through Claude — the flag is ignored there.
+    """
+    if mode == "quick":
+        return SYSTEM_PROMPT_BASE + " /no_think"
+    return SYSTEM_PROMPT_BASE
+
+
+# Back-compat alias so other modules importing SYSTEM_PROMPT still work.
+SYSTEM_PROMPT = SYSTEM_PROMPT_BASE + " /no_think"
 
 
 # ── Models ─────────────────────────────────────────────────────────
@@ -360,8 +375,11 @@ def _build_context(question: str, mode: str, history: list[dict]) -> tuple[list,
 
     activity_context = _get_activity_context(question)
 
-    # 2. Build system prompt with profile facts
-    system = SYSTEM_PROMPT
+    # 2. Build system prompt with profile facts.
+    # system_prompt_for(mode) injects /no_think on quick mode only — Qwen3
+    # Thinking variants reason through <think>…</think> in deep/cloud, which
+    # is genuinely useful when RAG context is provided.
+    system = system_prompt_for(mode)
     profile_context = _get_profile_facts()
     if profile_context:
         system += "\n\n" + profile_context

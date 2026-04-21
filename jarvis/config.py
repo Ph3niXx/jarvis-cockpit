@@ -7,7 +7,11 @@ LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
 LM_STUDIO_API_KEY = os.getenv("LM_STUDIO_API_KEY", "lm-studio")
 
 # Models
-LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-9b")
+# Qwen3 4B Thinking 2507 fits in 8 GB VRAM with headroom for KV cache,
+# and switches thinking on/off via /no_think in the system prompt (see
+# server.py::system_prompt_for). Exact slug depends on LM Studio's
+# naming — override via LLM_MODEL env var if different.
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3-4b-thinking-2507")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen/qwen3-embedding-0.6b")
 
 # Generation parameters
