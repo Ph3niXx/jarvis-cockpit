@@ -95,7 +95,7 @@ function SignalChip({ name, onClick }) {
 }
 
 // ─── Flagship (top priority opportunity) ─────────────────
-function FlagshipCard({ opp, onTake, onPass, onOpenSignal }) {
+function FlagshipCard({ opp, onTake, onPass, onOpenSignal, onAskJarvis, onSendToIdeas }) {
   const w = opp.window;
   const progress = windowProgress(w);
   const barCls = w.urgency === "closing" ? "opp-flagship-window-bar-fill--closing"
@@ -122,7 +122,7 @@ function FlagshipCard({ opp, onTake, onPass, onOpenSignal }) {
           <button className="btn btn--ghost" onClick={() => onPass(opp.id)}>
             Je passe
           </button>
-          <button className="btn btn--ghost">
+          <button className="btn btn--ghost" onClick={() => onAskJarvis && onAskJarvis(opp)}>
             <Icon name="assistant" size={14} stroke={1.75} /> Plan d'action
           </button>
         </div>
@@ -161,7 +161,7 @@ function FlagshipCard({ opp, onTake, onPass, onOpenSignal }) {
 }
 
 // ─── Card (editorial row) ────────────────────────────────
-function OppCard({ opp, open, onToggle, onTake, onPass, onOpenSignal }) {
+function OppCard({ opp, open, onToggle, onTake, onPass, onOpenSignal, onAskJarvis, onSendToIdeas }) {
   const w = opp.window;
   const cls = `opp-card ${opp.status === "taken" ? "is-taken" : ""} ${opp.status === "passed" ? "is-passed" : ""}`;
   const progress = windowProgress(w);
@@ -242,10 +242,10 @@ function OppCard({ opp, open, onToggle, onTake, onPass, onOpenSignal }) {
               <button className="btn btn--ghost opp-cta-pass" onClick={() => onPass(opp.id)}>
                 Je passe
               </button>
-              <button className="btn btn--ghost">
+              <button className="btn btn--ghost" onClick={() => onAskJarvis && onAskJarvis(opp)}>
                 <Icon name="assistant" size={14} stroke={1.75} /> Demander un plan à Jarvis
               </button>
-              <button className="btn btn--ghost">
+              <button className="btn btn--ghost" onClick={() => onSendToIdeas && onSendToIdeas(opp)}>
                 <Icon name="notebook" size={14} stroke={1.75} /> Envoyer au Carnet d'idées
               </button>
             </div>
@@ -462,6 +462,37 @@ function PanelOpportunities({ data, onNavigate }) {
 
   const handleTake = (id) => setStatus(s => ({ ...s, [id]: "taken" }));
   const handlePass = (id) => setStatus(s => ({ ...s, [id]: "passed" }));
+
+  const handleAskJarvis = (opp) => {
+    const prompt = `Aide-moi à bâtir un plan d'action pour cette opportunité :\n\n${opp.title}\n${opp.summary || opp.pitch || ""}\n\nFenêtre : ${opp.window?.closes_in || "—"}. Priorité : ${opp.priority || opp.match + "/100"}.\n\nDonne-moi 5 étapes concrètes pour les 2 prochaines semaines.`;
+    try { localStorage.setItem("jarvis-prefill-input", prompt); } catch {}
+    onNavigate && onNavigate("jarvis");
+  };
+
+  const handleSendToIdeas = async (opp) => {
+    if (!window.sb || !window.SUPABASE_URL) {
+      alert("Client Supabase non initialisé.");
+      return;
+    }
+    if (!confirm(`Copier cette opportunité dans le carnet d'idées ?\n\n"${opp.title}"\n\nElle y attendra en statut "maturing" que tu la creuses.`)) return;
+    try {
+      const url = `${window.SUPABASE_URL}/rest/v1/business_ideas`;
+      const payload = {
+        title: opp.title,
+        description: opp.summary || opp.pitch || "",
+        sector: opp.scope || "business",
+        status: "maturing",
+        notes: `Source : opportunité "${opp.id}" · match ${opp.match || "—"}/100 · fenêtre ${opp.window?.closes_in || "—"}.`,
+        related_concepts: opp.tags || [],
+      };
+      const rows = await window.sb.postJSON(url, payload);
+      try { window.track && window.track("opp_sent_to_ideas", { opp_id: opp.id, idea_id: rows?.[0]?.id }); } catch {}
+      if (confirm("Idée créée. Ouvrir le carnet d'idées ?")) onNavigate && onNavigate("ideas");
+    } catch (e) {
+      console.error(e);
+      alert("Impossible d'enregistrer l'idée. Réessaie dans un instant.");
+    }
+  };
   const handleReset = (id) => setStatus(s => { const n = { ...s }; delete n[id]; return n; });
 
   const handleOpenSignal = (signalName) => {
@@ -567,7 +598,7 @@ function PanelOpportunities({ data, onNavigate }) {
                     <OppCard key={o.id} opp={o}
                       open={openId === o.id}
                       onToggle={() => setOpenId(openId === o.id ? null : o.id)}
-                      onTake={handleTake} onPass={handlePass}
+                      onTake={handleTake} onPass={handlePass} onAskJarvis={handleAskJarvis} onSendToIdeas={handleSendToIdeas}
                       onOpenSignal={handleOpenSignal} />
                   ))}
                 </section>
@@ -579,7 +610,7 @@ function PanelOpportunities({ data, onNavigate }) {
                 <OppCard key={o.id} opp={o}
                   open={openId === o.id}
                   onToggle={() => setOpenId(openId === o.id ? null : o.id)}
-                  onTake={handleTake} onPass={handlePass}
+                  onTake={handleTake} onPass={handlePass} onAskJarvis={handleAskJarvis} onSendToIdeas={handleSendToIdeas}
                   onOpenSignal={handleOpenSignal} />
               ))}
               {(grouped[scope] || []).length === 0 && (
@@ -597,7 +628,7 @@ function PanelOpportunities({ data, onNavigate }) {
           onOpen={(id) => { setView("editorial"); setOpenId(id); setTimeout(() => {
             document.querySelector(`[data-opp-id="${id}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
           }, 80); }}
-          onTake={handleTake} onPass={handlePass} />
+          onTake={handleTake} onPass={handlePass} onAskJarvis={handleAskJarvis} onSendToIdeas={handleSendToIdeas} />
       )}
 
       {view === "timeline" && (

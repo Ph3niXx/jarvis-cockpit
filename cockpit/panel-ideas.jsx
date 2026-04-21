@@ -49,7 +49,8 @@ function IdSignalChip({ name, onClick }) {
 }
 
 // ─── Flagship : l'idée qui "attend" ──────────────────────
-function FlagshipIdea({ idea, onPromote, onOpenSignal, onCreate }) {
+function FlagshipIdea({ idea, onPromote, onOpenSignal, onCreate, onDig, onArchive, pending }) {
+  const isPending = pending && pending[idea.id];
   return (
     <article className="id-flagship">
       <div className="id-flagship-main">
@@ -61,13 +62,13 @@ function FlagshipIdea({ idea, onPromote, onOpenSignal, onCreate }) {
           <div className="id-flagship-prompt">{idea.jarvis_prompt}</div>
         )}
         <div className="id-flagship-actions">
-          <button className="btn btn--primary" onClick={() => onPromote(idea.id)}>
+          <button className="btn btn--primary" onClick={() => onPromote(idea.id)} disabled={isPending}>
             <Icon name="arrow_up" size={14} stroke={2} /> Promouvoir en opportunité
           </button>
-          <button className="btn btn--ghost">
+          <button className="btn btn--ghost" onClick={() => onDig && onDig(idea)} disabled={isPending}>
             <Icon name="edit" size={14} stroke={1.75} /> Creuser plus
           </button>
-          <button className="btn btn--ghost">
+          <button className="btn btn--ghost" onClick={() => onArchive && onArchive(idea.id)} disabled={isPending}>
             <Icon name="archive" size={14} stroke={1.75} /> Parquer
           </button>
         </div>
@@ -199,7 +200,7 @@ function GalleryView({ ideas, onOpen }) {
 }
 
 // ─── Detail panel (modal-like inline) ────────────────────
-function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen }) {
+function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen, onDig, onArchive, onNavigate, pending }) {
   const related = (idea.related_ids || []).map(id => allIdeas.find(i => i.id === id)).filter(Boolean);
   return (
     <div className="id-detail">
@@ -289,17 +290,17 @@ function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen }
 
       <div className="id-detail-actions">
         {!idea.promoted_to_opp && (
-          <button className="btn btn--primary" onClick={() => onPromote(idea.id)}>
+          <button className="btn btn--primary" onClick={() => onPromote(idea.id)} disabled={pending && pending[idea.id]}>
             <Icon name="arrow_up" size={14} stroke={2} /> Promouvoir en opportunité
           </button>
         )}
-        <button className="btn btn--ghost">
+        <button className="btn btn--ghost" onClick={() => onDig && onDig(idea)} disabled={pending && pending[idea.id]}>
           <Icon name="edit" size={14} stroke={1.75} /> Creuser plus
         </button>
-        <button className="btn btn--ghost">
+        <button className="btn btn--ghost" onClick={() => onNavigate && onNavigate("jarvis")}>
           <Icon name="assistant" size={14} stroke={1.75} /> Demander à Jarvis
         </button>
-        <button className="btn btn--ghost">
+        <button className="btn btn--ghost" onClick={() => onArchive && onArchive(idea.id)} disabled={pending && pending[idea.id]}>
           <Icon name="archive" size={14} stroke={1.75} /> Parquer
         </button>
         <button className="btn btn--ghost" onClick={onClose} style={{marginLeft:"auto"}}>Fermer</button>
@@ -348,10 +349,72 @@ function PanelIdeas({ data, onNavigate }) {
     return candidates.sort((a,b) => b.touched_count - a.touched_count)[0];
   }, [allIdeas]);
 
-  const handleOpen = (id) => setOpenId(openId === id ? null : id);
-  const handlePromote = (id) => {
-    alert(`Promouvoir ${id} en opportunité — à connecter au panel Opportunités`);
+  const [pending, setPending] = React.useState({});
+  const patchIdea = async (id, patch) => {
+    if (!window.sb || !window.SUPABASE_URL) throw new Error("no client");
+    const url = `${window.SUPABASE_URL}/rest/v1/business_ideas?id=eq.${encodeURIComponent(id)}`;
+    const r = await window.sb.patchJSON(url, patch);
+    if (!r.ok) throw new Error("patch " + r.status);
+    // Mutate the in-memory list so the UI reflects immediately without
+    // waiting for a full reload.
+    if (window.IDEAS_DATA?.ideas) {
+      window.IDEAS_DATA.ideas = window.IDEAS_DATA.ideas.map(
+        i => i.id === id ? { ...i, ...patch } : i
+      );
+    }
   };
+
+  const handleOpen = (id) => setOpenId(openId === id ? null : id);
+
+  const handlePromote = async (id) => {
+    if (pending[id]) return;
+    if (!confirm("Marquer cette idée comme promue en opportunité ? Elle sera taguée 'promoted' et tu pourras l'intégrer au panel Opportunités.")) return;
+    setPending(p => ({ ...p, [id]: true }));
+    try {
+      await patchIdea(id, { status: "promoted", updated_at: new Date().toISOString() });
+      try { window.track && window.track("idea_promoted", { id }); } catch {}
+      alert("Idée taguée 'promoted'. Recharge le panel Opportunités pour l'y voir.");
+    } catch (e) {
+      console.error(e);
+      alert("Échec de la sauvegarde — réessaie.");
+    } finally {
+      setPending(p => { const n = { ...p }; delete n[id]; return n; });
+    }
+  };
+
+  const handleArchive = async (id) => {
+    if (pending[id]) return;
+    if (!confirm("Parquer cette idée ? Elle passera en statut 'archived' et ne sera plus mise en avant.")) return;
+    setPending(p => ({ ...p, [id]: true }));
+    try {
+      await patchIdea(id, { status: "archived", updated_at: new Date().toISOString() });
+      setOpenId(null);
+      try { window.track && window.track("idea_archived", { id }); } catch {}
+    } catch (e) {
+      console.error(e);
+      alert("Échec de la sauvegarde — réessaie.");
+    } finally {
+      setPending(p => { const n = { ...p }; delete n[id]; return n; });
+    }
+  };
+
+  const handleDig = async (idea) => {
+    if (pending[idea.id]) return;
+    const current = idea.notes || idea.body || "";
+    const next = prompt("Ajoute ou édite tes notes sur cette idée :", current);
+    if (next == null || next === current) return;
+    setPending(p => ({ ...p, [idea.id]: true }));
+    try {
+      await patchIdea(idea.id, { notes: next, updated_at: new Date().toISOString() });
+      try { window.track && window.track("idea_dug", { id: idea.id }); } catch {}
+    } catch (e) {
+      console.error(e);
+      alert("Échec de la sauvegarde — réessaie.");
+    } finally {
+      setPending(p => { const n = { ...p }; delete n[idea.id]; return n; });
+    }
+  };
+
   const handleOpenSignal = () => onNavigate("signals");
 
   const openIdea = openId ? allIdeas.find(i => i.id === openId) : null;
@@ -408,6 +471,9 @@ function PanelIdeas({ data, onNavigate }) {
           idea={flagship}
           onPromote={handlePromote}
           onOpenSignal={handleOpenSignal}
+          onDig={handleDig}
+          onArchive={handleArchive}
+          pending={pending}
         />
       )}
 
@@ -466,6 +532,10 @@ function PanelIdeas({ data, onNavigate }) {
             onOpenSignal={handleOpenSignal}
             onPromote={handlePromote}
             onOpen={handleOpen}
+            onDig={handleDig}
+            onArchive={handleArchive}
+            onNavigate={onNavigate}
+            pending={pending}
           />
         </div>
       )}

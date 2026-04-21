@@ -19,33 +19,45 @@ const OS_INFO = (() => {
   return { os, modKey, modSymbol, isTouch, isIOS, isMac, isAndroid, isWin };
 })();
 
-// ── Fake corpus ──────────────────────────────────────────────
-const CORPUS = [
-  { id: 1, type: "article", scope: "Veille IA", title: "Claude Agents GA — mémoire persistante et orchestration multi-outils", source: "Anthropic", date: "Hier · 14h32", snippet: "Disponibilité générale de l'API agents avec une mémoire de contexte de 1M tokens, un routage automatique entre outils…", tags: ["agents", "anthropic", "enterprise"], icon: "sparkles" },
-  { id: 2, type: "article", scope: "Veille IA", title: "BNP Paribas industrialise 140 cas d'usage IA avec Mistral", source: "Les Échos", date: "Hier · 11h", snippet: "La banque déploie Mistral Large 2 en production sur son cloud souverain, dont 40 cas d'usage en assurance…", tags: ["finserv", "mistral", "souveraineté"], icon: "bank" },
-  { id: 3, type: "note", scope: "Notes perso", title: "Idée : agent de veille brevets pour train Vente", source: "Carnet d'idées · 17 avr", date: "il y a 4 jours", snippet: "Un agent qui scan l'INPI chaque semaine sur les brevets déposés par la concurrence assurance et produit un…", tags: ["idée", "agents", "veille"], icon: "lightbulb" },
-  { id: 4, type: "challenge", scope: "Apprentissage", title: "Fine-tune Qwen3 sur tes notes RTE", source: "Challenge · 200 XP", date: "Ouvert", snippet: "LoRA 8-bit sur tes notes de cérémonies SAFe pour qu'il propose des formulations de risque.", tags: ["fine-tuning", "lora"], icon: "trophy" },
-  { id: 5, type: "wiki", scope: "Wiki IA", title: "Pattern : Agent avec mémoire persistante (RAG + context cache)", source: "Wiki · 142 entrées", date: "màj 12 avr", snippet: "Pattern qui combine un vector store pour la mémoire long-terme et le prompt caching d'Anthropic pour la…", tags: ["agents", "rag", "pattern"], icon: "book" },
-  { id: 6, type: "conversation", scope: "Jarvis", title: "Comment structurer la doc technique AI Act pour Malakoff ?", source: "Jarvis · conversation", date: "il y a 2 jours", snippet: "Tu avais posé la question lundi, Jarvis t'a proposé un plan en 4 parties avec registre des systèmes, doc technique…", tags: ["ai-act", "malakoff", "régulation"], icon: "assistant" },
-  { id: 7, type: "article", scope: "Veille IA", title: "Phi-4 mini publié — 3.8B paramètres, niveau GPT-4o-mini", source: "Hugging Face", date: "il y a 3 jours", snippet: "Microsoft publie les poids sous licence MIT. Benchmarks serrés face à Llama 3.3 8B…", tags: ["llms", "opensource", "edge"], icon: "cpu" },
-  { id: 8, type: "opportunity", scope: "Business", title: "POC agent souscription santé Malakoff — lead identifié", source: "Opportunités", date: "Nouveau", snippet: "Client prospect identifié via salon Insurtech Paris, chef de projet digital intéressé par un POC agent…", tags: ["biz", "agent", "souscription"], icon: "lightbulb" },
-  { id: 9, type: "article", scope: "Veille IA", title: "MCP 1.0 — Model Context Protocol atteint la v1 stable", source: "Anthropic Blog", date: "il y a 5 jours", snippet: "Le protocole ouvert pour connecter des agents à des outils et sources de données passe en version stable…", tags: ["mcp", "agents", "protocole"], icon: "sparkles" },
-  { id: 10, type: "note", scope: "Notes perso", title: "Prompt system pour résumer les dailies SAFe", source: "Notes · 14 avr", date: "il y a 6 jours", snippet: "Template qui prend le transcript et produit blockers / achievements / risques en markdown structuré…", tags: ["prompt", "safe", "template"], icon: "notebook" },
-];
+// ── Recent queries (localStorage) + saved searches (localStorage) ──
+// Demo CORPUS was removed: live Supabase search runs as soon as you
+// type 2 chars. Short-query suggestions now use your actual recent
+// searches instead of fake articles.
+const CORPUS = [];
 
-const RECENT_QUERIES = [
-  { q: "agent memory", ts: "il y a 2h", results: 12 },
-  { q: "ai act souscription", ts: "hier", results: 8 },
-  { q: "mistral bnp", ts: "hier", results: 4 },
-  { q: "lora fine-tuning pratique", ts: "il y a 3 jours", results: 7 },
-  { q: "mcp protocol", ts: "il y a 5 jours", results: 23 },
-];
+function readRecentQueries(){
+  try {
+    const raw = localStorage.getItem("search.recent");
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list.slice(0, 5) : [];
+  } catch { return []; }
+}
+function pushRecentQuery(q, resultsCount){
+  try {
+    const prev = readRecentQueries().filter(r => r.q !== q);
+    const next = [{ q, ts: new Date().toISOString(), results: resultsCount }, ...prev].slice(0, 10);
+    localStorage.setItem("search.recent", JSON.stringify(next));
+  } catch {}
+}
+function relTimeSearch(iso){
+  if (!iso) return "";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const h = Math.round(diffMs / 3600000);
+  if (h < 1) return "à l'instant";
+  if (h < 24) return `il y a ${h}h`;
+  const d = Math.round(h / 24);
+  return d === 1 ? "hier" : `il y a ${d} jours`;
+}
 
-const SAVED_SEARCHES = [
-  { name: "Tout sur les agents cette semaine", query: "agents week:current", count: 24 },
-  { name: "AI Act + assurance", query: "\"ai act\" assurance", count: 11 },
-  { name: "Papiers arxiv que j'ai bookmarkés", query: "type:arxiv saved:true", count: 7 },
-];
+function readSavedSearches(){
+  try {
+    const raw = localStorage.getItem("search.saved");
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list : [];
+  } catch { return []; }
+}
 
 // ── Shortcut display helper ─────────────────────────────────
 function Kbd({ children }) {
@@ -111,44 +123,56 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
       <div className="cmdk-body">
         {aiMode && query && (
           <div className="cmdk-ai-response">
-            <div className="cmdk-ai-kicker"><Icon name="sparkles" size={11} stroke={1.75} /> Réponse Jarvis · Claude Haiku 4.5</div>
+            <div className="cmdk-ai-kicker"><Icon name="sparkles" size={11} stroke={1.75} /> Mode IA — ouvre Jarvis pour une vraie réponse contextualisée</div>
             <p className="cmdk-ai-text">
-              Sur <strong>{query}</strong> — tu as lu 4 articles ces 7 derniers jours, dont le papier Claude Agents GA mardi. Ton radar a progressé de <strong>+12 pts</strong> sur l'axe Agents. Le pattern dominant : mémoire persistante + orchestration MCP.
+              Tape <strong>Entrée</strong> pour envoyer « <strong>{query}</strong> » à Jarvis avec le RAG activé, ou ferme cette modale et utilise la recherche classique ci-dessous.
             </p>
-            <div className="cmdk-ai-sources">
-              <span className="cmdk-ai-sources-label">Sources</span>
-              {filtered.slice(0, 3).map((r) => (
-                <div key={r.id} className="cmdk-ai-source">
-                  <Icon name={r.icon} size={11} stroke={1.75} />
-                  <span>{r.title}</span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
         {!query && (
           <>
-            <div className="cmdk-group">
-              <div className="cmdk-group-label">Recherches récentes</div>
-              {RECENT_QUERIES.slice(0, 4).map((r, i) => (
-                <button key={i} className="cmdk-item" onClick={() => setQuery(r.q)}>
-                  <Icon name="clock" size={14} stroke={1.75} />
-                  <span className="cmdk-item-title">{r.q}</span>
-                  <span className="cmdk-item-meta">{r.results} résultats · {r.ts}</span>
-                </button>
-              ))}
-            </div>
-            <div className="cmdk-group">
-              <div className="cmdk-group-label">Recherches sauvegardées</div>
-              {SAVED_SEARCHES.slice(0, 3).map((s, i) => (
-                <button key={i} className="cmdk-item" onClick={() => setQuery(s.query)}>
-                  <Icon name="bookmark" size={14} stroke={1.75} />
-                  <span className="cmdk-item-title">{s.name}</span>
-                  <span className="cmdk-item-meta">{s.count} résultats</span>
-                </button>
-              ))}
-            </div>
+            {(() => {
+              const recents = readRecentQueries();
+              const saved = readSavedSearches();
+              if (recents.length === 0 && saved.length === 0) {
+                return (
+                  <div className="cmdk-group">
+                    <div className="cmdk-group-label">Astuce</div>
+                    <div className="cmdk-item" style={{ color: "var(--tx3)", cursor: "default" }}>
+                      <Icon name="search" size={14} stroke={1.75} />
+                      <span className="cmdk-item-title">Tape 2 caractères ou plus pour lancer la recherche sur tes articles.</span>
+                    </div>
+                  </div>
+                );
+              }
+              return <>
+                {recents.length > 0 && (
+                  <div className="cmdk-group">
+                    <div className="cmdk-group-label">Recherches récentes</div>
+                    {recents.slice(0, 5).map((r, i) => (
+                      <button key={i} className="cmdk-item" onClick={() => setQuery(r.q)}>
+                        <Icon name="clock" size={14} stroke={1.75} />
+                        <span className="cmdk-item-title">{r.q}</span>
+                        <span className="cmdk-item-meta">{r.results} résultats · {relTimeSearch(r.ts)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {saved.length > 0 && (
+                  <div className="cmdk-group">
+                    <div className="cmdk-group-label">Recherches sauvegardées</div>
+                    {saved.slice(0, 5).map((s, i) => (
+                      <button key={i} className="cmdk-item" onClick={() => setQuery(s.query || s.q)}>
+                        <Icon name="bookmark" size={14} stroke={1.75} />
+                        <span className="cmdk-item-title">{s.name}</span>
+                        <span className="cmdk-item-meta">{s.query || s.q}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>;
+            })()}
             {!OS_INFO.isTouch && (
               <div className="cmdk-group">
                 <div className="cmdk-group-label">Raccourcis</div>
@@ -262,6 +286,7 @@ function PanelSearch({ data, onNavigate }) {
           url: a.url,
         })));
         try { window.track && window.track("search_performed", { query_length: q.length, results_count: rows.length }); } catch {}
+        try { pushRecentQuery(q, (rows || []).length); } catch {}
       } catch (e) {
         if (searchAbortRef.current.last !== token) return;
         console.error("[search]", e);

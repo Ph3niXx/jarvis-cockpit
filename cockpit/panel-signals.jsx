@@ -637,6 +637,25 @@ function CoOccurGraph({ signals, onOpen, watched }) {
 // ═══════════════════════════════════════════════════════════════
 //  MAIN PANEL
 // ═══════════════════════════════════════════════════════════════
+function exportSignalsCSV(signals){
+  if (!signals || !signals.length) return;
+  const esc = (v) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const cols = ["id", "name", "category", "trend", "mention_count", "delta_4w", "first_seen", "last_seen"];
+  const header = cols.join(",");
+  const rows = signals.map(s => cols.map(c => esc(s[c])).join(",")).join("\n");
+  const csv = "\uFEFF" + header + "\n" + rows; // BOM pour Excel FR
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `signals-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
 function PanelSignals({ data, onNavigate }) {
   const SIG = window.SIGNALS_DATA;
   const allSignals = SIG.signals;
@@ -872,7 +891,7 @@ function PanelSignals({ data, onNavigate }) {
           ))}
         </div>
         <div style={{ marginLeft: "auto" }}>
-          <button className="btn btn--ghost">
+          <button className="btn btn--ghost" onClick={() => exportSignalsCSV(filtered)} disabled={!filtered.length}>
             <Icon name="download" size={14} stroke={1.75} /> Exporter CSV
           </button>
         </div>

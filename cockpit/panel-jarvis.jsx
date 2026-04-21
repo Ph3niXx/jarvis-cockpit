@@ -270,7 +270,16 @@ const JV_MODE_LABELS = {
 
 function PanelJarvis({ data, onNavigate }) {
   const JV = window.JARVIS_DATA;
-  const [input, setInput] = useStateJv("");
+  const [input, setInput] = useStateJv(() => {
+    try {
+      const stash = localStorage.getItem("jarvis-prefill-input");
+      if (stash) {
+        localStorage.removeItem("jarvis-prefill-input");
+        return stash;
+      }
+    } catch {}
+    return "";
+  });
   const [messages, setMessages] = useStateJv(() => JV.messages.slice());
   const [memory, setMemory] = useStateJv(() => JV.memory.slice());
   const [sending, setSending] = useStateJv(false);

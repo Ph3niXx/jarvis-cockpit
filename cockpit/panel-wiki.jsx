@@ -42,7 +42,7 @@ function PanelWiki({ data, onNavigate }) {
 
   // ─── Create flow ──────────────────
   if (creating) {
-    return <WikiCreate onBack={() => setCreating(false)} onDone={(newEntry) => { setCreating(false); setActive(newEntry); }} />;
+    return <WikiCreate onBack={() => setCreating(false)} onDone={(newEntry) => { setCreating(false); setActive(newEntry); }} onNavigate={onNavigate} />;
   }
 
   // ─── HUB ───────────────────────────
@@ -393,7 +393,7 @@ function formatDate(s) {
 // ─────────────────────────────────────────────────────────
 // Create flow — Jarvis génère
 // ─────────────────────────────────────────────────────────
-function WikiCreate({ onBack, onDone }) {
+function WikiCreate({ onBack, onDone, onNavigate }) {
   const [step, setStep] = useStateWiki("brief"); // brief | generating | review
   const [subject, setSubject] = useStateWiki("");
   const [sources, setSources] = useStateWiki({ veille: true, notes: true, web: true });
@@ -401,63 +401,32 @@ function WikiCreate({ onBack, onDone }) {
   const [category, setCategory] = useStateWiki("agents");
   const [genProgress, setGenProgress] = useStateWiki(0);
 
-  useEffectWiki(() => {
-    if (step !== "generating") return;
-    const timer = setInterval(() => {
-      setGenProgress(p => {
-        if (p >= 100) { clearInterval(timer); setStep("review"); return 100; }
-        return p + 2;
-      });
-    }, 60);
-    return () => clearInterval(timer);
-  }, [step]);
-
+  // No in-page fake generator anymore: clicking Générer hands off to
+  // Jarvis with a pre-filled prompt. Jarvis has the RAG + local LLM to
+  // actually synthesise the entry instead of printing a skeleton.
   const handleGenerate = () => {
     if (!subject.trim()) return;
-    setStep("generating");
-    setGenProgress(0);
+    const depthHint = depth === "deep" ? "2000-2500 mots, détail technique" : depth === "quick" ? "~500 mots, synthèse rapide" : "~1200 mots, équilibré";
+    const prompt = `Rédige une synthèse wiki sur « ${subject} » pour ma veille IA.
+
+Cible : ${depthHint}.
+Catégorie : ${window.WIKI_DATA?.categories?.find(c => c.id === category)?.label || category}.
+
+Structure :
+1. Vue d'ensemble (3-4 phrases)
+2. Points clés (3-5 bullets)
+3. Concepts liés (à croiser avec mon wiki existant)
+4. À approfondir (2-3 pistes)
+
+Sors en markdown, je collerai le résultat comme entrée wiki.`;
+    try { localStorage.setItem("jarvis-prefill-input", prompt); } catch {}
+    if (onNavigate) onNavigate("jarvis");
+    else onBack && onBack();
   };
 
-  const handleSave = () => {
-    // Fake entry
-    const e = {
-      id: "new-" + Date.now(),
-      kind: "auto",
-      category,
-      category_label: window.WIKI_DATA.categories.find(c => c.id === category)?.label || "Général",
-      title: subject,
-      excerpt: `Synthèse générée à partir de ta veille et du web sur « ${subject} ».`,
-      updated: "à l'instant",
-      created: new Date().toISOString().slice(0, 10),
-      word_count: depth === "deep" ? 2400 : depth === "standard" ? 1200 : 500,
-      read_count: 0,
-      read_time: depth === "deep" ? 11 : depth === "standard" ? 6 : 3,
-      tags: ["nouveau", "généré"],
-      related: [],
-      backlinks: [],
-      pinned: false,
-      content: `# ${subject}
-
-Cette synthèse vient d'être générée par Jarvis. Elle s'appuie sur les sources que tu as choisies et reflète l'état de ta veille au moment de la demande.
-
-## Vue d'ensemble
-
-${subject} est un sujet identifié comme pertinent pour ton contexte RTE et ton radar compétences. Jarvis a analysé les signaux récents et les corrélations avec tes lectures passées.
-
-## Points clés
-
-- Point 1 synthétisé à partir de tes notes et du web
-- Point 2 croisé avec les papers de ta veille IA
-- Point 3 mis en perspective avec ton métier RTE
-
-## À approfondir
-
-Quelques questions que cette synthèse ne couvre pas encore. Tu peux demander à Jarvis de creuser chacune d'entre elles.
-
-> Cette entrée sera maintenue automatiquement et relue à chaque évolution majeure du sujet dans tes signaux.`,
-    };
-    onDone(e);
-  };
+  // Kept as a no-op stub in case some caller still hits the old
+  // review step — the timer/auto-save flow is gone.
+  const handleSave = () => { onBack && onBack(); };
 
   // ─── UI ────────────────────────────
   if (step === "generating") {

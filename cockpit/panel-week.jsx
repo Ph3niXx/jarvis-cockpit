@@ -113,13 +113,29 @@ function ThemeCloud({ themes }) {
 function PanelWeek({ data, onNavigate }) {
   const [mode, setMode] = useStateWeek("factuel");
   const w = data.week;
-
   const cmp = w.compare_last;
+
+  // Dynamic ISO week + Mon→Sun range (French short format).
+  const now = new Date();
+  function isoWeekNum(d){
+    const t = new Date(d); t.setHours(0,0,0,0);
+    t.setDate(t.getDate() + 3 - (t.getDay() + 6) % 7);
+    const firstThursday = new Date(t.getFullYear(), 0, 4);
+    return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + (firstThursday.getDay() + 6) % 7) / 7);
+  }
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  const weekNum = String(isoWeekNum(now)).padStart(2, "0");
+  const fmtDay = (d) => d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
+  const fmtFull = (d) => d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  const weekRange = `${fmtDay(monday)} → ${fmtDay(sunday)} ${sunday.toLocaleDateString("fr-FR", { month: "short" })}`;
+  const weekRangeLong = `${monday.toLocaleDateString("fr-FR", { day: "numeric" })} → ${fmtFull(sunday)}`;
 
   return (
     <div className="panel-page">
       <div className="panel-hero">
-        <div className="panel-hero-eyebrow">Ma semaine · S17 · Lun 14 → Dim 20 avril</div>
+        <div className="panel-hero-eyebrow">Ma semaine · S{weekNum} · {weekRange}</div>
         <h1 className="panel-hero-title">Ce que tu as lu, appris, vécu cette semaine</h1>
         <p className="panel-hero-sub">
           Vue d'ensemble — veille IA, sport, musique, gaming, notes. Deux modes de lecture : factuel (dashboard) ou éditorial (raconté).
@@ -131,14 +147,6 @@ function PanelWeek({ data, onNavigate }) {
         <div className="panel-toolbar-group">
           <button className={`pill ${mode === "factuel" ? "is-active" : ""}`} onClick={() => setMode("factuel")}>Factuel</button>
           <button className={`pill ${mode === "edito" ? "is-active" : ""}`} onClick={() => setMode("edito")}>Éditorial</button>
-        </div>
-        <div className="panel-toolbar-divider" />
-        <span className="panel-toolbar-label">Semaine</span>
-        <div className="panel-toolbar-group">
-          <button className="pill is-active">S17 (en cours)</button>
-          <button className="pill">S16</button>
-          <button className="pill">S15</button>
-          <button className="pill">4 sem.</button>
         </div>
       </div>
 
@@ -301,39 +309,46 @@ function PanelWeek({ data, onNavigate }) {
       ) : (
         <div className="week-wrap week-wrap--edito">
           <article className="week-edito">
-            <div className="week-edito-date">Semaine 17 · 14 → 20 avril 2026</div>
-            <h2 className="week-edito-title">La semaine où les agents sont passés en production</h2>
+            <div className="week-edito-date">Semaine {weekNum} · {weekRangeLong}</div>
+            <h2 className="week-edito-title">
+              {w.total_read >= 40 ? "Semaine bien dense en veille"
+                : w.total_read >= 20 ? "Un rythme régulier"
+                : w.total_read >= 5 ? "Semaine plus légère"
+                : "Semaine calme — peu de veille"}
+            </h2>
             <p className="week-edito-lede">
-              Soixante articles lus, quatorze jours d'affilée à tenir ton rythme de veille, et un fil rouge qui s'impose : les agents. Quarante pour cent de tes lectures tournent autour du sujet, ton radar prend douze points sur cet axe, et le papier Claude Agents GA est celui que tu as gardé ouvert le plus longtemps.
+              {w.total_read > 0
+                ? `${w.total_read} article${w.total_read > 1 ? "s" : ""} lu${w.total_read > 1 ? "s" : ""}, ${Math.floor(w.reading_time_min/60)}h${String(w.reading_time_min%60).padStart(2,"0")} de lecture cumulée, streak de ${w.streak} jour${w.streak > 1 ? "s" : ""}. ${cmp?.read ? (cmp.read.this > cmp.read.last ? `+${cmp.read.this - cmp.read.last} vs semaine passée — rythme en hausse.` : cmp.read.this < cmp.read.last ? `${cmp.read.this - cmp.read.last} vs semaine passée — rythme plus calme.` : "Rythme stable vs semaine passée.") : ""}`
+                : "Pas encore de lecture enregistrée cette semaine. Le dashboard se remplira au fur et à mesure."}
             </p>
-            <div className="week-edito-pullquote">
-              « Ton streak veille atteint 14 jours, ton meilleur depuis janvier. »
-            </div>
-            <p className="week-edito-body">
-              Côté perso, trois séances de sport — au-dessus de ton objectif. Beaucoup de musique le samedi (Tame Impala en tête), et un weekend gaming assez marqué sur Elden Ring Nightreign : +85% de temps vs ta moyenne. À surveiller ce weekend, d'autant que tu as un challenge LoRA qui attend.
-            </p>
-            <h3 className="week-edito-h3">Les temps forts</h3>
-            <ul className="week-edito-list">
-              {w.top_read.map((a, i) => (
-                <li key={i}>
-                  <span className="week-edito-list-day">{a.day}</span>
-                  <span className="week-edito-list-title">{a.title}</span>
-                  <span className="week-edito-list-src">— {a.source}</span>
-                </li>
-              ))}
-            </ul>
+            {w.streak >= 7 && (
+              <div className="week-edito-pullquote">
+                « Ton streak veille atteint {w.streak} jours. »
+              </div>
+            )}
+            {w.top_read && w.top_read.length > 0 && (
+              <>
+                <h3 className="week-edito-h3">Les temps forts</h3>
+                <ul className="week-edito-list">
+                  {w.top_read.map((a, i) => (
+                    <li key={i}>
+                      <span className="week-edito-list-day">{a.day}</span>
+                      <span className="week-edito-list-title">{a.title}</span>
+                      <span className="week-edito-list-src">— {a.source}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <h3 className="week-edito-h3">Chiffres de la semaine</h3>
             <div className="week-edito-nums">
-              <div><strong>60</strong><span>articles lus</span></div>
-              <div><strong>3h07</strong><span>de lecture</span></div>
-              <div><strong>14</strong><span>jours streak</span></div>
-              <div><strong>6</strong><span>signaux détectés</span></div>
-              <div><strong>3/4</strong><span>séances sport</span></div>
-              <div><strong>7h12</strong><span>sommeil moyen</span></div>
+              <div><strong>{w.total_read}</strong><span>article{w.total_read > 1 ? "s" : ""} lu{w.total_read > 1 ? "s" : ""}</span></div>
+              <div><strong>{Math.floor(w.reading_time_min/60)}h{String(w.reading_time_min%60).padStart(2,"0")}</strong><span>de lecture</span></div>
+              <div><strong>{w.streak}</strong><span>jours streak</span></div>
+              <div><strong>{cmp?.signals_spotted?.this ?? 0}</strong><span>signaux détectés</span></div>
+              <div><strong>{w.personal?.workouts?.done ?? 0}/{w.personal?.workouts?.target ?? 0}</strong><span>séances sport</span></div>
+              <div><strong>{w.personal?.sleep_avg_h ?? "—"}{w.personal?.sleep_avg_h ? "h" : ""}</strong><span>sommeil moyen</span></div>
             </div>
-            <p className="week-edito-body">
-              Le plus gros point d'attention reste le fine-tuning — ton axe radar toujours bloqué à 38. Le challenge LoRA est là pour ça, et tu as un créneau possible dimanche soir après ta session gaming.
-            </p>
           </article>
         </div>
       )}
