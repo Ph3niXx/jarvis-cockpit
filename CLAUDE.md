@@ -297,7 +297,7 @@ Assistant IA personnel local ("Jarvis") qui :
 - **LLM principal** : Qwen3.5 9B Q4_K_M (6.55 Go VRAM)
 - **Embeddings** : Qwen3-Embedding-0.6B Q8_0 (~640 Mo)
 - **Vector store** : Supabase pgvector (1024-dim, table `memories_vectors`)
-- **Hardware** : RTX 5070 12 Go VRAM, 32 Go RAM, Windows
+- **Hardware** : RTX 5070 Laptop **8 Go VRAM dédiée** (+ 15.9 Go Shared via PCIe), 32 Go RAM, Windows. Qwen3.5 9B Q4_K_M + prompt cache tangente la VRAM — si le throughput chute sous 5 tok/s, la VRAM déborde en Shared memory (inférence 10-50× plus lente). Bascule sur Qwen3 4B ou réduis le context à 4096 tokens.
 - **Mode thinking** de Qwen3.5 désactivé par défaut (utiliser `/no_think`)
 
 ### Structure du module
