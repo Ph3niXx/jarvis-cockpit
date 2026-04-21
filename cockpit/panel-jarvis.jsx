@@ -311,17 +311,42 @@ function PanelJarvis({ data, onNavigate }) {
 
   const handleNav = (panelId) => { if (onNavigate) onNavigate(panelId); };
 
-  // ── Jarvis gateway (localhost:8765) ─────────────────────
-  // Reads the tunnel URL from user_profile.jarvis_tunnel_url when
-  // localhost is unreachable (mobile / deployed). Posts the user
-  // message, appends the response to the timeline.
-  async function jarvisGateway(){
-    const fallback = "http://localhost:8765";
+  // ── Jarvis gateway (localhost:8765 OR cloudflared tunnel) ───
+  // On HTTP pages we can hit localhost directly. On HTTPS pages the
+  // browser blocks mixed content, so we have to use the HTTPS tunnel
+  // stored in user_profile.jarvis_tunnel_url. We try every candidate
+  // in order and report which one failed if none works.
+  function jarvisGatewayCandidates(){
+    const list = [];
+    const isHTTPS = typeof location !== "undefined" && location.protocol === "https:";
+    let tunnel = null;
     try {
       const pf = window.PROFILE_DATA?._values || {};
-      const tunnel = pf.jarvis_tunnel_url;
-      return tunnel || fallback;
-    } catch { return fallback; }
+      tunnel = pf.jarvis_tunnel_url || null;
+    } catch {}
+    if (!isHTTPS) list.push("http://localhost:8765");
+    if (tunnel) list.push(tunnel.replace(/\/+$/, ""));
+    // Final attempt on HTTPS pages — will fail with mixed-content, but
+    // the error message makes the cause obvious.
+    if (isHTTPS) list.push("http://localhost:8765");
+    return list;
+  }
+
+  async function callJarvis(base, text){
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 20000) : null;
+    try {
+      const resp = await fetch(base + "/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, mode, session_id: "cockpit" }),
+        signal: ctrl ? ctrl.signal : undefined,
+      });
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      return await resp.json();
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   const handleSend = async () => {
@@ -332,32 +357,46 @@ function PanelJarvis({ data, onNavigate }) {
     const userMsg = { kind: "user", text, ts: Date.now() };
     setMessages(prev => prev.concat([userMsg]));
     try { window.track && window.track("pipeline_triggered", { pipeline: "jarvis", mode }); } catch {}
-    try {
-      const base = await jarvisGateway();
-      const resp = await fetch(base + "/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, mode, session_id: "cockpit" }),
-      });
-      if (!resp.ok) throw new Error("gateway " + resp.status);
-      const data = await resp.json();
+
+    const candidates = jarvisGatewayCandidates();
+    const failures = [];
+    let data = null;
+    for (const base of candidates) {
+      try {
+        data = await callJarvis(base, text);
+        break; // success
+      } catch (e) {
+        const label = base.replace(/^https?:\/\//, "");
+        failures.push(`${label} → ${e.message || String(e).slice(0, 60)}`);
+      }
+    }
+
+    if (data) {
       const answer = data?.response || data?.answer || data?.message || "—";
       const cites = (data?.sources || []).map(s => ({
         kind: s.source_table || "article",
         title: s.chunk_text?.slice(0, 80) || s.name || "source",
         url: s.url,
       }));
-      setMessages(prev => prev.concat([{ kind: "jarvis", text: answer, cites, ts: Date.now() }]));
-    } catch (e) {
+      setMessages(prev => prev.concat([{ kind: "jarvis", text: answer, cites, ts: Date.now(), mode }]));
+    } else {
+      const isHTTPS = location.protocol === "https:";
+      const tunnelSet = !!(window.PROFILE_DATA?._values?.jarvis_tunnel_url);
+      const hint = isHTTPS && !tunnelSet
+        ? "Tu es sur un cockpit HTTPS mais `jarvis_tunnel_url` n'est pas défini dans user_profile. Lance `start_jarvis.bat` sur ton PC (il démarre LM Studio + le tunnel Cloudflare et sauve l'URL)."
+        : isHTTPS
+        ? "Le tunnel enregistré ne répond pas. Probablement expiré — relance `start_jarvis.bat` pour générer une nouvelle URL."
+        : "Le serveur Jarvis local ne répond pas sur `http://localhost:8765`. Lance `start_jarvis.bat`.";
+      const errorMsg = `**Jarvis est hors ligne.**\n\n${hint}\n\n_Tentatives :_\n${failures.map(f => `- ${f}`).join("\n")}`;
       setMessages(prev => prev.concat([{
         kind: "jarvis",
-        text: "Jarvis est hors ligne. Lance `start_jarvis.bat` pour activer le LLM local, ou renseigne `jarvis_tunnel_url` dans ton profil pour y accéder à distance.",
+        text: errorMsg,
         ts: Date.now(),
       }]));
-      try { window.track && window.track("error_shown", { context: "jarvis:gateway", message: String(e).slice(0, 200) }); } catch {}
-    } finally {
-      setSending(false);
+      try { window.track && window.track("error_shown", { context: "jarvis:gateway", message: failures.join(" | ").slice(0, 200) }); } catch {}
     }
+
+    setSending(false);
   };
 
   const handleKeyDown = (e) => {
