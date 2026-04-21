@@ -65,6 +65,18 @@ function inlineFormat(s) {
     .replace(/\n/g, "<br/>");
 }
 
+// ─── Elapsed-time ticker (shown while Jarvis is thinking) ────────
+function JvTicker(){
+  const [ms, setMs] = useStateJv(0);
+  useEffectJv(() => {
+    const started = Date.now();
+    const t = setInterval(() => setMs(Date.now() - started), 200);
+    return () => clearInterval(t);
+  }, []);
+  const s = Math.floor(ms / 1000);
+  return <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--tx3)" }}>{s}s</span>;
+}
+
 // ─── Citations pill ──────────────────────────────────────
 function JvCite({ cite, onNavigate }) {
   const TYPE_LABEL = {
@@ -336,27 +348,47 @@ function PanelJarvis({ data, onNavigate }) {
   // We give each candidate 120s before giving up.
   const JV_TIMEOUT_MS = 120000;
 
-  async function callJarvis(base, text){
+  async function callJarvis(base, text, chatMode){
     const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), JV_TIMEOUT_MS) : null;
+    // Local LLM can be much slower on cold start or when the GPU is busy;
+    // cloud mode is usually <15s. Shorter deadline on cloud so fallback
+    // doesn't block forever.
+    const timeout = chatMode === "cloud" ? 45000 : JV_TIMEOUT_MS;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), timeout) : null;
     try {
       const resp = await fetch(base + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text, mode, session_id: "cockpit", history: [] }),
+        body: JSON.stringify({ question: text, mode: chatMode, session_id: "cockpit", history: [] }),
         signal: ctrl ? ctrl.signal : undefined,
       });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
       return await resp.json();
     } catch (e) {
-      // Translate common AbortError signatures into a readable label
       if (e && (e.name === "AbortError" || /aborted/i.test(String(e.message)))) {
-        throw new Error(`timeout après ${Math.round(JV_TIMEOUT_MS / 1000)}s — LLM trop lent ou gateway coincée`);
+        throw new Error(`timeout ${Math.round(timeout / 1000)}s`);
       }
       throw e;
     } finally {
       if (timer) clearTimeout(timer);
     }
+  }
+
+  async function tryModes(candidates, text, modes){
+    // Walks (gateway × mode) in order. Stops on first success.
+    const failures = [];
+    for (const tryMode of modes) {
+      for (const base of candidates) {
+        try {
+          const r = await callJarvis(base, text, tryMode);
+          return { data: r, usedMode: tryMode, usedBase: base };
+        } catch (e) {
+          const label = base.replace(/^https?:\/\//, "");
+          failures.push(`${label} [${tryMode}] → ${e.message || String(e).slice(0, 60)}`);
+        }
+      }
+    }
+    return { failures };
   }
 
   const handleSend = async () => {
@@ -369,22 +401,13 @@ function PanelJarvis({ data, onNavigate }) {
     try { window.track && window.track("pipeline_triggered", { pipeline: "jarvis", mode }); } catch {}
 
     const candidates = jarvisGatewayCandidates();
-    const failures = [];
-    let data = null;
-    for (const base of candidates) {
-      try {
-        data = await callJarvis(base, text);
-        break; // success
-      } catch (e) {
-        const label = base.replace(/^https?:\/\//, "");
-        failures.push(`${label} → ${e.message || String(e).slice(0, 60)}`);
-      }
-    }
+    // Stick to the user-selected mode — no auto-escalation to cloud,
+    // because cloud calls cost money and we'd rather surface a clear
+    // timeout than quietly burn credits.
+    const { data, usedMode, failures } = await tryModes(candidates, text, [mode]);
 
     if (data) {
       const answer = data?.answer || data?.response || data?.message || "—";
-      // Server returns { source_table, source_id, similarity, chunk_preview }.
-      // Map the physical table name to the short citation kind JvCite expects.
       const SOURCE_KIND = {
         articles: "article",
         wiki_concepts: "wiki",
@@ -402,23 +425,23 @@ function PanelJarvis({ data, onNavigate }) {
         text: answer,
         cites,
         ts: Date.now(),
-        mode: data?.backend || mode,
+        mode: data?.backend || usedMode,
       }]));
     } else {
       const isHTTPS = location.protocol === "https:";
       const tunnelSet = !!(window.PROFILE_DATA?._values?.jarvis_tunnel_url);
       const hint = isHTTPS && !tunnelSet
-        ? "Tu es sur un cockpit HTTPS mais `jarvis_tunnel_url` n'est pas défini dans user_profile. Lance `start_jarvis.bat` sur ton PC (il démarre LM Studio + le tunnel Cloudflare et sauve l'URL)."
+        ? "Tu es sur un cockpit HTTPS mais `jarvis_tunnel_url` n'est pas défini dans user_profile. Lance `start_jarvis.bat` sur ton PC."
         : isHTTPS
-        ? "Le tunnel enregistré ne répond pas. Probablement expiré — relance `start_jarvis.bat` pour générer une nouvelle URL."
+        ? "Le tunnel enregistré ne répond pas. Relance `start_jarvis.bat` pour regénérer l'URL."
         : "Le serveur Jarvis local ne répond pas sur `http://localhost:8765`. Lance `start_jarvis.bat`.";
-      const errorMsg = `**Jarvis est hors ligne.**\n\n${hint}\n\n_Tentatives :_\n${failures.map(f => `- ${f}`).join("\n")}`;
+      const errorMsg = `**Jarvis est hors ligne.**\n\n${hint}\n\n_Tentatives :_\n${(failures || []).map(f => `- ${f}`).join("\n")}`;
       setMessages(prev => prev.concat([{
         kind: "jarvis",
         text: errorMsg,
         ts: Date.now(),
       }]));
-      try { window.track && window.track("error_shown", { context: "jarvis:gateway", message: failures.join(" | ").slice(0, 200) }); } catch {}
+      try { window.track && window.track("error_shown", { context: "jarvis:gateway", message: (failures || []).join(" | ").slice(0, 200) }); } catch {}
     }
 
     setSending(false);
@@ -557,7 +580,8 @@ function PanelJarvis({ data, onNavigate }) {
               <div className="jv-msg jv-msg--jarvis" style={{ opacity: 0.6 }}>
                 <span className="jv-avatar"><JvIcon name="sparkle" size={14} /></span>
                 <div className="jv-bubble" style={{ fontStyle: "italic" }}>
-                  Jarvis réfléchit… <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, marginLeft: 8 }}>mode {mode}</span>
+                  Jarvis réfléchit… <JvTicker />
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, marginLeft: 8 }}>mode {mode} · timeout {Math.round(JV_TIMEOUT_MS/1000)}s</span>
                 </div>
               </div>
             )}
