@@ -1,6 +1,13 @@
 // Panel : Top du jour — magazine style
 const { useState: useStateTop } = React;
 
+function isoWeekTop(d){
+  const t = new Date(d); t.setHours(0,0,0,0);
+  t.setDate(t.getDate() + 3 - (t.getDay() + 6) % 7);
+  const firstThursday = new Date(t.getFullYear(), 0, 4);
+  return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + (firstThursday.getDay() + 6) % 7) / 7);
+}
+
 // Opens article URL + marks read in localStorage (shared helper).
 function openArticleTop(t){
   const url = t._url || t.url;
@@ -16,29 +23,53 @@ function openArticleTop(t){
   window.open(url, "_blank", "noopener");
 }
 
-// Additional fake items for a fuller "top 8" list
-const TOP_EXTRA = [
-  { rank: 4, source: "Hugging Face", section: "LLMs", date: "il y a 7h", score: 76, title: "Phi-4 mini publié — 3.8B paramètres, niveau GPT-4o-mini sur le raisonnement", summary: "Microsoft publie les poids sous licence MIT. Benchmarks serrés face à Llama 3.3 8B. Déploiement edge mobile désormais viable.", tags: ["#llms", "#opensource", "#edge"] },
-  { rank: 5, source: "OpenAI", section: "Agents", date: "il y a 9h", score: 72, title: "Swarm v2 SDK — orchestration multi-agents avec handoffs explicites", summary: "Réponse directe à Claude Agents. Focus sur le debug et la traçabilité des handoffs entre agents spécialisés.", tags: ["#agents", "#openai"] },
-  { rank: 6, source: "Arxiv", section: "Recherche", date: "il y a 12h", score: 68, title: "Context engineering : une taxonomie des patterns de contexte pour agents", summary: "Papier qui remplace 'prompt engineering' par une grammaire systématique de 12 patterns observés en production.", tags: ["#arxiv", "#agents", "#prompting"] },
-  { rank: 7, source: "Le Monde", section: "Régulation", date: "il y a 14h", score: 64, title: "CNIL publie son référentiel IA — focus explicite sur l'assurance santé", summary: "Guidelines précises pour les traitements automatisés côté santé. Impact direct sur les outils de souscription Malakoff.", tags: ["#régulation", "#cnil", "#santé"] },
-  { rank: 8, source: "a16z", section: "FinServ", date: "il y a 18h", score: 59, title: "The AI insurance stack — 2026 state of the market", summary: "Mapping des 140 startups IA en assurance. Trois segments dominants : underwriting, claims, customer experience.", tags: ["#finserv", "#marché"] },
-];
+function exportTopAsMarkdown(items){
+  const lines = items.map(t => {
+    const rank = String(t.rank).padStart(2, "0");
+    const url = t._url || t.url || "";
+    const title = url ? `[${t.title}](${url})` : t.title;
+    return `${rank}. **${title}** — ${t.source} · ${t.section} · ${t.date}${t.summary ? "\n    " + t.summary : ""}`;
+  });
+  const md = `# Top du jour — ${new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}\n\n` + lines.join("\n\n");
+  try {
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(md);
+    else {
+      const ta = document.createElement("textarea");
+      ta.value = md; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); ta.remove();
+    }
+  } catch {}
+}
 
 function PanelTop({ data, onNavigate }) {
   const [filter, setFilter] = useStateTop("all");
-  const allTop = [...data.top, ...TOP_EXTRA];
-  const sections = ["all", ...new Set(allTop.map((t) => t.section))];
+  const [copied, setCopied] = useStateTop(false);
+  const allTop = data.top || [];
+  const sections = ["all", ...new Set(allTop.map((t) => t.section).filter(Boolean))];
   const filtered = filter === "all" ? allTop : allTop.filter((t) => t.section === filter);
   const [feat1, feat2, feat3, ...rest] = filtered;
+
+  const today = new Date();
+  const weekNum = String(isoWeekTop(today)).padStart(2, "0");
+  const dateLabel = today.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+
+  const handleExport = () => {
+    exportTopAsMarkdown(filtered);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
 
   return (
     <div className="panel-page">
       <div className="panel-hero">
-        <div className="panel-hero-eyebrow">Top du jour · S17 · Mardi 21 avril</div>
-        <h1 className="panel-hero-title">Les 8 lectures incontournables, triées par impact métier</h1>
+        <div className="panel-hero-eyebrow">Top du jour · S{weekNum} · {dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</div>
+        <h1 className="panel-hero-title">
+          {allTop.length > 0
+            ? `Les ${allTop.length} lectures${allTop.length > 1 ? "" : ""} incontournables, triées par impact métier`
+            : "Aucun top disponible pour aujourd'hui"}
+        </h1>
         <p className="panel-hero-sub">
-          Score calculé sur la pertinence pour ton rôle (RTE, assurance), la fraîcheur, et la convergence de signaux entre sources. Les 3 premiers sont des incontournables — lecture chaudement recommandée avant 9h.
+          Score calculé sur la pertinence pour ton rôle (RTE, assurance), la fraîcheur, et la convergence de signaux entre sources. Les 3 premiers sont à lire avant 9h.
         </p>
       </div>
 
@@ -57,11 +88,22 @@ function PanelTop({ data, onNavigate }) {
           ))}
         </div>
         <div style={{ marginLeft: "auto" }} className="panel-toolbar-group">
-          <button className="btn btn--ghost">
-            <Icon name="download" size={14} stroke={1.75} /> Exporter
+          <button
+            className="btn btn--ghost"
+            onClick={handleExport}
+            disabled={filtered.length === 0}
+            title="Copie le top en markdown dans le presse-papier"
+          >
+            <Icon name="download" size={14} stroke={1.75} /> {copied ? "Copié !" : "Exporter"}
           </button>
         </div>
       </div>
+
+      {filtered.length === 0 && (
+        <div style={{ padding: 40, textAlign: "center", color: "var(--tx3)", fontFamily: "var(--font-sans)" }}>
+          Pas encore d'articles pour ce filtre.
+        </div>
+      )}
 
       <div className="top-list-wrap">
         {feat1 && (
