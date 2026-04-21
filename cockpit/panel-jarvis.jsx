@@ -332,9 +332,13 @@ function PanelJarvis({ data, onNavigate }) {
     return list;
   }
 
+  // Local LLM cold-starts can take 20-40s, RAG + Claude Haiku up to 60s.
+  // We give each candidate 120s before giving up.
+  const JV_TIMEOUT_MS = 120000;
+
   async function callJarvis(base, text){
     const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), 20000) : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), JV_TIMEOUT_MS) : null;
     try {
       const resp = await fetch(base + "/chat", {
         method: "POST",
@@ -344,6 +348,12 @@ function PanelJarvis({ data, onNavigate }) {
       });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
       return await resp.json();
+    } catch (e) {
+      // Translate common AbortError signatures into a readable label
+      if (e && (e.name === "AbortError" || /aborted/i.test(String(e.message)))) {
+        throw new Error(`timeout après ${Math.round(JV_TIMEOUT_MS / 1000)}s — LLM trop lent ou gateway coincée`);
+      }
+      throw e;
     } finally {
       if (timer) clearTimeout(timer);
     }
