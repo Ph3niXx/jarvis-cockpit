@@ -339,7 +339,7 @@ function PanelJarvis({ data, onNavigate }) {
       const resp = await fetch(base + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, mode, session_id: "cockpit" }),
+        body: JSON.stringify({ question: text, mode, session_id: "cockpit", history: [] }),
         signal: ctrl ? ctrl.signal : undefined,
       });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
@@ -372,13 +372,28 @@ function PanelJarvis({ data, onNavigate }) {
     }
 
     if (data) {
-      const answer = data?.response || data?.answer || data?.message || "—";
+      const answer = data?.answer || data?.response || data?.message || "—";
+      // Server returns { source_table, source_id, similarity, chunk_preview }.
+      // Map the physical table name to the short citation kind JvCite expects.
+      const SOURCE_KIND = {
+        articles: "article",
+        wiki_concepts: "wiki",
+        weekly_opportunities: "opp",
+        business_ideas: "idea",
+        rte_usecases: "article",
+        user_profile: "profile",
+      };
       const cites = (data?.sources || []).map(s => ({
-        kind: s.source_table || "article",
-        title: s.chunk_text?.slice(0, 80) || s.name || "source",
-        url: s.url,
+        kind: SOURCE_KIND[s.source_table] || "article",
+        label: (s.chunk_preview || s.chunk_text || s.name || "source").slice(0, 80),
       }));
-      setMessages(prev => prev.concat([{ kind: "jarvis", text: answer, cites, ts: Date.now(), mode }]));
+      setMessages(prev => prev.concat([{
+        kind: "jarvis",
+        text: answer,
+        cites,
+        ts: Date.now(),
+        mode: data?.backend || mode,
+      }]));
     } else {
       const isHTTPS = location.protocol === "https:";
       const tunnelSet = !!(window.PROFILE_DATA?._values?.jarvis_tunnel_url);
