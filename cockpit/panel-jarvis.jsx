@@ -730,14 +730,18 @@ function PanelJarvis({ data, onNavigate }) {
               ))}
               <span style={{ flex: 1 }} />
               <div style={{ display: "flex", gap: 4, fontFamily: "var(--font-mono)", fontSize: 10 }}>
-                {["quick", "deep", "cloud"].map(m => (
+                {[
+                  { id: "quick", label: "Rapide · sans RAG", tip: "LLM local uniquement, aucun accès à tes articles/wiki. Pour du chat simple." },
+                  { id: "deep",  label: "Deep · RAG local", tip: "LLM local + recherche dans tes articles, wiki, opportunités, idées. Pour des questions contextuelles." },
+                  { id: "cloud", label: "Cloud · RAG + Claude", tip: "Claude Haiku + RAG. ~0.01$/requête. Pour les réponses les plus fines." },
+                ].map(m => (
                   <button
-                    key={m}
+                    key={m.id}
                     className="jv-prompt"
-                    onClick={() => setMode(m)}
-                    style={mode === m ? { background: "var(--brand)", color: "var(--bg2)", borderColor: "var(--brand)" } : {}}
-                    title={m === "quick" ? "Local LLM, sans RAG · 512 tok" : m === "deep" ? "Local + RAG · 2048 tok" : "Claude Haiku + RAG · ~0.01$"}
-                  >{m === "quick" ? "Rapide" : m === "deep" ? "Deep" : "Cloud"}</button>
+                    onClick={() => setMode(m.id)}
+                    style={mode === m.id ? { background: "var(--brand)", color: "var(--bg2)", borderColor: "var(--brand)" } : {}}
+                    title={m.tip}
+                  >{m.label}</button>
                 ))}
               </div>
             </div>
