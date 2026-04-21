@@ -611,6 +611,14 @@ function PanelJarvis({ data, onNavigate }) {
               Jarvis <em>·</em> ta conversation continue
             </h1>
             <div className="jv-header-meta">
+              <button
+                className={`jv-mode-badge jv-mode-badge--${mode}`}
+                onClick={() => setSettingsOpen(v => !v)}
+                title="Ouvrir les paramètres pour changer de mode"
+              >
+                <span className="jv-mode-badge-dot" />
+                {mode === "quick" ? "Rapide · sans RAG" : mode === "deep" ? "Deep · RAG local" : "Cloud · RAG + Claude"}
+              </button>
               <span><strong>{(JV.meta?.total_messages || 0).toLocaleString("fr-FR")}</strong> messages</span>
               <span><strong>{JV.meta?.total_hours || 0} h</strong> ensemble</span>
               {JV.meta?.first_conversation && (
@@ -657,6 +665,23 @@ function PanelJarvis({ data, onNavigate }) {
 
         {settingsOpen && (
           <div className="jv-settings">
+            <div className="jv-settings-row">
+              <label>Mode</label>
+              <div className="jv-settings-pills">
+                {[
+                  { id: "quick", label: "Rapide · sans RAG", tip: "LLM local, pas d'accès au cockpit" },
+                  { id: "deep",  label: "Deep · RAG local", tip: "LLM local + tes articles/wiki/idées" },
+                  { id: "cloud", label: "Cloud · RAG + Claude", tip: "Claude Haiku + RAG, ~0.01 $/requête" },
+                ].map(o => (
+                  <button
+                    key={o.id}
+                    className={`jv-settings-pill ${mode === o.id ? "is-active" : ""}`}
+                    onClick={() => setMode(o.id)}
+                    title={o.tip}
+                  >{o.label}</button>
+                ))}
+              </div>
+            </div>
             <div className="jv-settings-row">
               <label>Thinking</label>
               <div className="jv-settings-pills">
