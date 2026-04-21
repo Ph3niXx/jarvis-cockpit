@@ -120,6 +120,103 @@
   color: var(--tx);
   border-color: var(--tx2);
 }
+.jv-iconbtn.is-active {
+  background: var(--tx);
+  color: var(--bg);
+  border-color: var(--tx);
+}
+
+/* ── Header search bar (toggled via 🔍 button) ──────────── */
+.jv-searchbar {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 36px 14px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  color: var(--tx3);
+}
+.jv-searchbar input {
+  flex: 1;
+  border: 0; background: transparent; outline: none;
+  color: var(--tx);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+}
+.jv-searchbar-clear {
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--tx3);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+}
+.jv-searchbar-clear:hover { color: var(--tx); background: var(--bg2); }
+
+/* ── Settings panel (toggled via ⚙ button) ──────────────── */
+.jv-settings {
+  margin: 0 36px 14px;
+  padding: 14px 18px;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  display: flex; flex-direction: column;
+  gap: 12px;
+}
+.jv-settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.jv-settings-row label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+.jv-settings-pills {
+  display: inline-flex; gap: 6px; flex-wrap: wrap;
+}
+.jv-settings-pill {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--bd);
+  background: var(--bg2);
+  color: var(--tx2);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 140ms;
+}
+.jv-settings-pill:hover { color: var(--tx); border-color: var(--tx2); }
+.jv-settings-pill.is-active {
+  background: var(--tx);
+  color: var(--bg);
+  border-color: var(--tx);
+}
+.jv-settings-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--tx3);
+}
+.jv-settings-meta code {
+  background: var(--bg2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--tx2);
+}
+.jv-settings-reset {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--tx2);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 140ms;
+}
+.jv-settings-reset:hover { color: var(--tx); border-color: var(--tx2); }
 
 /* ── Scroll area ────────────────────────────────────────── */
 .jv-scroll {

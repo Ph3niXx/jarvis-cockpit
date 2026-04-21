@@ -61,14 +61,24 @@ SYSTEM_PROMPT_BASE = (
     "Si le contexte ne contient pas l'information demandée, dis-le honnêtement."
 )
 
-def system_prompt_for(mode: str) -> str:
-    """Append /no_think on quick mode only.
+def system_prompt_for(mode: str, thinking: str = "auto") -> str:
+    """Append /no_think on quick mode only (default behaviour).
 
     On Qwen3 Thinking variants this flag switches off the <think>…</think>
-    chain-of-thought. We want thinking OFF for 'quick' (chat answers should
-    be instant) but ON for 'deep' (RAG + reasoning over retrieved context).
+    chain-of-thought. Default logic: OFF for 'quick' (chat answers should
+    be instant), ON for 'deep' (RAG + reasoning over retrieved context).
     'cloud' goes through Claude — the flag is ignored there.
+
+    Callers can force either side via `thinking`:
+      - 'on'   → never add /no_think (Qwen thinks even in quick)
+      - 'off'  → always add /no_think (Qwen skips thinking even in deep)
+      - 'auto' → mode-based default
     """
+    if thinking == "on":
+        return SYSTEM_PROMPT_BASE
+    if thinking == "off":
+        return SYSTEM_PROMPT_BASE + " /no_think"
+    # auto
     if mode == "quick":
         return SYSTEM_PROMPT_BASE + " /no_think"
     return SYSTEM_PROMPT_BASE
@@ -85,6 +95,7 @@ class ChatRequest(BaseModel):
     history: list[dict] = Field(default_factory=list, max_length=10)
     mode: str = "quick"  # "quick" = direct LLM, "deep" = RAG + LLM
     session_id: str = ""  # browser session UUID for conversation persistence
+    thinking: str = "auto"  # "auto" | "on" | "off" — override the default /no_think logic
 
 
 class SearchRequest(BaseModel):
@@ -361,7 +372,7 @@ def _get_activity_context(question: str) -> str:
         return ""
 
 
-def _build_context(question: str, mode: str, history: list[dict]) -> tuple[list, list]:
+def _build_context(question: str, mode: str, history: list[dict], thinking: str = "auto") -> tuple[list, list]:
     """Build system prompt + messages list with RAG, activity and profile facts.
 
     Returns (messages, raw_results) where raw_results are the RAG search hits
@@ -383,10 +394,10 @@ def _build_context(question: str, mode: str, history: list[dict]) -> tuple[list,
     activity_context = _get_activity_context(question)
 
     # 2. Build system prompt with profile facts.
-    # system_prompt_for(mode) injects /no_think on quick mode only — Qwen3
-    # Thinking variants reason through <think>…</think> in deep/cloud, which
-    # is genuinely useful when RAG context is provided.
-    system = system_prompt_for(mode)
+    # system_prompt_for() handles /no_think placement. Honour the user's
+    # override (Settings → Thinking) if they want to force it on or off
+    # regardless of the mode.
+    system = system_prompt_for(mode, thinking)
     profile_context = _get_profile_facts()
     if profile_context:
         system += "\n\n" + profile_context
@@ -463,7 +474,7 @@ async def chat(req: ChatRequest):
     """RAG-augmented chat with Jarvis. Routes to local LLM or Claude cloud."""
     t0 = time.perf_counter()
 
-    messages, raw_results, compaction_info = _build_context(req.question, req.mode, req.history)
+    messages, raw_results, compaction_info = _build_context(req.question, req.mode, req.history, getattr(req, "thinking", "auto"))
     answer, tokens, backend = await _route_llm(messages, req.mode)
     _persist_exchange(req.session_id, req.question, answer, req.mode, tokens)
 

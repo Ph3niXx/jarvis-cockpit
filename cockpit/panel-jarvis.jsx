@@ -219,6 +219,38 @@ function JvMemory({ memory, onNavigate, onPin, onForget, pendingIds }) {
     return categories.filter(c => c.id === activeFilter);
   }, [categories, activeFilter, memory]);
 
+  // Footer: most recent "learned" date across all facts — falls back to
+  // "jamais" if memory is empty so we don't lie.
+  const lastLearnedLabel = useMemoJv(() => {
+    if (!memory.length) return "Pas encore de mémoire structurée";
+    // item.learned is already a human string (relTime) from the transformer;
+    // pick the first item (memory is sorted desc on created_at upstream).
+    const first = memory[0];
+    return `Dernière mise à jour · ${first?.learned || "—"}`;
+  }, [memory]);
+
+  const exportMemory = () => {
+    const payload = {
+      exported_at: new Date().toISOString(),
+      count: memory.length,
+      items: memory.map(m => ({
+        category: m.category,
+        label: m.label,
+        value: m.value,
+        source: m.source,
+        learned: m.learned,
+        pinned: m.pinned || false,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `jarvis-memory-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 500);
+  };
+
   return (
     <aside className="jv-memory">
       <div className="jv-mem-header">
@@ -264,8 +296,8 @@ function JvMemory({ memory, onNavigate, onPin, onForget, pendingIds }) {
       </div>
 
       <div className="jv-mem-foot">
-        <span>Dernière mise à jour · aujourd'hui</span>
-        <button className="jv-mem-foot-link">Exporter tout</button>
+        <span>{lastLearnedLabel}</span>
+        <button className="jv-mem-foot-link" onClick={exportMemory}>Exporter tout</button>
       </div>
     </aside>
   );
@@ -286,6 +318,14 @@ function PanelJarvis({ data, onNavigate }) {
     memory: [], messages: [], quick_prompts: [],
     stats: { messages_today: 0, messages_week: 0, memory_items: 0, memory_pinned: 0, cost_today_eur: 0, cost_budget_eur: 3 },
   };
+  const [searchOpen, setSearchOpen] = useStateJv(false);
+  const [searchQuery, setSearchQuery] = useStateJv("");
+  const [settingsOpen, setSettingsOpen] = useStateJv(false);
+  const [thinkingOverride, setThinkingOverride] = useStateJv(() => {
+    try { return localStorage.getItem("jarvis-thinking-override") || "auto"; }
+    catch { return "auto"; }
+  });
+  useEffectJv(() => { try { localStorage.setItem("jarvis-thinking-override", thinkingOverride); } catch {} }, [thinkingOverride]);
   const [input, setInput] = useStateJv(() => {
     try {
       const stash = localStorage.getItem("jarvis-prefill-input");
@@ -380,7 +420,13 @@ function PanelJarvis({ data, onNavigate }) {
       const resp = await fetch(base + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text, mode: chatMode, session_id: getJarvisSessionId(), history: [] }),
+        body: JSON.stringify({
+          question: text,
+          mode: chatMode,
+          session_id: getJarvisSessionId(),
+          history: [],
+          thinking: thinkingOverride || "auto",
+        }),
         signal: ctrl ? ctrl.signal : undefined,
       });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
@@ -574,10 +620,72 @@ function PanelJarvis({ data, onNavigate }) {
             </div>
           </div>
           <div className="jv-header-actions">
-            <button className="jv-iconbtn" title="Rechercher"><JvIcon name="search" /></button>
-            <button className="jv-iconbtn" title="Paramètres"><JvIcon name="settings" /></button>
+            <button
+              className={`jv-iconbtn ${searchOpen ? "is-active" : ""}`}
+              title="Rechercher"
+              onClick={() => { setSearchOpen(v => !v); if (searchOpen) setSearchQuery(""); }}
+            >
+              <JvIcon name="search" />
+            </button>
+            <button
+              className={`jv-iconbtn ${settingsOpen ? "is-active" : ""}`}
+              title="Paramètres"
+              onClick={() => setSettingsOpen(v => !v)}
+            >
+              <JvIcon name="settings" />
+            </button>
           </div>
         </header>
+
+        {searchOpen && (
+          <div className="jv-searchbar">
+            <JvIcon name="search" size={13} />
+            <input
+              type="text"
+              placeholder="Filtrer les messages visibles…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+            {searchQuery && (
+              <button className="jv-searchbar-clear" onClick={() => setSearchQuery("")} title="Effacer">
+                <JvIcon name="close" size={12} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {settingsOpen && (
+          <div className="jv-settings">
+            <div className="jv-settings-row">
+              <label>Thinking</label>
+              <div className="jv-settings-pills">
+                {[
+                  { id: "auto", label: "Auto (selon mode)" },
+                  { id: "on", label: "Toujours actif" },
+                  { id: "off", label: "Toujours désactivé" },
+                ].map(o => (
+                  <button
+                    key={o.id}
+                    className={`jv-settings-pill ${thinkingOverride === o.id ? "is-active" : ""}`}
+                    onClick={() => setThinkingOverride(o.id)}
+                  >{o.label}</button>
+                ))}
+              </div>
+            </div>
+            <div className="jv-settings-row jv-settings-meta">
+              <span>Session · <code>{getJarvisSessionId().slice(0, 8)}…</code></span>
+              <button
+                className="jv-settings-reset"
+                onClick={() => {
+                  if (!confirm("Démarrer une nouvelle session ? L'historique actuel reste en base, mais les prochaines réponses partiront d'un contexte vide.")) return;
+                  try { localStorage.removeItem("jarvis-session-id"); } catch {}
+                  setSettingsOpen(false);
+                }}
+              >Nouvelle session</button>
+            </div>
+          </div>
+        )}
 
         <div className="jv-scroll" ref={scrollRef}>
           <div className="jv-feed">
@@ -587,7 +695,10 @@ function PanelJarvis({ data, onNavigate }) {
                 Lance <code>start_jarvis.bat</code> et écris un message ci-dessous pour démarrer.
               </div>
             )}
-            {messages.map((m, i) => (
+            {(searchQuery
+              ? messages.filter(m => m.kind === "stamp" || (m.text || "").toLowerCase().includes(searchQuery.toLowerCase()))
+              : messages
+            ).map((m, i) => (
               <JvMessage
                 key={m.id || i}
                 m={m}
