@@ -269,7 +269,11 @@ const JV_MODE_LABELS = {
 };
 
 function PanelJarvis({ data, onNavigate }) {
-  const JV = window.JARVIS_DATA;
+  const JV = window.JARVIS_DATA || {
+    meta: { first_conversation: null, total_messages: 0, total_hours: 0, last_active: "—" },
+    memory: [], messages: [], quick_prompts: [],
+    stats: { messages_today: 0, messages_week: 0, memory_items: 0, memory_pinned: 0, cost_today_eur: 0, cost_budget_eur: 3 },
+  };
   const [input, setInput] = useStateJv(() => {
     try {
       const stash = localStorage.getItem("jarvis-prefill-input");
@@ -453,10 +457,12 @@ function PanelJarvis({ data, onNavigate }) {
               Jarvis <em>·</em> ta conversation continue
             </h1>
             <div className="jv-header-meta">
-              <span><strong>{JV.meta.total_messages.toLocaleString("fr-FR")}</strong> messages</span>
-              <span><strong>{JV.meta.total_hours} h</strong> ensemble</span>
-              <span>Depuis {new Date(JV.meta.first_conversation).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</span>
-              <span>Aujourd'hui · <strong>{JV.stats.cost_today_eur.toFixed(2)} €</strong> / {JV.stats.cost_budget_eur.toFixed(0)} €</span>
+              <span><strong>{(JV.meta?.total_messages || 0).toLocaleString("fr-FR")}</strong> messages</span>
+              <span><strong>{JV.meta?.total_hours || 0} h</strong> ensemble</span>
+              {JV.meta?.first_conversation && (
+                <span>Depuis {new Date(JV.meta.first_conversation).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</span>
+              )}
+              <span>Aujourd'hui · <strong>{(JV.stats?.cost_today_eur || 0).toFixed(2)} €</strong> / {(JV.stats?.cost_budget_eur || 3).toFixed(0)} €</span>
             </div>
           </div>
           <div className="jv-header-actions">
