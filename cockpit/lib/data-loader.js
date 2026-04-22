@@ -279,6 +279,42 @@
     };
   }
 
+  // Transforme une ligne weekly_challenges (mode='theory'|'practice', content jsonb)
+  // vers la shape attendue par panel-challenges.jsx.
+  function mapWeeklyChallengeRow(r, radarAxes){
+    const axisId = r.target_axis;
+    const radarAx = (radarAxes || []).find(a => (a.axis || a.id) === axisId);
+    const axisLabel = radarAx ? (radarAx.axis_label || radarAx.label || axisId) : axisId;
+    const content = (r && r.content) || {};
+    const isTheory = r.mode === "theory";
+    const impactPts = Math.max(1, Math.round(Number(r.score_reward || 0.5) * 6));
+    const base = {
+      id: r.id,
+      axis: axisId,
+      axis_label: axisLabel,
+      title: r.title || "(sans titre)",
+      teaser: r.teaser || r.description || "",
+      difficulty: r.difficulty || "Moyen",
+      duration_min: Number(r.duration_min || 0) || (isTheory ? 5 : 45),
+      xp: Number(r.xp || 0) || (isTheory ? 50 : 100),
+      status: r.status === "recommended" ? "recommended"
+            : r.status === "completed"   ? "done"
+            : "open",
+      impact_axis: `+${impactPts} pts si ≥80%`,
+    };
+    if (isTheory) {
+      const questions = Array.isArray(content.questions) ? content.questions.filter(q => q && Array.isArray(q.options)) : [];
+      return { ...base, questions };
+    }
+    const constraints = Array.isArray(content.constraints) ? content.constraints.map(String) : [];
+    return {
+      ...base,
+      brief: content.brief || r.description || "",
+      constraints,
+      eval_criteria: content.eval_criteria || "",
+    };
+  }
+
   // Hydrate CHALLENGES_DATA from challenge_attempts.
   // - Per-challenge: best attempt -> status="done" if >= 70, score, last_attempt_at
   // - Global stats: total_taken (all attempts), avg_score, total_xp (sum of best xp per unique ref)
@@ -2260,13 +2296,17 @@
           T2.challenges(),
           T2.challengeAttempts().catch(() => []),
         ]);
-        // TheoryQuiz/PracticeExercise components read rich inner fields
-        // (questions[].choices[], brief_md, eval_criteria) that the
-        // weekly_challenges table doesn't carry. Keep fake shape, and
-        // hydrate stats/streak/per-challenge state from challenge_attempts.
         if (window.CHALLENGES_DATA) {
           window.CHALLENGES_DATA._raw = challenges;
           window.CHALLENGES_DATA._attempts = attempts || [];
+          // Si la pipeline a écrit des challenges riches (mode + content),
+          // on remplace la fake data par le contenu réel (mode par mode).
+          // Sinon on garde la fake data comme fallback visuel.
+          const axes = (window.APPRENTISSAGE_DATA && window.APPRENTISSAGE_DATA.radar && window.APPRENTISSAGE_DATA.radar.axes) || [];
+          const theoryDB = (challenges || []).filter(c => c.mode === "theory" && c.content).map(r => mapWeeklyChallengeRow(r, axes));
+          const practiceDB = (challenges || []).filter(c => c.mode === "practice" && c.content).map(r => mapWeeklyChallengeRow(r, axes));
+          if (theoryDB.length)   window.CHALLENGES_DATA.theory   = theoryDB;
+          if (practiceDB.length) window.CHALLENGES_DATA.practice = practiceDB;
           applyAttemptsToChallenges(window.CHALLENGES_DATA, attempts || []);
         }
         return { challenges, attempts };
@@ -2451,7 +2491,7 @@
     cache,
     // shape builders re-exported for panels that want to rebuild parts live
     buildSignals, buildRadar, buildTop, buildMacro, buildWeek, buildStats, buildDateShape, buildUser,
-    applyAttemptsToChallenges,
+    applyAttemptsToChallenges, mapWeeklyChallengeRow,
     // helpers
     isoWeek, dayOfYear, relTime, stripHtml, getReadMap, computeStreak,
   };

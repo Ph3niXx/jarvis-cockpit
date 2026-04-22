@@ -387,33 +387,54 @@ RÈGLES :
     return count
 
 
-# ─── STEP 4 : CHALLENGE HEBDO ────────────────────────────────────────────────
+# ─── STEP 4 : CHALLENGES HEBDO (théorie + pratique) ──────────────────────────
 
-def generate_challenge():
-    """Génère un mini-challenge calibré sur le profil qualitatif."""
-    radar = sb_get("skill_radar", "order=score.asc&limit=3&select=axis,axis_label,score,strengths,gaps")
-    if not radar:
-        return None
+def _difficulty_label(score_float):
+    """Mappe un score radar (0-5) vers un label FR affiché sur les cartes."""
+    s = float(score_float or 0)
+    if s < 1.5:
+        return "Facile"
+    if s < 3.5:
+        return "Moyen"
+    return "Expert"
 
-    weakest = radar[0]
-    system = """Tu es un formateur IA. Tu crées des mini-défis PRATIQUES, réalisables en 30 min, 
-calibrés sur les lacunes SPÉCIFIQUES de l'apprenant. Pas de challenge générique.
-Réponds UNIQUEMENT en JSON valide."""
 
-    prompt = f"""PROFIL DE L'APPRENANT sur son axe le plus faible :
-- Axe : {weakest['axis_label']} (score: {weakest['score']}/5)
-- Ce qu'il sait : {weakest.get('strengths', 'non évalué')}
-- Ce qui lui manque : {weakest.get('gaps', 'non évalué')}
+def generate_theory_quiz(axis_row, status="pending"):
+    """Génère un QCM de 5 questions ciblé sur un axe du radar.
 
-CONTEXTE : Manager en transformation digitale, veut devenir expert IA et potentiellement créer sa boîte.
+    Écrit dans weekly_challenges avec mode='theory' et content={questions: [...]}.
+    Renvoie le titre si succès, None sinon.
+    """
+    difficulty = _difficulty_label(axis_row.get("score"))
+    system = """Tu es un formateur IA qui conçoit des QCM pointus, calibrés sur un axe de compétence précis.
+Pas de question générique, pas d'évidence. Chaque question teste un piège conceptuel ou une subtilité opérationnelle récente.
+Réponds UNIQUEMENT en JSON valide, pas de backticks, pas de commentaires."""
 
-Génère UN challenge qui cible PRÉCISÉMENT une de ses lacunes. Format JSON :
+    prompt = f"""AXE VISÉ : {axis_row['axis_label']} (score actuel: {axis_row.get('score', '?')}/5)
+- Ce que l'apprenant sait : {axis_row.get('strengths', 'non évalué')}
+- Ce qui lui manque : {axis_row.get('gaps', 'non évalué')}
+
+CONTEXTE : Manager en transformation digitale, veut devenir expert IA et potentiellement créer sa boîte. Niveau de la semaine : {difficulty}.
+
+Génère UN QCM de 5 questions qui cible les lacunes listées ci-dessus. Pour chaque question :
+- 4 options, une seule correcte
+- Les options incorrectes doivent être plausibles (pièges classiques, pas des absurdités)
+- Une explication courte (2-3 phrases) sur pourquoi la bonne réponse est correcte
+
+Format JSON strict (pas de markdown, pas de backticks) :
 {{
-  "title": "Titre court et motivant",
-  "description": "Consigne claire en 3-4 phrases. DOIT cibler une lacune spécifique listée ci-dessus. Réalisable en 30 min. Résultat concret et mesurable (un livrable, un output, une démo).",
-  "target_axis": "{weakest['axis']}",
-  "difficulty": "{'beginner' if float(weakest.get('score',0)) < 1.5 else 'intermediate' if float(weakest.get('score',0)) < 3.5 else 'advanced'}",
-  "score_reward": 0.5
+  "title": "Titre court et mémorable (≤60 car)",
+  "teaser": "1 phrase (≤140 car) qui vend le quiz sans spoiler les réponses",
+  "duration_min": 5,
+  "xp": 50,
+  "questions": [
+    {{
+      "q": "Énoncé précis, sans ambiguïté",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correct": 1,
+      "explain": "Pourquoi la bonne réponse est correcte (2-3 phrases, pédagogique)"
+    }}
+  ]
 }}"""
 
     today = datetime.now()
@@ -421,13 +442,132 @@ Génère UN challenge qui cible PRÉCISÉMENT une de ses lacunes. Format JSON :
 
     result = call_claude(system, prompt)
     parsed = parse_json_response(result)
-    if not parsed:
+    if not parsed or not isinstance(parsed.get("questions"), list):
         return None
 
-    parsed["week_start"] = week_start
-    parsed["status"] = "pending"
-    sb_post("weekly_challenges", parsed)
-    return parsed.get("title")
+    questions = [q for q in parsed["questions"] if isinstance(q, dict) and q.get("options") and isinstance(q.get("correct"), int)]
+    if not questions:
+        return None
+
+    payload = {
+        "week_start": week_start,
+        "target_axis": axis_row["axis"],
+        "mode": "theory",
+        "title": parsed.get("title") or f"Quiz {axis_row['axis_label']}",
+        "description": parsed.get("teaser") or "",
+        "teaser": parsed.get("teaser") or "",
+        "difficulty": difficulty,
+        "duration_min": int(parsed.get("duration_min") or 5),
+        "xp": int(parsed.get("xp") or 50),
+        "content": {"questions": questions},
+        "status": status,
+        "score_reward": 0.5,
+    }
+    sb_post("weekly_challenges", payload)
+    return payload["title"]
+
+
+def generate_practice_exercise(axis_row, status="pending"):
+    """Génère un exercice pratique riche (brief + contraintes + critères d'éval).
+
+    Écrit dans weekly_challenges avec mode='practice' et
+    content={brief, constraints: [...], eval_criteria}. Renvoie le titre.
+    """
+    difficulty = _difficulty_label(axis_row.get("score"))
+    system = """Tu es un formateur IA qui conçoit des exercices PRATIQUES, évaluables objectivement.
+Pas de "écris un essai" ou "réfléchis à". L'apprenant doit PRODUIRE quelque chose de concret (prompt, archi, dataset, script, décomposition).
+Réponds UNIQUEMENT en JSON valide, pas de backticks, pas de commentaires."""
+
+    prompt = f"""AXE VISÉ : {axis_row['axis_label']} (score actuel: {axis_row.get('score', '?')}/5)
+- Ce que l'apprenant sait : {axis_row.get('strengths', 'non évalué')}
+- Ce qui lui manque : {axis_row.get('gaps', 'non évalué')}
+
+CONTEXTE : Manager en transformation digitale, veut devenir expert IA et potentiellement créer sa boîte. Niveau de la semaine : {difficulty}. Temps prévu : 30-60 min.
+
+Génère UN exercice pratique qui cible une lacune spécifique. L'exercice DOIT :
+- produire un livrable concret (texte structuré, prompt, plan, pseudo-code…)
+- avoir 3 à 5 contraintes explicites qui permettent d'évaluer objectivement
+- préciser sur quels axes Jarvis évalue la réponse
+
+Format JSON strict (pas de markdown, pas de backticks) :
+{{
+  "title": "Titre court et orienté action (≤60 car)",
+  "teaser": "1 phrase (≤140 car) qui vend le défi sans donner la solution",
+  "duration_min": 45,
+  "xp": 100,
+  "brief": "Énoncé en 4-6 phrases. Présente la situation, ce qu'on attend, le contexte. Ne donne PAS la solution.",
+  "constraints": [
+    "Contrainte 1 — mesurable",
+    "Contrainte 2 — mesurable",
+    "Contrainte 3 — mesurable",
+    "Contrainte 4 — mesurable"
+  ],
+  "eval_criteria": "1-2 phrases qui décrivent les 4 axes sur lesquels Jarvis note (ex: Clarté, Spécificité, Rigueur, Complétude). L'apprenant doit comprendre comment il est jugé."
+}}"""
+
+    today = datetime.now()
+    week_start = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
+
+    result = call_claude(system, prompt)
+    parsed = parse_json_response(result)
+    if not parsed or not parsed.get("brief"):
+        return None
+
+    constraints = parsed.get("constraints") or []
+    if not isinstance(constraints, list):
+        constraints = [str(constraints)]
+
+    payload = {
+        "week_start": week_start,
+        "target_axis": axis_row["axis"],
+        "mode": "practice",
+        "title": parsed.get("title") or f"Exercice {axis_row['axis_label']}",
+        "description": parsed.get("teaser") or parsed["brief"][:200],
+        "teaser": parsed.get("teaser") or "",
+        "difficulty": difficulty,
+        "duration_min": int(parsed.get("duration_min") or 45),
+        "xp": int(parsed.get("xp") or 100),
+        "content": {
+            "brief": parsed["brief"],
+            "constraints": [str(c) for c in constraints],
+            "eval_criteria": parsed.get("eval_criteria") or "",
+        },
+        "status": status,
+        "score_reward": 0.5,
+    }
+    sb_post("weekly_challenges", payload)
+    return payload["title"]
+
+
+def generate_challenges():
+    """Lance 2 quiz théorie + 1 exercice pratique par semaine.
+
+    - Quiz #1 : axe le plus faible → marqué 'recommended'
+    - Quiz #2 : 2ᵉ axe le plus faible → 'pending'
+    - Exercice pratique : axe le plus faible → 'recommended'
+    """
+    radar = sb_get("skill_radar", "order=score.asc&limit=3&select=axis,axis_label,score,strengths,gaps")
+    if not radar:
+        print("   [WARN] skill_radar vide, skip")
+        return []
+
+    created = []
+    weakest = radar[0]
+    second = radar[1] if len(radar) > 1 else radar[0]
+
+    print(f"   → Quiz théorie #1 sur {weakest['axis_label']} (recommandé)")
+    t1 = generate_theory_quiz(weakest, status="recommended") if tracker.can_continue else None
+    if t1: created.append(t1)
+
+    print(f"   → Quiz théorie #2 sur {second['axis_label']}")
+    t2 = generate_theory_quiz(second, status="pending") if tracker.can_continue else None
+    if t2: created.append(t2)
+
+    print(f"   → Exercice pratique sur {weakest['axis_label']} (recommandé)")
+    p1 = generate_practice_exercise(weakest, status="recommended") if tracker.can_continue else None
+    if p1: created.append(p1)
+
+    return created
 
 
 # ─── STEP 5 : ENRICHIR RTE USECASES ──────────────────────────────────────────
@@ -588,10 +728,11 @@ def main():
     reco_count = generate_recommendations() if tracker.can_continue else 0
     print(f"   → {reco_count} recommandations générées")
 
-    # Step 4: Challenge
-    print("\n🏆 Step 4/6 — Challenge hebdo...")
-    challenge_title = generate_challenge() if tracker.can_continue else None
-    print(f"   → Challenge: {challenge_title or 'skippé'}")
+    # Step 4: Challenges (2 quiz théorie + 1 exercice pratique)
+    print("\n🏆 Step 4/6 — Challenges hebdo (théorie + pratique)...")
+    challenge_titles = generate_challenges() if tracker.can_continue else []
+    challenge_title = challenge_titles[0] if challenge_titles else None
+    print(f"   → {len(challenge_titles)} challenge(s) créé(s)")
 
     # Step 5: Enrichir RTE
     print("\n🚂 Step 5/6 — Enrichissement RTE...")
