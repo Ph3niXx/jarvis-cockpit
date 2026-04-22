@@ -3,6 +3,51 @@
 // États : hub (liste) → quiz/exercise (passage) → résultat
 const { useState: useStateChal, useMemo: useMemoChal, useEffect: useEffectChal } = React;
 
+// ─────────────────────────────────────────────────────────
+// Jarvis client (évaluation pratique)
+// ─────────────────────────────────────────────────────────
+function jarvisGatewayCandidatesChal(){
+  const list = [];
+  const isHTTPS = typeof location !== "undefined" && location.protocol === "https:";
+  let tunnel = null;
+  try { tunnel = window.PROFILE_DATA?._values?.jarvis_tunnel_url || null; } catch {}
+  if (!isHTTPS) list.push("http://localhost:8765");
+  if (tunnel)   list.push(String(tunnel).replace(/\/+$/, ""));
+  if (isHTTPS)  list.push("http://localhost:8765"); // visible mixed-content failure
+  return list;
+}
+
+async function callJarvisEvaluate(ch, answer){
+  const body = {
+    challenge_id: /^[0-9a-f-]{36}$/i.test(ch.id || "") ? ch.id : null,
+    title: ch.title || "",
+    brief: ch.brief || "",
+    constraints: Array.isArray(ch.constraints) ? ch.constraints : [],
+    eval_criteria: ch.eval_criteria || "",
+    answer,
+  };
+  const candidates = jarvisGatewayCandidatesChal();
+  let lastErr = null;
+  for (const base of candidates) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 120000);
+      const r = await fetch(base + "/evaluate-challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: ctrl.signal,
+      });
+      clearTimeout(t);
+      if (!r.ok) { lastErr = new Error("HTTP " + r.status); continue; }
+      return await r.json();
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("Jarvis injoignable");
+}
+
 async function persistChallengeAttempt(ch, result){
   if (!window.sb || !window.SUPABASE_URL) return null;
   const payload = {
@@ -29,6 +74,58 @@ async function persistChallengeAttempt(ch, result){
   }
 }
 
+// Bump skill_radar.score on the targeted axis si c'est la 1ère fois que
+// l'utilisateur passe ce challenge à ≥70%. Retries après succès = pas de double bump.
+async function bumpSkillRadar(ch, score, priorAttempts){
+  if (!ch || !ch.axis || !window.sb || !window.SUPABASE_URL) return null;
+  if (Number(score) < 70) return null;
+  const alreadyPassed = (priorAttempts || []).some(a =>
+    a.challenge_ref === ch.id && Number(a.score_percent || 0) >= 70
+  );
+  if (alreadyPassed) return null;
+
+  const base = `${window.SUPABASE_URL}/rest/v1/skill_radar`;
+  try {
+    // Read current row (score + history)
+    const rows = await window.sb.fetchJSON(`${base}?axis=eq.${encodeURIComponent(ch.axis)}&select=id,score,history&limit=1`);
+    if (!rows || !rows[0]) return null;
+    const row = rows[0];
+    const reward = Number(ch.score_reward || 0.5);
+    const newScore = Math.min(5, Number(row.score || 0) + reward);
+    let history = row.history;
+    if (typeof history === "string") { try { history = JSON.parse(history); } catch { history = []; } }
+    if (!Array.isArray(history)) history = [];
+    history = [...history, {
+      date: new Date().toISOString().slice(0, 10),
+      score: newScore,
+      reason: `challenge "${ch.title || ch.id}" (+${reward})`,
+    }];
+
+    const r = await window.sb.patchJSON(`${base}?id=eq.${row.id}`, {
+      score: newScore,
+      history,
+      last_assessed: new Date().toISOString().slice(0, 10),
+    });
+    if (!r.ok) throw new Error("patch " + r.status);
+    try { window.track && window.track("skill_radar_bumped", { axis: ch.axis, reward, new_score: newScore }); } catch {}
+
+    // Mise à jour optimiste du radar côté front pour re-render immédiat
+    const appr = window.APPRENTISSAGE_DATA;
+    if (appr && appr.radar && Array.isArray(appr.radar.axes)) {
+      const ax = appr.radar.axes.find(a => (a.axis || a.id) === ch.axis);
+      if (ax) {
+        const displayScore = Math.round(newScore * 20); // 0-5 → 0-100
+        ax.score = displayScore;
+        ax.gap = displayScore < 50;
+      }
+    }
+    return { newScore, reward };
+  } catch (e) {
+    console.error("[challenges] skill_radar bump failed", e);
+    return null;
+  }
+}
+
 function PanelChallenges({ data, onNavigate }) {
   const c = window.CHALLENGES_DATA;
   const [mode, setMode] = useStateChal("theory"); // "theory" | "practice"
@@ -39,6 +136,7 @@ function PanelChallenges({ data, onNavigate }) {
   const [revision, setRevision] = useStateChal(0);
 
   const recordAttempt = async (result) => {
+    const priorAttempts = c._attempts || [];
     const saved = await persistChallengeAttempt(result.challenge, result);
     const attempt = saved || {
       challenge_ref: result.challenge.id,
@@ -50,10 +148,14 @@ function PanelChallenges({ data, onNavigate }) {
     };
     const dl = window.cockpitDataLoader;
     if (dl && dl.applyAttemptsToChallenges) {
-      c._attempts = [attempt, ...(c._attempts || [])];
+      c._attempts = [attempt, ...priorAttempts];
       dl.applyAttemptsToChallenges(c, c._attempts);
       setRevision(r => r + 1);
     }
+    // Bump du radar sur 1er succès ≥70% (best-effort, non-bloquant)
+    bumpSkillRadar(result.challenge, result.score, priorAttempts).then(bump => {
+      if (bump) setRevision(r => r + 1);
+    });
     setCompleted(result);
   };
 
@@ -380,21 +482,42 @@ function PracticeExercise({ challenge: ch, onBack, onComplete }) {
     if (answer.trim().length < 20) return;
     setSubmitted(true);
     setEvaluating(true);
-    // Simule l'évaluation Jarvis (2.5s)
-    await new Promise(r => setTimeout(r, 2500));
-    // Pseudo-score basé sur la longueur et présence de mots-clés
     const wordCount = answer.trim().split(/\s+/).length;
-    const hasStructure = /\n\n|\n-|\n\d\./.test(answer);
-    const baseScore = Math.min(95, 50 + Math.floor(wordCount / 4) + (hasStructure ? 15 : 0));
-    const scores = {
-      axis1: Math.min(100, baseScore + Math.floor(Math.random() * 10 - 5)),
-      axis2: Math.min(100, baseScore + Math.floor(Math.random() * 12 - 6)),
-      axis3: Math.min(100, baseScore + Math.floor(Math.random() * 10 - 5)),
-      axis4: Math.min(100, baseScore + Math.floor(Math.random() * 12 - 6)),
-    };
-    const avg = Math.round((scores.axis1 + scores.axis2 + scores.axis3 + scores.axis4) / 4);
-    setEvaluation({ score: avg, scores, wordCount });
-    setEvaluating(false);
+    try {
+      const r = await callJarvisEvaluate(ch, answer);
+      // r.scores = {clarte, specificite, rigueur, completude}
+      const s = r.scores || {};
+      setEvaluation({
+        score: r.avg ?? 0,
+        scores: {
+          axis1: s.clarte ?? 0,
+          axis2: s.specificite ?? 0,
+          axis3: s.rigueur ?? 0,
+          axis4: s.completude ?? 0,
+        },
+        wordCount,
+        feedback: r.feedback || "",
+        strengths: r.strengths || [],
+        improvements: r.improvements || [],
+        source: "jarvis",
+      });
+    } catch (err) {
+      console.warn("[challenges] Jarvis eval failed, fallback heuristique", err);
+      // Fallback heuristique si Jarvis injoignable (LM Studio off, tunnel down, etc.)
+      const hasStructure = /\n\n|\n-|\n\d\./.test(answer);
+      const baseScore = Math.min(80, 45 + Math.floor(wordCount / 5) + (hasStructure ? 10 : 0));
+      setEvaluation({
+        score: baseScore,
+        scores: { axis1: baseScore, axis2: baseScore, axis3: baseScore, axis4: baseScore },
+        wordCount,
+        feedback: "Jarvis est hors ligne — score heuristique basé sur longueur et structure. Relance start_jarvis.bat pour une vraie évaluation.",
+        strengths: [],
+        improvements: [],
+        source: "heuristic",
+      });
+    } finally {
+      setEvaluating(false);
+    }
   };
 
   const handleDone = () => {
@@ -553,6 +676,36 @@ function ResultScreen({ result, onBack, onRetry }) {
           {!passed && `${mode === "theory" ? "Moins de 7 bonnes réponses sur " + result.total : "Ta réponse manque de précision sur plusieurs axes"}. Pas grave — Jarvis te propose 2 lectures avant de retenter.`}
         </p>
       </div>
+
+      {/* Feedback Jarvis (pratique uniquement) */}
+      {mode === "practice" && result.evaluation && (result.evaluation.feedback || (result.evaluation.strengths || []).length || (result.evaluation.improvements || []).length) && (
+        <section className="result-feedback">
+          <div className="section-kicker">
+            Feedback {result.evaluation.source === "heuristic" ? "heuristique (Jarvis hors ligne)" : "Jarvis"}
+          </div>
+          {result.evaluation.feedback && (
+            <p className="result-feedback-body">{result.evaluation.feedback}</p>
+          )}
+          <div className="result-feedback-cols">
+            {(result.evaluation.strengths || []).length > 0 && (
+              <div>
+                <h4 className="result-feedback-title">Points forts</h4>
+                <ul className="result-feedback-list">
+                  {result.evaluation.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              </div>
+            )}
+            {(result.evaluation.improvements || []).length > 0 && (
+              <div>
+                <h4 className="result-feedback-title">À améliorer</h4>
+                <ul className="result-feedback-list">
+                  {result.evaluation.improvements.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Breakdown */}
       <div className="result-grid">

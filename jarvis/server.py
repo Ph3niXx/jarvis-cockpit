@@ -701,6 +701,131 @@ def trigger_activity_brief(date: str = None):
         raise HTTPException(status_code=500, detail=f"Brief generation failed: {e}")
 
 
+# ── Challenge evaluation ───────────────────────────────────────────
+
+class EvaluateChallengeRequest(BaseModel):
+    challenge_id: str | None = None
+    # Si challenge_id n'est pas dans la DB (fake challenges, id="p1"),
+    # on peut passer le contenu directement.
+    title: str = ""
+    brief: str = ""
+    constraints: list[str] = Field(default_factory=list)
+    eval_criteria: str = ""
+    answer: str
+
+
+@app.post("/evaluate-challenge")
+def evaluate_challenge(req: EvaluateChallengeRequest):
+    """Évalue une réponse à un exercice pratique via Claude Haiku.
+
+    Renvoie :
+    {
+      "scores": {"clarte": 78, "specificite": 82, "rigueur": 70, "completude": 75},
+      "avg": 76,
+      "feedback": "...",
+      "strengths": ["..."],
+      "improvements": ["..."]
+    }
+    """
+    if not req.answer or len(req.answer.strip()) < 20:
+        raise HTTPException(status_code=400, detail="answer trop courte (min 20 car)")
+
+    challenge = None
+    if req.challenge_id:
+        rows = sb_get("weekly_challenges", f"id=eq.{req.challenge_id}&limit=1")
+        if rows:
+            challenge = rows[0]
+
+    title = req.title or (challenge or {}).get("title") or "(exercice pratique)"
+    content = (challenge or {}).get("content") or {}
+    brief = req.brief or content.get("brief") or (challenge or {}).get("description") or ""
+    constraints = req.constraints or content.get("constraints") or []
+    eval_criteria = req.eval_criteria or content.get("eval_criteria") or ""
+
+    if not brief and not constraints:
+        raise HTTPException(status_code=400, detail="challenge introuvable ou incomplet (brief/constraints manquants)")
+
+    constraints_text = "\n".join(f"- {c}" for c in constraints) if constraints else "(aucune)"
+    system = """Tu es Jarvis, coach IA exigeant mais juste. Tu évalues des exercices pratiques.
+Tu notes sur 4 axes (Clarté, Spécificité, Rigueur, Complétude), chacun sur 100.
+Tu es DUR mais constructif : pas de compliment gratuit, pas de 95+ sans vraie raison.
+Réponds UNIQUEMENT en JSON valide, pas de markdown, pas de backticks."""
+
+    prompt = f"""EXERCICE : {title}
+
+BRIEF :
+{brief}
+
+CONTRAINTES À RESPECTER :
+{constraints_text}
+
+COMMENT TU ÉVALUES (4 axes, note /100 chacun) :
+{eval_criteria or "Clarté (est-ce lisible ?), Spécificité (concret et actionnable ?), Rigueur (respect des contraintes ?), Complétude (tous les aspects couverts ?)"}
+
+RÉPONSE DE L'APPRENANT :
+{req.answer}
+
+INSTRUCTIONS :
+- Note CHAQUE axe sur 100 (soit dur : <50 = franchement insuffisant, 50-69 = ébauche, 70-84 = solide, 85+ = excellent)
+- Identifie 2-3 points forts réels (ou [] si rien)
+- Identifie 2-3 axes d'amélioration concrets
+- Écris un feedback de 3-4 phrases qui résume l'évaluation
+
+Format JSON strict :
+{{
+  "scores": {{"clarte": <0-100>, "specificite": <0-100>, "rigueur": <0-100>, "completude": <0-100>}},
+  "feedback": "3-4 phrases honnêtes",
+  "strengths": ["point fort 1", "point fort 2"],
+  "improvements": ["amélioration 1", "amélioration 2"]
+}}"""
+
+    try:
+        raw, tokens = _call_claude(system, [{"role": "user", "content": prompt}])
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Claude API: {e}")
+
+    # Extract JSON — Claude may wrap with ```json...```
+    cleaned = raw.strip()
+    fence = re.search(r"```(?:json)?\s*\n?(.*?)\n?\s*```", cleaned, re.DOTALL)
+    if fence:
+        cleaned = fence.group(1).strip()
+    else:
+        m = re.search(r"\{[\s\S]*\}", cleaned)
+        if m:
+            cleaned = m.group(0)
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail=f"Claude output non-JSON: {raw[:200]}")
+
+    scores = parsed.get("scores") or {}
+    def clamp(v):
+        try: return max(0, min(100, int(round(float(v)))))
+        except Exception: return 0
+    clarte = clamp(scores.get("clarte") or scores.get("clarity"))
+    specificite = clamp(scores.get("specificite") or scores.get("specificity"))
+    rigueur = clamp(scores.get("rigueur") or scores.get("rigor"))
+    completude = clamp(scores.get("completude") or scores.get("completeness"))
+    avg = round((clarte + specificite + rigueur + completude) / 4)
+
+    # Le coût est négligeable (~0.001$/eval, ~2k tokens).
+    # Pas de log DB — le front envoie un event télémétrie usage_events.
+
+    return {
+        "scores": {
+            "clarte": clarte,
+            "specificite": specificite,
+            "rigueur": rigueur,
+            "completude": completude,
+        },
+        "avg": avg,
+        "feedback": parsed.get("feedback", ""),
+        "strengths": parsed.get("strengths") or [],
+        "improvements": parsed.get("improvements") or [],
+        "tokens_used": tokens,
+    }
+
+
 # ── Startup banner ─────────────────────────────────────────────────
 
 def _startup_checks():
@@ -731,7 +856,7 @@ def _startup_checks():
     print("  Ready on http://localhost:8765")
     print("  Endpoints: GET /health | POST /chat | POST /search")
     print("             POST /nightly-learner | GET /activity | GET /outlook")
-    print("             POST /generate-activity-brief")
+    print("             POST /generate-activity-brief | POST /evaluate-challenge")
     print("  CORS: enabled for localhost + file://")
     print("  Stop with Ctrl+C")
     print("=" * 50 + "\n")

@@ -301,6 +301,7 @@
             : r.status === "completed"   ? "done"
             : "open",
       impact_axis: `+${impactPts} pts si ≥80%`,
+      score_reward: Number(r.score_reward || 0.5),
     };
     if (isTheory) {
       const questions = Array.isArray(content.questions) ? content.questions.filter(q => q && Array.isArray(q.options)) : [];
