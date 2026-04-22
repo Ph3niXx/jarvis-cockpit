@@ -384,10 +384,10 @@ function PanelIdeas({ data, onNavigate }) {
 
   const handleArchive = async (id) => {
     if (pending[id]) return;
-    if (!confirm("Parquer cette idée ? Elle passera en statut 'archived' et ne sera plus mise en avant.")) return;
+    if (!confirm("Parquer cette idée ? Elle passera en statut 'parked' et sera filée dans la colonne parking du pipeline.")) return;
     setPending(p => ({ ...p, [id]: true }));
     try {
-      await patchIdea(id, { status: "archived", updated_at: new Date().toISOString() });
+      await patchIdea(id, { status: "parked", updated_at: new Date().toISOString() });
       setOpenId(null);
       try { window.track && window.track("idea_archived", { id }); } catch {}
     } catch (e) {

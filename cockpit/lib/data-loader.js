@@ -769,6 +769,140 @@
     };
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Carnet d'idées : transforme business_ideas → shape panel
+  // ─────────────────────────────────────────────────────────
+  const IDEA_SECTOR_TO_CATEGORY = {
+    business: "business",
+    saas: "business",
+    finance: "business",
+    consulting: "business",
+    content: "content",
+    newsletter: "content",
+    talks: "content",
+    side: "side",
+    tool: "side",
+    jarvis: "jarvis",
+    cockpit: "jarvis",
+    life: "life",
+    perso: "life",
+    family: "life",
+    other: "business",
+  };
+  function ideaCategoryFromSector(sector){
+    if (!sector) return "business";
+    const s = String(sector).toLowerCase().trim();
+    return IDEA_SECTOR_TO_CATEGORY[s] || "business";
+  }
+
+  const IDEA_MARKET_TO_IMPACT = { large: 5, big: 5, medium: 4, med: 4, small: 3, niche: 2 };
+  const IDEA_COMPETITION_TO_EFFORT = { low: 2, med: 3, medium: 3, high: 4 };
+
+  function ideaKicker(r){
+    const sector = r.sector ? (String(r.sector).charAt(0).toUpperCase() + String(r.sector).slice(1)) : "Idée";
+    const d = r.created_at ? new Date(r.created_at) : null;
+    const when = d && !isNaN(d.getTime())
+      ? d.toLocaleDateString("fr", { weekday: "short", day: "numeric", month: "short" })
+      : "";
+    return when ? `${sector} · ${when}` : sector;
+  }
+
+  function ideaOneLiner(description){
+    if (!description) return "";
+    const s = String(description).trim();
+    const firstPara = s.split(/\n\n+/)[0];
+    return firstPara.split(/(?<=[.!?])\s+/)[0].slice(0, 200);
+  }
+
+  function ideaRelativeUpdated(iso){
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const target = new Date(d); target.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((today - target) / 86400000);
+    if (diffDays <= 0) return "aujourd'hui";
+    if (diffDays === 1) return "hier";
+    if (diffDays < 7) return `il y a ${diffDays}j`;
+    if (diffDays < 30) return `il y a ${Math.round(diffDays / 7)} sem.`;
+    return `il y a ${Math.round(diffDays / 30)} mois`;
+  }
+
+  function buildIdeasFromDB(rows){
+    const raw = Array.isArray(rows) ? rows : [];
+    if (!raw.length) return null;
+
+    const ideas = raw.map(r => {
+      const category = ideaCategoryFromSector(r.sector);
+      const createdIso = r.created_at ? String(r.created_at).slice(0, 10) : null;
+      const updatedIso = r.updated_at ? String(r.updated_at).slice(0, 10) : createdIso;
+      const signals = [
+        ...(Array.isArray(r.related_trends) ? r.related_trends : []),
+        ...(Array.isArray(r.related_concepts) ? r.related_concepts : []),
+      ].filter(Boolean).slice(0, 6);
+      const description = r.description || "";
+      // Heuristique pour effort/impact/alignment (1-5) depuis champs DB
+      const impact = IDEA_MARKET_TO_IMPACT[String(r.market_size_estimate || "").toLowerCase()] || 3;
+      const effort = IDEA_COMPETITION_TO_EFFORT[String(r.competition_level || "").toLowerCase()] || 3;
+      const alignment = 3; // pas de champ DB équivalent — neutre
+      return {
+        id: r.id,
+        category,
+        kicker: ideaKicker(r),
+        title: r.title || "(sans titre)",
+        one_liner: ideaOneLiner(description),
+        body: description,
+        notes: r.notes || "",
+        status: r.status || "seed",
+        captured_at: createdIso,
+        last_touched: updatedIso,
+        last_touched_rel: ideaRelativeUpdated(updatedIso),
+        touched_count: 1,
+        effort,
+        impact,
+        alignment,
+        signals,
+        source: r.notes && r.notes.includes("opportunité") ? "jarvis-suggested" : "idée perso",
+        origin: "",
+        related_ids: [],
+        jarvis_prompt: "",
+        jarvis_enriched: null,
+        promoted_to_opp: r.status === "promoted" ? r.id : null,
+        market_size: r.market_size_estimate || "",
+        competition: r.competition_level || "",
+        timing: r.timing_score || "",
+      };
+    });
+
+    // Sort : ready_to_promote first, then by updated_at desc
+    const STATUS_ORDER = { ready_to_promote: 0, maturing: 1, incubating: 2, seed: 3, parked: 4, promoted: 5, archived: 6 };
+    ideas.sort((a, b) => {
+      const sa = STATUS_ORDER[a.status] ?? 9;
+      const sb = STATUS_ORDER[b.status] ?? 9;
+      if (sa !== sb) return sa - sb;
+      return String(b.last_touched || "").localeCompare(String(a.last_touched || ""));
+    });
+
+    // Stats
+    const sevenDaysAgo = Date.now() - 7 * 86400000;
+    const thisWeek = ideas.filter(i => i.captured_at && new Date(i.captured_at).getTime() >= sevenDaysAgo).length;
+    const readyCount = ideas.filter(i => i.status === "ready_to_promote").length;
+    const ages = ideas
+      .map(i => i.captured_at ? Math.round((Date.now() - new Date(i.captured_at).getTime()) / 86400000) : null)
+      .filter(a => a != null);
+    const avgAge = ages.length ? Math.round(ages.reduce((s, a) => s + a, 0) / ages.length) : 0;
+
+    return {
+      ideas,
+      stats: {
+        total: ideas.length,
+        this_week: thisWeek,
+        ready_count: readyCount,
+        avg_age_days: avgAge,
+      },
+    };
+  }
+
   // Transforme une ligne weekly_challenges (mode='theory'|'practice', content jsonb)
   // vers la shape attendue par panel-challenges.jsx.
   function mapWeeklyChallengeRow(r, radarAxes){
@@ -2853,9 +2987,16 @@
       }
       case "ideas": {
         const ideas = await T2.ideas();
-        // Same pattern — IDEAS_DATA expects Kanban stages, signals,
-        // category colors. Keep fake shape, expose real rows under _raw.
-        if (window.IDEAS_DATA) window.IDEAS_DATA._raw = ideas;
+        if (window.IDEAS_DATA) {
+          window.IDEAS_DATA._raw = ideas;
+          // Remplace la fake data par les vraies lignes DB.
+          // Garde les meta-fixes (categories, stages) qui décrivent le pipeline.
+          const built = buildIdeasFromDB(ideas);
+          if (built) {
+            window.IDEAS_DATA.ideas = built.ideas;
+            window.IDEAS_DATA.stats = { ...(window.IDEAS_DATA.stats || {}), ...built.stats };
+          }
+        }
         return { ideas };
       }
       case "profile": {
@@ -3028,7 +3169,7 @@
     // shape builders re-exported for panels that want to rebuild parts live
     buildSignals, buildRadar, buildTop, buildMacro, buildWeek, buildStats, buildDateShape, buildUser,
     applyAttemptsToChallenges, mapWeeklyChallengeRow, buildWikiFromConcepts, buildSignalsFromDB,
-    buildOpportunitiesFromDB,
+    buildOpportunitiesFromDB, buildIdeasFromDB,
     // helpers
     isoWeek, dayOfYear, relTime, stripHtml, getReadMap, computeStreak,
   };
