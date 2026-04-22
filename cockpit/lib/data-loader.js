@@ -279,6 +279,147 @@
     };
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Wiki IA : transforme les concepts Supabase en entrées cockpit
+  // ─────────────────────────────────────────────────────────
+  const WIKI_CATEGORY_LABELS = {
+    agents: "Agents",
+    rag: "RAG",
+    architecture: "Architecture",
+    prompting: "Prompting",
+    finetuning: "Fine-tuning",
+    fine_tuning: "Fine-tuning",
+    regulation: "Régulation",
+    ethics: "Éthique",
+    metier: "Métier",
+    coding: "Code",
+    code: "Code",
+    fondamentaux: "Fondamentaux",
+    general: "Fondamentaux",
+    idees: "Idées",
+    mlops: "MLOps",
+    llm: "LLM",
+    models: "Modèles",
+    business: "Business",
+    evaluation: "Évaluation",
+    security: "Sécurité",
+  };
+  function wikiCategoryLabel(cat){
+    if (!cat) return "Fondamentaux";
+    const c = String(cat).toLowerCase().trim();
+    if (WIKI_CATEGORY_LABELS[c]) return WIKI_CATEGORY_LABELS[c];
+    return c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, " ");
+  }
+
+  function buildWikiContent(c){
+    // Stitch summary_beginner/intermediate/advanced into markdown content.
+    // If only one level is available, use it as the whole body.
+    const parts = [];
+    if (c.summary_beginner) {
+      parts.push("## Vue d'ensemble\n\n" + c.summary_beginner);
+    }
+    if (c.summary_intermediate) {
+      parts.push("## Pour aller plus loin\n\n" + c.summary_intermediate);
+    }
+    if (c.summary_advanced) {
+      parts.push("## En profondeur\n\n" + c.summary_advanced);
+    }
+    return parts.join("\n\n");
+  }
+
+  function wikiRelativeUpdated(iso){
+    // "hier", "il y a 3j", "12 avr" pour les cartes.
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const target = new Date(d); target.setHours(0,0,0,0);
+    const diffDays = Math.round((today - target) / 86400000);
+    if (diffDays <= 0) return "aujourd'hui";
+    if (diffDays === 1) return "hier";
+    if (diffDays < 7) return `il y a ${diffDays}j`;
+    return d.toLocaleDateString("fr", { day: "numeric", month: "short" });
+  }
+
+  function buildWikiFromConcepts(concepts){
+    const rows = Array.isArray(concepts) ? concepts : [];
+    if (!rows.length) return null;
+
+    // Index by slug for related resolution
+    const bySlug = new Map(rows.map(r => [r.slug, r]));
+    // Reverse map slug → id (entries id = slug for stability)
+    const entries = rows.map(r => {
+      const content = buildWikiContent(r);
+      const wordCount = content.split(/\s+/).filter(Boolean).length;
+      const excerpt = (r.summary_intermediate || r.summary_beginner || "").split(/\n/)[0].slice(0, 220);
+      const related = (r.related_concepts || []).filter(s => bySlug.has(s));
+      const catLabel = wikiCategoryLabel(r.category);
+      return {
+        id: r.slug || r.id,
+        slug: r.slug,
+        kind: "auto",  // Toutes les entrées DB sont maintenues par Jarvis
+        category: (r.category || "general").toLowerCase(),
+        category_label: catLabel,
+        title: r.name || r.slug || "(sans titre)",
+        excerpt,
+        updated: wikiRelativeUpdated(r.last_mentioned || r.updated_at),
+        updated_iso: r.last_mentioned || r.updated_at || null,
+        created: r.first_seen || r.created_at || null,
+        word_count: wordCount,
+        read_count: Number(r.mention_count || 0),
+        read_time: Math.max(1, Math.round(wordCount / 200)),
+        tags: [r.category, ...(r.related_concepts || []).slice(0, 3)].filter(Boolean),
+        related,
+        backlinks: [],  // Computed below
+        pinned: false,
+        content,
+        mention_count: Number(r.mention_count || 0),
+      };
+    });
+
+    // Compute backlinks: entry X is backlink of Y if X.related contains Y.slug
+    const bySlugEntry = new Map(entries.map(e => [e.slug, e]));
+    entries.forEach(e => {
+      entries.forEach(other => {
+        if (other.id !== e.id && (other.related || []).includes(e.slug)) {
+          e.backlinks.push(other.id);
+        }
+      });
+    });
+
+    // Categories : "all" + toutes celles présentes, triées alpha
+    const catSet = new Set(entries.map(e => e.category));
+    const categories = [{ id: "all", label: "Tout" }];
+    Array.from(catSet).sort().forEach(cid => {
+      categories.push({ id: cid, label: wikiCategoryLabel(cid) });
+    });
+
+    // Stats: réels vs fake. Pas de distinction auto/perso en DB → tout en auto.
+    const sevenDaysAgo = Date.now() - 7 * 86400000;
+    const updatedThisWeek = entries.filter(e => {
+      const t = e.updated_iso ? new Date(e.updated_iso).getTime() : 0;
+      return t >= sevenDaysAgo;
+    }).length;
+    const createdThisWeek = entries.filter(e => {
+      const t = e.created ? new Date(e.created).getTime() : 0;
+      return t >= sevenDaysAgo;
+    }).length;
+    const mostRead = entries.slice().sort((a, b) => b.mention_count - a.mention_count)[0];
+
+    return {
+      entries,
+      categories,
+      stats: {
+        total: entries.length,
+        auto: entries.length,
+        perso: 0,
+        created_this_week: createdThisWeek,
+        updated_this_week: updatedThisWeek,
+        most_read: mostRead?.title || "",
+      },
+    };
+  }
+
   // Transforme une ligne weekly_challenges (mode='theory'|'practice', content jsonb)
   // vers la shape attendue par panel-challenges.jsx.
   function mapWeeklyChallengeRow(r, radarAxes){
@@ -2274,10 +2415,16 @@
       }
       case "wiki": {
         const concepts = await T2.wiki();
-        // Expose real rows under _raw without overwriting the rich
-        // fake WIKI_DATA shape (categories, entries with content_md,
-        // etc.) that panel-wiki.jsx depends on.
-        if (window.WIKI_DATA) window.WIKI_DATA._raw = concepts;
+        if (window.WIKI_DATA) {
+          window.WIKI_DATA._raw = concepts;
+          const built = buildWikiFromConcepts(concepts);
+          if (built) {
+            // Remplace la fake data par le contenu réel
+            window.WIKI_DATA.entries = built.entries;
+            window.WIKI_DATA.categories = built.categories;
+            window.WIKI_DATA.stats = built.stats;
+          }
+        }
         return { concepts };
       }
       case "radar":
@@ -2492,7 +2639,7 @@
     cache,
     // shape builders re-exported for panels that want to rebuild parts live
     buildSignals, buildRadar, buildTop, buildMacro, buildWeek, buildStats, buildDateShape, buildUser,
-    applyAttemptsToChallenges, mapWeeklyChallengeRow,
+    applyAttemptsToChallenges, mapWeeklyChallengeRow, buildWikiFromConcepts,
     // helpers
     isoWeek, dayOfYear, relTime, stripHtml, getReadMap, computeStreak,
   };

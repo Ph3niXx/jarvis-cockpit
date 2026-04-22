@@ -24,7 +24,12 @@ function PanelWiki({ data, onNavigate }) {
       );
     }
     if (sort === "recent") {
-      list.sort((a, b) => (a.updated === "hier" ? 9999 : 0) - (b.updated === "hier" ? 9999 : 0));
+      const ts = (e) => {
+        if (e.updated_iso) { const t = new Date(e.updated_iso).getTime(); if (!isNaN(t)) return t; }
+        if (e.updated === "aujourd'hui" || e.updated === "hier") return Date.now();
+        return 0;
+      };
+      list.sort((a, b) => ts(b) - ts(a));
     } else if (sort === "alpha") {
       list.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sort === "popular") {
@@ -33,11 +38,13 @@ function PanelWiki({ data, onNavigate }) {
     return list;
   }, [w.entries, category, kind, query, sort]);
 
-  const pinned = w.entries.filter(e => e.pinned);
+  // Pinned state : combine DB flag + localStorage overrides
+  const pinnedIds = getPinnedIds();
+  const pinned = w.entries.filter(e => e.pinned || pinnedIds.has(e.id));
 
   // ─── Detail view ───────────────────
   if (active) {
-    return <WikiDetail entry={active} allEntries={w.entries} onBack={() => setActive(null)} onOpen={(e) => setActive(e)} />;
+    return <WikiDetail entry={active} allEntries={w.entries} onBack={() => setActive(null)} onOpen={(e) => setActive(e)} onNavigate={onNavigate} />;
   }
 
   // ─── Create flow ──────────────────
@@ -193,9 +200,47 @@ function WikiListItem({ entry: e, onOpen, query }) {
 // ─────────────────────────────────────────────────────────
 // Detail view — contenu + sidebar
 // ─────────────────────────────────────────────────────────
-function WikiDetail({ entry: e, allEntries, onBack, onOpen }) {
+function wikiPinKey(){ return "wiki-pinned-ids"; }
+function getPinnedIds(){
+  try { return new Set(JSON.parse(localStorage.getItem(wikiPinKey()) || "[]")); }
+  catch { return new Set(); }
+}
+function togglePinnedId(id){
+  const s = getPinnedIds();
+  if (s.has(id)) s.delete(id); else s.add(id);
+  try { localStorage.setItem(wikiPinKey(), JSON.stringify([...s])); } catch {}
+  return s.has(id);
+}
+
+function WikiDetail({ entry: e, allEntries, onBack, onOpen, onNavigate }) {
   const related = e.related.map(id => allEntries.find(x => x.id === id)).filter(Boolean);
   const backlinks = e.backlinks.map(id => allEntries.find(x => x.id === id)).filter(Boolean);
+  const [pinned, setPinned] = useStateWiki(() => getPinnedIds().has(e.id));
+  const [shareState, setShareState] = useStateWiki(""); // "" | "copied"
+
+  const handlePin = () => {
+    const nowPinned = togglePinnedId(e.id);
+    setPinned(nowPinned);
+    try { window.track && window.track("wiki_pin_toggled", { id: e.id, pinned: nowPinned }); } catch {}
+  };
+  const handleShare = async () => {
+    const url = `${location.origin}${location.pathname}#wiki/${encodeURIComponent(e.id)}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: e.title, url });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        setShareState("copied");
+        setTimeout(() => setShareState(""), 2000);
+      }
+      try { window.track && window.track("wiki_shared", { id: e.id }); } catch {}
+    } catch {}
+  };
+  const handleAsk = () => {
+    const prompt = `J'ai une question sur l'entrée wiki « ${e.title} » (catégorie ${e.category_label}).\n\nContexte de l'entrée :\n${e.excerpt}\n\nMa question : `;
+    try { localStorage.setItem("jarvis-prefill-input", prompt); } catch {}
+    if (onNavigate) onNavigate("jarvis");
+  };
 
   // parse markdown-lite
   const parts = useMemoWiki(() => {
@@ -277,8 +322,12 @@ function WikiDetail({ entry: e, allEntries, onBack, onOpen }) {
           <span className="quiz-topbar-axis">{e.category_label}</span>
         </div>
         <div className="wiki-detail-actions">
-          <button className="btn btn--ghost btn--sm"><Icon name="bookmark" size={12} stroke={1.75} /> Épingler</button>
-          <button className="btn btn--ghost btn--sm"><Icon name="share" size={12} stroke={1.75} /> Partager</button>
+          <button className={`btn btn--sm ${pinned ? "btn--primary" : "btn--ghost"}`} onClick={handlePin}>
+            <Icon name="bookmark" size={12} stroke={1.75} /> {pinned ? "Épinglée" : "Épingler"}
+          </button>
+          <button className="btn btn--ghost btn--sm" onClick={handleShare}>
+            <Icon name="share" size={12} stroke={1.75} /> {shareState === "copied" ? "Lien copié" : "Partager"}
+          </button>
         </div>
       </div>
 
@@ -304,8 +353,8 @@ function WikiDetail({ entry: e, allEntries, onBack, onOpen }) {
 
           <div className="wiki-detail-content">
             {parts.map((part, i) => {
-              if (part.type === "h1") return <h2 key={i} className="wiki-content-h2">{renderInline(part.text)}</h2>;
-              if (part.type === "h2") return <h3 key={i} className="wiki-content-h3">{renderInline(part.text)}</h3>;
+              if (part.type === "h1") return <h2 key={i} id={`toc-${i}`} className="wiki-content-h2">{renderInline(part.text)}</h2>;
+              if (part.type === "h2") return <h3 key={i} id={`toc-${i}`} className="wiki-content-h3">{renderInline(part.text)}</h3>;
               if (part.type === "p") return <p key={i} className="wiki-content-p">{renderInline(part.text)}</p>;
               if (part.type === "quote") return <blockquote key={i} className="wiki-content-quote">{renderInline(part.text)}</blockquote>;
               if (part.type === "list") return (
@@ -331,9 +380,23 @@ function WikiDetail({ entry: e, allEntries, onBack, onOpen }) {
           <section className="wiki-aside-section">
             <div className="section-kicker">Dans cette entrée</div>
             <ul className="wiki-toc">
-              {parts.filter(p => p.type === "h1").map((p, i) => (
-                <li key={i}><a href="#" onClick={ev => ev.preventDefault()}>{p.text}</a></li>
+              {parts.filter(p => p.type === "h1" || p.type === "h2").map((p, i) => (
+                <li key={i}>
+                  <a
+                    href={`#toc-${i}`}
+                    onClick={ev => {
+                      ev.preventDefault();
+                      const el = document.getElementById(`toc-${i}`);
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                  >
+                    {p.text}
+                  </a>
+                </li>
               ))}
+              {parts.filter(p => p.type === "h1" || p.type === "h2").length === 0 && (
+                <li className="wiki-toc-empty">Pas de sous-titres</li>
+              )}
             </ul>
           </section>
 
@@ -371,7 +434,7 @@ function WikiDetail({ entry: e, allEntries, onBack, onOpen }) {
 
           <section className="wiki-aside-section wiki-aside-ask">
             <div className="section-kicker">Une question sur cette entrée ?</div>
-            <button className="btn btn--ghost btn--sm wiki-ask-btn">
+            <button className="btn btn--ghost btn--sm wiki-ask-btn" onClick={handleAsk}>
               <Icon name="sparkles" size={12} stroke={1.75} /> Demander à Jarvis
             </button>
           </section>
