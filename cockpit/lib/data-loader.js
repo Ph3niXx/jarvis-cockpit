@@ -420,6 +420,180 @@
     };
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Signaux faibles : transforme signal_tracking → shape riche panel
+  // ─────────────────────────────────────────────────────────
+  const SIG_CATEGORY_MAP = {
+    // wiki_concepts.category → label panel
+    agents: "Agents",
+    rag: "RAG",
+    architecture: "Architecture",
+    prompting: "Prompting",
+    finetuning: "Fine-tuning",
+    fine_tuning: "Fine-tuning",
+    regulation: "Régulation",
+    ethics: "Éthique",
+    coding: "Code",
+    code: "Code",
+    general: "Fondamentaux",
+    fondamentaux: "Fondamentaux",
+    models: "LLMs",
+    llm: "LLMs",
+    evaluation: "Évaluation",
+    mlops: "MLOps",
+    business: "Business",
+    security: "Sécurité",
+  };
+  function signalCategoryLabel(cat){
+    if (!cat) return "Autres";
+    const c = String(cat).toLowerCase().trim();
+    return SIG_CATEGORY_MAP[c] || (c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, " "));
+  }
+
+  function weekNumFromISO(iso){
+    if (!iso) return null;
+    const d = new Date(iso + "T00:00:00Z");
+    if (isNaN(d.getTime())) return null;
+    // ISO 8601 week number
+    const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const dayNum = t.getUTCDay() || 7;
+    t.setUTCDate(t.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+    return Math.ceil((((t - yearStart) / 86400000) + 1) / 7);
+  }
+  function weekLabel(iso){
+    const n = weekNumFromISO(iso);
+    return n ? "S" + String(n).padStart(2, "0") : (iso || "—");
+  }
+
+  function slugifySignal(s){
+    return String(s || "").toLowerCase().trim()
+      .replace(/\([^)]*\)/g, "")  // strip parenthetical annotations
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function buildSignalsFromDB(rows, wikiConcepts){
+    const signals = Array.isArray(rows) ? rows : [];
+    if (!signals.length) return null;
+
+    // Group by term, keep all weeks
+    const byTerm = new Map();
+    signals.forEach(r => {
+      if (!r || !r.term) return;
+      const arr = byTerm.get(r.term) || [];
+      arr.push(r);
+      byTerm.set(r.term, arr);
+    });
+
+    // Index wiki_concepts by normalised slug for category lookup
+    const wikiBySlug = new Map();
+    (wikiConcepts || []).forEach(w => {
+      if (w.slug) wikiBySlug.set(w.slug, w);
+    });
+
+    const result = [];
+    byTerm.forEach((weeks, term) => {
+      const sorted = weeks.slice().sort((a, b) => String(a.week_start || "").localeCompare(String(b.week_start || "")));
+      const latest = sorted[sorted.length - 1];
+      const history = sorted.map(r => Number(r.mention_count || 0));
+      // Pad history to at least 12 weeks (zeros at start)
+      while (history.length < 12) history.unshift(0);
+      const last4Sum = history.slice(-4).reduce((s, n) => s + n, 0);
+      const prev4Sum = history.slice(-8, -4).reduce((s, n) => s + n, 0);
+      const delta4w = latest.trend === "new" ? null : (last4Sum - prev4Sum);
+
+      // Category via wiki_concepts (slug matching)
+      const slug = slugifySignal(term);
+      const wikiMatch = wikiBySlug.get(slug) ||
+        // Fuzzy match : slug begins with or is begun-by
+        Array.from(wikiBySlug.values()).find(w => slug.startsWith(w.slug) || w.slug.startsWith(slug));
+      const categoryRaw = wikiMatch?.category || "Autres";
+      const category = signalCategoryLabel(categoryRaw);
+
+      // Maturity heuristic
+      const count = Number(latest.mention_count || 0);
+      const trend = latest.trend || "stable";
+      let maturity = "plateau";
+      if (trend === "new") maturity = "seed";
+      else if (trend === "rising") maturity = count > 15 ? "hype" : "emerging";
+      else if (trend === "declining") maturity = count > 10 ? "plateau" : "declining";
+      else if (trend === "stable" && count > 20) maturity = "plateau";
+      else if (trend === "stable" && count < 5) maturity = "declining";
+
+      // Sources : DB sources[] is text[] of raw strings → transform
+      const sourcesList = Array.isArray(latest.sources) ? latest.sources : [];
+      const sourcesObj = sourcesList.slice(0, 8).map((src) => {
+        const s = String(src);
+        // Best-effort parsing : "Anthropic — blog" / "arXiv"
+        const m = s.match(/^([^—\-:(]+?)(?:\s*[—\-:]\s*(.+))?$/);
+        return {
+          who: m ? m[1].trim() : s,
+          what: m && m[2] ? m[2].trim() : "",
+          when: weekLabel(latest.week_start),
+          kind: "source",
+        };
+      });
+
+      // Related : terms with ≥2 source overlap
+      const latestSourceSet = new Set((latest.sources || []).map(String));
+      const related = [];
+
+      result.push({
+        id: "sg-" + slug || "sg-" + result.length,
+        slug,
+        name: term,
+        category,
+        trend,
+        count,
+        delta: delta4w,
+        delta_4w: delta4w,
+        history: history.slice(-12),
+        first_seen: weekLabel(sorted[0].week_start),
+        last_seen: weekLabel(latest.week_start),
+        maturity,
+        jarvis_take: "",  // À remplir par le pipeline hebdo (brique future)
+        sources: sourcesObj,
+        _sourceSet: latestSourceSet,
+        related,
+        alerts: [],
+        mention_count: count,
+      });
+    });
+
+    // Compute related (co-occurrence on sources)
+    for (let i = 0; i < result.length; i++) {
+      for (let j = i + 1; j < result.length; j++) {
+        const a = result[i], b = result[j];
+        let overlap = 0;
+        a._sourceSet.forEach(s => { if (b._sourceSet.has(s)) overlap++; });
+        if (overlap >= 2) {
+          a.related.push(b.id);
+          b.related.push(a.id);
+        }
+      }
+    }
+    // Cleanup internal field
+    result.forEach(s => { delete s._sourceSet; });
+
+    // Sort by count desc
+    result.sort((a, b) => b.count - a.count);
+
+    return {
+      week: weekLabel(signals[0].week_start),
+      updated: new Date().toLocaleString("fr", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+      window_weeks: 12,
+      signals: result,
+      maturity_positions: {
+        seed: 0.12,
+        emerging: 0.35,
+        hype: 0.55,
+        plateau: 0.92,
+        declining: 0.78,
+      },
+    };
+  }
+
   // Transforme une ligne weekly_challenges (mode='theory'|'practice', content jsonb)
   // vers la shape attendue par panel-challenges.jsx.
   function mapWeeklyChallengeRow(r, radarAxes){
@@ -2427,6 +2601,20 @@
         }
         return { concepts };
       }
+      case "signals": {
+        // Fetch full signal_tracking history (Tier 1 ne garde que le top courant)
+        // + wiki_concepts pour résoudre les catégories.
+        const [sigRows, wikiRows] = await Promise.all([
+          once("signals_full", () => q("signal_tracking", "order=week_start.desc,mention_count.desc&limit=500")),
+          T2.wiki().catch(() => []),
+        ]);
+        if (window.SIGNALS_DATA) {
+          window.SIGNALS_DATA._raw = sigRows;
+          const built = buildSignalsFromDB(sigRows, wikiRows);
+          if (built) Object.assign(window.SIGNALS_DATA, built);
+        }
+        return { signals: sigRows, wiki: wikiRows };
+      }
       case "radar":
       case "recos": {
         const [recos] = await Promise.all([T2.recos()]);
@@ -2597,7 +2785,7 @@
   const TIER2_PANELS = new Set([
     "updates", "wiki", "radar", "recos", "challenges", "opps", "ideas",
     "profile", "perf", "music", "gaming", "stacks", "history", "jobs",
-    "sport", "gaming_news", "anime", "news", "jarvis",
+    "sport", "gaming_news", "anime", "news", "jarvis", "signals",
   ]);
 
   // Hydrate globals with real data on boot (Tier 1 already fetched the
@@ -2625,8 +2813,14 @@
       }
     }
     if (window.SIGNALS_DATA && raw.signals?.length) {
-      // SIGNALS_DATA may have a richer shape too — expose real under _raw
       window.SIGNALS_DATA._raw = raw.signals;
+      // Merge DB signals into the rich panel shape.
+      // wiki_concepts est lazy (Tier 2) — hydratation partielle ici, sera
+      // re-remplacée par le case "signals" si l'utilisateur visite le panel.
+      const built = buildSignalsFromDB(raw.signals, window.WIKI_DATA?._raw || []);
+      if (built) {
+        Object.assign(window.SIGNALS_DATA, built);
+      }
     }
   }
 
@@ -2639,7 +2833,7 @@
     cache,
     // shape builders re-exported for panels that want to rebuild parts live
     buildSignals, buildRadar, buildTop, buildMacro, buildWeek, buildStats, buildDateShape, buildUser,
-    applyAttemptsToChallenges, mapWeeklyChallengeRow, buildWikiFromConcepts,
+    applyAttemptsToChallenges, mapWeeklyChallengeRow, buildWikiFromConcepts, buildSignalsFromDB,
     // helpers
     isoWeek, dayOfYear, relTime, stripHtml, getReadMap, computeStreak,
   };

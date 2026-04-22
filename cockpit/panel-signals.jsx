@@ -83,7 +83,18 @@ function DeltaChip({ signal }) {
 const TREND_LABEL = { rising: "en hausse", new: "nouveau", declining: "en baisse", stable: "stable" };
 
 // ── Expanded row detail ──────────────────────────────────────
-function SignalDetail({ signal, windowWeeks }) {
+function SignalDetail({ signal, windowWeeks, onNavigate }) {
+  const handleSeeVeille = () => {
+    // Pré-remplir la recherche de veille avec le nom du signal
+    try { localStorage.setItem("veille-prefill-query", signal.name); } catch {}
+    if (onNavigate) onNavigate("search");
+  };
+  const handleAskJarvis = () => {
+    const sources = (signal.sources || []).slice(0, 5).map(s => `- ${s.who}${s.what ? " : " + s.what : ""} (${s.when})`).join("\n");
+    const prompt = `J'aimerais creuser le signal « ${signal.name} » détecté dans ma veille IA.\n\nCatégorie : ${signal.category}\nTendance : ${signal.trend}, ${signal.count} mentions (${signal.delta >= 0 ? "+" : ""}${signal.delta ?? "?"} sur 4 sem)\nPremière occurrence : ${signal.first_seen}\n\nSources récentes :\n${sources || "(aucune)"}\n\nPeux-tu : (1) m'expliquer pourquoi ce signal monte maintenant, (2) identifier 2-3 opportunités concrètes, (3) me pointer des lectures clés ?`;
+    try { localStorage.setItem("jarvis-prefill-input", prompt); } catch {}
+    if (onNavigate) onNavigate("jarvis");
+  };
   const startWeek = 17 - windowWeeks + 1;
   const historyShown = signal.history.slice(-windowWeeks);
   return (
@@ -119,8 +130,12 @@ function SignalDetail({ signal, windowWeeks }) {
           </div>
         </div>
         <div className="sig-detail-actions">
-          <button className="btn btn--ghost"><Icon name="arrow_right" size={14} stroke={1.75} /> Voir la veille filtrée</button>
-          <button className="btn btn--ghost"><Icon name="sparkles" size={14} stroke={1.75} /> Demander à Jarvis</button>
+          <button className="btn btn--ghost" onClick={handleSeeVeille}>
+            <Icon name="arrow_right" size={14} stroke={1.75} /> Voir la veille filtrée
+          </button>
+          <button className="btn btn--ghost" onClick={handleAskJarvis}>
+            <Icon name="sparkles" size={14} stroke={1.75} /> Demander à Jarvis
+          </button>
         </div>
       </div>
     </div>
@@ -128,7 +143,7 @@ function SignalDetail({ signal, windowWeeks }) {
 }
 
 // ── Row in a group list ──────────────────────────────────────
-function SignalRow({ signal, rank, open, onToggle, watched, onWatch, windowWeeks }) {
+function SignalRow({ signal, rank, open, onToggle, watched, onWatch, windowWeeks, onNavigate }) {
   return (
     <React.Fragment>
       <div className={`sig-row ${open ? "is-open" : ""}`} onClick={onToggle} role="button" tabIndex={0}>
@@ -160,7 +175,7 @@ function SignalRow({ signal, rank, open, onToggle, watched, onWatch, windowWeeks
           </button>
         </div>
       </div>
-      {open && <SignalDetail signal={signal} windowWeeks={windowWeeks} />}
+      {open && <SignalDetail signal={signal} windowWeeks={windowWeeks} onNavigate={onNavigate} />}
     </React.Fragment>
   );
 }
@@ -920,6 +935,7 @@ function PanelSignals({ data, onNavigate }) {
                     watched={watched.includes(s.id)}
                     onWatch={() => toggleWatch(s.id)}
                     windowWeeks={windowWeeks}
+                    onNavigate={onNavigate}
                   />
                 </div>
               ))}

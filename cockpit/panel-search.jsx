@@ -258,6 +258,18 @@ function PanelSearch({ data, onNavigate }) {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  // Prefill depuis d'autres panels (ex: "Voir la veille filtrée" depuis Signaux)
+  useEffectSearch(() => {
+    try {
+      const stash = localStorage.getItem("veille-prefill-query");
+      if (stash) {
+        localStorage.removeItem("veille-prefill-query");
+        setQuery(stash);
+        setOpen(true);
+      }
+    } catch {}
+  }, []);
+
   // ── Live Supabase search ──────────────────────────────────
   const [liveResults, setLiveResults] = useStateSearch([]);
   const searchAbortRef = useRefSearch({ last: null, timer: null });
