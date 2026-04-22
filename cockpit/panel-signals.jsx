@@ -746,6 +746,23 @@ function PanelSignals({ data, onNavigate }) {
   // ── Open row state ──────────────────────────────────────
   const [openId, setOpenId] = useStateSg(null);
 
+  // ── Focus depuis d'autres panels (ex: Opportunités) ────
+  React.useEffect(() => {
+    try {
+      const focusName = localStorage.getItem("signals-focus-name");
+      if (!focusName) return;
+      localStorage.removeItem("signals-focus-name");
+      const match = allSignals.find(s => (s.name || "").toLowerCase() === focusName.toLowerCase());
+      if (!match) return;
+      setTrendFilter("all");
+      setView("editorial");
+      setOpenId(match.id);
+      setTimeout(() => {
+        document.querySelector(`[data-sig-id="${match.id}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      }, 100);
+    } catch {}
+  }, []);
+
   // ── Edit mode (tweaks panel) ────────────────────────────
   const [editMode, setEditMode] = useStateSg(false);
   React.useEffect(() => {

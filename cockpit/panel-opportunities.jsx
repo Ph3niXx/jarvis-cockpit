@@ -496,8 +496,10 @@ function PanelOpportunities({ data, onNavigate }) {
   const handleReset = (id) => setStatus(s => { const n = { ...s }; delete n[id]; return n; });
 
   const handleOpenSignal = (signalName) => {
-    // Navigate to signals panel
-    onNavigate("signals");
+    // Navigation vers panel signaux avec le nom du signal à mettre en avant.
+    // panel-signals consomme ce stash au mount pour scroller vers le bon signal.
+    try { localStorage.setItem("signals-focus-name", signalName || ""); } catch {}
+    onNavigate && onNavigate("signals");
   };
 
   return (

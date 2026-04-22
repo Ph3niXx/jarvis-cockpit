@@ -594,6 +594,150 @@
     };
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Opportunités : transforme weekly_opportunities → shape panel
+  // ─────────────────────────────────────────────────────────
+  const OPP_CATEGORY_TO_SCOPE = {
+    money: "business",
+    business: "business",
+    saas: "business",
+    life: "life",
+    family: "life",
+    perso: "life",
+    side: "side",
+    tooling: "jarvis",
+    cockpit: "jarvis",
+    jarvis: "jarvis",
+  };
+  const OPP_EFFORT_MAP = {
+    weekend: "weekend",
+    "1_week": "weekend",
+    "1_month": "1m",
+    "1m": "1m",
+    "3_months": "3m",
+    "3m": "3m",
+    "6_months": "6m",
+    "6_months+": "6m",
+    "6m": "6m",
+  };
+  const OPP_COMPETITION_MAP = {
+    low: "low",
+    medium: "med",
+    med: "med",
+    high: "high",
+  };
+  const OPP_URGENCY_WEEKS = {
+    closing: 3,       // ~3 semaines avant fermeture
+    getting_late: 10, // ~10 semaines
+    right_time: 26,   // 6 mois
+    too_early: 52,    // 1 an
+  };
+
+  function oppScopeFromRow(r){
+    const cat = String(r.category || "").toLowerCase().trim();
+    if (OPP_CATEGORY_TO_SCOPE[cat]) return OPP_CATEGORY_TO_SCOPE[cat];
+    const sec = String(r.sector || "").toLowerCase().trim();
+    if (OPP_CATEGORY_TO_SCOPE[sec]) return OPP_CATEGORY_TO_SCOPE[sec];
+    return "business";
+  }
+
+  function oppKickerFromRow(r){
+    // "Finance · Saisie qui monétise" ou "Saas · Bon moment"
+    const sector = r.sector ? (String(r.sector).charAt(0).toUpperCase() + String(r.sector).slice(1)) : null;
+    const market = r.market_size === "large" ? "Marché large"
+                 : r.market_size === "medium" ? "Marché moyen"
+                 : r.market_size === "small" ? "Marché niche" : null;
+    return [sector, market].filter(Boolean).join(" · ");
+  }
+
+  function oppWindowFromRow(r){
+    // DB ne fournit pas de deadline → on estime depuis timing + date de la semaine
+    const timing = String(r.timing || "right_time").toLowerCase();
+    const weeks = OPP_URGENCY_WEEKS[timing] || 26;
+    const opens = r.week_start || new Date().toISOString().slice(0, 10);
+    const closesDate = new Date(opens);
+    closesDate.setDate(closesDate.getDate() + weeks * 7);
+    const closes_iso = closesDate.toISOString().slice(0, 10);
+    const closes_in = weeks < 6 ? `${weeks} sem.`
+                    : weeks < 14 ? `~${Math.round(weeks / 4)} mois`
+                    : `~${Math.round(weeks / 4)} mois`;
+    const opensLabel = "S" + String(weekNumFromISO(opens) || "").padStart(2, "0");
+    return {
+      opens: opensLabel,
+      closes_iso,
+      closes_in,
+      urgency: timing,
+    };
+  }
+
+  function oppSourcesFromRow(r){
+    const arts = Array.isArray(r.source_articles) ? r.source_articles : [];
+    return arts.slice(0, 6).map(src => {
+      const s = String(src);
+      // article IDs look like "abc-def-123"; URLs start with http
+      if (s.startsWith("http")) {
+        try {
+          const u = new URL(s);
+          return { who: u.hostname.replace(/^www\./, ""), what: u.pathname.slice(0, 80), when: weekLabel(r.week_start), kind: "article" };
+        } catch {
+          return { who: "source", what: s.slice(0, 80), when: weekLabel(r.week_start), kind: "article" };
+        }
+      }
+      return { who: "article", what: s.slice(0, 40), when: weekLabel(r.week_start), kind: "article" };
+    });
+  }
+
+  function buildOpportunitiesFromDB(rows, signals){
+    const opps = Array.isArray(rows) ? rows : [];
+    if (!opps.length) return null;
+
+    const opportunities = opps.map(r => {
+      const scope = oppScopeFromRow(r);
+      const effortMapped = OPP_EFFORT_MAP[String(r.effort_to_build || "").toLowerCase()] || "3m";
+      const competitionMapped = OPP_COMPETITION_MAP[String(r.competition || "").toLowerCase()] || "med";
+      const match = Math.max(0, Math.min(100, Number(r.relevance_score || 0)));
+      const body = r.usecase_description || "";
+      // teaser = premières phrases, body = texte complet
+      const firstSentences = body.split(/(?<=[.!?])\s+/).slice(0, 2).join(" ").slice(0, 300);
+      const relatedSignals = (signals || [])
+        .filter(s => body.toLowerCase().includes(String(s.name || "").toLowerCase()))
+        .map(s => s.name)
+        .slice(0, 4);
+
+      return {
+        id: r.id,
+        scope,
+        kicker: oppKickerFromRow(r) || "Opportunité",
+        title: r.usecase_title || "(sans titre)",
+        teaser: firstSentences || body.slice(0, 200),
+        body,
+        match,
+        priority: match,
+        effort: effortMapped,
+        competition: competitionMapped,
+        window: oppWindowFromRow(r),
+        next_step: r.next_step || "",
+        why_you: r.relevance_why || "",
+        confidence: r.confidence || "medium",
+        who_pays: r.who_pays || "",
+        market_size: r.market_size || "",
+        signals: relatedSignals,
+        sources: oppSourcesFromRow(r),
+        status: "open",
+        summary: firstSentences,
+      };
+    });
+
+    // Sort by match desc
+    opportunities.sort((a, b) => b.match - a.match);
+
+    return {
+      week: weekLabel(opps[0].week_start),
+      updated: new Date().toLocaleString("fr", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+      opportunities,
+    };
+  }
+
   // Transforme une ligne weekly_challenges (mode='theory'|'practice', content jsonb)
   // vers la shape attendue par panel-challenges.jsx.
   function mapWeeklyChallengeRow(r, radarAxes){
@@ -2649,12 +2793,15 @@
       }
       case "opps": {
         const opps = await T2.opps();
-        // Expose real rows under _raw — OPPORTUNITIES_DATA has a very
-        // rich shape (week/updated + opportunities with nested window
-        // objects, urgency, opens, closes_iso, closes_in…) that the
-        // weekly_opportunities table can't reproduce 1:1 without a
-        // dedicated pipeline.
-        if (window.OPPORTUNITIES_DATA) window.OPPORTUNITIES_DATA._raw = opps;
+        if (window.OPPORTUNITIES_DATA) {
+          window.OPPORTUNITIES_DATA._raw = opps;
+          // Remplace la fake data par les vraies lignes DB, enrichies avec
+          // scope, window estimée, kicker composé, signals liés (match sur
+          // le texte), sources parsées.
+          const signals = window.SIGNALS_DATA?.signals || [];
+          const built = buildOpportunitiesFromDB(opps, signals);
+          if (built) Object.assign(window.OPPORTUNITIES_DATA, built);
+        }
         return { opportunities: opps };
       }
       case "ideas": {
@@ -2834,6 +2981,7 @@
     // shape builders re-exported for panels that want to rebuild parts live
     buildSignals, buildRadar, buildTop, buildMacro, buildWeek, buildStats, buildDateShape, buildUser,
     applyAttemptsToChallenges, mapWeeklyChallengeRow, buildWikiFromConcepts, buildSignalsFromDB,
+    buildOpportunitiesFromDB,
     // helpers
     isoWeek, dayOfYear, relTime, stripHtml, getReadMap, computeStreak,
   };
