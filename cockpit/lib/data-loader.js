@@ -279,6 +279,89 @@
     };
   }
 
+  // Hydrate CHALLENGES_DATA from challenge_attempts.
+  // - Per-challenge: best attempt -> status="done" if >= 70, score, last_attempt_at
+  // - Global stats: total_taken (all attempts), avg_score, total_xp (sum of best xp per unique ref)
+  // - Streak: consecutive distinct days with >=1 attempt ending today or yesterday
+  function applyAttemptsToChallenges(cd, attempts){
+    if (!cd) return;
+    const byRef = new Map();
+    for (const a of attempts || []) {
+      const ref = a.challenge_ref;
+      if (!ref) continue;
+      const prev = byRef.get(ref);
+      if (!prev || Number(a.score_percent || 0) > Number(prev.score_percent || 0)) {
+        byRef.set(ref, a);
+      }
+    }
+    const stamp = (ch) => {
+      const best = byRef.get(ch.id);
+      if (!best) return ch;
+      const score = Math.round(Number(best.score_percent || 0));
+      return {
+        ...ch,
+        status: score >= 70 ? "done" : (ch.status === "recommended" ? "recommended" : "open"),
+        score,
+        last_attempt_at: best.completed_at,
+      };
+    };
+    if (Array.isArray(cd.theory))   cd.theory   = cd.theory.map(stamp);
+    if (Array.isArray(cd.practice)) cd.practice = cd.practice.map(stamp);
+
+    // Stats: one row per attempt (total_taken), mean over best-per-ref (avg_score),
+    // sum of best xp per ref (total_xp — avoids double counting retries).
+    const totalTaken = (attempts || []).length;
+    if (totalTaken > 0) {
+      const bests = Array.from(byRef.values());
+      const avgScore = Math.round(bests.reduce((s, a) => s + Number(a.score_percent || 0), 0) / bests.length);
+      const totalXP = bests.reduce((s, a) => s + Number(a.xp_earned || 0), 0);
+      cd.stats = {
+        ...(cd.stats || {}),
+        total_taken: totalTaken,
+        avg_score: avgScore,
+        total_xp: totalXP,
+      };
+    }
+
+    // Streak: distinct YYYY-MM-DD values from attempts, consecutive tail ending today/yesterday.
+    // Tout en UTC pour éviter les décalages fuseau horaire.
+    const toUtcDay = (ts) => {
+      const d = new Date(ts);
+      return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+    };
+    const dayUtcMs = (iso) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+    const days = new Set();
+    (attempts || []).forEach(a => {
+      if (!a.completed_at) return;
+      const key = toUtcDay(a.completed_at);
+      if (key) days.add(key);
+    });
+    const todayIso = new Date().toISOString().slice(0, 10);
+    let cursorMs = dayUtcMs(todayIso);
+    if (!days.has(new Date(cursorMs).toISOString().slice(0, 10))) {
+      cursorMs -= 86400000;
+    }
+    let current = 0;
+    while (days.has(new Date(cursorMs).toISOString().slice(0, 10))) {
+      current++;
+      cursorMs -= 86400000;
+    }
+    const sorted = Array.from(days).sort();
+    let best = 0, run = 0, prev = null;
+    for (const d of sorted) {
+      const dt = dayUtcMs(d);
+      if (prev !== null && dt - prev === 86400000) run++;
+      else run = 1;
+      if (run > best) best = run;
+      prev = dt;
+    }
+    cd.streak = {
+      ...(cd.streak || {}),
+      current,
+      best: Math.max(best, Number(cd.streak?.best || 0), current),
+    };
+  }
+
   function buildWeek(recentArticles){
     const days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
     const today = new Date(); today.setHours(0,0,0,0);
@@ -441,6 +524,7 @@
     async wiki(){ return once("wiki_concepts", () => q("wiki_concepts", "order=mention_count.desc&limit=200")); },
     async recos(){ return once("recos", () => q("learning_recommendations", "order=week_start.desc,target_axis&limit=30")); },
     async challenges(){ return once("challenges", () => q("weekly_challenges", "order=week_start.desc&limit=20")); },
+    async challengeAttempts(){ return once("challenge_attempts", () => q("challenge_attempts", "order=completed_at.desc&limit=500")); },
     async opps(){ return once("opps", () => q("weekly_opportunities", "order=week_start.desc&limit=40")); },
     async ideas(){ return once("ideas", () => q("business_ideas", "order=created_at.desc&limit=100")); },
     async strava(){ return once("strava", () => q("strava_activities", "order=start_date.desc&limit=300")); },
@@ -2172,24 +2256,20 @@
         return { recos, axes };
       }
       case "challenges": {
-        const challenges = await T2.challenges();
+        const [challenges, attempts] = await Promise.all([
+          T2.challenges(),
+          T2.challengeAttempts().catch(() => []),
+        ]);
         // TheoryQuiz/PracticeExercise components read rich inner fields
         // (questions[].choices[], brief_md, eval_criteria) that the
-        // weekly_challenges table doesn't carry. Keep fake shape, just
-        // update stats from real done challenges when present.
+        // weekly_challenges table doesn't carry. Keep fake shape, and
+        // hydrate stats/streak/per-challenge state from challenge_attempts.
         if (window.CHALLENGES_DATA) {
           window.CHALLENGES_DATA._raw = challenges;
-          const done = (challenges || []).filter(c => c.status === "completed");
-          if (done.length) {
-            window.CHALLENGES_DATA.stats = {
-              ...(window.CHALLENGES_DATA.stats || {}),
-              total_taken: done.length,
-              avg_score: Math.round(done.reduce((s,c)=>s+Number(c.score_percent||70),0)/done.length),
-              total_xp: done.reduce((s,c)=>s+Number(c.score_reward||0),0),
-            };
-          }
+          window.CHALLENGES_DATA._attempts = attempts || [];
+          applyAttemptsToChallenges(window.CHALLENGES_DATA, attempts || []);
         }
-        return { challenges };
+        return { challenges, attempts };
       }
       case "opps": {
         const opps = await T2.opps();
@@ -2371,6 +2451,7 @@
     cache,
     // shape builders re-exported for panels that want to rebuild parts live
     buildSignals, buildRadar, buildTop, buildMacro, buildWeek, buildStats, buildDateShape, buildUser,
+    applyAttemptsToChallenges,
     // helpers
     isoWeek, dayOfYear, relTime, stripHtml, getReadMap, computeStreak,
   };

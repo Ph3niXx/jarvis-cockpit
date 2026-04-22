@@ -3,12 +3,59 @@
 // États : hub (liste) → quiz/exercise (passage) → résultat
 const { useState: useStateChal, useMemo: useMemoChal, useEffect: useEffectChal } = React;
 
+async function persistChallengeAttempt(ch, result){
+  if (!window.sb || !window.SUPABASE_URL) return null;
+  const payload = {
+    challenge_ref: ch.id,
+    challenge_source: ch.id && /^[0-9a-f-]{36}$/i.test(ch.id) ? "db" : "fake",
+    mode: result.mode,
+    axis: ch.axis || null,
+    title: ch.title || null,
+    difficulty: ch.difficulty || null,
+    score_percent: Math.max(0, Math.min(100, Math.round(Number(result.score || 0)))),
+    xp_earned: result.score >= 70 ? Math.round(Number(ch.xp || 0) * (result.score / 100)) : 0,
+    answers: result.mode === "theory"
+      ? { answers: result.answers, correct: result.correctCount, total: result.total }
+      : { answer: result.answer, evaluation: result.evaluation },
+  };
+  const url = `${window.SUPABASE_URL}/rest/v1/challenge_attempts`;
+  try {
+    const rows = await window.sb.postJSON(url, payload);
+    try { window.track && window.track("challenge_completed", { ref: ch.id, mode: result.mode, score: payload.score_percent }); } catch {}
+    return Array.isArray(rows) && rows[0] ? rows[0] : { ...payload, completed_at: new Date().toISOString() };
+  } catch (e) {
+    console.error("[challenges] persist failed", e);
+    return null;
+  }
+}
+
 function PanelChallenges({ data, onNavigate }) {
   const c = window.CHALLENGES_DATA;
   const [mode, setMode] = useStateChal("theory"); // "theory" | "practice"
   const [filter, setFilter] = useStateChal("open"); // "open" | "recommended" | "all" | "done"
   const [active, setActive] = useStateChal(null); // challenge in progress
   const [completed, setCompleted] = useStateChal(null); // challenge just completed
+  // Bump to force re-render after applyAttemptsToChallenges mutates CHALLENGES_DATA.
+  const [revision, setRevision] = useStateChal(0);
+
+  const recordAttempt = async (result) => {
+    const saved = await persistChallengeAttempt(result.challenge, result);
+    const attempt = saved || {
+      challenge_ref: result.challenge.id,
+      score_percent: Math.round(result.score || 0),
+      xp_earned: result.score >= 70 ? Math.round(Number(result.challenge.xp || 0) * (result.score / 100)) : 0,
+      completed_at: new Date().toISOString(),
+      mode: result.mode,
+      axis: result.challenge.axis,
+    };
+    const dl = window.cockpitDataLoader;
+    if (dl && dl.applyAttemptsToChallenges) {
+      c._attempts = [attempt, ...(c._attempts || [])];
+      dl.applyAttemptsToChallenges(c, c._attempts);
+      setRevision(r => r + 1);
+    }
+    setCompleted(result);
+  };
 
   const list = mode === "theory" ? c.theory : c.practice;
   const filtered = useMemoChal(() => {
@@ -23,10 +70,10 @@ function PanelChallenges({ data, onNavigate }) {
 
   // ─── Flow states ───────────────────
   if (active && mode === "theory") {
-    return <TheoryQuiz challenge={active} onBack={() => setActive(null)} onComplete={(r) => { setActive(null); setCompleted(r); }} />;
+    return <TheoryQuiz challenge={active} onBack={() => setActive(null)} onComplete={(r) => { setActive(null); recordAttempt(r); }} />;
   }
   if (active && mode === "practice") {
-    return <PracticeExercise challenge={active} onBack={() => setActive(null)} onComplete={(r) => { setActive(null); setCompleted(r); }} />;
+    return <PracticeExercise challenge={active} onBack={() => setActive(null)} onComplete={(r) => { setActive(null); recordAttempt(r); }} />;
   }
   if (completed) {
     return <ResultScreen result={completed} onBack={() => setCompleted(null)} onRetry={() => { setActive(completed.challenge); setCompleted(null); }} />;
