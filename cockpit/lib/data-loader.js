@@ -670,26 +670,57 @@
     };
   }
 
-  function oppSourcesFromRow(r){
+  function oppSourcesFromRow(r, articleIndex){
     const arts = Array.isArray(r.source_articles) ? r.source_articles : [];
     return arts.slice(0, 6).map(src => {
       const s = String(src);
-      // article IDs look like "abc-def-123"; URLs start with http
+      // article IDs look like "abc-def-..." UUID; URLs start with http
       if (s.startsWith("http")) {
         try {
           const u = new URL(s);
-          return { who: u.hostname.replace(/^www\./, ""), what: u.pathname.slice(0, 80), when: weekLabel(r.week_start), kind: "article" };
+          return {
+            who: u.hostname.replace(/^www\./, ""),
+            what: u.pathname.slice(0, 80),
+            when: weekLabel(r.week_start),
+            kind: "article",
+            url: s,
+          };
         } catch {
           return { who: "source", what: s.slice(0, 80), when: weekLabel(r.week_start), kind: "article" };
         }
+      }
+      // Resolve against articles table if we have it
+      const art = articleIndex ? articleIndex.get(s) : null;
+      if (art) {
+        return {
+          who: art.source || "article",
+          what: art.title || "",
+          when: weekLabel(art.fetch_date || r.week_start),
+          kind: "article",
+          url: art.url || "",
+        };
       }
       return { who: "article", what: s.slice(0, 40), when: weekLabel(r.week_start), kind: "article" };
     });
   }
 
-  function buildOpportunitiesFromDB(rows, signals){
-    const opps = Array.isArray(rows) ? rows : [];
-    if (!opps.length) return null;
+  function buildOpportunitiesFromDB(rows, signals, articleIndex){
+    const raw = Array.isArray(rows) ? rows : [];
+    if (!raw.length) return null;
+
+    // Déduplication : si Claude génère la même opportunité plusieurs semaines,
+    // on garde la plus récente. Comparaison sur titre normalisé.
+    const titleKey = (t) => String(t || "").toLowerCase().replace(/\s+/g, " ").trim();
+    const dedupMap = new Map();
+    for (const r of raw) {
+      const key = titleKey(r.usecase_title);
+      if (!key) continue;
+      const prev = dedupMap.get(key);
+      if (!prev || String(r.week_start || "") > String(prev.week_start || "")) {
+        dedupMap.set(key, r);
+      }
+    }
+    const opps = Array.from(dedupMap.values());
 
     const opportunities = opps.map(r => {
       const scope = oppScopeFromRow(r);
@@ -722,7 +753,7 @@
         who_pays: r.who_pays || "",
         market_size: r.market_size || "",
         signals: relatedSignals,
-        sources: oppSourcesFromRow(r),
+        sources: oppSourcesFromRow(r, articleIndex),
         status: "open",
         summary: firstSentences,
       };
@@ -2795,11 +2826,27 @@
         const opps = await T2.opps();
         if (window.OPPORTUNITIES_DATA) {
           window.OPPORTUNITIES_DATA._raw = opps;
-          // Remplace la fake data par les vraies lignes DB, enrichies avec
-          // scope, window estimée, kicker composé, signals liés (match sur
-          // le texte), sources parsées.
+          // Collecte tous les IDs d'articles référencés (pas les URLs) pour
+          // les résoudre en un seul batch contre la table articles.
+          const articleIds = new Set();
+          (opps || []).forEach(o => {
+            (o.source_articles || []).forEach(s => {
+              const v = String(s);
+              if (v && !v.startsWith("http") && /^[0-9a-f-]{8,}/i.test(v)) articleIds.add(v);
+            });
+          });
+          let articleIndex = new Map();
+          if (articleIds.size > 0) {
+            try {
+              const idList = Array.from(articleIds).join(",");
+              const arts = await q("articles", `id=in.(${idList})&select=id,title,source,url,fetch_date&limit=200`);
+              (arts || []).forEach(a => articleIndex.set(String(a.id), a));
+            } catch (e) {
+              console.warn("[opps] article resolve failed", e);
+            }
+          }
           const signals = window.SIGNALS_DATA?.signals || [];
-          const built = buildOpportunitiesFromDB(opps, signals);
+          const built = buildOpportunitiesFromDB(opps, signals, articleIndex);
           if (built) Object.assign(window.OPPORTUNITIES_DATA, built);
         }
         return { opportunities: opps };

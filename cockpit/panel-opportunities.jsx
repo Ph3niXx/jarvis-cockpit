@@ -82,6 +82,37 @@ function CompetitionBars({ competition }) {
   );
 }
 
+// Ring visuel pour le % match (0-100). Couleur échelle : <50 gris, 50-69 neutre, 70-84 brand, 85+ positive.
+function MatchRing({ value, size = 64, stroke = 5 }) {
+  const v = Math.max(0, Math.min(100, Number(value || 0)));
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - v / 100);
+  const level = v >= 85 ? "high" : v >= 70 ? "mid" : v >= 50 ? "low" : "none";
+  return (
+    <div className={`opp-match-ring opp-match-ring--${level}`} style={{ width: size, height: size }}>
+      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
+        <circle
+          cx={size / 2} cy={size / 2} r={r}
+          fill="none" stroke="var(--bd)" strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2} cy={size / 2} r={r}
+          fill="none" stroke="currentColor" strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </svg>
+      <div className="opp-match-ring-inner">
+        <span className="opp-match-ring-val">{v}</span>
+        <span className="opp-match-ring-unit">% match</span>
+      </div>
+    </div>
+  );
+}
+
 function SignalChip({ name, onClick }) {
   // find trend from SIGNALS_DATA if available
   const sig = (window.SIGNALS_DATA?.signals || []).find(s => s.name === name);
@@ -161,7 +192,7 @@ function FlagshipCard({ opp, onTake, onPass, onOpenSignal, onAskJarvis, onSendTo
 }
 
 // ─── Card (editorial row) ────────────────────────────────
-function OppCard({ opp, open, onToggle, onTake, onPass, onOpenSignal, onAskJarvis, onSendToIdeas }) {
+function OppCard({ opp, open, onToggle, onTake, onPass, onReset, onOpenSignal, onAskJarvis, onSendToIdeas }) {
   const w = opp.window;
   const cls = `opp-card ${opp.status === "taken" ? "is-taken" : ""} ${opp.status === "passed" ? "is-passed" : ""}`;
   const progress = windowProgress(w);
@@ -172,8 +203,7 @@ function OppCard({ opp, open, onToggle, onTake, onPass, onOpenSignal, onAskJarvi
   return (
     <article className={cls} onClick={onToggle} data-opp-id={opp.id}>
       <div className="opp-card-match">
-        <span className="opp-card-match-val">{opp.match}</span>
-        <span className="opp-card-match-unit">% match</span>
+        <MatchRing value={opp.match} />
       </div>
 
       <div className="opp-card-body">
@@ -221,12 +251,21 @@ function OppCard({ opp, open, onToggle, onTake, onPass, onOpenSignal, onAskJarvi
             <div>
               <div className="opp-detail-section-label">Sources</div>
               <div className="opp-detail-sources">
-                {(opp.sources || []).length > 0 ? opp.sources.map((s, i) => (
-                  <div key={i} className="opp-detail-source">
-                    <span><strong style={{ color: "var(--tx)" }}>{s.who}</strong> — {s.what}</span>
-                    <span>{s.when}</span>
-                  </div>
-                )) : (
+                {(opp.sources || []).length > 0 ? opp.sources.map((s, i) => {
+                  const inner = (
+                    <>
+                      <span><strong style={{ color: "var(--tx)" }}>{s.who}</strong>{s.what ? <> — {s.what}</> : null}</span>
+                      <span>{s.when}</span>
+                    </>
+                  );
+                  return s.url ? (
+                    <a key={i} className="opp-detail-source opp-detail-source--link" href={s.url} target="_blank" rel="noopener noreferrer">
+                      {inner}
+                    </a>
+                  ) : (
+                    <div key={i} className="opp-detail-source">{inner}</div>
+                  );
+                }) : (
                   <div style={{ color: "var(--tx3)" }}>Pas de source externe — opportunité intuition / réseau.</div>
                 )}
               </div>
@@ -236,12 +275,25 @@ function OppCard({ opp, open, onToggle, onTake, onPass, onOpenSignal, onAskJarvi
               </div>
             </div>
             <div className="opp-detail-actions">
-              <button className="btn btn--primary opp-cta-take" onClick={() => onTake(opp.id)}>
-                <Icon name="check" size={14} stroke={2} /> Je saisis
-              </button>
-              <button className="btn btn--ghost opp-cta-pass" onClick={() => onPass(opp.id)}>
-                Je passe
-              </button>
+              {opp.status === "open" ? (
+                <>
+                  <button className="btn btn--primary opp-cta-take" onClick={() => onTake(opp.id)}>
+                    <Icon name="check" size={14} stroke={2} /> Je saisis
+                  </button>
+                  <button className="btn btn--ghost opp-cta-pass" onClick={() => onPass(opp.id)}>
+                    Je passe
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className={`opp-status-badge opp-status-badge--${opp.status}`}>
+                    {opp.status === "taken" ? "✓ Saisie" : "× Passée"}
+                  </span>
+                  <button className="btn btn--ghost" onClick={() => onReset && onReset(opp.id)}>
+                    <Icon name="arrow_left" size={14} stroke={1.75} /> Restaurer
+                  </button>
+                </>
+              )}
               <button className="btn btn--ghost" onClick={() => onAskJarvis && onAskJarvis(opp)}>
                 <Icon name="assistant" size={14} stroke={1.75} /> Demander un plan à Jarvis
               </button>
@@ -431,6 +483,19 @@ function PanelOpportunities({ data, onNavigate }) {
     o.window?.urgency === "closing" || o.window?.urgency === "getting_late"
   ).length;
 
+  // Prochaine deadline (parmi les opps ouvertes à trancher)
+  const nextDeadline = useMemoOp(() => {
+    const withDate = openOpps
+      .filter(o => o.window?.closes_iso)
+      .map(o => ({ opp: o, date: new Date(o.window.closes_iso) }))
+      .filter(x => !isNaN(x.date.getTime()) && x.date.getTime() > Date.now())
+      .sort((a, b) => a.date - b.date);
+    if (!withDate.length) return null;
+    const { opp, date } = withDate[0];
+    const daysLeft = Math.max(0, Math.round((date.getTime() - Date.now()) / 86400000));
+    return { opp, daysLeft, date };
+  }, [openOpps]);
+
   // Flagship = best open opp (prioritize urgency, then match)
   const flagship = useMemoOp(() => {
     return [...openOpps].sort((a, b) => {
@@ -477,17 +542,39 @@ function PanelOpportunities({ data, onNavigate }) {
     if (!confirm(`Copier cette opportunité dans le carnet d'idées ?\n\n"${opp.title}"\n\nElle y attendra en statut "maturing" que tu la creuses.`)) return;
     try {
       const url = `${window.SUPABASE_URL}/rest/v1/business_ideas`;
+      // Compile un description riche incluant tout le contexte DB.
+      const descParts = [];
+      if (opp.teaser || opp.summary) descParts.push(opp.teaser || opp.summary);
+      if (opp.body && opp.body !== opp.teaser) descParts.push(opp.body);
+      const description = descParts.join("\n\n").trim() || opp.title;
+
+      // Notes contextuelles (champs DB opportunités)
+      const noteLines = [];
+      noteLines.push(`Source : opportunité hebdo "${opp.id}"`);
+      if (opp.match) noteLines.push(`Pertinence : ${opp.match}/100 (confiance ${opp.confidence || "medium"})`);
+      if (opp.window?.closes_in) noteLines.push(`Fenêtre : ${opp.window.closes_in} (${opp.window.urgency || "right_time"})`);
+      if (opp.effort) noteLines.push(`Effort à bâtir : ${opp.effort}`);
+      if (opp.competition) noteLines.push(`Concurrence : ${opp.competition}`);
+      if (opp.market_size) noteLines.push(`Marché : ${opp.market_size}`);
+      if (opp.who_pays) noteLines.push(`Qui paye : ${opp.who_pays}`);
+      if (opp.why_you) noteLines.push(`\nPourquoi toi :\n${opp.why_you}`);
+      if (opp.next_step) noteLines.push(`\nNext step :\n${opp.next_step}`);
+      if ((opp.sources || []).length) {
+        const srcLines = opp.sources.slice(0, 5).map(s => `- ${s.who}${s.what ? " — " + s.what : ""}${s.url ? " (" + s.url + ")" : ""}`).join("\n");
+        noteLines.push(`\nSources :\n${srcLines}`);
+      }
+
       const payload = {
         title: opp.title,
-        description: opp.summary || opp.pitch || "",
+        description,
         sector: opp.scope || "business",
         status: "maturing",
-        notes: `Source : opportunité "${opp.id}" · match ${opp.match || "—"}/100 · fenêtre ${opp.window?.closes_in || "—"}.`,
-        related_concepts: opp.tags || [],
+        notes: noteLines.join("\n"),
+        related_concepts: [...(opp.signals || []), ...(opp.tags || [])].filter(Boolean).slice(0, 10),
       };
       const rows = await window.sb.postJSON(url, payload);
       try { window.track && window.track("opp_sent_to_ideas", { opp_id: opp.id, idea_id: rows?.[0]?.id }); } catch {}
-      if (confirm("Idée créée. Ouvrir le carnet d'idées ?")) onNavigate && onNavigate("ideas");
+      if (confirm("Idée créée avec le contexte complet (marché, concurrence, sources, next step). Ouvrir le carnet d'idées ?")) onNavigate && onNavigate("ideas");
     } catch (e) {
       console.error(e);
       alert("Impossible d'enregistrer l'idée. Réessaie dans un instant.");
@@ -526,6 +613,14 @@ function PanelOpportunities({ data, onNavigate }) {
             <span className="opp-herometa-val opp-herometa-val--urgent">{urgentCount}</span>
             <span>à saisir avant 10 sem.</span>
           </div>
+          {nextDeadline ? (
+            <div className="opp-herometa-stat">
+              <span className={`opp-herometa-val ${nextDeadline.daysLeft <= 14 ? "opp-herometa-val--urgent" : ""}`}>
+                {nextDeadline.daysLeft}j
+              </span>
+              <span title={nextDeadline.opp.title}>avant la + proche fenêtre</span>
+            </div>
+          ) : null}
           <div className="opp-herometa-stat">
             <span className="opp-herometa-val opp-herometa-val--taken">{takenOpps.length}</span>
             <span>saisies</span>
@@ -600,7 +695,8 @@ function PanelOpportunities({ data, onNavigate }) {
                     <OppCard key={o.id} opp={o}
                       open={openId === o.id}
                       onToggle={() => setOpenId(openId === o.id ? null : o.id)}
-                      onTake={handleTake} onPass={handlePass} onAskJarvis={handleAskJarvis} onSendToIdeas={handleSendToIdeas}
+                      onTake={handleTake} onPass={handlePass} onReset={handleReset}
+                      onAskJarvis={handleAskJarvis} onSendToIdeas={handleSendToIdeas}
                       onOpenSignal={handleOpenSignal} />
                   ))}
                 </section>
@@ -653,7 +749,13 @@ function PanelOpportunities({ data, onNavigate }) {
             ) : takenOpps.map(o => (
               <div key={o.id} className="opp-ledger-item">
                 <span className="opp-ledger-item-title">{o.title}</span>
-                <button className="opp-ledger-item-meta" style={{ background: "none", border: 0, cursor: "pointer" }} onClick={() => handleReset(o.id)}>réouvrir</button>
+                <button
+                  className="opp-ledger-restore"
+                  onClick={() => handleReset(o.id)}
+                  title="Remettre dans la liste à trancher"
+                >
+                  <Icon name="arrow_left" size={11} stroke={2} /> Restaurer
+                </button>
               </div>
             ))}
           </div>
@@ -667,7 +769,13 @@ function PanelOpportunities({ data, onNavigate }) {
             ) : passedOpps.map(o => (
               <div key={o.id} className="opp-ledger-item is-passed">
                 <span className="opp-ledger-item-title">{o.title}</span>
-                <button className="opp-ledger-item-meta" style={{ background: "none", border: 0, cursor: "pointer" }} onClick={() => handleReset(o.id)}>réouvrir</button>
+                <button
+                  className="opp-ledger-restore"
+                  onClick={() => handleReset(o.id)}
+                  title="Remettre dans la liste à trancher"
+                >
+                  <Icon name="arrow_left" size={11} stroke={2} /> Restaurer
+                </button>
               </div>
             ))}
           </div>
