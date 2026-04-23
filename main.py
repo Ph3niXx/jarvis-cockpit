@@ -304,7 +304,7 @@ def web_search_ai_news():
     try:
         model = genai.GenerativeModel(
             model_name="gemini-2.5-flash-lite",
-            tools=[{"google_search": {}}],
+            tools="google_search",
         )
         use_grounding = True
     except Exception:
@@ -377,7 +377,7 @@ def search_rte_articles():
     try:
         model = genai.GenerativeModel(
             model_name="gemini-2.5-flash-lite",
-            tools=[{"google_search": {}}],
+            tools="google_search",
         )
         use_grounding = True
     except Exception:
