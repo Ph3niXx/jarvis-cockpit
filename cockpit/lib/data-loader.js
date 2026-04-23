@@ -3002,15 +3002,23 @@
         return { ideas };
       }
       case "profile": {
-        const rows = raw.profileRows || await q("user_profile", "order=key");
-        // PROFILE_DATA has identity/commitments/contract/uncomfortable_last
-        // — too structured to reproduce from a flat user_profile kv table.
-        // Expose real kv under _values; keep fake rendering intact.
+        const [rows, facts, entitiesRows] = await Promise.all([
+          raw.profileRows ? Promise.resolve(raw.profileRows) : q("user_profile", "order=key"),
+          q("profile_facts", "superseded_by=is.null&order=created_at.desc&limit=200").catch(() => []),
+          q("entities", "order=mentions_count.desc.nullslast&limit=80").catch(() => []),
+        ]);
         if (window.PROFILE_DATA) {
           window.PROFILE_DATA._values = transformProfile(rows);
           window.PROFILE_DATA._raw = rows;
+          window.PROFILE_DATA._facts = Array.isArray(facts) ? facts : [];
+          window.PROFILE_DATA._entities = Array.isArray(entitiesRows) ? entitiesRows : [];
+          const maxUpdate = rows.reduce((max, r) => {
+            const t = r.updated_at ? new Date(r.updated_at).getTime() : 0;
+            return t > max ? t : max;
+          }, 0);
+          window.PROFILE_DATA._lastUpdated = maxUpdate ? new Date(maxUpdate).toISOString() : null;
         }
-        return { profile: rows };
+        return { profile: rows, facts, entities: entitiesRows };
       }
       case "perf": {
         const activities = await T2.strava();
