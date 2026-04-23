@@ -1,0 +1,225 @@
+{
+  "generated_at": "2026-04-23T19:02:37Z",
+  "tabs": [
+    {
+      "slug": "brief",
+      "title": "Brief du jour",
+      "order": 1,
+      "group": "Aujourd'hui",
+      "dom_id": "brief",
+      "scope": "mixte",
+      "status": "documented",
+      "last_updated": "2026-04-23"
+    },
+    {
+      "slug": "top",
+      "title": "Top du jour",
+      "order": 2,
+      "group": "Aujourd'hui",
+      "dom_id": "top",
+      "scope": "mixte",
+      "status": "documented",
+      "last_updated": "2026-04-23"
+    },
+    {
+      "slug": "week",
+      "title": "Ma semaine",
+      "order": 3,
+      "group": "Aujourd'hui",
+      "dom_id": "week",
+      "scope": "mixte",
+      "status": "documented",
+      "last_updated": "2026-04-23"
+    },
+    {
+      "slug": "search",
+      "title": "Recherche",
+      "order": 4,
+      "group": "Aujourd'hui",
+      "dom_id": "search",
+      "scope": "mixte",
+      "status": "documented",
+      "last_updated": "2026-04-23"
+    },
+    {
+      "slug": "updates",
+      "title": "Veille IA",
+      "order": 5,
+      "group": "Veille",
+      "dom_id": "updates",
+      "scope": "pro",
+      "status": "stub"
+    },
+    {
+      "slug": "sport",
+      "title": "Sport",
+      "order": 6,
+      "group": "Veille",
+      "dom_id": "sport",
+      "scope": "perso",
+      "status": "stub"
+    },
+    {
+      "slug": "gaming-news",
+      "title": "Gaming (news)",
+      "order": 7,
+      "group": "Veille",
+      "dom_id": "gaming_news",
+      "scope": "perso",
+      "status": "stub"
+    },
+    {
+      "slug": "anime",
+      "title": "Anime / Ciné / Séries",
+      "order": 8,
+      "group": "Veille",
+      "dom_id": "anime",
+      "scope": "perso",
+      "status": "stub"
+    },
+    {
+      "slug": "news",
+      "title": "Actualités",
+      "order": 9,
+      "group": "Veille",
+      "dom_id": "news",
+      "scope": "mixte",
+      "status": "stub"
+    },
+    {
+      "slug": "radar",
+      "title": "Radar compétences",
+      "order": 10,
+      "group": "Apprentissage",
+      "dom_id": "radar",
+      "scope": "pro",
+      "status": "stub"
+    },
+    {
+      "slug": "recos",
+      "title": "Recommandations",
+      "order": 11,
+      "group": "Apprentissage",
+      "dom_id": "recos",
+      "scope": "pro",
+      "status": "stub"
+    },
+    {
+      "slug": "challenges",
+      "title": "Challenges",
+      "order": 12,
+      "group": "Apprentissage",
+      "dom_id": "challenges",
+      "scope": "pro",
+      "status": "stub"
+    },
+    {
+      "slug": "wiki",
+      "title": "Wiki IA",
+      "order": 13,
+      "group": "Apprentissage",
+      "dom_id": "wiki",
+      "scope": "pro",
+      "status": "stub"
+    },
+    {
+      "slug": "signals",
+      "title": "Signaux faibles",
+      "order": 14,
+      "group": "Apprentissage",
+      "dom_id": "signals",
+      "scope": "pro",
+      "status": "stub"
+    },
+    {
+      "slug": "opps",
+      "title": "Opportunités",
+      "order": 15,
+      "group": "Business",
+      "dom_id": "opps",
+      "scope": "pro",
+      "status": "stub"
+    },
+    {
+      "slug": "ideas",
+      "title": "Carnet d'idées",
+      "order": 16,
+      "group": "Business",
+      "dom_id": "ideas",
+      "scope": "pro",
+      "status": "stub"
+    },
+    {
+      "slug": "jobs",
+      "title": "Jobs Radar",
+      "order": 17,
+      "group": "Business",
+      "dom_id": "jobs",
+      "scope": "pro",
+      "status": "stub"
+    },
+    {
+      "slug": "jarvis",
+      "title": "Jarvis",
+      "order": 18,
+      "group": "Personnel",
+      "dom_id": "jarvis",
+      "scope": "mixte",
+      "status": "stub"
+    },
+    {
+      "slug": "profile",
+      "title": "Mon profil",
+      "order": 19,
+      "group": "Personnel",
+      "dom_id": "profile",
+      "scope": "mixte",
+      "status": "stub"
+    },
+    {
+      "slug": "perf",
+      "title": "Forme",
+      "order": 20,
+      "group": "Personnel",
+      "dom_id": "perf",
+      "scope": "perso",
+      "status": "stub"
+    },
+    {
+      "slug": "music",
+      "title": "Musique",
+      "order": 21,
+      "group": "Personnel",
+      "dom_id": "music",
+      "scope": "perso",
+      "status": "stub"
+    },
+    {
+      "slug": "gaming",
+      "title": "Gaming",
+      "order": 22,
+      "group": "Personnel",
+      "dom_id": "gaming",
+      "scope": "perso",
+      "status": "stub"
+    },
+    {
+      "slug": "stacks",
+      "title": "Stacks & Limits",
+      "order": 23,
+      "group": "Systeme",
+      "dom_id": "stacks",
+      "scope": "mixte",
+      "status": "stub"
+    },
+    {
+      "slug": "history",
+      "title": "Historique",
+      "order": 24,
+      "group": "Systeme",
+      "dom_id": "history",
+      "scope": "mixte",
+      "status": "stub"
+    }
+  ]
+}
