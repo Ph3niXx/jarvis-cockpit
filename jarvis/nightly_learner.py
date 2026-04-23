@@ -163,6 +163,7 @@ def _llm_extract(prompt: str, text: str) -> dict:
 
     try:
         from llm_client import chat_completion_sync
+        from config import EXTRACTION_MODEL
 
         raw, _tokens = chat_completion_sync(
             messages=[
@@ -171,6 +172,7 @@ def _llm_extract(prompt: str, text: str) -> dict:
             ],
             max_tokens=1024,
             temperature=0.1,
+            model=EXTRACTION_MODEL,
         )
 
         result = _parse_json_response(raw)
@@ -363,7 +365,8 @@ def run(days: int | None = None) -> dict:
 
     # 1. Check LM Studio
     log.info("[1/5] Verification de LM Studio...")
-    from llm_client import check_lm_studio
+    from llm_client import check_lm_studio, chat_completion_sync
+    from config import EXTRACTION_MODEL
     lm_status = check_lm_studio(timeout=5)
     if lm_status == "connected":
         log.info("  [OK] LM Studio connecte")
@@ -373,6 +376,23 @@ def run(days: int | None = None) -> dict:
     else:
         log.error("  [X] LM Studio non disponible. Reporte a demain.")
         return {"status": "error", "reason": "lm_studio_unavailable"}
+
+    # Preflight extraction model (distinct from chat LLM — non-thinking required for JSON output)
+    try:
+        chat_completion_sync(
+            messages=[{"role": "user", "content": "ping"}],
+            max_tokens=5,
+            temperature=0.0,
+            model=EXTRACTION_MODEL,
+        )
+        log.info("  [OK] Modele extraction %s disponible", EXTRACTION_MODEL)
+    except Exception as e:
+        log.error("  [X] Modele extraction %s indisponible: %s", EXTRACTION_MODEL, e)
+        state = _load_state()
+        state["last_result"] = "extraction_model_unavailable"
+        state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
+        _save_state(state)
+        return {"status": "error", "reason": "extraction_model_unavailable"}
 
     # 2. Determine since when to fetch
     state = _load_state()

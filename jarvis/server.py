@@ -154,7 +154,7 @@ def health():
             nightly = json.loads(state_file.read_text(encoding="utf-8"))
             result["last_nightly_run"] = nightly.get("last_run", "never")
             result["nightly_stats"] = nightly.get("last_stats", {})
-            if nightly.get("last_result") == "empty_extraction":
+            if nightly.get("last_result") in ("empty_extraction", "extraction_model_unavailable"):
                 result["status"] = "degraded"
             # Stale if last run > 36h ago
             last_run = nightly.get("last_run")

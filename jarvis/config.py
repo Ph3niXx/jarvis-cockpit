@@ -12,6 +12,10 @@ LM_STUDIO_API_KEY = os.getenv("LM_STUDIO_API_KEY", "lm-studio")
 # server.py::system_prompt_for). Exact slug depends on LM Studio's
 # naming — override via LLM_MODEL env var if different.
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3-4b-thinking-2507")
+# Dedicated non-thinking model for structured JSON extraction (nightly_learner).
+# Qwen3 4B Thinking 2507 emits all content inside <think>…</think>, so after
+# _strip_thinking() the response is empty — unusable for JSON extraction.
+EXTRACTION_MODEL = os.getenv("EXTRACTION_MODEL", "qwen/qwen3-4b-2507")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen/qwen3-embedding-0.6b")
 
 # Generation parameters

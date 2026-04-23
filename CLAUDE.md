@@ -309,6 +309,7 @@ Assistant IA personnel local ("Jarvis") qui :
 
 - **LM Studio** en serveur local sur `http://localhost:1234/v1` (compatible OpenAI API)
 - **LLM principal** : Qwen3.5 9B Q4_K_M (6.55 Go VRAM)
+- **Extraction JSON** : Qwen3-4B-Instruct-2507 Q4_K_M (~2.5 Go VRAM, slug LM Studio `qwen/qwen3-4b-2507`) — non-thinking, dédié `nightly_learner` car le modèle Thinking émet tout dans `<think>…</think>` (inutilisable après `_strip_thinking`)
 - **Embeddings** : Qwen3-Embedding-0.6B Q8_0 (~640 Mo)
 - **Vector store** : Supabase pgvector (1024-dim, table `memories_vectors`)
 - **Hardware** : RTX 5070 Laptop **8 Go VRAM dédiée** (+ 15.9 Go Shared via PCIe), 32 Go RAM, Windows. Qwen3.5 9B Q4_K_M + prompt cache tangente la VRAM — si le throughput chute sous 5 tok/s, la VRAM déborde en Shared memory (inférence 10-50× plus lente). Bascule sur Qwen3 4B ou réduis le context à 4096 tokens.

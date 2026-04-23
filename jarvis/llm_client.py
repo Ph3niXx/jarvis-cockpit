@@ -58,14 +58,15 @@ def get_client() -> OpenAI:
     return _client
 
 
-def _sync_call(messages: list, max_tokens: int, temperature: float, response_format: dict | None = None) -> tuple[str, int]:
+def _sync_call(messages: list, max_tokens: int, temperature: float, response_format: dict | None = None, model: str | None = None) -> tuple[str, int]:
     """Blocking LLM call with retry on timeout/connection errors."""
     client = get_client()
     last_exc = None
     start_time = time.time()
     chars_in = sum(len(m.get("content", "")) for m in messages)
+    model_used = model or LLM_MODEL
     kwargs = dict(
-        model=LLM_MODEL,
+        model=model_used,
         messages=messages,
         max_tokens=max_tokens,
         temperature=temperature,
@@ -79,7 +80,7 @@ def _sync_call(messages: list, max_tokens: int, temperature: float, response_for
             tokens = response.usage.total_tokens if response.usage else 0
             _write_trace({
                 "ts": datetime.now(timezone.utc).isoformat(),
-                "model": LLM_MODEL,
+                "model": model_used,
                 "chars_in": chars_in,
                 "tokens_out": tokens,
                 "latency_ms": round((time.time() - start_time) * 1000),
@@ -95,7 +96,7 @@ def _sync_call(messages: list, max_tokens: int, temperature: float, response_for
                 time.sleep(backoff)
     _write_trace({
         "ts": datetime.now(timezone.utc).isoformat(),
-        "model": LLM_MODEL,
+        "model": model_used,
         "chars_in": chars_in,
         "latency_ms": round((time.time() - start_time) * 1000),
         "attempts": MAX_RETRIES + 1,
@@ -105,12 +106,12 @@ def _sync_call(messages: list, max_tokens: int, temperature: float, response_for
     raise last_exc
 
 
-async def chat_completion_async(messages: list, max_tokens: int = 2048, temperature: float = 0.3, response_format: dict | None = None) -> tuple[str, int]:
+async def chat_completion_async(messages: list, max_tokens: int = 2048, temperature: float = 0.3, response_format: dict | None = None, model: str | None = None) -> tuple[str, int]:
     """Async LLM call with lock. Runs sync SDK in thread pool to avoid blocking event loop."""
     async with _lock:
-        return await asyncio.to_thread(_sync_call, messages, max_tokens, temperature, response_format)
+        return await asyncio.to_thread(_sync_call, messages, max_tokens, temperature, response_format, model)
 
 
-def chat_completion_sync(messages: list, max_tokens: int = 2048, temperature: float = 0.3, response_format: dict | None = None) -> tuple[str, int]:
+def chat_completion_sync(messages: list, max_tokens: int = 2048, temperature: float = 0.3, response_format: dict | None = None, model: str | None = None) -> tuple[str, int]:
     """Synchronous LLM call (for scripts like nightly_learner). No lock needed — scripts run alone."""
-    return _sync_call(messages, max_tokens, temperature, response_format)
+    return _sync_call(messages, max_tokens, temperature, response_format, model)
