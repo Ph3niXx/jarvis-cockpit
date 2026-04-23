@@ -181,6 +181,8 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
   const [period, setPeriod] = useStateVeille("7j");
   const [trendFilter, setTrendFilter] = useStateVeille(null); // id of selected trend
   const [readState, setReadState] = useStateVeille({}); // id -> "read" | "archived" | undefined
+  const [expandedGroups, setExpandedGroups] = useStateVeille({}); // type -> true = show all in group
+  const GROUP_PREVIEW = 5;
 
   const actors = v.actors;
   const periodMaxH = VEILLE_PERIODS.find((p) => p.id === period).max_h;
@@ -448,70 +450,128 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
           </div>
         </div>
 
-        {filtered.length === 0 ? (
-          <div className="vl-empty">
-            <Icon name="eye" size={24} stroke={1.5}/>
-            <div className="vl-empty-title">Aucune actu ne matche tes filtres</div>
-            <button className="btn btn--ghost btn--sm" onClick={() => { setActorFilter("all"); setTypeFilter("Tous"); setPeriod("30j"); }}>Réinitialiser</button>
-          </div>
-        ) : (
-          <div className="vl-feed">
-            {filtered.map((f) => {
-              const actor = actors.find(a => a.name === f.actor);
-              const isRead = readState[f.id] === "read" || !f.unread;
-              const openArticle = () => {
-                if (!f.url) return;
-                try {
-                  // Persist read state across sessions (localStorage).
-                  const rm = JSON.parse(localStorage.getItem("read-articles") || "{}");
-                  rm[f.id] = { ts: Date.now(), kept: !!rm[f.id]?.kept };
-                  localStorage.setItem("read-articles", JSON.stringify(rm));
-                } catch {}
-                markRead(f.id);
-                window.open(f.url, "_blank", "noopener");
-              };
-              return (
-                <article
-                  key={f.id}
-                  className={`vl-feed-item ${isRead ? "is-read" : "is-unread"} ${f.starred ? "is-starred" : ""}`}
-                  onClick={openArticle}
-                  style={f.url ? { cursor: "pointer" } : null}
-                >
-                  <div className="vl-feed-rail">
-                    {actor ? <ActorMark actor={actor} size={30}/> : <span className="vl-actor-mark vl-actor-mark--neutral" style={{ width: 30, height: 30, fontSize: 13 }}>{f.actor.slice(0,1)}</span>}
-                    {!isRead && <span className="vl-feed-unread-dot" />}
+        {(() => {
+          if (filtered.length === 0) {
+            return (
+              <div className="vl-empty">
+                <Icon name="eye" size={24} stroke={1.5}/>
+                <div className="vl-empty-title">Aucune actu ne matche tes filtres</div>
+                <button className="btn btn--ghost btn--sm" onClick={() => { setActorFilter("all"); setTypeFilter("Tous"); setPeriod("30j"); }}>Réinitialiser</button>
+              </div>
+            );
+          }
+
+          const renderItem = (f) => {
+            const actor = actors.find(a => a.name === f.actor);
+            const isRead = readState[f.id] === "read" || !f.unread;
+            const openArticle = () => {
+              if (!f.url) return;
+              try {
+                const rm = JSON.parse(localStorage.getItem("read-articles") || "{}");
+                rm[f.id] = { ts: Date.now(), kept: !!rm[f.id]?.kept };
+                localStorage.setItem("read-articles", JSON.stringify(rm));
+              } catch {}
+              markRead(f.id);
+              window.open(f.url, "_blank", "noopener");
+            };
+            return (
+              <article
+                key={f.id}
+                className={`vl-feed-item ${isRead ? "is-read" : "is-unread"} ${f.starred ? "is-starred" : ""}`}
+                onClick={openArticle}
+                style={f.url ? { cursor: "pointer" } : null}
+              >
+                <div className="vl-feed-rail">
+                  {actor ? <ActorMark actor={actor} size={30}/> : <span className="vl-actor-mark vl-actor-mark--neutral" style={{ width: 30, height: 30, fontSize: 13 }}>{f.actor.slice(0,1)}</span>}
+                  {!isRead && <span className="vl-feed-unread-dot" />}
+                </div>
+                <div className="vl-feed-body">
+                  <div className="vl-feed-meta">
+                    <span className="vl-feed-actor">{f.actor}</span>
+                    <span className="vl-feed-sep">·</span>
+                    <span className={`vl-feed-type vl-feed-type--${f.type.toLowerCase().replace(/\s/g,"-").replace(/é/g,"e")}`}>{f.type}</span>
+                    <span className="vl-feed-sep">·</span>
+                    <span className="vl-feed-date">{f.date_label}</span>
+                    {f.starred && <span className="vl-feed-star" title="Épinglé"><Icon name="star" size={11} stroke={2}/></span>}
                   </div>
-                  <div className="vl-feed-body">
-                    <div className="vl-feed-meta">
-                      <span className="vl-feed-actor">{f.actor}</span>
-                      <span className="vl-feed-sep">·</span>
-                      <span className={`vl-feed-type vl-feed-type--${f.type.toLowerCase().replace(/\s/g,"-").replace(/é/g,"e")}`}>{f.type}</span>
-                      <span className="vl-feed-sep">·</span>
-                      <span className="vl-feed-date">{f.date_label}</span>
-                      {f.starred && <span className="vl-feed-star" title="Épinglé"><Icon name="star" size={11} stroke={2}/></span>}
+                  <h3 className="vl-feed-title">{f.title}</h3>
+                  <p className="vl-feed-summary">{f.summary}</p>
+                  <div className="vl-feed-tags">
+                    {f.tags.map((t) => <span key={t} className="vl-tag">{t}</span>)}
+                  </div>
+                </div>
+                <div className="vl-feed-actions-col" onClick={(e) => e.stopPropagation()}>
+                  <button className="vl-iconbtn" title={isRead ? "Marquer non-lu" : "Marquer lu"} onClick={() => markRead(f.id)}>
+                    <Icon name={isRead ? "envelope" : "check"} size={13} stroke={2}/>
+                  </button>
+                  <button className="vl-iconbtn" title="Archiver" onClick={() => archive(f.id)}>
+                    <Icon name="archive" size={13} stroke={2}/>
+                  </button>
+                  <button className="vl-iconbtn" title="Ouvrir l'article" onClick={openArticle}>
+                    <Icon name="arrow_right" size={13} stroke={2}/>
+                  </button>
+                </div>
+              </article>
+            );
+          };
+
+          // Flat mode: when user has filtered by type, no need to group.
+          if (typeFilter !== "Tous") {
+            return <div className="vl-feed">{filtered.map(renderItem)}</div>;
+          }
+
+          // Grouped mode: bucket by type, order by unread count desc then total desc.
+          const buckets = {};
+          filtered.forEach(f => {
+            const k = f.type || "Autre";
+            if (!buckets[k]) buckets[k] = [];
+            buckets[k].push(f);
+          });
+          const groups = Object.entries(buckets).map(([type, items]) => ({
+            type,
+            items,
+            unread: items.filter(f => f.unread && readState[f.id] !== "read").length,
+          }));
+          groups.sort((a, b) => b.unread - a.unread || b.items.length - a.items.length);
+
+          return (
+            <div className="vl-feed-groups">
+              {groups.map((g, idx) => {
+                const isExpanded = expandedGroups[g.type] === true;
+                const visible = isExpanded ? g.items : g.items.slice(0, GROUP_PREVIEW);
+                const extra = g.items.length - GROUP_PREVIEW;
+                const typeSlug = g.type.toLowerCase().replace(/\s/g, "-").replace(/é/g, "e");
+                return (
+                  <details key={g.type} className="vl-feed-group" open={idx === 0}>
+                    <summary className="vl-feed-group-summary">
+                      <span className={`vl-feed-type vl-feed-type--${typeSlug} vl-feed-group-chip`}>{g.type}</span>
+                      <span className="vl-feed-group-count">{g.items.length} actu{g.items.length > 1 ? "s" : ""}</span>
+                      {g.unread > 0 && (
+                        <span className="vl-feed-group-unread">{g.unread} non-lu{g.unread > 1 ? "s" : ""}</span>
+                      )}
+                      <span className="vl-feed-group-chevron" aria-hidden="true">
+                        <Icon name="chevron_down" size={16} stroke={2}/>
+                      </span>
+                    </summary>
+                    <div className="vl-feed vl-feed-group-body">
+                      {visible.map(renderItem)}
+                      {extra > 0 && (
+                        <button
+                          className="vl-feed-more-btn"
+                          onClick={() => setExpandedGroups({ ...expandedGroups, [g.type]: !isExpanded })}
+                        >
+                          {isExpanded
+                            ? <><Icon name="chevron_up" size={13} stroke={2}/> Replier à {GROUP_PREVIEW}</>
+                            : <><Icon name="chevron_down" size={13} stroke={2}/> Voir les {extra} autres</>}
+                        </button>
+                      )}
                     </div>
-                    <h3 className="vl-feed-title">{f.title}</h3>
-                    <p className="vl-feed-summary">{f.summary}</p>
-                    <div className="vl-feed-tags">
-                      {f.tags.map((t) => <span key={t} className="vl-tag">{t}</span>)}
-                    </div>
-                  </div>
-                  <div className="vl-feed-actions-col" onClick={(e) => e.stopPropagation()}>
-                    <button className="vl-iconbtn" title={isRead ? "Marquer non-lu" : "Marquer lu"} onClick={() => markRead(f.id)}>
-                      <Icon name={isRead ? "envelope" : "check"} size={13} stroke={2}/>
-                    </button>
-                    <button className="vl-iconbtn" title="Archiver" onClick={() => archive(f.id)}>
-                      <Icon name="archive" size={13} stroke={2}/>
-                    </button>
-                    <button className="vl-iconbtn" title="Ouvrir l'article" onClick={openArticle}>
-                      <Icon name="arrow_right" size={13} stroke={2}/>
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+                  </details>
+                );
+              })}
+            </div>
+          );
+        })()}
       </section>
 
       {/* ═══════ CAS PROD / SORTIES À VENIR ═══════ */}

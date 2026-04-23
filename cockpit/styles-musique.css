@@ -696,6 +696,27 @@
   text-wrap: pretty;
 }
 
+.mz-disc-more-btn {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--bd);
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--tx2);
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+}
+.mz-disc-more-btn:hover {
+  color: var(--tx);
+  background: var(--bg2);
+}
+
 /* ── MILESTONES ───────────────────────────────── */
 .mz-milestones {
   display: grid;

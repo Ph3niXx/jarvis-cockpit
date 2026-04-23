@@ -72,6 +72,50 @@ function useLiveNowPlaying(initial) {
   return np;
 }
 
+// ── Discoveries section with "Load more" ─────────────
+function DiscoveriesSection({ discoveries }) {
+  const PREVIEW = 5;
+  const [expanded, setExpanded] = useMzState(false);
+  const visible = expanded ? discoveries : discoveries.slice(0, PREVIEW);
+  const extra = discoveries.length - PREVIEW;
+  return (
+    <section className="mz-section">
+      <div className="mz-section-head">
+        <span className="mz-section-num">06</span>
+        <h2 className="mz-section-title">Découvertes · <em>30 derniers jours</em></h2>
+        <span className="mz-section-meta">{discoveries.length} nouveaux artistes · {discoveries.filter(d => d.verdict === "accroché").length} accrochés</span>
+      </div>
+      <div className="mz-disc-list">
+        {visible.map((d) => (
+          <div className="mz-disc" key={d.artist}>
+            <div className="mz-disc-head">
+              <div className="mz-disc-name">{d.artist}</div>
+              <div className={`mz-disc-verdict ${
+                d.verdict === "accroché" ? "accroche" :
+                d.verdict === "à creuser" ? "creuser" : "abandon"
+              }`}>{d.verdict}</div>
+            </div>
+            <div className="mz-disc-meta">
+              <span><strong>{d.scrobbles}</strong> plays</span>
+              <span>{d.first_scrobble}</span>
+              <span>{d.genre}</span>
+            </div>
+            <div className="mz-disc-note">{d.note}</div>
+          </div>
+        ))}
+      </div>
+      {extra > 0 && (
+        <button
+          className="mz-disc-more-btn"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? `↑  Replier à ${PREVIEW}` : `↓  Voir les ${extra} autres découvertes`}
+        </button>
+      )}
+    </section>
+  );
+}
+
 function relTimeMs(ms) {
   const diff = Math.max(0, Date.now() - ms);
   const s = Math.floor(diff / 1000);
@@ -508,32 +552,8 @@ function PanelMusique() {
       </section>
 
       {/* ══ §6 DÉCOUVERTES ══ */}
-      <section className="mz-section">
-        <div className="mz-section-head">
-          <span className="mz-section-num">06</span>
-          <h2 className="mz-section-title">Découvertes · <em>30 derniers jours</em></h2>
-          <span className="mz-section-meta">{D.discoveries.length} nouveaux artistes · {D.discoveries.filter(d => d.verdict === "accroché").length} accrochés</span>
-        </div>
-        <div className="mz-disc-list">
-          {D.discoveries.map((d) => (
-            <div className="mz-disc" key={d.artist}>
-              <div className="mz-disc-head">
-                <div className="mz-disc-name">{d.artist}</div>
-                <div className={`mz-disc-verdict ${
-                  d.verdict === "accroché" ? "accroche" :
-                  d.verdict === "à creuser" ? "creuser" : "abandon"
-                }`}>{d.verdict}</div>
-              </div>
-              <div className="mz-disc-meta">
-                <span><strong>{d.scrobbles}</strong> plays</span>
-                <span>{d.first_scrobble}</span>
-                <span>{d.genre}</span>
-              </div>
-              <div className="mz-disc-note">{d.note}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <DiscoveriesSection discoveries={D.discoveries} />
+
 
       {/* ══ §7 MILESTONES ══ */}
       <section className="mz-section">
