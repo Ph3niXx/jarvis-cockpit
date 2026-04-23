@@ -165,6 +165,8 @@ function PanelRecos({ data, onNavigate }) {
         isCompleted={isCompleted}
         onToggleCompleted={toggleCompleted}
         pendingIds={pendingIds}
+        totalRecos={recos.length}
+        anyFilterActive={levelFilter !== "Tous" || !!axisFilter || timeFilter !== "all" || hideDone}
       />
     </div>
   );
@@ -173,7 +175,7 @@ function PanelRecos({ data, onNavigate }) {
 // ─────────────────────────────────────────────────────────
 // VARIANTE A : Flux priorisé (éditorial Dawn)
 // ─────────────────────────────────────────────────────────
-function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter, isCompleted, onToggleCompleted, pendingIds }) {
+function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter, isCompleted, onToggleCompleted, pendingIds, totalRecos, anyFilterActive }) {
   const cardProps = { axes, isCompleted, onToggleCompleted, pendingIds };
   return (
     <div className="reco-wrap reco-wrap--flux">
@@ -205,7 +207,11 @@ function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter, isCompleted
       <div className="reco-main">
         {musts.length + shoulds.length + nices.length === 0 && (
           <div className="reco-empty">
-            Aucune reco pour ces filtres — tente d'élargir le niveau ou la durée.
+            {totalRecos === 0
+              ? "Aucune reco générée cette semaine. Le pipeline hebdomadaire tourne chaque dimanche soir (22h UTC)."
+              : anyFilterActive
+                ? "Aucune reco pour ces filtres — élargis le niveau, la durée ou l'axe."
+                : "Toutes les recos sont marquées faites. Beau boulot."}
           </div>
         )}
 
@@ -261,9 +267,12 @@ function RecoFlux({ musts, shoulds, nices, axes, onAxis, axisFilter, isCompleted
 // ─────────────────────────────────────────────────────────
 // Cards
 // ─────────────────────────────────────────────────────────
-function openReco(r){
-  if (!r || !r.url) return;
-  window.open(r.url, "_blank", "noopener");
+// Click anywhere on a card body = open the URL in a new tab AND mark
+// the reco "fait" if it wasn't already. The individual "Marquer fait"
+// button stays available for toggling back to "à faire".
+function openAndMarkReco(r, isCompletedFn, onToggleCompleted){
+  if (r && r.url) window.open(r.url, "_blank", "noopener");
+  if (!isCompletedFn(r) && onToggleCompleted) onToggleCompleted(r);
 }
 
 function RecoCardBig({ reco: r, axes, isCompleted, onToggleCompleted, pendingIds }) {
@@ -273,7 +282,7 @@ function RecoCardBig({ reco: r, axes, isCompleted, onToggleCompleted, pendingIds
   return (
     <article
       className={`reco-big ${done ? "is-completed" : "is-unread"}`}
-      onClick={() => openReco(r)}
+      onClick={() => openAndMarkReco(r, isCompleted, onToggleCompleted)}
       style={r.url ? { cursor: "pointer" } : null}
     >
       <div className="reco-big-head">
@@ -301,7 +310,11 @@ function RecoCardBig({ reco: r, axes, isCompleted, onToggleCompleted, pendingIds
           </span>
         </div>
         <div className="reco-big-actions">
-          <button className="btn btn--primary btn--sm" onClick={() => openReco(r)} disabled={!r.url}>
+          <button
+            className="btn btn--primary btn--sm"
+            onClick={() => openAndMarkReco(r, isCompleted, onToggleCompleted)}
+            disabled={!r.url}
+          >
             <Icon name="arrow_right" size={12} stroke={2} /> Ouvrir
           </button>
           <button
@@ -326,7 +339,7 @@ function RecoCardMed({ reco: r, axes, isCompleted, onToggleCompleted, pendingIds
   return (
     <article
       className={`reco-med ${done ? "is-completed" : "is-unread"}`}
-      onClick={() => openReco(r)}
+      onClick={() => openAndMarkReco(r, isCompleted, onToggleCompleted)}
       style={r.url ? { cursor: "pointer" } : null}
     >
       <div className="reco-med-head">
@@ -365,7 +378,7 @@ function RecoRow({ reco: r, isCompleted, onToggleCompleted, pendingIds }) {
   return (
     <li
       className={`reco-row ${done ? "is-completed" : ""}`}
-      onClick={() => openReco(r)}
+      onClick={() => openAndMarkReco(r, isCompleted, onToggleCompleted)}
       style={r.url ? { cursor: "pointer" } : null}
     >
       <span className={`reco-type reco-type--${r.type}`}>
