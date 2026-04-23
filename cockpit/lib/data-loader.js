@@ -2602,6 +2602,15 @@
   // Build VEILLE_DATA.feed from real articles. Keeps headline/actors/
   // prod_cases/trends from the fake (AI-curated content, no backend
   // pipeline yet). Feed is the main list users scan, so it MUST be real.
+  // Shared actor-color palette + hash fn used across veille panels
+  // when a source doesn't have a hand-picked brand color.
+  const ACTOR_PALETTE = ["#c06443", "#4a7d5a", "#6b5b95", "#b27536", "#4b8d94", "#a84a63", "#5a7a8f", "#8c6d3f", "#786d5f", "#4f6d7a"];
+  const nameHashColor = (name) => {
+    let h = 0;
+    for (const c of String(name || "")) h = ((h << 5) - h + c.charCodeAt(0)) | 0;
+    return ACTOR_PALETTE[Math.abs(h) % ACTOR_PALETTE.length];
+  };
+
   const SECTION_TO_TYPE = {
     updates: "Release", llm: "Release", agents: "Framework",
     energy: "Analyse", finserv: "Deal", tools: "Framework",
@@ -3597,8 +3606,6 @@
               bySource[src].latest = { when: whenMs, title: a.title || "", url: a.url || null };
             }
           });
-          const ACTOR_COLORS = ["#c06443", "#4a7d5a", "#6b5b95", "#b27536", "#4b8d94", "#a84a63", "#5a7a8f", "#8c6d3f", "#786d5f", "#4f6d7a"];
-          const hash = (s) => { let h = 0; for (const c of s) h = ((h << 5) - h + c.charCodeAt(0)) | 0; return Math.abs(h); };
           const dynamicActors = Object.entries(bySource)
             .sort((a, b) => b[1].count - a[1].count)
             .slice(0, 12)
@@ -3609,7 +3616,7 @@
                 id: name.toLowerCase().replace(/\s+/g, "-"),
                 name,
                 mark: name.charAt(0).toUpperCase(),
-                color: ACTOR_COLORS[hash(name) % ACTOR_COLORS.length],
+                color: nameHashColor(name),
                 followed: true,
                 last_activity: st.latest ? relTime(new Date(st.latest.when).toISOString()) : "—",
                 last_title: st.latest?.title || "",
@@ -3706,8 +3713,6 @@
             "Millenium": "#ff6600",
             "Cyclism'Actu": "#0a8a4c",
           };
-          const ACTOR_PALETTE = ["#c06443", "#4a7d5a", "#6b5b95", "#b27536", "#4b8d94", "#a84a63", "#5a7a8f", "#8c6d3f", "#786d5f", "#4f6d7a"];
-          const nameHash = (s) => { let h = 0; for (const c of s) h = ((h << 5) - h + c.charCodeAt(0)) | 0; return Math.abs(h); };
           const srcMap = new Map();
           articles.forEach(a => {
             const name = normalizeSportSource(a.source);
@@ -3716,7 +3721,7 @@
                 id: name.toLowerCase().replace(/\W+/g, "-"),
                 name,
                 mark: name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase(),
-                color: SPORT_SOURCE_COLORS[name] || ACTOR_PALETTE[nameHash(name) % ACTOR_PALETTE.length],
+                color: SPORT_SOURCE_COLORS[name] || nameHashColor(name),
                 followed: true,
                 last_activity: relTime(a.date_published || a.date_fetched),
                 last_title: a.title || "",
@@ -3810,8 +3815,9 @@
               tags: ["#gaming", "#" + (fresh.category || "actu")],
             };
           }
-          // Actors = sources (Dexerto, IGN, PC Gamer…)
-          const sourceColors = {
+          // Actors = sources. Hand-picked brand colors for known sources;
+          // hash fallback for the rest (no more uniform #555).
+          const GAMING_SOURCE_COLORS = {
             "JeuxVideo.com": "#e60000",
             "Gamekult": "#f26522",
             "ActuGaming": "#2d9cdb",
@@ -3830,7 +3836,7 @@
                 id: name.toLowerCase().replace(/\W+/g, "-"),
                 name,
                 mark: name.split(/[\s.]/).map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase(),
-                color: sourceColors[name] || "#555",
+                color: GAMING_SOURCE_COLORS[name] || nameHashColor(name),
                 followed: true,
                 last_activity: relTime(a.date_published || a.date_fetched),
                 last_title: a.title || "",
@@ -3842,6 +3848,27 @@
             srcMap.get(name).pulse[7]++;
           });
           window.GAMING_DATA.actors = Array.from(srcMap.values());
+          // Dynamic category pills — auto-detected from corpus. Color
+          // map kept here so adding a new pipeline category is just one
+          // entry. Replaces the hardcoded list in app.jsx.
+          const GAMING_CATEGORY_COLORS = {
+            releases: "#3a2a1a",
+            upcoming: "#006fcd",
+            esport:   "#d13639",
+            industry: "#555",
+          };
+          const byCategoryAll = {};
+          articles.forEach(a => {
+            const k = a.category || "releases";
+            byCategoryAll[k] = (byCategoryAll[k] || 0) + 1;
+          });
+          window.GAMING_DATA.categories = Object.entries(byCategoryAll)
+            .sort((a, b) => b[1] - a[1])
+            .map(([id]) => ({
+              id,
+              label: GAMING_CATEGORY_LABELS[id] || id,
+              color: GAMING_CATEGORY_COLORS[id] || "#888",
+            }));
           // Trends = one per rubrique.
           window.GAMING_DATA.trends = Object.entries(catCounts7d)
             .map(([cat, count]) => ({

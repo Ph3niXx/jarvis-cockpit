@@ -388,12 +388,7 @@ function App() {
   else if (activePanel === "sport")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="SPORT_DATA" title="Sport" showActors={false} categoryLabel="Discipline" typeLabel="Format" prodSection={null} />;
   else if (activePanel === "gaming_news")
-    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="GAMING_DATA" title="Gaming" showActors={false} categoryLabel="Rubrique" typeLabel="Format" categories={[
-      { id: "releases", label: "Sorties récentes", color: "#3a2a1a" },
-      { id: "upcoming", label: "À venir", color: "#006fcd" },
-      { id: "esport", label: "E-sport", color: "#d13639" },
-      { id: "industry", label: "Industrie", color: "#555" },
-    ]} prodSection={null} />;
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="GAMING_DATA" title="Gaming" showActors={false} categoryLabel="Rubrique" typeLabel="Format" prodSection={null} />;
   else if (activePanel === "anime")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="ANIME_DATA" title="Anime / Ciné / Séries" showActors={false} categoryLabel="Statut" typeLabel="Format" categories={[
       { id: "released", label: "Sorties récentes", color: "#1f1f1f" },
