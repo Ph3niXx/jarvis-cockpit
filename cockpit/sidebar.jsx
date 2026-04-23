@@ -46,6 +46,14 @@ function Sidebar({ theme, activeId, onSelect, data, onThemeChange, mobileOpen = 
   const [collapsed, setCollapsed] = useSbLocalState(SB_COLLAPSED_KEY, false);
   const vibe = theme.vibe;
 
+  // Expose toggle on window so the global Ctrl+B shortcut in app.jsx can
+  // flip the rail through the owner of the state rather than fighting
+  // localStorage.
+  React.useEffect(() => {
+    window.__cockpitToggleSidebar = () => setCollapsed(v => !v);
+    return () => { if (window.__cockpitToggleSidebar) delete window.__cockpitToggleSidebar; };
+  }, []);
+
   const renderLink = (item) => {
     const isActive = activeId === item.id;
     return (

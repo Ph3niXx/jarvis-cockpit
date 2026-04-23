@@ -25,6 +25,63 @@ const CAT_COLOR = {
   life:     "#6a4a3a",
 };
 
+// Free-form label normalization: lowercase, strip diacritics + special chars.
+function normalizeLabel(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/^#+/, "")
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32);
+}
+
+// "Lance un LoRA #jarvis #apprentissage" -> { title: "Lance un LoRA", labels: ["jarvis","apprentissage"] }
+function parseHashtags(text) {
+  const raw = String(text || "");
+  const labels = [];
+  const cleaned = raw.replace(/#([a-zA-ZÀ-ÿ0-9_-]{2,32})/g, (_m, tag) => {
+    const norm = normalizeLabel(tag);
+    if (norm && !labels.includes(norm)) labels.push(norm);
+    return "";
+  }).replace(/\s+/g, " ").trim();
+  return { title: cleaned, labels };
+}
+
+// Stable color derived from label string (same label -> same tint across panel).
+function labelTint(label) {
+  let h = 0;
+  const s = String(label || "");
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h) % 360;
+}
+
+function IdLabelChip({ label, active, onClick, onRemove }) {
+  const hue = labelTint(label);
+  return (
+    <span
+      className={`id-lab-chip ${active ? "is-active" : ""}`}
+      onClick={onClick}
+      style={{
+        "--lab-h": hue,
+        background: `hsl(${hue} 20% var(--lab-bg-l, 92%) / 0.35)`,
+        borderColor: `hsl(${hue} 30% 65% / 0.4)`,
+      }}
+    >
+      <span className="id-lab-chip-dot" style={{ background: `hsl(${hue} 55% 50%)` }} />
+      <span>{label}</span>
+      {onRemove && (
+        <button
+          type="button"
+          className="id-lab-chip-x"
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          aria-label={`Retirer ${label}`}
+        >×</button>
+      )}
+    </span>
+  );
+}
+
 // days since captured
 function daysSince(iso) {
   if (!iso) return 0;
@@ -120,50 +177,104 @@ function FlagshipIdea({ idea, onPromote, onOpenSignal, onCreate, onDig, onArchiv
 }
 
 // ─── Pipeline view (5 colonnes par maturité) ─────────────
-function PipelineView({ ideas, stages, onOpen }) {
+// Drag & drop natif HTML5 : onDragStart sur card, onDrop sur colonne →
+// onMoveStatus(id, nextStatus) patche la DB + met à jour IDEAS_DATA en mémoire.
+function PipelineView({ ideas, stages, onOpen, onMoveStatus, pending }) {
+  const [dragId, setDragId] = React.useState(null);
+  const [hoverCol, setHoverCol] = React.useState(null);
+
   const byStage = {};
   stages.forEach(st => byStage[st.id] = []);
   ideas.forEach(i => {
     if (byStage[i.status]) byStage[i.status].push(i);
   });
-  // within stage : sort by last_touched desc
   Object.values(byStage).forEach(arr => arr.sort((a,b) => new Date(b.last_touched) - new Date(a.last_touched)));
+
+  const onDragStart = (e, id) => {
+    setDragId(id);
+    try { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "move"; } catch {}
+  };
+  const onDragEnd = () => { setDragId(null); setHoverCol(null); };
+  const onColDragOver = (e, stId) => {
+    e.preventDefault();
+    try { e.dataTransfer.dropEffect = "move"; } catch {}
+    if (hoverCol !== stId) setHoverCol(stId);
+  };
+  const onColDragLeave = (e, stId) => {
+    // Only clear if leaving the column itself (not a child card).
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      if (hoverCol === stId) setHoverCol(null);
+    }
+  };
+  const onColDrop = (e, stId) => {
+    e.preventDefault();
+    const id = (() => { try { return e.dataTransfer.getData("text/plain"); } catch { return dragId; } })() || dragId;
+    setDragId(null); setHoverCol(null);
+    if (!id) return;
+    const idea = ideas.find(i => i.id === id);
+    if (!idea || idea.status === stId) return;
+    onMoveStatus && onMoveStatus(id, stId);
+  };
 
   return (
     <div className="id-pipe">
-      {stages.map(st => (
-        <div key={st.id} className={`id-pipe-col id-pipe-col--${st.id}`}>
-          <div className="id-pipe-col-head">
-            <div className="id-pipe-col-title">
-              <span>{st.label}</span>
-              <span className="id-pipe-col-count">{byStage[st.id].length}</span>
+      {stages.map(st => {
+        const isHover = hoverCol === st.id;
+        return (
+          <div
+            key={st.id}
+            className={`id-pipe-col id-pipe-col--${st.id} ${isHover ? "id-pipe-col--drophover" : ""}`}
+            onDragOver={(e) => onColDragOver(e, st.id)}
+            onDragLeave={(e) => onColDragLeave(e, st.id)}
+            onDrop={(e) => onColDrop(e, st.id)}
+          >
+            <div className="id-pipe-col-head">
+              <div className="id-pipe-col-title">
+                <span>{st.label}</span>
+                <span className="id-pipe-col-count">{byStage[st.id].length}</span>
+              </div>
+              <div className="id-pipe-col-sub">{st.sub}</div>
             </div>
-            <div className="id-pipe-col-sub">{st.sub}</div>
+            {byStage[st.id].map(i => {
+              const isPending = pending && pending[i.id];
+              const isDragging = dragId === i.id;
+              return (
+                <article key={i.id}
+                  className={`id-pipe-card ${i.status === "ready_to_promote" ? "id-pipe-card--ready" : ""} ${i.status === "parked" ? "id-pipe-card--parked" : ""} ${isDragging ? "id-pipe-card--dragging" : ""} ${isPending ? "id-pipe-card--pending" : ""}`}
+                  draggable={!isPending}
+                  onDragStart={(e) => onDragStart(e, i.id)}
+                  onDragEnd={onDragEnd}
+                  onClick={() => onOpen(i.id)}>
+                  <div className="id-pipe-card-kicker">
+                    <span className="id-pipe-card-cat" style={{ background: CAT_COLOR[i.category] }} />
+                    <span>{i.category}</span>
+                  </div>
+                  <h4 className="id-pipe-card-title">{i.title}</h4>
+                  {(i.labels && i.labels.length > 0) && (
+                    <div className="id-pipe-card-labels">
+                      {i.labels.slice(0, 3).map(l => <IdLabelChip key={l} label={l} />)}
+                      {i.labels.length > 3 && <span className="id-pipe-card-labels-more">+{i.labels.length - 3}</span>}
+                    </div>
+                  )}
+                  <div className="id-pipe-card-meta">
+                    <span className="id-pipe-card-age">{ageLabel(i.captured_at)}</span>
+                    {i.promoted_to_opp ? (
+                      <span className="id-pipe-card-promoted">↗ opp</span>
+                    ) : (
+                      <span className="id-pipe-card-touched">×{i.touched_count}</span>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+            {byStage[st.id].length === 0 && (
+              <div style={{ color: "var(--tx3)", fontSize: 11, fontFamily: "var(--font-mono)", padding: "12px 4px", fontStyle: "italic" }}>
+                {isHover ? "→ déposer ici" : "—"}
+              </div>
+            )}
           </div>
-          {byStage[st.id].map(i => (
-            <article key={i.id}
-              className={`id-pipe-card ${i.status === "ready_to_promote" ? "id-pipe-card--ready" : ""} ${i.status === "parked" ? "id-pipe-card--parked" : ""}`}
-              onClick={() => onOpen(i.id)}>
-              <div className="id-pipe-card-kicker">
-                <span className="id-pipe-card-cat" style={{ background: CAT_COLOR[i.category] }} />
-                <span>{i.category}</span>
-              </div>
-              <h4 className="id-pipe-card-title">{i.title}</h4>
-              <div className="id-pipe-card-meta">
-                <span className="id-pipe-card-age">{ageLabel(i.captured_at)}</span>
-                {i.promoted_to_opp ? (
-                  <span className="id-pipe-card-promoted">↗ opp</span>
-                ) : (
-                  <span className="id-pipe-card-touched">×{i.touched_count}</span>
-                )}
-              </div>
-            </article>
-          ))}
-          {byStage[st.id].length === 0 && (
-            <div style={{ color: "var(--tx3)", fontSize: 11, fontFamily: "var(--font-mono)", padding: "12px 4px", fontStyle: "italic" }}>—</div>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -190,6 +301,11 @@ function GalleryView({ ideas, onOpen }) {
             <div className="id-note-kicker">{i.kicker}</div>
             <h3 className="id-note-title">{i.title}</h3>
             <p className="id-note-oneliner">{i.one_liner}</p>
+            {(i.labels && i.labels.length > 0) && (
+              <div className="id-note-labels">
+                {i.labels.slice(0, 4).map(l => <IdLabelChip key={l} label={l} />)}
+              </div>
+            )}
             <div className="id-note-foot">
               <span className={`id-note-stage ${i.status === "ready_to_promote" ? "id-note-stage--ready" : ""} ${i.status === "parked" ? "id-note-stage--parked" : ""}`}>
                 {IDEA_STAGE_LABEL[i.status]}
@@ -204,8 +320,19 @@ function GalleryView({ ideas, onOpen }) {
 }
 
 // ─── Detail panel (modal-like inline) ────────────────────
-function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen, onDig, onArchive, onNavigate, pending }) {
+function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen, onDig, onArchive, onNavigate, onSetLabels, pending }) {
   const related = (idea.related_ids || []).map(id => allIdeas.find(i => i.id === id)).filter(Boolean);
+  const [labelDraft, setLabelDraft] = React.useState("");
+  const labels = Array.isArray(idea.labels) ? idea.labels : [];
+  const commitLabel = () => {
+    const normalized = normalizeLabel(labelDraft);
+    if (!normalized || labels.includes(normalized)) { setLabelDraft(""); return; }
+    onSetLabels && onSetLabels(idea.id, [...labels, normalized]);
+    setLabelDraft("");
+  };
+  const removeLabel = (l) => {
+    onSetLabels && onSetLabels(idea.id, labels.filter(x => x !== l));
+  };
   return (
     <div className="id-detail">
       <div>
@@ -282,6 +409,31 @@ function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen, 
           </div>
         )}
 
+        <div style={{marginBottom:16}}>
+          <div className="id-detail-section-label">Libellés</div>
+          <div className="id-lab-editor">
+            {labels.length > 0
+              ? labels.map(l => (
+                  <IdLabelChip key={l} label={l} onRemove={() => removeLabel(l)} />
+                ))
+              : <span style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--tx3)", fontStyle:"italic"}}>Aucun libellé — ajoute-en pour filtrer et regrouper</span>
+            }
+            <input
+              className="id-lab-input"
+              value={labelDraft}
+              onChange={(e) => setLabelDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") { e.preventDefault(); commitLabel(); }
+                else if (e.key === "Backspace" && !labelDraft && labels.length) { removeLabel(labels[labels.length - 1]); }
+              }}
+              onBlur={commitLabel}
+              placeholder="+ libellé"
+              aria-label="Ajouter un libellé"
+              disabled={pending && pending[idea.id]}
+            />
+          </div>
+        </div>
+
         {idea.promoted_to_opp && (
           <div style={{marginBottom:16, padding:"10px 12px", background:"color-mix(in srgb, var(--brand) 10%, transparent)", border:"1px solid color-mix(in srgb, var(--brand) 30%, var(--bd))", fontFamily:"var(--font-mono)", fontSize:11, color:"var(--tx)", letterSpacing:"0.04em", textTransform:"uppercase"}}>
             ↗ Déjà promue — opportunité {idea.promoted_to_opp}
@@ -322,6 +474,94 @@ function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen, 
   );
 }
 
+// ─── Suggestions depuis signaux / opportunités ───────────
+function SuggestionsSection({ allIdeas, onAccept, onDismiss, dismissedIds }) {
+  const suggestions = React.useMemo(() => {
+    const out = [];
+    const existingTitles = new Set(allIdeas.map(i => String(i.title || "").toLowerCase()));
+    const hasTitle = (s) => existingTitles.has(String(s).toLowerCase());
+
+    // 1. Signaux montants/nouveaux non couverts
+    const signals = (window.SIGNALS_DATA?.signals || []);
+    const rising = signals
+      .filter(s => s && (s.trend === "rising" || s.trend === "new"))
+      .sort((a, b) => (b.mention_count || 0) - (a.mention_count || 0))
+      .slice(0, 4);
+    rising.forEach(s => {
+      const key = `sig:${s.name}`;
+      if (dismissedIds.includes(key)) return;
+      if (hasTitle(`signal ${s.name}`)) return;
+      const alreadyLinked = allIdeas.some(i => (i.signals || []).includes(s.name));
+      if (alreadyLinked) return;
+      out.push({
+        key,
+        source: "signal",
+        sourceLabel: s.trend === "new" ? "Signal nouveau" : "Signal montant",
+        title: `Produit / contenu autour de « ${s.name} »`,
+        description: `Ce terme est ${s.trend === "new" ? "apparu cette semaine" : "en progression"} (${s.mention_count || 0} mentions). Aucune de tes idées ne l'adresse.`,
+        labels: [normalizeLabel(s.name)],
+        signals: [s.name],
+      });
+    });
+
+    // 2. Opportunités fortes non liées
+    const opps = (window.OPPORTUNITIES_DATA?.opportunities || window.OPPS_DATA?.opportunities || []);
+    const promotedIds = new Set(allIdeas.map(i => i.promoted_to_opp).filter(Boolean));
+    const topOpps = [...opps]
+      .filter(o => o && !promotedIds.has(o.id))
+      .sort((a, b) => (b.relevance_score || b.score || 0) - (a.relevance_score || a.score || 0))
+      .slice(0, 3);
+    topOpps.forEach(o => {
+      const key = `opp:${o.id}`;
+      if (dismissedIds.includes(key)) return;
+      if (hasTitle(o.usecase_title || o.title)) return;
+      out.push({
+        key,
+        source: "opportunity",
+        sourceLabel: "Opportunité repérée",
+        title: o.usecase_title || o.title || "Opportunité sans titre",
+        description: o.usecase_description || o.description || o.relevance_why || "",
+        labels: [o.sector, o.category].filter(Boolean).map(normalizeLabel).filter(Boolean),
+        signals: [],
+      });
+    });
+
+    return out.slice(0, 5);
+  }, [allIdeas, dismissedIds]);
+
+  if (suggestions.length === 0) return null;
+
+  return (
+    <section className="id-suggests">
+      <div className="id-suggests-head">
+        <div className="id-suggests-eyebrow">Suggestions Jarvis</div>
+        <h3 className="id-suggests-title">Pourraient devenir des idées</h3>
+        <div className="id-suggests-sub">{suggestions.length} piste{suggestions.length > 1 ? "s" : ""} — accepte pour l'ajouter au carnet, ignore pour ne plus voir.</div>
+      </div>
+      <div className="id-suggests-list">
+        {suggestions.map(s => (
+          <article key={s.key} className={`id-suggest id-suggest--${s.source}`}>
+            <div className="id-suggest-kicker">{s.sourceLabel}</div>
+            <h4 className="id-suggest-title">{s.title}</h4>
+            {s.description && <p className="id-suggest-desc">{s.description.slice(0, 220)}{s.description.length > 220 ? "…" : ""}</p>}
+            {s.labels.length > 0 && (
+              <div className="id-suggest-labs">
+                {s.labels.map(l => <IdLabelChip key={l} label={l} />)}
+              </div>
+            )}
+            <div className="id-suggest-actions">
+              <button className="btn btn--primary" onClick={() => onAccept(s)}>
+                <Icon name="plus" size={13} stroke={2} /> Ajouter au carnet
+              </button>
+              <button className="btn btn--ghost" onClick={() => onDismiss(s.key)}>Ignorer</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  MAIN PANEL
 // ═══════════════════════════════════════════════════════════════
@@ -333,15 +573,23 @@ function PanelIdeas({ data, onNavigate }) {
 
   const [view, setView] = useStateId(() => localStorage.getItem("idea.view") || "pipeline");
   const [cat, setCat] = useStateId(() => localStorage.getItem("idea.cat") || "all");
+  const [labelFilter, setLabelFilter] = useStateId(() => {
+    try { return JSON.parse(localStorage.getItem("idea.labels") || "[]"); } catch { return []; }
+  });
   const [openId, setOpenId] = useStateId(null);
   const [captureValue, setCaptureValue] = useStateId("");
   const [capturing, setCapturing] = useStateId(false);
   const [captureMsg, setCaptureMsg] = useStateId(null);
+  const [suggestDismissed, setSuggestDismissed] = useStateId(() => {
+    try { return JSON.parse(localStorage.getItem("idea.suggestDismissed") || "[]"); } catch { return []; }
+  });
   const [, forceRender] = useStateId(0);
   const captureRef = React.useRef(null);
 
   useEffectId(() => localStorage.setItem("idea.view", view), [view]);
   useEffectId(() => localStorage.setItem("idea.cat", cat), [cat]);
+  useEffectId(() => localStorage.setItem("idea.labels", JSON.stringify(labelFilter)), [labelFilter]);
+  useEffectId(() => localStorage.setItem("idea.suggestDismissed", JSON.stringify(suggestDismissed)), [suggestDismissed]);
 
   useEffectId(() => {
     window.__ideasFocusCapture = () => {
@@ -353,21 +601,48 @@ function PanelIdeas({ data, onNavigate }) {
     return () => { if (window.__ideasFocusCapture) delete window.__ideasFocusCapture; };
   }, []);
 
-  // ⌘N / Ctrl+N → focus capture input (panel-scoped)
+  // Raccourcis panel-scoped :
+  //   Ctrl/Cmd+N        → focus capture
+  //   P / G             → switch view Pipeline / Galerie
+  //   Escape            → ferme le détail ouvert
   useEffectId(() => {
     const onKey = (e) => {
+      const tag = (e.target && e.target.tagName || "").toLowerCase();
+      const inInput = tag === "input" || tag === "textarea" || (e.target && e.target.isContentEditable);
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n" && !e.shiftKey && !e.altKey) {
-        const tag = (e.target && e.target.tagName || "").toLowerCase();
-        if (tag === "input" || tag === "textarea") return;
+        if (inInput) return;
         e.preventDefault();
         if (captureRef.current) captureRef.current.focus();
+        return;
       }
+      if (inInput || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "Escape" && openId) { e.preventDefault(); setOpenId(null); return; }
+      if (e.key === "p" || e.key === "P") { e.preventDefault(); setView("pipeline"); return; }
+      if (e.key === "g" || e.key === "G") { e.preventDefault(); setView("gallery"); return; }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [openId]);
 
-  const filtered = cat === "all" ? allIdeas : allIdeas.filter(i => i.category === cat);
+  // Tous les labels présents + compte — pour les pills dynamiques.
+  const labelCounts = useMemoId(() => {
+    const m = new Map();
+    allIdeas.forEach(i => {
+      (i.labels || []).forEach(l => m.set(l, (m.get(l) || 0) + 1));
+    });
+    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [allIdeas]);
+
+  const filtered = useMemoId(() => {
+    let out = allIdeas;
+    if (cat !== "all") out = out.filter(i => i.category === cat);
+    if (labelFilter.length > 0) {
+      // Union : idée matche si elle a au moins un des labels sélectionnés
+      out = out.filter(i => (i.labels || []).some(l => labelFilter.includes(l)));
+    }
+    return out;
+  }, [allIdeas, cat, labelFilter]);
 
   const counts = useMemoId(() => {
     const c = { all: allIdeas.length };
@@ -459,52 +734,75 @@ function PanelIdeas({ data, onNavigate }) {
 
   const handleOpenSignal = () => onNavigate("signals");
 
+  // Centralise la création d'une idée (capture bar + suggestions).
+  const createIdea = async ({ title, body = "", labels = [], signals = [] }) => {
+    if (!window.sb || !window.SUPABASE_URL) throw new Error("no client");
+    const nowIso = new Date().toISOString();
+    const todayStr = nowIso.slice(0, 10);
+    const payload = {
+      title,
+      description: body,
+      status: "seed",
+      sector: "other",
+      labels,
+      related_trends: signals,
+      created_at: nowIso,
+      updated_at: nowIso,
+    };
+    const rows = await window.sb.postJSON(
+      `${window.SUPABASE_URL}/rest/v1/business_ideas`,
+      payload
+    );
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    if (!row || !row.id) throw new Error("no row returned");
+    const newIdea = {
+      id: row.id,
+      category: "business",
+      labels: Array.isArray(row.labels) ? row.labels : labels,
+      kicker: `Idée · ${new Date(nowIso).toLocaleDateString("fr", { weekday: "short", day: "numeric", month: "short" })}`,
+      title: row.title,
+      one_liner: body ? String(body).slice(0, 140) : "",
+      body: row.description || "",
+      notes: "",
+      status: "seed",
+      captured_at: todayStr,
+      last_touched: todayStr,
+      touched_count: 1,
+      effort: 3, impact: 3, alignment: 3,
+      signals,
+      source: "idée perso",
+      origin: "Capture rapide",
+      related_ids: [],
+      jarvis_prompt: "",
+      jarvis_enriched: null,
+      promoted_to_opp: null,
+    };
+    if (window.IDEAS_DATA?.ideas) {
+      window.IDEAS_DATA.ideas = [newIdea, ...window.IDEAS_DATA.ideas];
+    }
+    forceRender(v => v + 1);
+    return newIdea;
+  };
+
   const handleCapture = async () => {
-    const title = captureValue.trim();
-    if (!title || capturing) return;
+    const raw = captureValue.trim();
+    if (!raw || capturing) return;
     if (!window.sb || !window.SUPABASE_URL) {
       setCaptureMsg({ kind: "err", text: "Client Supabase indisponible." });
+      return;
+    }
+    const { title, labels } = parseHashtags(raw);
+    if (!title) {
+      setCaptureMsg({ kind: "err", text: "Il faut au moins un titre avant les #libellés." });
       return;
     }
     setCapturing(true);
     setCaptureMsg(null);
     try {
-      const nowIso = new Date().toISOString();
-      const todayStr = nowIso.slice(0, 10);
-      const rows = await window.sb.postJSON(
-        `${window.SUPABASE_URL}/rest/v1/business_ideas`,
-        { title, status: "seed", sector: "other", created_at: nowIso, updated_at: nowIso }
-      );
-      const row = Array.isArray(rows) ? rows[0] : rows;
-      if (!row || !row.id) throw new Error("no row returned");
-      const newIdea = {
-        id: row.id,
-        category: "business",
-        kicker: `Idée · ${new Date(nowIso).toLocaleDateString("fr", { weekday: "short", day: "numeric", month: "short" })}`,
-        title: row.title,
-        one_liner: "",
-        body: "",
-        notes: "",
-        status: "seed",
-        captured_at: todayStr,
-        last_touched: todayStr,
-        touched_count: 1,
-        effort: 3, impact: 3, alignment: 3,
-        signals: [],
-        source: "idée perso",
-        origin: "Capture rapide",
-        related_ids: [],
-        jarvis_prompt: "",
-        jarvis_enriched: null,
-        promoted_to_opp: null,
-      };
-      if (window.IDEAS_DATA?.ideas) {
-        window.IDEAS_DATA.ideas = [newIdea, ...window.IDEAS_DATA.ideas];
-      }
+      const newIdea = await createIdea({ title, labels });
       setCaptureValue("");
-      setCaptureMsg({ kind: "ok", text: "Idée captée." });
-      try { window.track && window.track("idea_captured", { id: row.id }); } catch {}
-      forceRender(v => v + 1);
+      setCaptureMsg({ kind: "ok", text: labels.length ? `Idée captée avec ${labels.length} libellé${labels.length > 1 ? "s" : ""}.` : "Idée captée." });
+      try { window.track && window.track("idea_captured", { id: newIdea.id, labels: labels.length }); } catch {}
       setTimeout(() => setCaptureMsg(null), 2500);
     } catch (e) {
       console.error(e);
@@ -512,6 +810,59 @@ function PanelIdeas({ data, onNavigate }) {
     } finally {
       setCapturing(false);
     }
+  };
+
+  // Drag & drop: déplacement d'une idée vers une autre colonne.
+  const handleMoveStatus = async (id, nextStatus) => {
+    if (pending[id]) return;
+    const current = allIdeas.find(i => i.id === id);
+    if (!current || current.status === nextStatus) return;
+    setPending(p => ({ ...p, [id]: true }));
+    try {
+      await patchIdea(id, { status: nextStatus, updated_at: new Date().toISOString() });
+      try { window.track && window.track("idea_moved", { id, from: current.status, to: nextStatus }); } catch {}
+      forceRender(v => v + 1);
+    } catch (e) {
+      console.error(e);
+      setCaptureMsg({ kind: "err", text: "Déplacement impossible — réessaie." });
+      setTimeout(() => setCaptureMsg(null), 2500);
+    } finally {
+      setPending(p => { const n = { ...p }; delete n[id]; return n; });
+    }
+  };
+
+  // Édition des libellés depuis le détail.
+  const handleSetLabels = async (id, nextLabels) => {
+    if (pending[id]) return;
+    setPending(p => ({ ...p, [id]: true }));
+    try {
+      await patchIdea(id, { labels: nextLabels, updated_at: new Date().toISOString() });
+      forceRender(v => v + 1);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPending(p => { const n = { ...p }; delete n[id]; return n; });
+    }
+  };
+
+  const handleAcceptSuggestion = async (sugg) => {
+    try {
+      const newIdea = await createIdea({
+        title: sugg.title,
+        body: sugg.description || "",
+        labels: sugg.labels || [],
+        signals: sugg.signals || [],
+      });
+      setSuggestDismissed(prev => [...prev, sugg.key]);
+      try { window.track && window.track("suggestion_accepted", { key: sugg.key, source: sugg.source }); } catch {}
+      setOpenId(newIdea.id);
+    } catch (e) {
+      console.error(e);
+      alert("Impossible d'ajouter la suggestion — réessaie.");
+    }
+  };
+  const handleDismissSuggestion = (key) => {
+    setSuggestDismissed(prev => prev.includes(key) ? prev : [...prev, key]);
   };
 
   const onCaptureKey = (e) => {
@@ -564,7 +915,7 @@ function PanelIdeas({ data, onNavigate }) {
         <input
           ref={captureRef}
           className="id-capture-input"
-          placeholder="Capturer une idée — titre, puis Entrée…"
+          placeholder="Capturer une idée — titre #libellé1 #libellé2, puis Entrée"
           value={captureValue}
           onChange={(e) => setCaptureValue(e.target.value)}
           onKeyDown={onCaptureKey}
@@ -592,6 +943,14 @@ function PanelIdeas({ data, onNavigate }) {
           <span className="id-capture-kbd">⌘</span> <span className="id-capture-kbd">N</span> pour focus
         </span>
       </div>
+
+      {/* ── SUGGESTIONS ──────────────────────────── */}
+      <SuggestionsSection
+        allIdeas={allIdeas}
+        onAccept={handleAcceptSuggestion}
+        onDismiss={handleDismissSuggestion}
+        dismissedIds={suggestDismissed}
+      />
 
       {/* ── FLAGSHIP ─────────────────────────────── */}
       {flagship && (
@@ -641,9 +1000,43 @@ function PanelIdeas({ data, onNavigate }) {
         ))}
       </div>
 
+      {/* ── LABEL FILTERS (dynamiques) ─────────────── */}
+      {labelCounts.length > 0 && (
+        <div className="id-labfilters">
+          <div className="id-labfilters-label">Libellés</div>
+          <div className="id-labfilters-list">
+            {labelCounts.slice(0, 20).map(([l, n]) => {
+              const active = labelFilter.includes(l);
+              return (
+                <IdLabelChip
+                  key={l}
+                  label={`${l} · ${n}`}
+                  active={active}
+                  onClick={() => {
+                    setLabelFilter(prev => active ? prev.filter(x => x !== l) : [...prev, l]);
+                  }}
+                />
+              );
+            })}
+            {labelFilter.length > 0 && (
+              <button
+                className="id-labfilters-clear"
+                onClick={() => setLabelFilter([])}
+              >× clear</button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── VIEWS ─────────────────────────────────── */}
       {view === "pipeline" && (
-        <PipelineView ideas={filtered} stages={stages} onOpen={handleOpen} />
+        <PipelineView
+          ideas={filtered}
+          stages={stages}
+          onOpen={handleOpen}
+          onMoveStatus={handleMoveStatus}
+          pending={pending}
+        />
       )}
       {view === "gallery" && (
         <GalleryView ideas={filtered} onOpen={handleOpen} />
@@ -663,6 +1056,7 @@ function PanelIdeas({ data, onNavigate }) {
             onDig={handleDig}
             onArchive={handleArchive}
             onNavigate={onNavigate}
+            onSetLabels={handleSetLabels}
             pending={pending}
           />
         </div>

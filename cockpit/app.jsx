@@ -1,6 +1,63 @@
 // App root — theme switcher + router
 const { useState, useEffect } = React;
 
+// Global keyboard shortcuts (PC/Mac). Anything panel-specific stays in the
+// panel file; this is only the top-level index.
+const KEYBOARD_SHORTCUTS = [
+  { group: "Navigation", keys: ["Ctrl", "K"],         label: "Ouvrir la recherche" },
+  { group: "Navigation", keys: ["Ctrl", "N"],         label: "Nouvelle idée (carnet)" },
+  { group: "Navigation", keys: ["Ctrl", "1-8"],       label: "Aller au panel N (Brief, Top, Nouveautés, Signaux, Opportunités, Idées, Radar, Jarvis)" },
+  { group: "Navigation", keys: ["Ctrl", "B"],         label: "Replier / déplier la sidebar" },
+  { group: "Navigation", keys: ["?"],                  label: "Afficher cette aide" },
+  { group: "Navigation", keys: ["Échap"],              label: "Fermer un panneau / modale" },
+  { group: "Carnet d'idées", keys: ["P"],              label: "Vue pipeline" },
+  { group: "Carnet d'idées", keys: ["G"],              label: "Vue galerie" },
+  { group: "Carnet d'idées", keys: ["#libellé"],       label: "Tagger l'idée pendant la capture" },
+  { group: "Carnet d'idées", keys: ["Glisser carte"],  label: "Changer de statut (entre colonnes)" },
+];
+
+function ShortcutsOverlay({ open, onClose }) {
+  if (!open) return null;
+  const groups = {};
+  KEYBOARD_SHORTCUTS.forEach(s => {
+    (groups[s.group] = groups[s.group] || []).push(s);
+  });
+  return (
+    <div className="kbd-overlay" onClick={onClose}>
+      <div className="kbd-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="kbd-head">
+          <div className="kbd-eyebrow">Aide</div>
+          <h2 className="kbd-title">Raccourcis clavier</h2>
+          <p className="kbd-sub">PC : utilise <kbd>Ctrl</kbd>. Mac : <kbd>⌘</kbd> équivalent.</p>
+        </div>
+        {Object.entries(groups).map(([groupName, items]) => (
+          <div key={groupName} className="kbd-group">
+            <div className="kbd-group-title">{groupName}</div>
+            <dl className="kbd-list">
+              {items.map((s, i) => (
+                <React.Fragment key={i}>
+                  <dt className="kbd-keys">
+                    {s.keys.map((k, j) => (
+                      <React.Fragment key={j}>
+                        {j > 0 && <span className="kbd-plus">+</span>}
+                        <kbd>{k}</kbd>
+                      </React.Fragment>
+                    ))}
+                  </dt>
+                  <dd className="kbd-desc">{s.label}</dd>
+                </React.Fragment>
+              ))}
+            </dl>
+          </div>
+        ))}
+        <div className="kbd-foot">
+          <button className="btn btn--ghost" onClick={onClose}>Fermer (Échap)</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Error boundary — prevents a single panel crash from taking down the
 // whole app. Shows a recoverable error card in place of the panel.
 class PanelErrorBoundary extends React.Component {
@@ -104,6 +161,7 @@ function App() {
   });
   const [retryTick, setRetryTick] = useState(0);
   const [sbMobileOpen, setSbMobileOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [themeId, setThemeId] = useState(() => {
     try {
       const stored = localStorage.getItem("cockpit-theme");
@@ -223,6 +281,58 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [activePanel]);
 
+  // Ctrl/Cmd+1..8 → jump to the first 8 main panels (matches the
+  // sidebar order of the core sections).
+  const QUICK_PANELS = ["brief", "top", "updates", "signals", "opps", "ideas", "radar", "jarvis"];
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+      const n = Number(e.key);
+      if (!Number.isInteger(n) || n < 1 || n > QUICK_PANELS.length) return;
+      const tag = (e.target && e.target.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea") return;
+      e.preventDefault();
+      handleNavigate(QUICK_PANELS[n - 1]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Ctrl/Cmd+B → toggle sidebar rail (delegates to the sidebar component,
+  // which owns the collapsed state).
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b" && !e.shiftKey && !e.altKey) {
+        const tag = (e.target && e.target.tagName || "").toLowerCase();
+        if (tag === "input" || tag === "textarea") return;
+        e.preventDefault();
+        try { window.__cockpitToggleSidebar && window.__cockpitToggleSidebar(); } catch {}
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // "?" → ouvre l'overlay d'aide | Escape → referme tout overlay/modale
+  useEffect(() => {
+    const onKey = (e) => {
+      const tag = (e.target && e.target.tagName || "").toLowerCase();
+      const inInput = tag === "input" || tag === "textarea" || (e.target && e.target.isContentEditable);
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (inInput) return;
+        e.preventDefault();
+        setShortcutsOpen(prev => !prev);
+        return;
+      }
+      if (e.key === "Escape") {
+        if (shortcutsOpen) { e.preventDefault(); setShortcutsOpen(false); }
+        if (sbMobileOpen) setSbMobileOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [shortcutsOpen, sbMobileOpen]);
+
   // Global link_clicked telemetry (delegated to capture a[target="_blank"]).
   useEffect(() => {
     const onClick = (e) => {
@@ -334,6 +444,13 @@ function App() {
         )}
         <PanelErrorBoundary panelId={activePanel}>{content}</PanelErrorBoundary>
       </main>
+      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <button
+        className="kbd-fab"
+        onClick={() => setShortcutsOpen(true)}
+        title="Raccourcis clavier (?)"
+        aria-label="Afficher les raccourcis clavier"
+      >?</button>
     </div>
   );
 }

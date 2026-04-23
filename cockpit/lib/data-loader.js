@@ -845,9 +845,11 @@
       const impact = IDEA_MARKET_TO_IMPACT[String(r.market_size_estimate || "").toLowerCase()] || 3;
       const effort = IDEA_COMPETITION_TO_EFFORT[String(r.competition_level || "").toLowerCase()] || 3;
       const alignment = 3; // pas de champ DB équivalent — neutre
+      const labels = Array.isArray(r.labels) ? r.labels.filter(Boolean) : [];
       return {
         id: r.id,
         category,
+        labels,
         kicker: ideaKicker(r),
         title: r.title || "(sans titre)",
         one_liner: ideaOneLiner(description),
