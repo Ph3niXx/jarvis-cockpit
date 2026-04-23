@@ -113,6 +113,87 @@ HEADERS_UPSERT = {
 }
 
 
+# ─── GEMINI USAGE LOGGING ────────────────────────────────────────────────────
+# Google AI Studio doesn't expose usage via public API. We log each call
+# here so the cockpit Stacks panel can show real usage (table gemini_api_calls).
+
+import time as _time  # alias to avoid collision with potential `time` import in caller scope
+
+
+def _gemini_usage(resp):
+    """Extract input/output/total tokens from a Gemini response, best-effort."""
+    try:
+        meta = getattr(resp, "usage_metadata", None)
+        if not meta:
+            return None, None, None
+        return (
+            getattr(meta, "prompt_token_count", None),
+            getattr(meta, "candidates_token_count", None),
+            getattr(meta, "total_token_count", None),
+        )
+    except Exception:
+        return None, None, None
+
+
+def _log_gemini_call(pipeline, step, model_name, prompt, response=None, error=None, latency_ms=None):
+    """Insert one row into gemini_api_calls. Never raises — logging must not break the pipeline."""
+    try:
+        status = "ok"
+        err_msg = None
+        err_str = str(error) if error else ""
+        if error is not None:
+            status = "rate_limit" if ("429" in err_str or "rate" in err_str.lower() or "quota" in err_str.lower()) else "error"
+            err_msg = err_str[:500]
+        input_tok = output_tok = total_tok = None
+        response_chars = None
+        if response is not None:
+            input_tok, output_tok, total_tok = _gemini_usage(response)
+            try:
+                response_chars = len((response.text or "")) if hasattr(response, "text") else None
+            except Exception:
+                response_chars = None
+        payload = {
+            "pipeline": pipeline,
+            "step": step,
+            "model": model_name,
+            "status": status,
+            "prompt_chars": len(prompt) if prompt else None,
+            "response_chars": response_chars,
+            "input_tokens": input_tok,
+            "output_tokens": output_tok,
+            "total_tokens": total_tok,
+            "latency_ms": latency_ms,
+            "error_message": err_msg,
+        }
+        requests.post(
+            f"{SUPABASE_URL}/rest/v1/gemini_api_calls",
+            headers=HEADERS,
+            json=payload,
+            timeout=5,
+        )
+    except Exception as e:
+        # Logging failures must never bubble up.
+        print(f"   [WARN] gemini_api_calls log failed: {e}")
+
+
+def call_gemini(model, prompt, *, pipeline, step, model_name):
+    """Wrapper around model.generate_content that logs the call to gemini_api_calls.
+
+    Re-raises exceptions so callers can still handle errors locally; we only
+    tap the logging on the way through.
+    """
+    t0 = _time.time()
+    try:
+        response = model.generate_content(prompt)
+        latency_ms = int((_time.time() - t0) * 1000)
+        _log_gemini_call(pipeline, step, model_name, prompt, response=response, latency_ms=latency_ms)
+        return response
+    except Exception as e:
+        latency_ms = int((_time.time() - t0) * 1000)
+        _log_gemini_call(pipeline, step, model_name, prompt, error=e, latency_ms=latency_ms)
+        raise
+
+
 # ─── UTILS ────────────────────────────────────────────────────────────────────
 
 class MLStripper(HTMLParser):
@@ -237,10 +318,12 @@ def web_search_ai_news():
                 f"Recherche les dernières actualités sur : {query}. "
                 f"Résume en 3-4 points factuels avec les URLs des sources. Sois très concis."
             )
-            if use_grounding:
-                response = model.generate_content(prompt)
-            else:
-                response = model.generate_content(prompt)
+            response = call_gemini(
+                model, prompt,
+                pipeline="main.py",
+                step="web_search_grounded" if use_grounding else "web_search",
+                model_name="gemini-2.5-flash-lite",
+            )
             web_results.append({
                 "query": query,
                 "result": response.text if response.text else "Pas de résultats"
@@ -311,7 +394,12 @@ def search_rte_articles():
                 f"TITLE: ...\nURL: ...\nSUMMARY: ...\n\n"
                 f"Only include real articles with real URLs. Be factual."
             )
-            response = model.generate_content(prompt)
+            response = call_gemini(
+                model, prompt,
+                pipeline="main.py",
+                step="rte_search",
+                model_name="gemini-2.5-flash-lite",
+            )
             text = response.text or ""
 
             # Parser les articles du texte Gemini
@@ -783,7 +871,12 @@ RÈGLES :
 """
 
     try:
-        response = model.generate_content(prompt)
+        response = call_gemini(
+            model, prompt,
+            pipeline="main.py",
+            step="brief_generation",
+            model_name="gemini-2.5-flash-lite",
+        )
         return response.text if response.text else "<p>Brief non généré.</p>"
     except Exception as e:
         print(f"   [ERROR] Brief generation: {e}")

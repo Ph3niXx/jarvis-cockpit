@@ -2906,7 +2906,7 @@
   // proxy), and get_stack_stats() RPC (Supabase DB).
   // GitHub stays with indicative placeholders (no public API).
   // ─────────────────────────────────────────────────────────
-  function transformStacks({ weekly, articles30d, dbStats, todayArts, profileRows }){
+  function transformStacks({ weekly, articles30d, dbStats, todayArts, profileRows, gemUsage }){
     const USD_TO_EUR = 0.92;
     const now = new Date();
     const isoNow = now.toISOString();
@@ -3076,20 +3076,33 @@
         : [],
     };
 
-    // ── GEMINI (proxy: articles fetched per day) ──────────
+    // ── GEMINI (real usage from gemini_api_calls if available, proxy fallback) ──
     const artsByDate = {};
     (articles30d || []).forEach(a => {
       const d = (a.fetch_date || a.date_fetched || "").slice(0, 10);
       if (!d) return;
       artsByDate[d] = (artsByDate[d] || 0) + 1;
     });
-    const gemSeries = seriesDays.map(d => ({ date: d.date, value: artsByDate[d.date] || 0 }));
+    // Real usage from gemini_api_calls (instrumented main.py).
+    const gemReal = gemUsage && typeof gemUsage === "object" ? gemUsage : null;
+    const gemRealSeries = (gemReal && Array.isArray(gemReal.series)) ? gemReal.series : [];
+    const gemRealByDate = Object.fromEntries(gemRealSeries.map(s => [s.date, s]));
+    const hasRealGem = gemRealSeries.length > 0;
+    // Build 30-day series — real counts when available, 2× article proxy otherwise.
+    const gemSeries = seriesDays.map(d => {
+      const real = gemRealByDate[d.date];
+      if (real) return { date: d.date, value: Number(real.calls) || 0, rate_limits: Number(real.rate_limits) || 0 };
+      return { date: d.date, value: artsByDate[d.date] || 0 };
+    });
     const gemToday = (todayArts || []).length;
     const gemMonth = Object.entries(artsByDate)
       .filter(([d]) => d.slice(0, 7) === monthKey)
       .reduce((s, [, v]) => s + v, 0);
-    // Each article ≈ 2 Gemini calls (fetch + brief generation)
-    const gemCallsToday = gemToday * 2;
+    const gemCallsToday = gemReal && gemReal.today_calls != null
+      ? Number(gemReal.today_calls)
+      : (todayArts || []).length * 2;
+    const gemRateLimitsToday = gemReal ? Number(gemReal.today_rate_limits || 0) : 0;
+    const gemLastRateLimitAt = gemReal ? gemReal.last_rate_limit_at : null;
     const gemLimit = 1500; // Flash free tier req/day
     // Manual override from user_profile (Google AI Studio doesn't expose
     // usage via public API — user drops their observed numbers here).
@@ -3101,8 +3114,11 @@
       modelLimited: profileKv["stacks.gemini_model_limited"] || null,
     };
     const hasGemManual = Number.isFinite(gemManual.peakRpm) && Number.isFinite(gemManual.peakRpmLimit);
+    // Real rate limits in the last 24h trump everything.
     let gemStatus;
-    if (gemManual.rateLimitHit) {
+    if (gemRateLimitsToday > 0) {
+      gemStatus = "critical";
+    } else if (gemManual.rateLimitHit) {
       gemStatus = "critical";
     } else if (hasGemManual) {
       const pct = gemManual.peakRpm / gemManual.peakRpmLimit;
@@ -3113,6 +3129,24 @@
         : "safe";
     }
     const gemManualQuotas = [];
+    if (hasRealGem) {
+      gemManualQuotas.push({
+        label: "Appels tracés · aujourd'hui (pipelines instrumentés)",
+        unit: "calls",
+        used: gemCallsToday,
+        limit: null,
+        raw_used: `${gemCallsToday} appels${gemRateLimitsToday > 0 ? ` · ${gemRateLimitsToday} rate-limited` : ""}`,
+        type: "usage",
+      });
+      gemManualQuotas.push({
+        label: "Total 30j · pipelines instrumentés",
+        unit: "calls",
+        used: Number(gemReal.total_calls || 0),
+        limit: null,
+        raw_used: `${Number(gemReal.total_calls || 0).toLocaleString("fr-FR")} appels · ${Number(gemReal.total_tokens || 0).toLocaleString("fr-FR")} tokens`,
+        type: "usage",
+      });
+    }
     if (hasGemManual) {
       gemManualQuotas.push({
         label: "Pic RPM observé · " + (gemManual.modelLimited || "console"),
@@ -3177,15 +3211,26 @@
         { label: "articles totaux · mois", calls: gemMonth + " articles" },
       ],
       series_30d: gemSeries,
-      series_unit: "articles/jour",
+      series_unit: hasRealGem ? "appels/jour" : "articles/jour",
       rate_limits: {},
-      alerts: gemManual.rateLimitHit
-        ? [{ level: "critical", text: "Rate limit atteint sur " + (gemManual.modelLimited || "un modèle") + " (relevé " + (gemManual.observedAt || "—") + "). Pipeline auto potentiellement impacté." }]
-        : gemStatus === "critical"
-        ? [{ level: "critical", text: "Pic de requêtes aujourd'hui (" + gemCallsToday + "/" + gemLimit + "). Surveiller le fallback." }]
-        : gemStatus === "warn"
-        ? [{ level: "warn", text: "Usage élevé (" + gemCallsToday + "/" + gemLimit + " req). OK pour aujourd'hui." }]
-        : [],
+      alerts: [
+        ...(gemRateLimitsToday > 0 ? [{
+          level: "critical",
+          text: `${gemRateLimitsToday} rate limit(s) rencontré(s) aujourd'hui par nos pipelines Python (tracker interne).`,
+        }] : []),
+        ...(gemReal && gemReal.total_rate_limits > 0 && gemRateLimitsToday === 0 ? [{
+          level: "warn",
+          text: `${gemReal.total_rate_limits} rate limit(s) cumulé(s) sur 30 jours. Dernier : ${gemLastRateLimitAt ? relTime(gemLastRateLimitAt) : "—"}.`,
+        }] : []),
+        ...(gemManual.rateLimitHit && gemRateLimitsToday === 0 ? [{
+          level: "critical",
+          text: "Rate limit signalé manuellement sur " + (gemManual.modelLimited || "un modèle") + " (relevé " + (gemManual.observedAt || "—") + ").",
+        }] : []),
+        ...(gemStatus === "warn" && gemRateLimitsToday === 0 && !gemManual.rateLimitHit ? [{
+          level: "warn",
+          text: "Usage élevé (" + gemCallsToday + "/" + gemLimit + " req). OK pour aujourd'hui.",
+        }] : []),
+      ],
     };
 
     // ── SUPABASE (real DB stats from RPC) ─────────────────
@@ -4033,19 +4078,20 @@
       }
       case "stacks": {
         const from30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-        const [weekly, articles30d, dbStats, todayArts] = await Promise.all([
+        const [weekly, articles30d, dbStats, todayArts, gemUsage] = await Promise.all([
           T2.weekly_analysis(),
           once("stacks_articles_30d", () => q("articles", `fetch_date=gte.${from30}&select=id,fetch_date&order=fetch_date.desc&limit=5000`)).catch(() => []),
           window.sb.rpc("get_stack_stats").catch(() => null),
           once("articles_today", loadArticlesToday).catch(() => []),
+          once("stacks_gemini_usage", () => window.sb.rpc("get_gemini_usage_stats", { p_days: 30 })).catch(() => null),
         ]);
         const profileRows = (window.__COCKPIT_RAW && window.__COCKPIT_RAW.profileRows) || [];
         if (window.STACKS_DATA) {
-          const shape = transformStacks({ weekly, articles30d, dbStats, todayArts, profileRows });
+          const shape = transformStacks({ weekly, articles30d, dbStats, todayArts, profileRows, gemUsage });
           Object.assign(window.STACKS_DATA, shape);
-          window.STACKS_DATA._raw = { weekly, articles30d, dbStats };
+          window.STACKS_DATA._raw = { weekly, articles30d, dbStats, gemUsage };
         }
-        return { weekly, articles30d, dbStats };
+        return { weekly, articles30d, dbStats, gemUsage };
       }
       case "history": {
         // 60-day window of articles + daily briefs → rebuild HISTORY_DATA
