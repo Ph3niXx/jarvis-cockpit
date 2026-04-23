@@ -116,8 +116,93 @@ function StQuota({ q }) {
   );
 }
 
+// Upsert a user_profile key (used to anchor manual balances).
+async function stUpsertProfile(key, value) {
+  const url = window.SUPABASE_URL + "/rest/v1/user_profile?on_conflict=key";
+  const body = [{ key, value, updated_at: new Date().toISOString() }];
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { ...window.sb.headers, "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error("upsert " + res.status);
+  return res.json();
+}
+
+async function stEditClaudeBalance(onDone) {
+  const cur = (window.STACKS_DATA?.services?.find(x => x.id === "claude")?.manual_balance) || {};
+  const balance = window.prompt(
+    "Solde Anthropic restant (USD) ?\nExemple : 4.41\n(Vu dans console.anthropic.com)",
+    cur.usd != null ? String(cur.usd) : ""
+  );
+  if (balance == null || balance.trim() === "") return;
+  const credit = window.prompt(
+    "Crédit initial (USD) — laisse vide si pas applicable :",
+    cur.credit_usd != null ? String(cur.credit_usd) : ""
+  );
+  const expires = window.prompt(
+    "Date d'expiration du crédit (YYYY-MM-DD) — laisse vide si pas applicable :",
+    cur.credit_expires || ""
+  );
+  const today = new Date().toISOString().slice(0, 10);
+  const updates = [
+    stUpsertProfile("stacks.anthropic_balance_usd", String(Number(balance))),
+    stUpsertProfile("stacks.anthropic_balance_updated_at", today),
+  ];
+  if (credit && credit.trim() !== "") updates.push(stUpsertProfile("stacks.anthropic_credit_usd", String(Number(credit))));
+  if (expires && expires.trim() !== "") updates.push(stUpsertProfile("stacks.anthropic_credit_expires", expires.trim()));
+  await Promise.all(updates);
+  if (window.__COCKPIT_RAW) {
+    window.__COCKPIT_RAW.profileRows = null; // force reload
+  }
+  if (window.cockpitDataLoader) {
+    window.cockpitDataLoader.invalidateCache("user_profile");
+    // Reload user_profile into __COCKPIT_RAW for next stacks transform
+    const fresh = await window.sb.query("user_profile", "order=key");
+    if (window.__COCKPIT_RAW) window.__COCKPIT_RAW.profileRows = fresh;
+    window.cockpitDataLoader.invalidateCache("stacks_");
+    await window.cockpitDataLoader.loadPanel("stacks");
+  }
+  if (onDone) onDone();
+}
+
+async function stEditGeminiRateLimit(onDone) {
+  const cur = (window.STACKS_DATA?.services?.find(x => x.id === "gemini")?.manual_rate_limit) || {};
+  const hit = window.confirm("Rate limit Gemini atteint actuellement ?\n\nOK = oui (critical), Annuler = non");
+  const model = window.prompt(
+    "Modèle concerné (ex : Gemini 2.5 Flash Lite) :",
+    cur.model_limited || "Gemini 2.5 Flash Lite"
+  );
+  if (model == null) return;
+  const peak = window.prompt(
+    "Pic RPM observé (requêtes/min) :",
+    cur.peak_rpm != null ? String(cur.peak_rpm) : "11"
+  );
+  const limit = window.prompt(
+    "Limite RPM du tier :",
+    cur.peak_rpm_limit != null ? String(cur.peak_rpm_limit) : "10"
+  );
+  if (peak == null || limit == null) return;
+  const today = new Date().toISOString().slice(0, 10);
+  await Promise.all([
+    stUpsertProfile("stacks.gemini_rate_limit_hit", hit ? "true" : "false"),
+    stUpsertProfile("stacks.gemini_peak_rpm", String(Number(peak))),
+    stUpsertProfile("stacks.gemini_peak_rpm_limit", String(Number(limit))),
+    stUpsertProfile("stacks.gemini_model_limited", model.trim()),
+    stUpsertProfile("stacks.gemini_observed_at", today),
+  ]);
+  if (window.cockpitDataLoader) {
+    window.cockpitDataLoader.invalidateCache("user_profile");
+    const fresh = await window.sb.query("user_profile", "order=key");
+    if (window.__COCKPIT_RAW) window.__COCKPIT_RAW.profileRows = fresh;
+    window.cockpitDataLoader.invalidateCache("stacks_");
+    await window.cockpitDataLoader.loadPanel("stacks");
+  }
+  if (onDone) onDone();
+}
+
 // ── Service block ───────────────────────────────────
-function StServiceBlock({ s }) {
+function StServiceBlock({ s, onEdit }) {
   const statusLabel = { safe: "tout va bien", warn: "attention", critical: "critique" }[s.status];
 
   return (
@@ -134,10 +219,21 @@ function StServiceBlock({ s }) {
           {statusLabel}
         </div>
         <div className="st-service-last">Dernière utilisation · {s.last_used}</div>
+        {s.manual_balance?.updated_at && (
+          <div className="st-service-last">Solde relevé · {s.manual_balance.updated_at}</div>
+        )}
+        {s.manual_rate_limit?.observed_at && (
+          <div className="st-service-last">Relevé rate limit · {s.manual_rate_limit.observed_at}</div>
+        )}
         {s.console_url && (
           <a className="st-service-console" href={s.console_url} target="_blank" rel="noreferrer">
             Ouvrir console ↗
           </a>
+        )}
+        {(s.id === "claude" || s.id === "gemini") && (
+          <button className="st-service-edit" onClick={() => onEdit && onEdit(s.id)}>
+            {s.id === "claude" ? "Mettre à jour le solde" : "Mettre à jour le rate limit"}
+          </button>
         )}
       </div>
 
@@ -240,6 +336,17 @@ function PanelStacks({ data, onNavigate }) {
       setRefreshedAt(new Date());
     } finally {
       setRefreshing(false);
+    }
+  }
+
+  async function handleEdit(serviceId) {
+    try {
+      if (serviceId === "claude") await stEditClaudeBalance();
+      else if (serviceId === "gemini") await stEditGeminiRateLimit();
+      setRefreshedAt(new Date());
+    } catch (e) {
+      console.error("[stacks] edit failed:", e);
+      window.alert("Erreur : " + (e.message || "inconnue"));
     }
   }
 
@@ -387,7 +494,7 @@ function PanelStacks({ data, onNavigate }) {
 
       {/* SERVICES */}
       <div className="st-services">
-        {filtered.map((s) => <StServiceBlock key={s.id} s={s} />)}
+        {filtered.map((s) => <StServiceBlock key={s.id} s={s} onEdit={handleEdit} />)}
       </div>
     </div>
   );

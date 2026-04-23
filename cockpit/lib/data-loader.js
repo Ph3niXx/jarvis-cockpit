@@ -2906,7 +2906,7 @@
   // proxy), and get_stack_stats() RPC (Supabase DB).
   // GitHub stays with indicative placeholders (no public API).
   // ─────────────────────────────────────────────────────────
-  function transformStacks({ weekly, articles30d, dbStats, todayArts }){
+  function transformStacks({ weekly, articles30d, dbStats, todayArts, profileRows }){
     const USD_TO_EUR = 0.92;
     const now = new Date();
     const isoNow = now.toISOString();
@@ -2914,6 +2914,20 @@
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const monthKey = isoNow.slice(0, 7);
     const monthProgress = dayOfMonth / daysInMonth;
+
+    // Read manual balances stored in user_profile (stacks.* namespace).
+    // These let the user anchor real console data (Anthropic balance, credit
+    // granted, expiry) that the API doesn't expose publicly.
+    const profileKv = {};
+    (profileRows || []).forEach(r => { if (r.key) profileKv[r.key] = r.value; });
+    const manual = {
+      balanceUsd: Number(profileKv["stacks.anthropic_balance_usd"] || NaN),
+      creditUsd: Number(profileKv["stacks.anthropic_credit_usd"] || NaN),
+      balanceUpdated: profileKv["stacks.anthropic_balance_updated_at"] || null,
+      creditExpires: profileKv["stacks.anthropic_credit_expires"] || null,
+    };
+    const hasManualBalance = Number.isFinite(manual.balanceUsd);
+    const hasManualCredit = Number.isFinite(manual.creditUsd);
 
     const parseTokens = (r) => {
       const t = r && r.tokens_used;
@@ -2966,10 +2980,32 @@
     const claudeMonthEur = monthCostUsd * USD_TO_EUR;
     const prevMonthEur = prevMonthCostUsd * USD_TO_EUR;
     const claudeProjected = monthProgress > 0 ? claudeMonthEur / monthProgress : claudeMonthEur;
-    const claudeBudget = 10; // €/mois — soft cap réaliste vu l'usage actuel (~0.5€/mois)
-    const claudeStatus = claudeProjected > claudeBudget ? "critical"
-      : claudeProjected > claudeBudget * 0.75 ? "warn"
-      : "safe";
+    const claudeBudget = 10; // €/mois — soft cap réaliste vu l'usage actuel pipelines auto
+
+    // If the user entered a real balance from the console, derive an
+    // authoritative status from it (balance low = critical).
+    let claudeStatus;
+    if (hasManualBalance) {
+      claudeStatus = manual.balanceUsd < 1 ? "critical"
+        : manual.balanceUsd < 3 ? "warn"
+        : "safe";
+    } else {
+      claudeStatus = claudeProjected > claudeBudget ? "critical"
+        : claudeProjected > claudeBudget * 0.75 ? "warn"
+        : "safe";
+    }
+    const balanceQuota = hasManualBalance ? [{
+      label: "Solde Anthropic (console)",
+      unit: "$",
+      used: hasManualCredit ? +(manual.creditUsd - manual.balanceUsd).toFixed(2) : +(0).toFixed(2),
+      limit: hasManualCredit ? +manual.creditUsd.toFixed(2) : null,
+      raw_used: hasManualCredit
+        ? `$${(manual.creditUsd - manual.balanceUsd).toFixed(2)} dépensés · $${manual.balanceUsd.toFixed(2)} restants`
+        : `$${manual.balanceUsd.toFixed(2)} restants`,
+      reset: manual.creditExpires ? `expire ${manual.creditExpires}` : null,
+      type: hasManualCredit ? "budget" : "info",
+      critical_above: 0.85,
+    }] : [];
     const claude = {
       id: "claude",
       service: "Claude API",
@@ -2980,19 +3016,24 @@
       status: claudeStatus,
       console_url: "https://console.anthropic.com/settings/usage",
       last_used: lastRunAt ? relTime(lastRunAt) : "—",
+      manual_balance: hasManualBalance ? {
+        usd: manual.balanceUsd,
+        updated_at: manual.balanceUpdated,
+        credit_usd: hasManualCredit ? manual.creditUsd : null,
+        credit_expires: manual.creditExpires,
+      } : null,
       quotas: [
+        ...balanceQuota,
         {
-          label: "Budget mensuel (soft)",
+          label: "Coût pipelines auto · mois (weekly_analysis.py)",
           unit: "€",
-          used: +claudeMonthEur.toFixed(2),
-          limit: claudeBudget,
-          reset: "1er du mois",
-          projected: +claudeProjected.toFixed(2),
-          type: "budget",
-          critical_above: 0.85,
+          used: +claudeMonthEur.toFixed(3),
+          limit: null,
+          raw_used: `${claudeMonthEur.toFixed(3)} € (projeté ${claudeProjected.toFixed(2)} €)`,
+          type: "usage",
         },
         {
-          label: "Input tokens · mois",
+          label: "Input tokens · pipelines auto",
           unit: "tok",
           used: monthInput,
           limit: null,
@@ -3000,7 +3041,7 @@
           type: "usage",
         },
         {
-          label: "Output tokens · mois",
+          label: "Output tokens · pipelines auto",
           unit: "tok",
           used: monthOutput,
           limit: null,
@@ -3008,7 +3049,7 @@
           type: "usage",
         },
         {
-          label: "Appels API · mois",
+          label: "Appels API · pipelines auto",
           unit: "calls",
           used: monthCalls,
           limit: null,
@@ -3050,9 +3091,41 @@
     // Each article ≈ 2 Gemini calls (fetch + brief generation)
     const gemCallsToday = gemToday * 2;
     const gemLimit = 1500; // Flash free tier req/day
-    const gemStatus = gemCallsToday >= gemLimit * 0.9 ? "critical"
-      : gemCallsToday >= gemLimit * 0.7 ? "warn"
-      : "safe";
+    // Manual override from user_profile (Google AI Studio doesn't expose
+    // usage via public API — user drops their observed numbers here).
+    const gemManual = {
+      rateLimitHit: profileKv["stacks.gemini_rate_limit_hit"] === "true",
+      peakRpm: Number(profileKv["stacks.gemini_peak_rpm"] || NaN),
+      peakRpmLimit: Number(profileKv["stacks.gemini_peak_rpm_limit"] || NaN),
+      observedAt: profileKv["stacks.gemini_observed_at"] || null,
+      modelLimited: profileKv["stacks.gemini_model_limited"] || null,
+    };
+    const hasGemManual = Number.isFinite(gemManual.peakRpm) && Number.isFinite(gemManual.peakRpmLimit);
+    let gemStatus;
+    if (gemManual.rateLimitHit) {
+      gemStatus = "critical";
+    } else if (hasGemManual) {
+      const pct = gemManual.peakRpm / gemManual.peakRpmLimit;
+      gemStatus = pct >= 0.9 ? "critical" : pct >= 0.7 ? "warn" : "safe";
+    } else {
+      gemStatus = gemCallsToday >= gemLimit * 0.9 ? "critical"
+        : gemCallsToday >= gemLimit * 0.7 ? "warn"
+        : "safe";
+    }
+    const gemManualQuotas = [];
+    if (hasGemManual) {
+      gemManualQuotas.push({
+        label: "Pic RPM observé · " + (gemManual.modelLimited || "console"),
+        unit: "req/min",
+        used: gemManual.peakRpm,
+        limit: gemManual.peakRpmLimit,
+        raw_used: `${gemManual.peakRpm} / ${gemManual.peakRpmLimit}`,
+        reset: gemManual.observedAt ? `relevé ${gemManual.observedAt}` : null,
+        type: "rate",
+        warn_above: 0.70,
+        critical_above: 0.90,
+      });
+    }
     const gemini = {
       id: "gemini",
       service: "Gemini API",
@@ -3065,9 +3138,17 @@
       last_used: (articles30d && articles30d[0] && articles30d[0].fetch_date)
         ? relTime(articles30d[0].date_fetched || articles30d[0].fetch_date + "T06:00:00Z")
         : "—",
+      manual_rate_limit: hasGemManual || gemManual.rateLimitHit ? {
+        hit: gemManual.rateLimitHit,
+        peak_rpm: gemManual.peakRpm,
+        peak_rpm_limit: gemManual.peakRpmLimit,
+        observed_at: gemManual.observedAt,
+        model_limited: gemManual.modelLimited,
+      } : null,
       quotas: [
+        ...gemManualQuotas,
         {
-          label: "Requêtes/jour · Gemini Flash (proxy articles × 2)",
+          label: "Requêtes/jour · pipeline auto (proxy articles × 2)",
           unit: "req",
           used: gemCallsToday,
           limit: gemLimit,
@@ -3098,7 +3179,9 @@
       series_30d: gemSeries,
       series_unit: "articles/jour",
       rate_limits: {},
-      alerts: gemStatus === "critical"
+      alerts: gemManual.rateLimitHit
+        ? [{ level: "critical", text: "Rate limit atteint sur " + (gemManual.modelLimited || "un modèle") + " (relevé " + (gemManual.observedAt || "—") + "). Pipeline auto potentiellement impacté." }]
+        : gemStatus === "critical"
         ? [{ level: "critical", text: "Pic de requêtes aujourd'hui (" + gemCallsToday + "/" + gemLimit + "). Surveiller le fallback." }]
         : gemStatus === "warn"
         ? [{ level: "warn", text: "Usage élevé (" + gemCallsToday + "/" + gemLimit + " req). OK pour aujourd'hui." }]
@@ -3956,8 +4039,9 @@
           window.sb.rpc("get_stack_stats").catch(() => null),
           once("articles_today", loadArticlesToday).catch(() => []),
         ]);
+        const profileRows = (window.__COCKPIT_RAW && window.__COCKPIT_RAW.profileRows) || [];
         if (window.STACKS_DATA) {
-          const shape = transformStacks({ weekly, articles30d, dbStats, todayArts });
+          const shape = transformStacks({ weekly, articles30d, dbStats, todayArts, profileRows });
           Object.assign(window.STACKS_DATA, shape);
           window.STACKS_DATA._raw = { weekly, articles30d, dbStats };
         }

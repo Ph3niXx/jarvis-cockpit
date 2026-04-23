@@ -559,7 +559,8 @@
 .st-refresh-btn:disabled { opacity: 0.5; cursor: wait; }
 
 /* ── CONSOLE LINK ─────────────────────────────── */
-.st-service-console {
+.st-service-console,
+.st-service-edit {
   display: inline-block;
   margin-top: 10px;
   font-family: var(--font-mono);
@@ -571,8 +572,12 @@
   border: 1px solid var(--bd);
   border-radius: 2px;
   transition: all 0.12s ease;
+  background: var(--bg);
+  cursor: pointer;
 }
-.st-service-console:hover {
+.st-service-edit { margin-left: 6px; }
+.st-service-console:hover,
+.st-service-edit:hover {
   border-color: var(--tx);
   color: var(--tx);
   background: var(--bg2);
