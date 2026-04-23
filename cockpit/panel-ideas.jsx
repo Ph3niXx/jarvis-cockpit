@@ -8,12 +8,14 @@
 
 const { useState: useStateId, useMemo: useMemoId, useEffect: useEffectId } = React;
 
-const STAGE_ORDER = ["seed", "incubating", "maturing", "ready_to_promote", "parked"];const STAGE_LABEL = {
+const STAGE_ORDER = ["seed", "incubating", "maturing", "ready_to_promote", "parked"];const IDEA_STAGE_LABEL = {
   seed: "Graine",
   incubating: "Incubation",
   maturing: "Maturation",
   ready_to_promote: "Prête",
   parked: "Parquée",
+  promoted: "Promue",
+  archived: "Archivée",
 };
 const CAT_COLOR = {
   business: "#2f2a24",
@@ -25,8 +27,10 @@ const CAT_COLOR = {
 
 // days since captured
 function daysSince(iso) {
+  if (!iso) return 0;
   const captured = new Date(iso);
-  const today = new Date("2026-04-21");
+  if (isNaN(captured.getTime())) return 0;
+  const today = new Date();
   return Math.max(0, Math.floor((today - captured) / (24*3600*1000)));
 }
 function ageLabel(iso) {
@@ -188,7 +192,7 @@ function GalleryView({ ideas, onOpen }) {
             <p className="id-note-oneliner">{i.one_liner}</p>
             <div className="id-note-foot">
               <span className={`id-note-stage ${i.status === "ready_to_promote" ? "id-note-stage--ready" : ""} ${i.status === "parked" ? "id-note-stage--parked" : ""}`}>
-                {STAGE_LABEL[i.status]}
+                {IDEA_STAGE_LABEL[i.status]}
               </span>
               <span>{ageLabel(i.captured_at)} · ×{i.touched_count}</span>
             </div>
@@ -206,8 +210,17 @@ function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen, 
     <div className="id-detail">
       <div>
         <div className="id-detail-section-label">Contexte & développement</div>
-        <div className="id-detail-origin">Captée : {idea.origin}</div>
-        <p className="id-detail-body">{idea.body}</p>
+        {idea.origin && <div className="id-detail-origin">Captée : {idea.origin}</div>}
+        {idea.body && <p className="id-detail-body">{idea.body}</p>}
+
+        {idea.notes && (
+          <div style={{marginBottom: 16}}>
+            <div className="id-detail-section-label">Notes perso</div>
+            <div style={{padding: "12px 14px", background: "var(--bg)", borderLeft: "2px solid var(--tx3)", fontSize: 13, lineHeight: 1.55, color: "var(--tx)", whiteSpace: "pre-wrap"}}>
+              {idea.notes}
+            </div>
+          </div>
+        )}
 
         {idea.jarvis_prompt && (
           <div className="id-detail-prompt">{idea.jarvis_prompt}</div>
@@ -242,7 +255,7 @@ function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen, 
         <div className="id-detail-meta-row">
           <div className="id-detail-meta-cell">
             Stade
-            <span className="id-detail-meta-val">{STAGE_LABEL[idea.status]}</span>
+            <span className="id-detail-meta-val">{IDEA_STAGE_LABEL[idea.status]}</span>
           </div>
           <div className="id-detail-meta-cell">
             Âge
@@ -280,7 +293,7 @@ function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen, 
             <div className="id-detail-section-label">Idées liées ({related.length})</div>
             {related.map(r => (
               <button key={r.id} className="id-detail-related-item" onClick={() => onOpen(r.id)} style={{textAlign:"left", border:"none", background:"transparent", width:"100%", cursor:"pointer"}}>
-                <span className="id-detail-related-kicker">{STAGE_LABEL[r.status]}</span>
+                <span className="id-detail-related-kicker">{IDEA_STAGE_LABEL[r.status]}</span>
                 {r.title}
               </button>
             ))}
@@ -321,9 +334,38 @@ function PanelIdeas({ data, onNavigate }) {
   const [view, setView] = useStateId(() => localStorage.getItem("idea.view") || "pipeline");
   const [cat, setCat] = useStateId(() => localStorage.getItem("idea.cat") || "all");
   const [openId, setOpenId] = useStateId(null);
+  const [captureValue, setCaptureValue] = useStateId("");
+  const [capturing, setCapturing] = useStateId(false);
+  const [captureMsg, setCaptureMsg] = useStateId(null);
+  const [, forceRender] = useStateId(0);
+  const captureRef = React.useRef(null);
 
   useEffectId(() => localStorage.setItem("idea.view", view), [view]);
   useEffectId(() => localStorage.setItem("idea.cat", cat), [cat]);
+
+  useEffectId(() => {
+    window.__ideasFocusCapture = () => {
+      if (captureRef.current) {
+        captureRef.current.focus();
+        captureRef.current.select && captureRef.current.select();
+      }
+    };
+    return () => { if (window.__ideasFocusCapture) delete window.__ideasFocusCapture; };
+  }, []);
+
+  // ⌘N / Ctrl+N → focus capture input (panel-scoped)
+  useEffectId(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n" && !e.shiftKey && !e.altKey) {
+        const tag = (e.target && e.target.tagName || "").toLowerCase();
+        if (tag === "input" || tag === "textarea") return;
+        e.preventDefault();
+        if (captureRef.current) captureRef.current.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const filtered = cat === "all" ? allIdeas : allIdeas.filter(i => i.category === cat);
 
@@ -417,6 +459,66 @@ function PanelIdeas({ data, onNavigate }) {
 
   const handleOpenSignal = () => onNavigate("signals");
 
+  const handleCapture = async () => {
+    const title = captureValue.trim();
+    if (!title || capturing) return;
+    if (!window.sb || !window.SUPABASE_URL) {
+      setCaptureMsg({ kind: "err", text: "Client Supabase indisponible." });
+      return;
+    }
+    setCapturing(true);
+    setCaptureMsg(null);
+    try {
+      const nowIso = new Date().toISOString();
+      const todayStr = nowIso.slice(0, 10);
+      const rows = await window.sb.postJSON(
+        `${window.SUPABASE_URL}/rest/v1/business_ideas`,
+        { title, status: "seed", sector: "other", created_at: nowIso, updated_at: nowIso }
+      );
+      const row = Array.isArray(rows) ? rows[0] : rows;
+      if (!row || !row.id) throw new Error("no row returned");
+      const newIdea = {
+        id: row.id,
+        category: "business",
+        kicker: `Idée · ${new Date(nowIso).toLocaleDateString("fr", { weekday: "short", day: "numeric", month: "short" })}`,
+        title: row.title,
+        one_liner: "",
+        body: "",
+        notes: "",
+        status: "seed",
+        captured_at: todayStr,
+        last_touched: todayStr,
+        touched_count: 1,
+        effort: 3, impact: 3, alignment: 3,
+        signals: [],
+        source: "idée perso",
+        origin: "Capture rapide",
+        related_ids: [],
+        jarvis_prompt: "",
+        jarvis_enriched: null,
+        promoted_to_opp: null,
+      };
+      if (window.IDEAS_DATA?.ideas) {
+        window.IDEAS_DATA.ideas = [newIdea, ...window.IDEAS_DATA.ideas];
+      }
+      setCaptureValue("");
+      setCaptureMsg({ kind: "ok", text: "Idée captée." });
+      try { window.track && window.track("idea_captured", { id: row.id }); } catch {}
+      forceRender(v => v + 1);
+      setTimeout(() => setCaptureMsg(null), 2500);
+    } catch (e) {
+      console.error(e);
+      setCaptureMsg({ kind: "err", text: "Échec de la capture — réessaie." });
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  const onCaptureKey = (e) => {
+    if (e.key === "Enter") { e.preventDefault(); handleCapture(); }
+    else if (e.key === "Escape") { setCaptureValue(""); e.target.blur(); }
+  };
+
   const openIdea = openId ? allIdeas.find(i => i.id === openId) : null;
 
   return (
@@ -459,9 +561,35 @@ function PanelIdeas({ data, onNavigate }) {
         <div className="id-capture-icon">
           <Icon name="plus" size={18} stroke={1.75} />
         </div>
-        <input className="id-capture-input" placeholder="Capturer une idée — juste le titre, Jarvis enrichira…" />
+        <input
+          ref={captureRef}
+          className="id-capture-input"
+          placeholder="Capturer une idée — titre, puis Entrée…"
+          value={captureValue}
+          onChange={(e) => setCaptureValue(e.target.value)}
+          onKeyDown={onCaptureKey}
+          disabled={capturing}
+        />
+        {captureValue.trim() && (
+          <button
+            className="btn btn--primary"
+            onClick={handleCapture}
+            disabled={capturing}
+            style={{fontSize: 12, padding: "6px 14px"}}
+          >
+            {capturing ? "…" : "Capturer"}
+          </button>
+        )}
+        {captureMsg && (
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.04em",
+            color: captureMsg.kind === "ok" ? "var(--positive)" : "var(--negative, #b3491a)"
+          }}>
+            {captureMsg.text}
+          </span>
+        )}
         <span className="id-capture-hint">
-          <span className="id-capture-kbd">⌘</span> <span className="id-capture-kbd">N</span> partout
+          <span className="id-capture-kbd">⌘</span> <span className="id-capture-kbd">N</span> pour focus
         </span>
       </div>
 

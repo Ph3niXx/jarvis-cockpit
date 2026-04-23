@@ -203,6 +203,26 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Cmd/Ctrl+N (global) → navigate to ideas & focus capture input.
+  // When we're already on the ideas panel, the panel's own listener
+  // focuses the input directly.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n" && !e.shiftKey && !e.altKey) {
+        const tag = (e.target && e.target.tagName || "").toLowerCase();
+        if (tag === "input" || tag === "textarea") return;
+        if (activePanel === "ideas") return; // panel listener takes over
+        e.preventDefault();
+        handleNavigate("ideas");
+        setTimeout(() => {
+          try { window.__ideasFocusCapture && window.__ideasFocusCapture(); } catch {}
+        }, 120);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activePanel]);
+
   // Global link_clicked telemetry (delegated to capture a[target="_blank"]).
   useEffect(() => {
     const onClick = (e) => {
