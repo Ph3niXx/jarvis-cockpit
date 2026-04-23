@@ -386,14 +386,7 @@ function App() {
   else if (activePanel === "updates")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="VEILLE_DATA" title="Veille IA" actorsLabel="labos + éditeurs" prodSection={{ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }} />;
   else if (activePanel === "sport")
-    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="SPORT_DATA" title="Sport" showActors={false} categoryLabel="Discipline" typeLabel="Format" categories={[
-      { id: "foot", label: "Football", color: "#004170" },
-      { id: "esport", label: "E-sport", color: "#0ac7ff" },
-      { id: "rugby", label: "Rugby", color: "#1a3a6c" },
-      { id: "cyclisme", label: "Cyclisme", color: "#d8a93a" },
-      { id: "tennis", label: "Tennis", color: "#b3491a" },
-      { id: "natation", label: "Natation", color: "#e67040" },
-    ]} prodSection={null} />;
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="SPORT_DATA" title="Sport" showActors={false} categoryLabel="Discipline" typeLabel="Format" prodSection={null} />;
   else if (activePanel === "gaming_news")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="GAMING_DATA" title="Gaming" showActors={false} categoryLabel="Rubrique" typeLabel="Format" categories={[
       { id: "releases", label: "Sorties récentes", color: "#3a2a1a" },

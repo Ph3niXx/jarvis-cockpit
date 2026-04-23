@@ -3659,7 +3659,8 @@
       }
       case "sport": {
         const articles = await T2.sport();
-        if (window.SPORT_DATA && articles.length) {
+        if (window.SPORT_DATA) {
+          // Always replace feed even when empty — avoids stale fake content
           window.SPORT_DATA.feed = transformSportFeed(articles);
           const fresh = articles[0];
           // KPIs: volume 24h / 7j, top discipline (7j), distinct sources.
@@ -3697,13 +3698,16 @@
               tags: ["#sport", "#" + (fresh.category || "actu")],
             };
           }
-          // Build actors from unique normalised sources (used for ActorMark + color).
-          const sourceColors = {
+          // Build actors from unique normalised sources. Hand-picked brand
+          // colors for known sources; hash-derived fallback for the rest.
+          const SPORT_SOURCE_COLORS = {
             "L'Équipe": "#e4002b",
             "RMC Sport": "#004080",
             "Millenium": "#ff6600",
             "Cyclism'Actu": "#0a8a4c",
           };
+          const ACTOR_PALETTE = ["#c06443", "#4a7d5a", "#6b5b95", "#b27536", "#4b8d94", "#a84a63", "#5a7a8f", "#8c6d3f", "#786d5f", "#4f6d7a"];
+          const nameHash = (s) => { let h = 0; for (const c of s) h = ((h << 5) - h + c.charCodeAt(0)) | 0; return Math.abs(h); };
           const srcMap = new Map();
           articles.forEach(a => {
             const name = normalizeSportSource(a.source);
@@ -3712,7 +3716,7 @@
                 id: name.toLowerCase().replace(/\W+/g, "-"),
                 name,
                 mark: name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase(),
-                color: sourceColors[name] || "#555",
+                color: SPORT_SOURCE_COLORS[name] || ACTOR_PALETTE[nameHash(name) % ACTOR_PALETTE.length],
                 followed: true,
                 last_activity: relTime(a.date_published || a.date_fetched),
                 last_title: a.title || "",
@@ -3744,13 +3748,33 @@
               status: count >= 20 ? "rising" : count >= 10 ? "stable" : "new",
             }))
             .sort((a, b) => b.articles_count - a.articles_count);
+          // Dynamic category pills — auto-detected from corpus. Replaces
+          // the hardcoded list in app.jsx for filter pills + colors.
+          const SPORT_CATEGORY_COLORS = {
+            foot:     "#004170",
+            esport:   "#0ac7ff",
+            rugby:    "#1a3a6c",
+            cyclisme: "#d8a93a",
+            tennis:   "#b3491a",
+            natation: "#e67040",
+          };
+          window.SPORT_DATA.categories = Object.entries(byCategory)
+            .sort((a, b) => b[1] - a[1])
+            .map(([id]) => ({
+              id,
+              label: SPORT_CATEGORY_LABELS[id] || id,
+              color: SPORT_CATEGORY_COLORS[id] || "#888",
+            }));
         }
         return { articles };
       }
       case "gaming_news": {
         const articles = await T2.gaming_news();
-        if (window.GAMING_DATA && articles.length) {
+        if (window.GAMING_DATA) {
+          // Always replace feed even when empty — avoids stale fake content
           window.GAMING_DATA.feed = transformGamingFeed(articles);
+        }
+        if (window.GAMING_DATA && articles.length) {
           const fresh = articles[0];
           const now = Date.now();
           const ageH = a => {
@@ -3837,8 +3861,11 @@
       }
       case "anime": {
         const articles = await T2.anime();
-        if (window.ANIME_DATA && articles.length) {
+        if (window.ANIME_DATA) {
+          // Always replace feed even when empty — avoids stale fake content
           window.ANIME_DATA.feed = transformAnimeFeed(articles);
+        }
+        if (window.ANIME_DATA && articles.length) {
           const fresh = articles[0];
           const now = Date.now();
           const ageH = a => {
@@ -3993,8 +4020,11 @@
       }
       case "news": {
         const articles = await T2.news();
-        if (window.NEWS_DATA && articles.length) {
+        if (window.NEWS_DATA) {
+          // Always replace feed even when empty — avoids stale fake content
           window.NEWS_DATA.feed = transformNewsFeed(articles);
+        }
+        if (window.NEWS_DATA && articles.length) {
           const fresh = articles[0];
           const now = Date.now();
           const ageH = a => {

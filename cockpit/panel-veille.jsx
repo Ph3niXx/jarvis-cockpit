@@ -203,6 +203,10 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
   const GROUP_PREVIEW = 5;
 
   const actors = v.actors;
+  // Prefer the prop when explicitly provided (legacy). Otherwise fall
+  // back to v.categories (auto-populated by loadPanel from the real
+  // article corpus). Allows panels to have dynamic filter pills.
+  const effectiveCategories = categories || v.categories || null;
   const periodMaxH = VEILLE_PERIODS.find((p) => p.id === period).max_h;
 
   const filtered = useMemoVeille(() => {
@@ -210,7 +214,7 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
     const trendKeywords = trend ? trend.label.toLowerCase().split(/\s+/).filter(w => w.length > 3) : null;
     return v.feed.filter((f) => {
       if (readState[f.id] === "archived") return false;
-      if (categories) {
+      if (effectiveCategories) {
         if (actorFilter !== "all" && f.category !== actorFilter) return false;
       } else {
         if (actorFilter !== "all" && f.actor !== actorFilter) return false;
@@ -223,7 +227,7 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
       }
       return true;
     });
-  }, [v.feed, readState, actorFilter, typeFilter, periodMaxH, trendFilter, categories]);
+  }, [v.feed, readState, actorFilter, typeFilter, periodMaxH, trendFilter, effectiveCategories]);
 
   // Build types list from feed dynamically (always start with "Tous")
   const availableTypes = useMemoVeille(() => {
@@ -241,10 +245,10 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
     setReadState(next);
   };
 
-  const actorFilterPills = categories
+  const actorFilterPills = effectiveCategories
     ? [
         { id: "all", label: "Tous", count: v.feed.length, color: null },
-        ...categories.map(c => ({
+        ...effectiveCategories.map(c => ({
           id: c.id,
           label: c.label,
           count: v.feed.filter(f => f.category === c.id).length,
