@@ -899,6 +899,12 @@
 }
 .pf2-score-hint-link:hover { text-decoration: underline; }
 
+/* ══ Editable hint (click-to-edit) ═══════════════ */
+.pf2-editable { cursor: pointer; transition: background 120ms, border-color 120ms; }
+.pf2-editable:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
+.pf2-term-line.pf2-editable:hover { background: rgba(255, 255, 255, 0.02); }
+.pf2-last-uq.pf2-editable:hover { border-left-color: var(--brand); }
+
 /* ══ Uncomfortable Question block ═══════════════ */
 .pf2-uq-open {
   margin-top: 16px;

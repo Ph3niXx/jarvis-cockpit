@@ -155,7 +155,7 @@ function PanelProfile({ data, onNavigate }) {
   const uqs = Array.isArray(PF._uqs) ? PF._uqs : [];
 
   const [mission, setMission] = usePfState("general");
-  const [drawerOpen, setDrawerOpen] = usePfState(false);
+  const [drawerOpen, setDrawerOpen] = usePfState(true);
   const [editing, setEditing] = usePfState({});
   const [saving, setSaving] = usePfState({});
   const [search, setSearch] = usePfState("");
@@ -269,6 +269,19 @@ function PanelProfile({ data, onNavigate }) {
     if (searchLower) return sorted.filter(c => matchesSearch(c.label) || matchesSearch(c.next_action) || matchesSearch(c.notes));
     return sorted;
   }, [localCommits.length, commitSort, searchLower]);
+
+  function startEditField(key, initialValue) {
+    const existing = localRows.find(r => r.key === key);
+    const seed = initialValue !== undefined ? initialValue : (existing?.value || "");
+    setDrawerOpen(true);
+    setEditing(ed => ({ ...ed, [key]: seed }));
+    setTimeout(() => {
+      const el = document.querySelector(`[data-edit-key="${key}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const ta = el?.querySelector("textarea, input");
+      if (ta) ta.focus();
+    }, 80);
+  }
 
   async function handleSaveField(key) {
     const newValue = editing[key];
@@ -419,6 +432,13 @@ function PanelProfile({ data, onNavigate }) {
           onChange={e => setSearch(e.target.value)}
         />
         <div className="pf2-toolbar-actions">
+          <button className="pf2-btn pf2-btn-primary" onClick={() => {
+            setDrawerOpen(true);
+            setTimeout(() => {
+              const el = document.querySelector(".pf2-drawer");
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 50);
+          }}>Éditer mon profil</button>
           <button className="pf2-btn" onClick={handleCopyPayload}>
             {copyFlash ? "✓ Copié" : "Copier le payload Claude"}
           </button>
@@ -448,10 +468,10 @@ function PanelProfile({ data, onNavigate }) {
       )}
 
       {identityStr && !openUq && (
-        <div className="pf2-last-uq">
+        <div className="pf2-last-uq pf2-editable" onClick={() => startEditField("identity")} title="Cliquer pour éditer">
           <div>
             <div className="pf2-last-uq-label">Identité déclarée</div>
-            <div className="pf2-last-uq-date">champ <code>identity</code></div>
+            <div className="pf2-last-uq-date">champ <code>identity</code> · clic pour éditer</div>
           </div>
           <div>
             <div className="pf2-last-uq-q">« {identityStr} »</div>
@@ -485,7 +505,12 @@ function PanelProfile({ data, onNavigate }) {
             const tokens = pfEstTokens(row.value);
             const label = PF_FIELD_LABELS[row.key] || row.key;
             return (
-              <div key={row.key} className={`pf2-term-line ${isExcluded ? "is-excluded" : ""}`}>
+              <div
+                key={row.key}
+                className={`pf2-term-line pf2-editable ${isExcluded ? "is-excluded" : ""}`}
+                onClick={() => startEditField(row.key)}
+                title="Cliquer pour éditer"
+              >
                 <span className="pf2-term-key">{label}:</span>
                 <span className="pf2-term-value">"{String(row.value).slice(0, 260)}{String(row.value).length > 260 ? "…" : ""}"</span>
                 <span className="pf2-term-tokens">~{tokens}t</span>
@@ -684,13 +709,17 @@ function PanelProfile({ data, onNavigate }) {
       <section className="pf2-zone">
         <div className="pf2-zone-head">
           <span className="pf2-zone-num">07</span>
-          <h2 className="pf2-zone-title">Édition · <em>&amp; historique</em></h2>
-          <span className="pf2-zone-meta">append-only · trigger Postgres</span>
+          <h2 className="pf2-zone-title">Éditer mon profil · <em>&amp; historique</em></h2>
+          <span className="pf2-zone-meta">sauvegardé en direct dans user_profile</span>
         </div>
+        <p className="pf2-zone-intro">
+          Tout ce qui est édité ici est immédiatement disponible pour Claude au prochain run.
+          Chaque changement est enregistré dans <code>user_profile_history</code>.
+        </p>
         <div className="pf2-z4">
           <div className={`pf2-drawer ${drawerOpen ? "is-open" : ""}`}>
             <div className="pf2-drawer-head" onClick={() => setDrawerOpen(!drawerOpen)}>
-              <span>Éditer les champs · <strong>{visibleRows.length} entrées</strong></span>
+              <span>Champs du profil · <strong>{visibleRows.length} entrées</strong></span>
             </div>
             <div className="pf2-drawer-body">
               {visibleRows.map(f => {
@@ -699,7 +728,7 @@ function PanelProfile({ data, onNavigate }) {
                 const label = PF_FIELD_LABELS[f.key] || f.key;
                 const currentValue = isEditing ? editing[f.key] : f.value;
                 return (
-                  <div key={f.key} className={`pf2-field-edit ${isEditing ? "is-editing" : ""}`}>
+                  <div key={f.key} data-edit-key={f.key} className={`pf2-field-edit ${isEditing ? "is-editing" : ""}`}>
                     <div className="pf2-field-row">
                       <span className="pf2-field-key">{label}</span>
                       <span className="pf2-field-updated">{pfRelTime(f.updated_at)}</span>
