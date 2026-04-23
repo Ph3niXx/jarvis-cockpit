@@ -472,31 +472,36 @@ function PanelGaming({ onNavigate }) {
           <span className="gm-section-meta">{(D.wishlist || []).length} titres · croisé avec ta veille gaming</span>
         </div>
         {(D.wishlist || []).length === 0 ? (
-          <div className="gm-empty">Wishlist non branchée à ce stade — table Supabase à créer.</div>
+          <div className="gm-empty">Wishlist vide — ajoute des entrées dans la table Supabase <code>gaming_wishlist</code>.</div>
         ) : (
         <div className="gm-wl-grid">
           {D.wishlist.map((w) => (
             <div className={`gm-wl-card ${w.days_out !== null && w.days_out > 0 && w.days_out < 90 ? "is-out" : ""}`} key={w.title}>
-              <div className="gm-wl-head">
-                <div className="gm-wl-title">{w.title}</div>
-                <div className="gm-wl-hype">{w.hype}/10</div>
+              {w.cover_url && (
+                <div className="gm-wl-cover" style={{ backgroundImage: `url("${w.cover_url}")` }}></div>
+              )}
+              <div className="gm-wl-body">
+                <div className="gm-wl-head">
+                  <div className="gm-wl-title">{w.title}</div>
+                  <div className="gm-wl-hype">{w.hype}/10</div>
+                </div>
+                <div>
+                  {w.already_released ? (
+                    <span className="gm-wl-days released">sorti</span>
+                  ) : w.days_out !== null && w.days_out > 0 ? (
+                    <span className={`gm-wl-days ${w.days_out < 90 ? "out" : ""}`}>
+                      dans {w.days_out}j
+                    </span>
+                  ) : (
+                    <span className="gm-wl-days">tbd</span>
+                  )}
+                </div>
+                <div className="gm-wl-release" style={{ marginTop: 8 }}>
+                  {w.platform} · <strong>{w.release}</strong>
+                  {w.price_target && <> · cible {w.price_target}€</>}
+                </div>
+                {w.note && <div className="gm-wl-note">{w.note}</div>}
               </div>
-              <div>
-                {w.already_released ? (
-                  <span className="gm-wl-days released">sorti</span>
-                ) : w.days_out !== null && w.days_out > 0 ? (
-                  <span className={`gm-wl-days ${w.days_out < 90 ? "out" : ""}`}>
-                    dans {w.days_out}j
-                  </span>
-                ) : (
-                  <span className="gm-wl-days">tbd</span>
-                )}
-              </div>
-              <div className="gm-wl-release" style={{ marginTop: 8 }}>
-                {w.platform} · <strong>{w.release}</strong>
-                {w.price_target && <> · cible {w.price_target}€</>}
-              </div>
-              {w.note && <div className="gm-wl-note">{w.note}</div>}
             </div>
           ))}
         </div>
@@ -538,7 +543,14 @@ function PanelGaming({ onNavigate }) {
             return (
               <div className="gm-top-row" key={g.rank}>
                 <div className="gm-top-rank">{String(g.rank).padStart(2, "0")}</div>
-                <div className="gm-top-title">{g.title}</div>
+                <div className="gm-top-title-cell">
+                  {g.cover_url ? (
+                    <div className="gm-top-thumb" style={{ backgroundImage: `url("${g.cover_url}")` }}></div>
+                  ) : (
+                    <div className="gm-top-thumb gm-top-thumb-blank"></div>
+                  )}
+                  <span className="gm-top-title">{g.title}</span>
+                </div>
                 <div>
                   <div className="gm-top-platform">
                     <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 1, background: p ? p.accent : "#888", marginRight: 6, verticalAlign: "middle" }}></span>

@@ -922,3 +922,38 @@
   color: var(--tx2);
   letter-spacing: 0.04em;
 }
+
+/* Thumbnail dans Top all-time */
+.gm-top-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.gm-top-thumb {
+  width: 60px;
+  height: 28px;
+  flex: 0 0 60px;
+  border-radius: 2px;
+  background-color: #1b2838;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid var(--bd);
+}
+.gm-top-thumb-blank {
+  background: linear-gradient(135deg, #1b2838 0%, #2a3a4d 100%);
+}
+
+/* Cover image dans wishlist cards */
+.gm-wl-cover {
+  width: calc(100% + 28px);
+  margin: -14px -14px 12px -14px;
+  height: 110px;
+  background-size: cover;
+  background-position: center;
+  background-color: #1b2838;
+  border-bottom: 1px solid var(--bd);
+}
+.gm-wl-card { overflow: hidden; }
+.gm-wl-body { display: flex; flex-direction: column; gap: 6px; }

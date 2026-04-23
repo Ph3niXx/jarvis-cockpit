@@ -1223,6 +1223,11 @@
         } catch (e) { return 0; }
       });
     },
+    async gaming_wishlist(){
+      return once("gaming_wishlist", () =>
+        q("gaming_wishlist", "select=*&order=hype.desc.nullslast,release_date.asc.nullslast&limit=50").catch(() => [])
+      );
+    },
     async weekly_analysis(){ return once("weekly_analysis_all", () => loadWeeklyAnalysis(30)); },
     async jobs_all(){ return once("jobs_all", () => q("jobs", "select=*&order=score_total.desc.nullslast&limit=300")); },
     async sport(){ return once("sport_articles", () => q("sport_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
@@ -2240,12 +2245,21 @@
     };
   }
 
+  // Steam CDN serves header images directly from appid — no Store API call
+  // required. Used for every game cover in the gaming panel.
+  function steamHeaderUrl(appid){
+    return appid ? `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appid}/header.jpg` : null;
+  }
+  function steamLibraryUrl(appid){
+    return appid ? `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appid}/library_600x900.jpg` : null;
+  }
+
   // Build GAMING_PERSO_DATA shape from Steam + TFT tables.
   // Produces the FULL shape that panel-gaming.jsx reads. Sections without
   // a backend (backlog, wishlist, heatmap, milestones non-temps) are
   // returned as empty arrays so the panel renders honestly instead of
   // displaying invented data.
-  function transformGaming({ snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount }){
+  function transformGaming({ snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount, wishlist }){
     const now = Date.now();
     const dayMs = 24 * 3600 * 1000;
     const statsArr = stats || [];
@@ -2340,13 +2354,16 @@
       const genre = (d && d.genres && d.genres[0]) || "Steam";
       const playedH = Math.round((g.playtime_forever_minutes || 0) / 60);
       const last2wH = ((g.playtime_2weeks_minutes || 0) / 60).toFixed(1);
+      const headerUrl = steamHeaderUrl(g.appid);
       return {
         title: g.name || "—",
         platform: "PC",
         platform_id: "steam",
         genre,
-        cover: d && d.header_image_url ? `center/cover no-repeat url("${d.header_image_url}")` : "#1b2838",
+        cover: headerUrl ? `center/cover no-repeat url("${headerUrl}"), #1b2838` : "#1b2838",
+        cover_url: headerUrl,
         cover_accent: "#66c0f4",
+        appid: g.appid,
         played_h: playedH,
         hltb_main: null,
         hltb_completionist: null,
@@ -2382,11 +2399,13 @@
       .slice(0, 10)
       .map((g, i) => ({
         rank: i + 1,
+        appid: g.appid,
         title: g.name || "—",
         platform: "steam",
         hours: Math.round((g.playtime_forever_minutes || 0) / 60),
         sessions: 0,
         since: "—",
+        cover_url: steamHeaderUrl(g.appid),
       }));
 
     // ── Daily sessions 90 jours pour la courbe d'activité
@@ -2483,12 +2502,15 @@
       .slice(0, 8)
       .map(g => {
         const d = detailsByAppid.get(g.appid);
+        const headerUrl = steamHeaderUrl(g.appid);
         return {
+          appid: g.appid,
           title: g.name || "—",
           platform: "PC",
           platform_id: "steam",
           genre: (d && d.genres && d.genres[0]) || "Steam",
-          cover: d && d.header_image_url ? `center/cover no-repeat url("${d.header_image_url}")` : "#1b2838",
+          cover: headerUrl ? `center/cover no-repeat url("${headerUrl}"), #1b2838` : "#1b2838",
+          cover_url: headerUrl,
           cover_accent: "#66c0f4",
           hltb: 0,
           acquired: "—",
@@ -2514,9 +2536,36 @@
           title: g.name || "—",
           hours_played: hoursPlayed,
           genre: (d && d.genres && d.genres[0]) || "—",
-          header: d && d.header_image_url ? d.header_image_url : null,
+          header: steamHeaderUrl(g.appid),
         };
       });
+
+    // ── Wishlist : depuis table gaming_wishlist (éditable côté Supabase)
+    const today = Date.now();
+    const wishlistRows = (wishlist || []).map(w => {
+      let daysOut = null;
+      let alreadyReleased = false;
+      if (w.release_date) {
+        // accepte ISO 'YYYY-MM-DD' ou 'YYYY-MM-??'
+        const m = String(w.release_date).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m) {
+          const t = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`).getTime();
+          daysOut = Math.round((t - today) / 86400000);
+          alreadyReleased = daysOut <= 0;
+        }
+      }
+      return {
+        title: w.title,
+        platform: w.platform || "PC",
+        release: w.release_date || "TBD",
+        days_out: daysOut,
+        already_released: alreadyReleased,
+        hype: w.hype || 7,
+        price_target: w.price_target,
+        note: w.note,
+        cover_url: w.appid ? steamHeaderUrl(w.appid) : null,
+      };
+    });
 
     return {
       profiles,
@@ -2524,7 +2573,7 @@
       in_progress,
       backlog,
       abandoned,
-      wishlist: [],
+      wishlist: wishlistRows,
       daily_sessions,
       genres_30d,
       top_alltime,
@@ -2536,6 +2585,7 @@
         game_details_count: details.length,
         tft_rank: tftRow,
         tft_match_count: tftMatchCount,
+        wishlist_count: wishlistRows.length,
       },
     };
   }
@@ -3530,20 +3580,21 @@
         return { scrobbles, stats, top, loved, genres, insights, newArtists };
       }
       case "gaming": {
-        const [snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount] = await Promise.all([
+        const [snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount, wishlist] = await Promise.all([
           T2.steam_snapshot(),
           T2.steam_stats(),
           T2.steam_achievements(),
           T2.steam_game_details().catch(() => []),
           T2.tft_rank_latest().catch(() => []),
           T2.tft_match_count().catch(() => 0),
+          T2.gaming_wishlist().catch(() => []),
         ]);
         if (window.GAMING_PERSO_DATA && (snapshot || []).length) {
-          const shape = transformGaming({ snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount });
+          const shape = transformGaming({ snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount, wishlist });
           replaceShape(window.GAMING_PERSO_DATA, shape);
-          window.GAMING_PERSO_DATA._raw = { snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount };
+          window.GAMING_PERSO_DATA._raw = { snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount, wishlist };
         }
-        return { snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount };
+        return { snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount, wishlist };
       }
       case "stacks": {
         const rows = await T2.weekly_analysis();
