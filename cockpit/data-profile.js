@@ -46,11 +46,23 @@ window.PROFILE_FACT_TYPE_LABELS = {
   interest: "Intérêt",
 };
 
+// Labels FR pour statut commitment
+window.PROFILE_COMMITMENT_STATUS_LABELS = {
+  "on-track": "En cours",
+  "at-risk": "À risque",
+  "stale": "Bloqué",
+  "done": "Terminé",
+  "cancelled": "Abandonné",
+};
+
 // Shell minimal — tout le contenu vient de l'hydratation Supabase.
 window.PROFILE_DATA = {
   _raw: [],           // rows user_profile
   _values: {},        // {key: value}
-  _facts: [],         // profile_facts rows
+  _facts: [],         // profile_facts rows (non superseded)
   _entities: [],      // entities rows
+  _history: [],       // user_profile_history rows (append-only)
+  _commitments: [],   // commitments rows (non archivés)
+  _uqs: [],           // uncomfortable_questions rows
   _lastUpdated: null,
 };

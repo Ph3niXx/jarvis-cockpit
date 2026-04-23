@@ -3002,23 +3002,29 @@
         return { ideas };
       }
       case "profile": {
-        const [rows, facts, entitiesRows] = await Promise.all([
+        const [rows, facts, entitiesRows, history, commitments, uqs] = await Promise.all([
           raw.profileRows ? Promise.resolve(raw.profileRows) : q("user_profile", "order=key"),
           q("profile_facts", "superseded_by=is.null&order=created_at.desc&limit=200").catch(() => []),
           q("entities", "order=mentions_count.desc.nullslast&limit=80").catch(() => []),
+          q("user_profile_history", "order=changed_at.desc&limit=60").catch(() => []),
+          q("commitments", "archived_at=is.null&order=last_movement_at.asc").catch(() => []),
+          q("uncomfortable_questions", "order=asked_at.desc&limit=20").catch(() => []),
         ]);
         if (window.PROFILE_DATA) {
           window.PROFILE_DATA._values = transformProfile(rows);
           window.PROFILE_DATA._raw = rows;
           window.PROFILE_DATA._facts = Array.isArray(facts) ? facts : [];
           window.PROFILE_DATA._entities = Array.isArray(entitiesRows) ? entitiesRows : [];
+          window.PROFILE_DATA._history = Array.isArray(history) ? history : [];
+          window.PROFILE_DATA._commitments = Array.isArray(commitments) ? commitments : [];
+          window.PROFILE_DATA._uqs = Array.isArray(uqs) ? uqs : [];
           const maxUpdate = rows.reduce((max, r) => {
             const t = r.updated_at ? new Date(r.updated_at).getTime() : 0;
             return t > max ? t : max;
           }, 0);
           window.PROFILE_DATA._lastUpdated = maxUpdate ? new Date(maxUpdate).toISOString() : null;
         }
-        return { profile: rows, facts, entities: entitiesRows };
+        return { profile: rows, facts, entities: entitiesRows, history, commitments, uqs };
       }
       case "perf": {
         const activities = await T2.strava();
