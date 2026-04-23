@@ -1,5 +1,5 @@
 """
-AI Daily Digest — v2 Cockpit Edition
+Jarvis Cockpit — v2 Cockpit Edition
 =====================================
 Pipeline quotidien (lun-ven, 6h UTC via GitHub Actions) :
 1. Ping Supabase (anti-pause)
@@ -36,7 +36,7 @@ RECIPIENT_EMAIL  = os.environ["RECIPIENT_EMAIL"]
 SUPABASE_URL     = os.environ["SUPABASE_URL"]
 SUPABASE_KEY     = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_KEY"]
 
-SITE_URL = "https://ph3nixx.github.io/-ai-daily-digest"
+SITE_URL = "https://ph3nixx.github.io/jarvis-cockpit"
 
 # ─── RSS FEEDS (source_name, url, section) ────────────────────────────────────
 

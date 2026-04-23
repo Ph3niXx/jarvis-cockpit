@@ -3316,7 +3316,7 @@
         { label: "Storage packages", unit: "GB", used: 0, limit: 0.5, type: "storage" },
       ],
       breakdown: [
-        { label: "ai-daily-digest", note: "repo principal — valeurs indicatives" },
+        { label: "jarvis-cockpit", note: "repo principal — valeurs indicatives" },
       ],
       series_30d: seriesDays.map(d => ({ ...d, value: 0 })),
       series_unit: "min/jour",

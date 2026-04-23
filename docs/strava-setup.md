@@ -12,7 +12,7 @@
 Run the OAuth script locally:
 
 ```bash
-cd ai-daily-digest
+cd jarvis-cockpit
 python scripts/strava_oauth_init.py
 ```
 

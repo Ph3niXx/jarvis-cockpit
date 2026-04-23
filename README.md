@@ -1,1 +1,1 @@
-# -ai-daily-digest
+# jarvis-cockpit

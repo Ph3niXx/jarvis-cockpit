@@ -12,7 +12,7 @@
 Run the OAuth script locally:
 
 ```bash
-cd -ai-daily-digest
+cd jarvis-cockpit
 python scripts/withings_oauth_init.py
 ```
 
