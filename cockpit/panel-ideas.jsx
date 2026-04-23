@@ -583,8 +583,8 @@ function PanelIdeas({ data, onNavigate }) {
   const [suggestDismissed, setSuggestDismissed] = useStateId(() => {
     try { return JSON.parse(localStorage.getItem("idea.suggestDismissed") || "[]"); } catch { return []; }
   });
-  // modal d'édition/création — { open, mode: "create"|"edit", ideaId: string|null, initial: Ticket }
-  const [modal, setModal] = useStateId({ open: false, mode: "create", ideaId: null, initial: null });
+  // modal d'édition/création — { open, mode: "create"|"edit", ideaId, initial: Ticket, idea: fullIdea|null }
+  const [modal, setModal] = useStateId({ open: false, mode: "create", ideaId: null, initial: null, idea: null });
   const [, forceRender] = useStateId(0);
   const captureRef = React.useRef(null);
 
@@ -690,7 +690,14 @@ function PanelIdeas({ data, onNavigate }) {
     }
   };
 
-  const handleOpen = (id) => setOpenId(openId === id ? null : id);
+  // Clic sur une carte (pipeline/galerie) → ouvre directement le modal d'édition.
+  // L'ancien mode "détail inline" reste disponible via openId mais n'est plus
+  // le point d'entrée par défaut.
+  const handleOpen = (id) => {
+    const idea = allIdeas.find(i => i.id === id);
+    if (!idea) return;
+    openEditModal(idea);
+  };
 
   const handlePromote = async (id) => {
     if (pending[id]) return;
@@ -735,6 +742,7 @@ function PanelIdeas({ data, onNavigate }) {
       mode: "create",
       ideaId: null,
       initial: { title: prefillTitle, description: "", labels: prefillLabels },
+      idea: null,
     });
   };
   const openEditModal = (idea) => {
@@ -748,6 +756,7 @@ function PanelIdeas({ data, onNavigate }) {
         description: idea.notes || idea.body || "",
         labels: Array.isArray(idea.labels) ? [...idea.labels] : [],
       },
+      idea,
     });
   };
   const closeModal = () => setModal(m => ({ ...m, open: false }));
@@ -1125,6 +1134,13 @@ function PanelIdeas({ data, onNavigate }) {
         onSave={handleModalSave}
         onCancel={closeModal}
         suggestions={labelCounts.map(([l]) => l)}
+        onPromote={handlePromote}
+        onArchive={handleArchive}
+        onMoveStatus={handleMoveStatus}
+        onNavigate={onNavigate}
+        onOpenSignal={handleOpenSignal}
+        stages={stages}
+        pending={pending}
       />
     </div>
   );
@@ -1132,22 +1148,140 @@ function PanelIdeas({ data, onNavigate }) {
 
 // Slot qui lit window.TicketModal à l'exécution (composant chargé avant
 // panel-ideas.jsx via <script type="text/babel">).
-function TicketModalSlot({ state, onSave, onCancel, suggestions }) {
+function TicketModalSlot({ state, onSave, onCancel, suggestions, onPromote, onArchive, onMoveStatus, onNavigate, onOpenSignal, stages, pending }) {
   const Mod = window.TicketModal;
   if (!Mod) return null;
+  const idea = state.idea;
+  const isEdit = state.mode === "edit";
+  const busy = idea && pending && pending[idea.id];
+
+  const metadata = isEdit && idea ? (
+    <React.Fragment>
+      <div className="tk-metadata-row">
+        <span className="tk-metadata-label">Stade</span>
+        <span className="tk-metadata-value tk-metadata-value--big">{IDEA_STAGE_LABEL[idea.status] || idea.status}</span>
+      </div>
+      <div className="tk-metadata-row">
+        <span className="tk-metadata-label">Âge</span>
+        <span className="tk-metadata-value">{ageLabel(idea.captured_at)} · touchée {idea.touched_count} fois</span>
+      </div>
+      {(idea.impact || idea.effort || idea.alignment) && (
+        <div className="tk-metadata-row">
+          <span className="tk-metadata-label">Scores</span>
+          <div className="tk-metadata-scores">
+            {[
+              { k: "impact", label: "Impact", val: idea.impact },
+              { k: "effort", label: "Effort", val: idea.effort },
+              { k: "alignment", label: "Alignement", val: idea.alignment },
+            ].filter(s => s.val).map(s => (
+              <div key={s.k} className="tk-metadata-score">
+                <span style={{width: 80}}>{s.label}</span>
+                <span className="tk-metadata-score-bar">
+                  <span className="tk-metadata-score-fill" style={{ width: `${(s.val/5)*100}%` }} />
+                </span>
+                <span style={{width: 24, textAlign: "right"}}>{s.val}/5</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {(idea.signals || []).length > 0 && (
+        <div className="tk-metadata-row">
+          <span className="tk-metadata-label">Signaux</span>
+          <div>
+            {idea.signals.map(s => (
+              <button key={s}
+                type="button"
+                className="id-sig-chip"
+                onClick={() => onOpenSignal && onOpenSignal(s)}
+              >
+                <span className="id-sig-chip-dot" />
+                <span>{s}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {idea.jarvis_enriched && (idea.jarvis_enriched.similar_companies || idea.jarvis_enriched.market_sig || idea.jarvis_enriched.risks) && (
+        <div className="tk-metadata-row">
+          <span className="tk-metadata-label">Jarvis</span>
+          <div style={{lineHeight: 1.5}}>
+            {idea.jarvis_enriched.similar_companies && (
+              <div><strong>Concurrents&nbsp;:</strong> {idea.jarvis_enriched.similar_companies.join(" · ")}</div>
+            )}
+            {idea.jarvis_enriched.market_sig && (
+              <div><strong>Marché&nbsp;:</strong> {idea.jarvis_enriched.market_sig}</div>
+            )}
+            {idea.jarvis_enriched.risks && (
+              <div><strong>Risques&nbsp;:</strong> {idea.jarvis_enriched.risks}</div>
+            )}
+          </div>
+        </div>
+      )}
+      {idea.promoted_to_opp && (
+        <div className="tk-metadata-row">
+          <span className="tk-metadata-label">↗ Promue</span>
+          <span className="tk-metadata-value">Opportunité {idea.promoted_to_opp}</span>
+        </div>
+      )}
+    </React.Fragment>
+  ) : null;
+
+  // Menu rapide de changement de statut dans le modal.
+  const statusMenu = isEdit && idea && stages ? (
+    <div style={{display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap"}}>
+      <span style={{fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.06em", color: "var(--tx3)", textTransform: "uppercase"}}>Déplacer&nbsp;→</span>
+      {stages.filter(s => s.id !== idea.status).map(s => (
+        <button
+          key={s.id}
+          type="button"
+          className="btn btn--ghost"
+          style={{fontSize: 11, padding: "5px 10px"}}
+          disabled={busy}
+          onClick={() => { onMoveStatus && onMoveStatus(idea.id, s.id); onCancel(); }}
+        >{s.label}</button>
+      ))}
+    </div>
+  ) : null;
+
+  const extraActions = isEdit && idea ? (
+    <React.Fragment>
+      {statusMenu}
+      <div style={{display: "flex", gap: 8, flexWrap: "wrap", paddingTop: 8, borderTop: "1px dashed var(--bd)"}}>
+        {!idea.promoted_to_opp && (
+          <button type="button" className="btn btn--primary" disabled={busy}
+            onClick={() => { onPromote && onPromote(idea.id); onCancel(); }}>
+            <Icon name="arrow_up" size={13} stroke={2} /> Promouvoir en opportunité
+          </button>
+        )}
+        <button type="button" className="btn btn--ghost" onClick={() => onNavigate && onNavigate("jarvis")}>
+          <Icon name="assistant" size={13} stroke={1.75} /> Demander à Jarvis
+        </button>
+        {idea.status !== "parked" && (
+          <button type="button" className="btn btn--ghost" disabled={busy}
+            onClick={() => { onArchive && onArchive(idea.id); onCancel(); }}>
+            <Icon name="archive" size={13} stroke={1.75} /> Parquer
+          </button>
+        )}
+      </div>
+    </React.Fragment>
+  ) : null;
+
   return (
     <Mod
       open={state.open}
       mode={state.mode}
       initial={state.initial}
-      title={state.mode === "edit" ? "Modifier l'idée" : "Nouvelle idée"}
+      title={isEdit ? "Modifier le ticket" : "Nouvelle idée"}
       hint={state.mode === "create"
         ? "Structure réutilisable : titre, description, libellés. Tu pourras enrichir plus tard."
-        : "Modifie le ticket. Scores, signaux, statut se pilotent ailleurs."
+        : "Titre, description et libellés sont éditables. Stade, scores, signaux restent informatifs."
       }
       onSave={onSave}
       onCancel={onCancel}
       labelSuggestions={suggestions}
+      metadata={metadata}
+      extraActions={extraActions}
     />
   );
 }

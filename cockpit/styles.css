@@ -752,6 +752,70 @@ a { color: inherit; text-decoration: none; }
   border-radius: 2px;
 }
 
+.tk-metadata {
+  padding: 14px 16px;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  font-size: 12.5px;
+  color: var(--tx2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tk-metadata-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px;
+  align-items: baseline;
+}
+.tk-metadata-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+.tk-metadata-value { color: var(--tx); }
+.tk-metadata-value--big {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.tk-metadata-scores {
+  display: grid;
+  gap: 6px;
+}
+.tk-metadata-score {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--tx2);
+}
+.tk-metadata-score-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--bd);
+  position: relative;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.tk-metadata-score-fill {
+  position: absolute; inset: 0 auto 0 0;
+  background: var(--tx);
+}
+
+.tk-extra-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 0 0;
+  border-top: 1px dashed var(--bd);
+}
+.tk-extra-actions .btn {
+  font-size: 12px;
+  padding: 7px 12px;
+}
+
 .tk-foot {
   display: flex; align-items: center; gap: 10px;
   padding-top: 12px;

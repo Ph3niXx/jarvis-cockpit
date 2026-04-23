@@ -84,6 +84,11 @@ function TicketModal({
   onSave,
   onCancel,
   labelSuggestions = [],
+  // Optionnels — pour des consommateurs qui veulent enrichir le modal
+  // (ex. panel Idées : scores, signaux, boutons Promouvoir/Parquer).
+  // Tout autre consommateur peut les ignorer.
+  metadata = null,
+  extraActions = null,
 }) {
   const [ticket, setTicket] = React.useState(() => cloneTicket(initial));
   const [labelDraft, setLabelDraft] = React.useState("");
@@ -268,6 +273,18 @@ function TicketModal({
           </div>
 
           {error && <div className="tk-error" role="alert">{error}</div>}
+
+          {metadata && (
+            <div className="tk-metadata">
+              {metadata}
+            </div>
+          )}
+
+          {extraActions && (
+            <div className="tk-extra-actions">
+              {extraActions}
+            </div>
+          )}
 
           <div className="tk-foot">
             <button
