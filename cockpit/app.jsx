@@ -153,7 +153,6 @@ function App() {
     } catch {}
     return "brief";
   });
-  const [historicalDay, setHistoricalDay] = useState(null);
   // Incremented when a Tier 2 loadPanel resolves — used as part of the
   // panel key so React re-mounts the panel after real data hydrates.
   const [dataVersion, setDataVersion] = useState(0);
@@ -380,7 +379,7 @@ function App() {
   else if (activePanel === "music") content = <PanelMusique key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "gaming") content = <PanelGaming key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "stacks") content = <PanelStacks key={panelKey} data={data} onNavigate={handleNavigate} />;
-  else if (activePanel === "history") content = <PanelHistory key={panelKey} data={data} onNavigate={handleNavigate} onLoadDay={setHistoricalDay} historicalDay={historicalDay} />;
+  else if (activePanel === "history") content = <PanelHistory key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "search") content = <PanelSearch key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "updates")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="VEILLE_DATA" title="Veille IA" actorsLabel="labos + éditeurs" prodSection={{ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }} />;
@@ -428,24 +427,6 @@ function App() {
       )}
       <Sidebar theme={theme} activeId={activePanel} onSelect={handleNavigate} data={data} onThemeChange={setThemeId} mobileOpen={sbMobileOpen} onMobileClose={() => setSbMobileOpen(false)} />
       <main className="main">
-        {historicalDay && activePanel !== "history" && (
-          <div style={{
-            position: "sticky", top: 0, zIndex: 20,
-            background: "var(--tx)", color: "var(--bg)",
-            padding: "10px 24px", display: "flex",
-            justifyContent: "space-between", alignItems: "center",
-            fontSize: 13, fontFamily: "var(--font-sans)",
-          }}>
-            <span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", opacity: 0.7, marginRight: 12 }}>Mode historique</span>
-              Cockpit rechargé pour le <strong style={{ fontFamily: "var(--font-serif)", fontSize: 15, fontWeight: 500 }}>{historicalDay.long}</strong>
-            </span>
-            <button onClick={() => setHistoricalDay(null)}
-              style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--bg)", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", padding: "6px 12px", borderRadius: 2, cursor: "pointer", letterSpacing: "0.04em" }}>
-              Revenir à aujourd'hui →
-            </button>
-          </div>
-        )}
         <PanelErrorBoundary panelId={activePanel}>{content}</PanelErrorBoundary>
       </main>
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />

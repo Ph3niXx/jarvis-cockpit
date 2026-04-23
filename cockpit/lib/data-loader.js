@@ -3372,9 +3372,13 @@
     return bits.join(", ") + ".";
   }
 
-  function transformHistory(articles, briefs){
+  function transformHistory(articles, briefs, extras){
     const DAYS_FR = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
     const MONTHS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+    const MONTHS_SHORT = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+    const fmtLong = (d) => `${DAYS_FR[d.getDay()]} ${d.getDate()} ${MONTHS_FR[d.getMonth()]} ${d.getFullYear()}`;
+    const fmtDayLabel = (d) => `${DAYS_FR[d.getDay()]} ${d.getDate()} ${MONTHS_FR[d.getMonth()]}`;
+    const fmtShort = (d) => `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
     // Group by date
     const byDate = {};
     (articles || []).forEach(a => {
@@ -3388,12 +3392,60 @@
       const d = (b.date || b.created_at || "").slice(0, 10);
       if (d) briefByDate[d] = b;
     });
+    // Aggregate usage_events per day (jarvis_calls + actions) if provided
+    const jarvisByDate = {};
+    const actionsByDate = {};
+    const ACTION_LABELS = {
+      link_clicked: "Article consulté",
+      pipeline_triggered: "Pipeline déclenché",
+      search_performed: "Recherche effectuée",
+      section_opened: null, // too noisy
+      error_shown: null,
+    };
+    ((extras && extras.usageEvents) || []).forEach(ev => {
+      const d = (ev.ts || "").slice(0, 10);
+      if (!d) return;
+      if (ev.event_type === "pipeline_triggered" && ev.payload?.pipeline === "jarvis") {
+        jarvisByDate[d] = (jarvisByDate[d] || 0) + 1;
+      }
+      const label = ACTION_LABELS[ev.event_type];
+      if (label) {
+        if (!actionsByDate[d]) actionsByDate[d] = new Set();
+        actionsByDate[d].add(label);
+      }
+    });
+    // Signal counts per week (used by signals_rising indicator)
+    const risingByWeek = {};
+    ((extras && extras.signals) || []).forEach(s => {
+      const wk = (s.week_start || "").slice(0, 10);
+      if (!wk) return;
+      if (s.trend === "rising" || s.trend === "new") {
+        risingByWeek[wk] = (risingByWeek[wk] || 0) + 1;
+      }
+    });
+    const pinnedSet = readPinnedHistoryDays();
     const today = new Date(); today.setHours(0,0,0,0);
     const isoToday = today.toISOString().slice(0,10);
+    // Determine a dynamic intensity threshold based on the distribution.
+    // "pic" = top quartile days, "calme" = bottom quartile, rest = normal.
+    const counts = [];
+    for (let i = 0; i < 60; i++) {
+      const d = new Date(today); d.setDate(today.getDate() - i);
+      counts.push((byDate[d.toISOString().slice(0,10)] || []).length);
+    }
+    const sortedCounts = [...counts].filter(c => c > 0).sort((a,b) => a-b);
+    const p75 = sortedCounts.length ? sortedCounts[Math.floor(sortedCounts.length * 0.75)] : 12;
+    const p25 = sortedCounts.length ? sortedCounts[Math.floor(sortedCounts.length * 0.25)] : 2;
+    function classify(count) {
+      if (count === 0) return "calme";
+      if (count >= Math.max(p75, 6)) return "pic";
+      if (count <= Math.max(p25, 1)) return "calme";
+      return "normal";
+    }
     // Last 60 days
     const days = [];
-    let streak = 0, stillStreak = true, totalArticles = 0;
-    let peak = { iso: isoToday, articles: 0, day_label: "—" };
+    let streak = 0, stillStreak = true, totalArticles = 0, totalJarvis = 0, totalActions = 0;
+    let peakDay = null;
     for (let i = 0; i < 60; i++) {
       const d = new Date(today); d.setDate(today.getDate() - i);
       const iso = d.toISOString().slice(0,10);
@@ -3401,53 +3453,103 @@
       const count = arts.length;
       totalArticles += count;
       if (stillStreak) { if (count > 0) streak++; else if (i > 0) stillStreak = false; }
-      if (count > peak.articles) peak = { iso, articles: count, day_label: DAYS_FR[d.getDay()] + " " + d.getDate() + " " + MONTHS_FR[d.getMonth()] };
       const brief = briefByDate[iso];
       const top = arts.slice(0, 3).map((a, idx) => ({
         rank: idx + 1,
         source: a.source || "—",
         section: a.section || "",
         title: a.title || "",
-        score: 100 - idx * 6,
+        score: Math.max(60, 94 - idx * 6),
         url: a.url,
         _id: a.id,
       }));
-      days.push({
+      const dow = d.getDay();
+      const isWeekend = dow === 0 || dow === 6;
+      const intensity = classify(count);
+      const jarvisCalls = jarvisByDate[iso] || 0;
+      const actions = actionsByDate[iso] ? Array.from(actionsByDate[iso]) : [];
+      const weekStart = (function(){
+        const t = new Date(d);
+        const day = (t.getDay() + 6) % 7; // Monday=0
+        t.setDate(t.getDate() - day);
+        return t.toISOString().slice(0,10);
+      })();
+      // Signals for the day: take week signals (signal_tracking is per-week)
+      const daySignals = ((extras && extras.signals) || [])
+        .filter(s => (s.week_start || "").slice(0,10) === weekStart)
+        .slice(0, 5)
+        .map(s => ({
+          name: s.term,
+          count: s.mention_count || 0,
+          delta: s.delta != null ? s.delta : 0,
+        }));
+      const dayEntry = {
         iso,
         days_ago: i,
-        day_label: DAYS_FR[d.getDay()] + " " + d.getDate() + " " + MONTHS_FR[d.getMonth()] + " " + d.getFullYear(),
+        dow,
+        is_weekend: isWeekend,
+        day_label: fmtDayLabel(d),
+        short_label: fmtShort(d),
+        long: fmtLong(d),
         week: "S" + String(isoWeek(d)).padStart(2, "0"),
         articles: count,
-        signals_rising: 0, // signal_tracking is keyed per week, not per day
-        jarvis_calls: 0,   // needs usage_events aggregation — skip for now
-        intensity: count >= 12 ? 3 : count >= 6 ? 2 : count >= 1 ? 1 : 0,
-        pinned: false,
+        signals_rising: risingByWeek[weekStart] || 0,
+        jarvis_calls: jarvisCalls,
+        intensity,
+        pinned: pinnedSet.has(iso),
+        reading_time: intensity === "pic" ? "6 min" : intensity === "calme" ? "1 min" : "4 min",
         macro: (function(){
-          // daily_briefs stores the full synthesis in brief_html.
           let t = top[0]?.title || "Pas de brief pour ce jour";
-          let b = arts.length ? arts.length + " articles ce jour-là." : "";
+          let b = arts.length ? arts.length + " articles ce jour-là." : "Pas d'activité consignée.";
           if (brief?.brief_html) {
             const h = brief.brief_html;
             const tm = h.match(/<(?:h1|h2)[^>]*>([\s\S]*?)<\/(?:h1|h2)>/i);
             if (tm) t = stripHtml(tm[1]).trim();
             const pm = h.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
             if (pm) b = stripHtml(pm[1]).trim().slice(0, 280);
+            else b = stripHtml(h).slice(0, 280);
           }
-          return { title: t, body: b, tag: top[0]?.section || "veille" };
+          return { title: t, body: b, tag: (top[0]?.section || "veille").toLowerCase() };
         })(),
         top,
-        signals: [],
-      });
+        signals: daySignals,
+        actions,
+      };
+      totalJarvis += jarvisCalls;
+      totalActions += actions.length;
+      if (!peakDay || count > peakDay.articles) peakDay = dayEntry;
+      days.push(dayEntry);
     }
+    if (!peakDay) peakDay = days[0];
     return {
       days,
       totals: {
+        total_days: days.length,
         total_articles: totalArticles,
+        total_jarvis_calls: totalJarvis,
+        total_actions: totalActions,
         streak_days: streak,
-        peak_day: peak,
+        peak_day: peakDay,
       },
     };
   }
+
+  // ─── Pinned history days (localStorage) ──────────────────
+  const PINNED_HIST_KEY = "cockpit:history:pinned";
+  function readPinnedHistoryDays() {
+    try {
+      const raw = localStorage.getItem(PINNED_HIST_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  }
+  function togglePinnedHistoryDay(iso) {
+    const s = readPinnedHistoryDays();
+    if (s.has(iso)) s.delete(iso); else s.add(iso);
+    try { localStorage.setItem(PINNED_HIST_KEY, JSON.stringify(Array.from(s))); } catch {}
+    return s.has(iso);
+  }
+  // Expose for panels
+  window.cockpitHistoryPins = { read: readPinnedHistoryDays, toggle: togglePinnedHistoryDay };
 
   // Lazy panel data — returns the raw rows AND mutates the matching
   // window.*_DATA global so the React panel sees real data on render.
@@ -4097,16 +4199,21 @@
         // 60-day window of articles + daily briefs → rebuild HISTORY_DATA
         const sixtyDaysAgo = new Date(); sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
         const fromDate = sixtyDaysAgo.toISOString().split("T")[0];
-        const [arts60, briefs] = await Promise.all([
+        const fromTs = sixtyDaysAgo.toISOString();
+        const [arts60, briefs, usageEvents, signalsAll] = await Promise.all([
           q("articles", `fetch_date=gte.${fromDate}&select=id,title,fetch_date,section,source,url,summary&order=fetch_date.desc&limit=2000`).catch(() => []),
           q("daily_briefs", `date=gte.${fromDate}&select=date,brief_html,article_count&order=date.desc&limit=60`).catch(() => []),
+          q("usage_events", `ts=gte.${fromTs}&select=event_type,payload,ts&order=ts.desc&limit=5000`).catch(() => []),
+          q("signal_tracking", `week_start=gte.${fromDate}&select=term,week_start,mention_count,trend,delta&order=week_start.desc&limit=500`).catch(() => []),
         ]);
         if (window.HISTORY_DATA && arts60.length) {
-          const shape = transformHistory(arts60, briefs);
+          const shape = transformHistory(arts60, briefs, { usageEvents, signals: signalsAll });
           window.HISTORY_DATA.days = shape.days;
           window.HISTORY_DATA.totals = shape.totals;
+          window.HISTORY_DATA.today_iso = new Date().toISOString().slice(0, 10);
+          window.HISTORY_DATA._raw = { arts60, briefs, usageEvents, signalsAll };
         }
-        return { articles: arts60, briefs };
+        return { articles: arts60, briefs, usageEvents, signalsAll };
       }
       case "signals": {
         // SIGNALS_DATA may not exist; COCKPIT_DATA.signals holds Tier 1 data

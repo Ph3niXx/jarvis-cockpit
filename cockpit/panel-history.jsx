@@ -1,13 +1,111 @@
 // ═══════════════════════════════════════════════════════════════
 // PANEL HISTORY — archive temporelle
-// - Hero + KPIs
-// - Heatmap 60j
-// - Filtres (intensité / pinned / search)
+// - Hero + KPIs · Top sources 60j
+// - Sparkline volume + Heatmap 60j
+// - Filtres (intensité / pinned / search) + export CSV
 // - Timeline groupée par semaine
-// - Drawer détail d'un jour + "charger dans le cockpit"
+// - Drawer : macro, top, +extras, signaux, actions, note perso
+// - Pin persist localStorage · Navigation clavier j/k/p/Esc
 // ═══════════════════════════════════════════════════════════════
 
-const { useState: useHiState, useMemo: useHiMemo, useEffect: useHiEffect } = React;
+const { useState: useHiState, useMemo: useHiMemo, useEffect: useHiEffect, useRef: useHiRef } = React;
+
+// ── Sparkline 60j ───────────────────────────────
+function HiSparkline({ days }) {
+  // days come newest → oldest ; for the chart we want oldest → newest.
+  const chrono = [...days].reverse();
+  const counts = chrono.map(d => d.articles);
+  const max = Math.max(...counts, 1);
+  const W = 720, H = 60, PAD = 4;
+  const step = (W - PAD * 2) / (chrono.length - 1 || 1);
+  const pts = chrono.map((d, i) => [
+    PAD + i * step,
+    H - PAD - ((d.articles / max) * (H - PAD * 2)),
+  ]);
+  const pathD = pts.map(([x, y], i) => (i === 0 ? `M${x},${y}` : `L${x},${y}`)).join(" ");
+  const area = pathD + ` L${pts[pts.length-1][0]},${H-PAD} L${pts[0][0]},${H-PAD} Z`;
+  const avg = counts.reduce((a, b) => a + b, 0) / (counts.length || 1);
+  const avgY = H - PAD - ((avg / max) * (H - PAD * 2));
+  return (
+    <svg className="hi-spark" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+      <path d={area} className="hi-spark-area" />
+      <path d={pathD} className="hi-spark-line" />
+      <line x1={PAD} y1={avgY} x2={W - PAD} y2={avgY} className="hi-spark-avg" />
+      {pts.map(([x, y], i) => chrono[i].intensity === "pic" ? (
+        <circle key={i} cx={x} cy={y} r={2.5} className="hi-spark-pic" />
+      ) : null)}
+    </svg>
+  );
+}
+
+// ── Top sources 60j ────────────────────────────
+function HiTopSources({ days }) {
+  const counts = {};
+  days.forEach(d => {
+    (d.top || []).forEach(t => {
+      const s = t.source || "—";
+      counts[s] = (counts[s] || 0) + 1;
+    });
+  });
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  if (!entries.length) return null;
+  const max = entries[0][1];
+  return (
+    <div className="hi-topsources">
+      <div className="hi-topsources-label">Top sources des incontournables · 60j</div>
+      <ol className="hi-topsources-list">
+        {entries.map(([src, n]) => (
+          <li key={src}>
+            <span className="hi-topsources-name">{src}</span>
+            <span className="hi-topsources-bar">
+              <span className="hi-topsources-fill" style={{ width: `${(n/max)*100}%` }} />
+            </span>
+            <span className="hi-topsources-n">{n}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+// ── Note libre par jour (localStorage) ─────────
+const HIST_NOTES_KEY = "cockpit:history:notes";
+function readHistoryNotes() {
+  try { return JSON.parse(localStorage.getItem(HIST_NOTES_KEY) || "{}"); } catch { return {}; }
+}
+function writeHistoryNote(iso, text) {
+  const all = readHistoryNotes();
+  if (text && text.trim()) all[iso] = text.trim();
+  else delete all[iso];
+  try { localStorage.setItem(HIST_NOTES_KEY, JSON.stringify(all)); } catch {}
+}
+
+function HiDayNote({ iso }) {
+  const [val, setVal] = useHiState(() => readHistoryNotes()[iso] || "");
+  const [savedAt, setSavedAt] = useHiState(null);
+  const timerRef = useHiRef(null);
+  function onChange(e) {
+    const v = e.target.value;
+    setVal(v);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      writeHistoryNote(iso, v);
+      setSavedAt(Date.now());
+    }, 400);
+  }
+  return (
+    <div className="hi-drawer-section">
+      <div className="hi-drawer-section-label">Ma note perso</div>
+      <textarea
+        className="hi-daynote"
+        value={val}
+        placeholder="Qu'est-ce qui t'a marqué ce jour-là ? (sauvé automatiquement en local)"
+        onChange={onChange}
+      />
+      {savedAt && <div className="hi-daynote-saved">Enregistré.</div>}
+    </div>
+  );
+}
 
 // ── Heatmap 60j ─────────────────────────────────
 function HiHeatmap({ days, activeIso, todayIso, onPick }) {
@@ -72,21 +170,45 @@ function HiHeatmap({ days, activeIso, todayIso, onPick }) {
 }
 
 // ── Drawer ──────────────────────────────────────
-function HiDrawer({ day, onClose, onLoadInCockpit }) {
+function HiDrawer({ day, onClose, onTogglePin, isPinned }) {
   if (!day) return null;
+  // Retrieve full brief_html (saved in HISTORY_DATA._raw.briefs) for this day.
+  const briefHtml = (function(){
+    const raw = window.HISTORY_DATA?._raw?.briefs;
+    if (!Array.isArray(raw)) return null;
+    const match = raw.find(b => (b.date || "").slice(0,10) === day.iso);
+    return match?.brief_html || null;
+  })();
+  // All articles of the day (beyond top 3)
+  const allArticles = (function(){
+    const raw = window.HISTORY_DATA?._raw?.arts60;
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(a => a.fetch_date === day.iso);
+  })();
+  const extraArticles = allArticles.slice(3);
   return (
     <>
       <div className="hi-drawer-backdrop" onClick={onClose} />
       <div className="hi-drawer" role="dialog">
         <div className="hi-drawer-head">
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div className="hi-drawer-kicker">Brief archivé · il y a {day.days_ago}j</div>
             <h2 className="hi-drawer-date">{day.long}</h2>
             <div className="hi-drawer-sub">
               {day.week} · {day.articles} articles · {day.signals_rising} signaux · {day.jarvis_calls} requêtes Jarvis
             </div>
           </div>
-          <button className="hi-drawer-close" onClick={onClose} aria-label="Fermer">✕</button>
+          <div style={{ display: "flex", gap: 6, alignItems: "start" }}>
+            <button
+              className="hi-drawer-pin"
+              onClick={() => onTogglePin(day.iso)}
+              title={isPinned ? "Désépingler" : "Épingler ce jour"}
+              aria-label={isPinned ? "Désépingler" : "Épingler"}
+            >
+              {isPinned ? "● épinglé" : "○ épingler"}
+            </button>
+            <button className="hi-drawer-close" onClick={onClose} aria-label="Fermer">✕</button>
+          </div>
         </div>
 
         <div className="hi-drawer-body">
@@ -94,6 +216,15 @@ function HiDrawer({ day, onClose, onLoadInCockpit }) {
             <div className="hi-drawer-section-label">Macro · synthèse du jour</div>
             <h3 className="hi-drawer-macro-title">{day.macro.title}</h3>
             <p className="hi-drawer-macro-body">{day.macro.body}</p>
+            {briefHtml && (
+              <details className="hi-drawer-fullbrief">
+                <summary>Voir le brief complet</summary>
+                <div
+                  className="hi-drawer-fullbrief-html"
+                  dangerouslySetInnerHTML={{ __html: window.DOMPurify ? window.DOMPurify.sanitize(briefHtml) : briefHtml }}
+                />
+              </details>
+            )}
           </div>
 
           {day.top.length > 0 && (
@@ -116,22 +247,46 @@ function HiDrawer({ day, onClose, onLoadInCockpit }) {
                   </div>
                 ))}
               </div>
+              {extraArticles.length > 0 && (
+                <details className="hi-drawer-extras">
+                  <summary>+ {extraArticles.length} autres articles ce jour-là</summary>
+                  <ul className="hi-drawer-extra-list">
+                    {extraArticles.map((a) => (
+                      <li key={a.id}>
+                        <a
+                          href={a.url || "#"}
+                          target={a.url ? "_blank" : undefined}
+                          rel="noopener"
+                          onClick={(e) => { if (!a.url) e.preventDefault(); }}
+                        >
+                          {a.title}
+                        </a>
+                        <span className="hi-drawer-extra-meta">
+                          {a.source} · {a.section}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
             </div>
           )}
 
-          <div className="hi-drawer-section">
-            <div className="hi-drawer-section-label">Signaux ce jour-là</div>
-            <div className="hi-drawer-signals">
-              {day.signals.map((s, i) => (
-                <span key={i} className="hi-drawer-sig">
-                  {s.name}
-                  <span className={`hi-drawer-sig-delta ${s.delta > 0 ? "is-up" : s.delta < 0 ? "is-down" : ""}`}>
-                    {s.delta > 0 ? "+" : ""}{s.delta}
+          {day.signals.length > 0 && (
+            <div className="hi-drawer-section">
+              <div className="hi-drawer-section-label">Signaux ce jour-là</div>
+              <div className="hi-drawer-signals">
+                {day.signals.map((s, i) => (
+                  <span key={i} className="hi-drawer-sig">
+                    {s.name}
+                    <span className={`hi-drawer-sig-delta ${s.delta > 0 ? "is-up" : s.delta < 0 ? "is-down" : ""}`}>
+                      {s.delta > 0 ? "+" : ""}{s.delta}
+                    </span>
                   </span>
-                </span>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {day.actions.length > 0 && (
             <div className="hi-drawer-section">
@@ -141,17 +296,59 @@ function HiDrawer({ day, onClose, onLoadInCockpit }) {
               </ul>
             </div>
           )}
+
+          <HiDayNote iso={day.iso} />
         </div>
 
         <div className="hi-drawer-foot">
           <button className="hi-drawer-btn" onClick={onClose}>Fermer</button>
-          <button className="hi-drawer-btn is-primary" onClick={() => onLoadInCockpit(day)}>
-            Charger ce jour dans le cockpit →
+          <button
+            className="hi-drawer-btn is-primary"
+            onClick={() => {
+              if (!briefHtml) {
+                alert("Pas de brief Gemini pour ce jour-là.");
+                return;
+              }
+              const w = window.open("", "_blank", "noopener,width=900,height=900");
+              if (!w) return;
+              const safe = window.DOMPurify ? window.DOMPurify.sanitize(briefHtml) : briefHtml;
+              w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Brief du ${day.long}</title><style>body{font-family:Georgia,serif;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.6;color:#2b2118}h1,h2,h3{font-weight:500;letter-spacing:-.01em}a{color:#8b4513}</style></head><body><p style="font-family:monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7a6a5a;margin-bottom:8px">Brief du ${day.long}</p>${safe}</body></html>`);
+              w.document.close();
+            }}
+          >
+            Imprimer / Exporter le brief →
           </button>
         </div>
       </div>
     </>
   );
+}
+
+// ── CSV export ──────────────────────────────────
+function hiExportCsv(days) {
+  const header = ["iso","jour","semaine","intensite","articles","signaux_rising","jarvis_calls","pinned","macro_titre","top1","top2","top3"];
+  const rows = days.map(d => [
+    d.iso,
+    d.long,
+    d.week,
+    d.intensity,
+    d.articles,
+    d.signals_rising,
+    d.jarvis_calls,
+    d.pinned ? "oui" : "",
+    `"${(d.macro?.title || "").replace(/"/g, '""')}"`,
+    `"${(d.top[0]?.title || "").replace(/"/g, '""')}"`,
+    `"${(d.top[1]?.title || "").replace(/"/g, '""')}"`,
+    `"${(d.top[2]?.title || "").replace(/"/g, '""')}"`,
+  ].join(","));
+  const csv = [header.join(","), ...rows].join("\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `cockpit-historique-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ── Main ────────────────────────────────────────
@@ -161,12 +358,48 @@ function PanelHistory({ data, onNavigate, onLoadDay, historicalDay }) {
   const [pinnedOnly, setPinnedOnly] = useHiState(false);
   const [query, setQuery] = useHiState("");
   const [selectedIso, setSelectedIso] = useHiState(null);
+  const [pinTick, setPinTick] = useHiState(0); // forces re-render after pin toggle
 
   useHiEffect(() => {
-    function onKey(e) { if (e.key === "Escape") setSelectedIso(null); }
+    function onKey(e) {
+      // Ignore when typing in input/textarea
+      const tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "Escape") { setSelectedIso(null); return; }
+      // J/K or ArrowDown/ArrowUp to move selection in the filtered list
+      const list = hist.days;
+      if (!list.length) return;
+      const idx = selectedIso ? list.findIndex(d => d.iso === selectedIso) : -1;
+      if (e.key === "ArrowDown" || e.key === "j") {
+        e.preventDefault();
+        const next = list[Math.min(list.length - 1, idx === -1 ? 0 : idx + 1)];
+        if (next) setSelectedIso(next.iso);
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        e.preventDefault();
+        const prev = list[Math.max(0, idx === -1 ? 0 : idx - 1)];
+        if (prev) setSelectedIso(prev.iso);
+      } else if (e.key === "Enter" && selectedIso) {
+        // Already selected, no extra action (drawer already open)
+      } else if (e.key === "p" && selectedIso) {
+        // Quick pin toggle on current selection
+        handleTogglePin(selectedIso);
+      }
+    }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [selectedIso, hist.days]);
+
+  function handleTogglePin(iso) {
+    if (window.cockpitHistoryPins?.toggle) {
+      const nowPinned = window.cockpitHistoryPins.toggle(iso);
+      // Mutate the day in place so filters/KPIs reflect the change without refetch.
+      const day = hist.days.find(d => d.iso === iso);
+      if (day) day.pinned = nowPinned;
+      setPinTick(t => t + 1);
+      try { window.track && window.track("history_pin_toggled", { iso, pinned: nowPinned }); } catch {}
+    }
+  }
+
 
   const filtered = useHiMemo(() => {
     return hist.days.filter((d) => {
@@ -180,7 +413,7 @@ function PanelHistory({ data, onNavigate, onLoadDay, historicalDay }) {
       }
       return true;
     });
-  }, [intensity, pinnedOnly, query, hist.days]);
+  }, [intensity, pinnedOnly, query, hist.days, pinTick]);
 
   // Group par semaine pour affichage
   const filteredByWeek = useHiMemo(() => {
@@ -194,18 +427,6 @@ function PanelHistory({ data, onNavigate, onLoadDay, historicalDay }) {
 
   return (
     <div className="hi-wrap">
-      {historicalDay && (
-        <div className="hi-mode-banner">
-          <div>
-            <div className="hi-mode-banner-label">Mode historique actif</div>
-            <div className="hi-mode-banner-date">Cockpit rechargé pour le {historicalDay.long}</div>
-          </div>
-          <button className="hi-mode-banner-exit" onClick={() => onLoadDay(null)}>
-            Revenir à aujourd'hui →
-          </button>
-        </div>
-      )}
-
       {/* HERO */}
       <section className="hi-hero">
         <div>
@@ -214,7 +435,7 @@ function PanelHistory({ data, onNavigate, onLoadDay, historicalDay }) {
             Revivre n'importe quel brief, <em>tel qu'il a été</em>.
           </h1>
           <p className="hi-hero-sub">
-            Chaque jour est une archive complète : macro, top, signaux, décisions. Sélectionne un jour pour ouvrir sa fiche, puis charge-le dans le cockpit pour revenir dans l'ambiance de l'époque.
+            Chaque jour est une archive complète : macro, top, signaux, décisions. Sélectionne un jour pour ouvrir sa fiche, épingler les moments clés ou exporter le brief.
           </p>
         </div>
         <div className="hi-kpis">
@@ -241,16 +462,23 @@ function PanelHistory({ data, onNavigate, onLoadDay, historicalDay }) {
         </div>
       </section>
 
+      {/* TOP SOURCES */}
+      <HiTopSources days={hist.days} />
+
       {/* HEATMAP */}
       <section className="hi-heatmap-section">
         <div className="hi-section-kicker">Calendrier d'activité</div>
         <h2 className="hi-section-title">Les 60 derniers jours, d'un coup d'œil</h2>
+        <HiSparkline days={hist.days} />
         <HiHeatmap
           days={hist.days}
           activeIso={selectedIso}
           todayIso={hist.today_iso}
           onPick={setSelectedIso}
         />
+        <div className="hi-kbd-hint">
+          <span className="hi-kbd">↑↓</span> ou <span className="hi-kbd">j/k</span> naviguer · <span className="hi-kbd">p</span> épingler · <span className="hi-kbd">Esc</span> fermer
+        </div>
       </section>
 
       {/* FILTERS */}
@@ -281,6 +509,11 @@ function PanelHistory({ data, onNavigate, onLoadDay, historicalDay }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        <button
+          className="hi-chip hi-export-btn"
+          onClick={() => hiExportCsv(filtered)}
+          title="Télécharger les jours filtrés en CSV"
+        >↓ CSV ({filtered.length})</button>
         <div className="hi-filter-count">{filtered.length} / {hist.days.length} jours</div>
       </div>
 
@@ -352,7 +585,8 @@ function PanelHistory({ data, onNavigate, onLoadDay, historicalDay }) {
         <HiDrawer
           day={selectedDay}
           onClose={() => setSelectedIso(null)}
-          onLoadInCockpit={(d) => { onLoadDay(d); setSelectedIso(null); onNavigate("brief"); }}
+          onTogglePin={handleTogglePin}
+          isPinned={!!selectedDay.pinned}
         />
       )}
     </div>
