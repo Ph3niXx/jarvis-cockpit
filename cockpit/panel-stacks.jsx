@@ -134,6 +134,11 @@ function StServiceBlock({ s }) {
           {statusLabel}
         </div>
         <div className="st-service-last">Dernière utilisation · {s.last_used}</div>
+        {s.console_url && (
+          <a className="st-service-console" href={s.console_url} target="_blank" rel="noreferrer">
+            Ouvrir console ↗
+          </a>
+        )}
       </div>
 
       <div className="st-body">
@@ -219,6 +224,24 @@ function PanelStacks({ data, onNavigate }) {
   const stacks = window.STACKS_DATA;
   const [typeFilter, setTypeFilter] = useStState("all");
   const [statusFilter, setStatusFilter] = useStState("all");
+  const [refreshing, setRefreshing] = useStState(false);
+  const [refreshedAt, setRefreshedAt] = useStState(null);
+
+  async function handleRefresh() {
+    if (refreshing) return;
+    const loader = window.cockpitDataLoader;
+    if (!loader) return;
+    setRefreshing(true);
+    try {
+      loader.invalidateCache("stacks_");
+      loader.invalidateCache("weekly_analysis");
+      loader.invalidateCache("articles_today");
+      await loader.loadPanel("stacks");
+      setRefreshedAt(new Date());
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const filtered = useStMemo(() => {
     return stacks.services.filter((s) => {
@@ -249,6 +272,13 @@ function PanelStacks({ data, onNavigate }) {
           <div className="st-hero-eyebrow">
             {t.critical_count > 0 && <span className="st-dot" />}
             Stacks & Limits · {stacks.services.length} services suivis
+            <button
+              className="st-refresh-btn"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title={refreshedAt ? `Dernier refresh ${refreshedAt.toLocaleTimeString("fr-FR")}` : "Rafraîchir les données"}>
+              {refreshing ? "sync…" : "↻ refresh"}
+            </button>
           </div>
           <h1 className="st-hero-title">
             {t.critical_count > 0 ? (
@@ -275,10 +305,21 @@ function PanelStacks({ data, onNavigate }) {
           <div className="st-kpi">
             <div className="st-kpi-label">Projeté fin de mois</div>
             <div className={`st-kpi-val ${t.cost_projected > t.cost_budget ? "is-critical" : (t.cost_projected > t.cost_budget * 0.9 ? "is-warn" : "")}`}>
-              {t.cost_projected.toFixed(0)} €
+              {t.cost_projected.toFixed(2)} €
             </div>
             <div className="st-kpi-sub">
-              {t.cost_projected > t.cost_budget ? `+${(t.cost_projected - t.cost_budget).toFixed(0)} € au-dessus` : `${(t.cost_budget - t.cost_projected).toFixed(0)} € sous budget`}
+              {t.cost_delta_pct != null ? (
+                <>
+                  <span className={t.cost_delta_pct > 0 ? "st-delta-up" : "st-delta-down"}>
+                    {t.cost_delta_pct > 0 ? "▲" : "▼"} {Math.abs(t.cost_delta_pct)}%
+                  </span>
+                  {" vs "}{t.cost_prev_month.toFixed(2)}€ le mois dernier
+                </>
+              ) : (
+                t.cost_projected > t.cost_budget
+                  ? `+${(t.cost_projected - t.cost_budget).toFixed(2)} € au-dessus`
+                  : `${(t.cost_budget - t.cost_projected).toFixed(2)} € sous budget`
+              )}
             </div>
           </div>
           <div className="st-kpi">

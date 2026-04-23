@@ -540,6 +540,48 @@
 }
 .st-back:hover { color: var(--tx); }
 
+/* ── REFRESH BUTTON ───────────────────────────── */
+.st-refresh-btn {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border: 1px solid var(--bd);
+  background: var(--bg);
+  color: var(--tx2);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.12s ease;
+}
+.st-refresh-btn:hover:not(:disabled) { border-color: var(--tx2); color: var(--tx); background: var(--bg2); }
+.st-refresh-btn:disabled { opacity: 0.5; cursor: wait; }
+
+/* ── CONSOLE LINK ─────────────────────────────── */
+.st-service-console {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--tx2);
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+  transition: all 0.12s ease;
+}
+.st-service-console:hover {
+  border-color: var(--tx);
+  color: var(--tx);
+  background: var(--bg2);
+}
+
+/* ── DELTA INDICATORS ─────────────────────────── */
+.st-delta-up { color: var(--critical); font-weight: 600; }
+.st-delta-down { color: var(--safe); font-weight: 600; }
+
 /* ── INTRO BLURB ──────────────────────────────── */
 .st-intro {
   margin-top: 26px;

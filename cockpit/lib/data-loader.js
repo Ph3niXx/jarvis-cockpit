@@ -2940,22 +2940,31 @@
 
     // ── CLAUDE ────────────────────────────────────────────
     let monthCostUsd = 0, monthInput = 0, monthOutput = 0, monthCalls = 0, monthRuns = 0;
+    let prevMonthCostUsd = 0;
     let lastRunAt = null;
+    const prevMonthKey = (() => {
+      const d = new Date(now); d.setDate(1); d.setMonth(d.getMonth() - 1);
+      return d.toISOString().slice(0, 7);
+    })();
     (weekly || []).forEach(r => {
       const created = r.created_at || r.week_start || "";
       const iso = created.slice(0, 10);
       const tk = parseTokens(r);
       if (iso && iso in dayIndex) seriesDays[dayIndex[iso]].value += tk.cost_usd * USD_TO_EUR;
-      if (created.slice(0, 7) === monthKey) {
+      const ymKey = created.slice(0, 7);
+      if (ymKey === monthKey) {
         monthCostUsd += tk.cost_usd;
         monthInput += tk.input;
         monthOutput += tk.output;
         monthCalls += tk.calls;
         monthRuns += tk.runs;
+      } else if (ymKey === prevMonthKey) {
+        prevMonthCostUsd += tk.cost_usd;
       }
       if (!lastRunAt || (r.created_at && r.created_at > lastRunAt)) lastRunAt = r.created_at;
     });
     const claudeMonthEur = monthCostUsd * USD_TO_EUR;
+    const prevMonthEur = prevMonthCostUsd * USD_TO_EUR;
     const claudeProjected = monthProgress > 0 ? claudeMonthEur / monthProgress : claudeMonthEur;
     const claudeBudget = 10; // €/mois — soft cap réaliste vu l'usage actuel (~0.5€/mois)
     const claudeStatus = claudeProjected > claudeBudget ? "critical"
@@ -2969,6 +2978,7 @@
       type: "paid",
       color: "#d97757",
       status: claudeStatus,
+      console_url: "https://console.anthropic.com/settings/usage",
       last_used: lastRunAt ? relTime(lastRunAt) : "—",
       quotas: [
         {
@@ -3051,6 +3061,7 @@
       type: "free",
       color: "#4285f4",
       status: gemStatus,
+      console_url: "https://aistudio.google.com/app/apikey",
       last_used: (articles30d && articles30d[0] && articles30d[0].fetch_date)
         ? relTime(articles30d[0].date_fetched || articles30d[0].fetch_date + "T06:00:00Z")
         : "—",
@@ -3111,6 +3122,7 @@
       type: "free",
       color: "#3ecf8e",
       status: sbStatus,
+      console_url: "https://supabase.com/dashboard/project/mrmgptqpflzyavdfqwwv",
       last_used: dbStats && dbStats.generated_at ? relTime(dbStats.generated_at) : "à l'instant",
       quotas: [
         {
@@ -3169,6 +3181,7 @@
       type: "free",
       color: "#1f1f1f",
       status: "safe",
+      console_url: "https://github.com/settings/billing/summary",
       last_used: "—",
       quotas: [
         { label: "Actions · minutes (free tier)", unit: "min", used: 0, limit: 2000, reset: "1er du mois", type: "monthly", warn_above: 0.70, critical_above: 0.90 },
@@ -3206,6 +3219,10 @@
         safe_count,
         cost_mtd: +claudeMonthEur.toFixed(2),
         cost_projected: +claudeProjected.toFixed(2),
+        cost_prev_month: +prevMonthEur.toFixed(2),
+        cost_delta_pct: prevMonthEur > 0
+          ? +(((claudeProjected - prevMonthEur) / prevMonthEur) * 100).toFixed(0)
+          : null,
         cost_budget: claudeBudget,
         total_alerts,
         critical_alerts,
@@ -4033,9 +4050,15 @@
     }
   }
 
+  function invalidateCache(prefix){
+    if (!prefix) { Object.keys(cache).forEach(k => delete cache[k]); return; }
+    Object.keys(cache).filter(k => k.startsWith(prefix)).forEach(k => delete cache[k]);
+  }
+
   window.cockpitDataLoader = {
     bootTier1,
     loadPanel,
+    invalidateCache,
     hydrateGlobalsFromTier1,
     TIER2_PANELS,
     T2,
