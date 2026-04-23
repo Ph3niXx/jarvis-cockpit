@@ -23,7 +23,8 @@ function GmActivityChart({ series, range }) {
   const windowDays = { "30j": 30, "90j": 90, "180j": 180 }[range] || series.length;
   const data = series.slice(-windowDays);
   const vals = data.map((d) => d.hours);
-  const yMax = Math.max(...vals) * 1.1;
+  const rawMax = Math.max(...vals, 0);
+  const yMax = rawMax > 0 ? rawMax * 1.1 : 1; // évite division par 0 quand série vide
   const yMin = 0;
 
   const x = (i) => padL + (i / (data.length - 1)) * plotW;
@@ -112,8 +113,14 @@ function PanelGaming({ onNavigate }) {
   const D = window.GAMING_PERSO_DATA;
   const [chartRange, setChartRange] = useGmState("90j");
 
-  const lastGame = D.in_progress[0]; // P5R en vedette
-  const plat = (id) => D.profiles.find((p) => p.id === id);
+  const lastGame = (D.in_progress && D.in_progress[0]) || null;
+  const plat = (id) => (D.profiles || []).find((p) => p.id === id);
+  const riot = plat("riot");
+  const topGenre = (D.genres_30d && D.genres_30d[0]) || null;
+  const heroEyebrowParts = [];
+  const livePlatforms = (D.profiles || []).filter(p => !p._placeholder).map(p => p.platform.toLowerCase());
+  if (livePlatforms.length) heroEyebrowParts.push(livePlatforms.join(" + "));
+  if (D.totals && D.totals.hours_total) heroEyebrowParts.push(`${Math.round(D.totals.hours_total).toLocaleString("fr-FR")}h cumulées Steam`);
 
   return (
     <div className="gm-wrap" data-screen-label="Gaming">
@@ -121,39 +128,63 @@ function PanelGaming({ onNavigate }) {
       <header className="gm-hero">
         <div>
           <div className="gm-hero-eyebrow">
-            gaming · steam + psn + xbox + riot · {Math.round(D.totals.hours_total).toLocaleString("fr-FR")}h cumulées depuis 2012
+            {heroEyebrowParts.length ? heroEyebrowParts.join(" · ") : "gaming · en attente du prochain sync"}
           </div>
           <h1 className="gm-hero-title">
-            <em>{D.totals.last30.toFixed(0)}h</em> sur 30 jours<br />
-            — JRPG + TFT dominent, <em>{D.totals.backlog_count} jeux</em> en backlog.
+            <em>{(D.totals?.last30 || 0).toFixed(1)}h</em> sur 30 jours<br />
+            — {D.totals?.games_played || 0} jeux lancés sur <em>{D.totals?.games_owned || 0}</em>, {D.totals?.backlog_count || 0} jamais ouverts.
           </h1>
           <p className="gm-hero-sub">
-            Phase Persona 5 Royal crunch : {lastGame.progress_pct * 100 | 0}% du palais 5. TFT Master+{D.profiles.find(p => p.id === "riot").lp} LP depuis la semaine dernière.
-            Sessions majoritairement 20h–23h semaine, 14h–18h week-end. Taux de complétion bibliothèque : {D.totals.completion_rate}%.
+            {topGenre
+              ? <>Genre dominant 14j : <strong>{topGenre.label}</strong> ({(topGenre.share * 100).toFixed(0)}%). </>
+              : <>Pas d'activité Steam mesurable sur les 14 derniers jours. </>
+            }
+            {riot && riot.rank && riot.rank !== "—"
+              ? <>TFT : <strong>{riot.rank}</strong> · {riot.lp} LP · {riot.games_season} matchs trackés. </>
+              : null
+            }
+            Taux de complétion bibliothèque : {D.totals?.completion_rate || 0}%.
           </p>
         </div>
 
         <div className="gm-last">
-          <div className="gm-last-cover" style={{ background: lastGame.cover }}>
-            <div className="gm-last-platform">{lastGame.platform}</div>
-            <div className="gm-last-cover-title">{lastGame.title}</div>
-          </div>
-          <div className="gm-last-meta">
-            <div className="gm-last-label">last session · {lastGame.last_session}</div>
-            <div className="gm-last-title">{lastGame.title}</div>
-            <div className="gm-last-sub"><strong>{lastGame.played_h}h</strong> jouées · {lastGame.hltb_main}h HLTB · <strong>{(lastGame.progress_pct * 100).toFixed(0)}%</strong></div>
-            <div className="gm-last-stats">
-              <span><strong>{lastGame.genre}</strong></span>
-              <span>reste <strong>{lastGame.hltb_main - lastGame.played_h}h</strong> estimées</span>
+          {lastGame ? (
+            <>
+              <div className="gm-last-cover" style={{ background: lastGame.cover }}>
+                <div className="gm-last-platform">{lastGame.platform}</div>
+                <div className="gm-last-cover-title">{lastGame.title}</div>
+              </div>
+              <div className="gm-last-meta">
+                <div className="gm-last-label">dernière activité · {lastGame.last_session}</div>
+                <div className="gm-last-title">{lastGame.title}</div>
+                <div className="gm-last-sub">
+                  {lastGame.played_h !== null && lastGame.played_h !== undefined ? <><strong>{lastGame.played_h}h</strong> all-time</> : null}
+                  {lastGame.hltb_main ? <> · {lastGame.hltb_main}h HLTB</> : null}
+                  {lastGame.progress_pct !== null && lastGame.progress_pct !== undefined ? <> · <strong>{(lastGame.progress_pct * 100).toFixed(0)}%</strong></> : null}
+                  {lastGame.rank ? <> · <strong>{lastGame.rank}</strong></> : null}
+                </div>
+                <div className="gm-last-stats">
+                  <span><strong>{lastGame.genre}</strong></span>
+                  {lastGame.hltb_main && lastGame.played_h !== null
+                    ? <span>reste <strong>{Math.max(0, lastGame.hltb_main - lastGame.played_h)}h</strong> estimées</span>
+                    : <span>{lastGame.note || ""}</span>}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="gm-last-meta" style={{ padding: 24, opacity: 0.6 }}>
+              <div className="gm-last-label">aucune session récente</div>
+              <div className="gm-last-title">—</div>
+              <div className="gm-last-sub">Pas de jeu joué les 14 derniers jours.</div>
             </div>
-          </div>
+          )}
         </div>
       </header>
 
       {/* ══ PROFILS PLATEFORMES ══ */}
       <div className="gm-profiles">
-        {D.profiles.map((p) => (
-          <div className="gm-profile" key={p.id}>
+        {(D.profiles || []).map((p) => (
+          <div className={`gm-profile ${p._placeholder ? "is-placeholder" : ""}`} key={p.id} style={p._placeholder ? { opacity: 0.45 } : null}>
             <div className="gm-profile-head">
               <div className="gm-profile-badge">
                 <span className="gm-profile-dot" style={{ background: p.accent }}></span>
@@ -164,21 +195,23 @@ function PanelGaming({ onNavigate }) {
               </div>
             </div>
             <div className="gm-profile-main">
-              <span className="gm-profile-main-val">{p.hours_total.toLocaleString("fr-FR")}</span>
+              <span className="gm-profile-main-val">{(p.hours_total || 0).toLocaleString("fr-FR")}</span>
               <span className="gm-profile-main-unit">h</span>
             </div>
             <div className="gm-profile-sub">
-              {p.id === "riot" ? (
+              {p._placeholder ? (
+                <em>pipeline non branché</em>
+              ) : p.id === "riot" ? (
                 <>
-                  <strong>{p.rank}</strong> · +{p.lp} LP<br />
-                  {p.games_season} games · top 4 <strong>{(p.top4_rate * 100).toFixed(0)}%</strong>
+                  <strong>{p.rank || "—"}</strong>{p.lp ? <> · {p.lp} LP</> : null}<br />
+                  {p.games_season || 0} matchs · W/L <strong>{(p.top4_rate * 100).toFixed(0)}%</strong>
                 </>
               ) : (
                 <>
-                  <strong>{p.games_played}</strong>/{p.games_owned} jeux joués<br />
+                  <strong>{p.games_played || 0}</strong>/{p.games_owned || 0} jeux lancés<br />
                   {p.achievements ? <>{p.achievements.toLocaleString("fr-FR")} achievements</> :
-                   p.trophies ? <>{p.trophies.platinum} platines · {p.trophies.gold} or</> : ""}
-                  {p.gamerscore && <> · {p.gamerscore.toLocaleString("fr-FR")} gs</>}
+                   p.trophies ? <>{p.trophies.platinum} platines · {p.trophies.gold} or</> : "—"}
+                  {p.gamerscore ? <> · {p.gamerscore.toLocaleString("fr-FR")} gs</> : null}
                 </>
               )}
             </div>
@@ -190,9 +223,12 @@ function PanelGaming({ onNavigate }) {
       <section className="gm-section">
         <div className="gm-section-head">
           <span className="gm-section-num">01</span>
-          <h2 className="gm-section-title">En cours · <em>{D.in_progress.length} jeux actifs</em></h2>
-          <span className="gm-section-meta">progression HLTB · last session</span>
+          <h2 className="gm-section-title">En cours · <em>{(D.in_progress || []).length} jeux actifs</em></h2>
+          <span className="gm-section-meta">heures jouées · dernière activité</span>
         </div>
+        {(D.in_progress || []).length === 0 ? (
+          <div className="gm-empty">Aucun jeu joué les 14 derniers jours sur Steam.</div>
+        ) : (
         <div className="gm-ip-grid">
           {D.in_progress.map((g) => (
             <div className="gm-ip-card" key={g.title}>
@@ -211,11 +247,11 @@ function PanelGaming({ onNavigate }) {
                   <>
                     <div className="gm-ip-rank">
                       {g.rank}
-                      <span className="gm-ip-rank-lp">+{g.delta_lp_week} LP · 7j</span>
+                      {g.delta_lp_week ? <span className="gm-ip-rank-lp">+{g.delta_lp_week} LP · 7j</span> : null}
                     </div>
-                    <div className="gm-ip-last">{g.played_h}h all-time · {g.last_session}</div>
+                    <div className="gm-ip-last">{g.last_session}</div>
                   </>
-                ) : (
+                ) : g.hltb_main && g.progress_pct !== null ? (
                   <>
                     <div className="gm-ip-progress">
                       <div className="gm-ip-progress-head">
@@ -226,21 +262,34 @@ function PanelGaming({ onNavigate }) {
                     </div>
                     <div className="gm-ip-last">{g.last_session}</div>
                   </>
+                ) : (
+                  <>
+                    <div className="gm-ip-progress">
+                      <div className="gm-ip-progress-head">
+                        <span><strong>{g.played_h || 0}h</strong> all-time</span>
+                        <span>{g.last_session}</span>
+                      </div>
+                    </div>
+                  </>
                 )}
                 <div className="gm-ip-note">{g.note}</div>
               </div>
             </div>
           ))}
         </div>
+        )}
       </section>
 
       {/* ══ §2 BACKLOG ══ */}
       <section className="gm-section">
         <div className="gm-section-head">
           <span className="gm-section-num">02</span>
-          <h2 className="gm-section-title">Backlog · <em>à jouer</em></h2>
-          <span className="gm-section-meta">trié par priorité · hype × accessibilité</span>
+          <h2 className="gm-section-title">Backlog · <em>jeux jamais lancés</em></h2>
+          <span className="gm-section-meta">{(D.backlog || []).length} affichés · {D.totals?.backlog_count || 0} au total</span>
         </div>
+        {(D.backlog || []).length === 0 ? (
+          <div className="gm-empty">Bibliothèque entièrement explorée.</div>
+        ) : (
         <div className="gm-bl-list">
           <div className="gm-bl-row is-head">
             <div>prio</div>
@@ -255,7 +304,7 @@ function PanelGaming({ onNavigate }) {
             <div className={`gm-bl-row ${b.priority === "shame" ? "is-shame" : ""}`} key={b.title}>
               <div>
                 <span className={`gm-bl-prio ${b.priority}`}>
-                  {b.priority === "shame" ? `honte ${b.shame_years}y` : b.priority}
+                  {b.priority === "shame" ? (b.shame_years ? `honte ${b.shame_years}y` : "honte") : b.priority}
                 </span>
               </div>
               <div>
@@ -270,7 +319,7 @@ function PanelGaming({ onNavigate }) {
                 <div className="gm-bl-plat-sub">{b.acquired} · {b.acquired_how}</div>
               </div>
               <div>
-                <div className="gm-bl-hltb">{b.hltb}h</div>
+                <div className="gm-bl-hltb">{b.hltb ? `${b.hltb}h` : "—"}</div>
                 <div className="gm-bl-hltb-sub">main story</div>
               </div>
               <div>
@@ -281,7 +330,36 @@ function PanelGaming({ onNavigate }) {
             </div>
           ))}
         </div>
+        )}
       </section>
+
+      {/* ══ §2bis JEUX ABANDONNÉS ══ */}
+      {(D.abandoned || []).length > 0 && (
+        <section className="gm-section">
+          <div className="gm-section-head">
+            <span className="gm-section-num">02b</span>
+            <h2 className="gm-section-title">Abandonnés · <em>commencés puis lâchés</em></h2>
+            <span className="gm-section-meta">{D.abandoned.length} jeux · 1h+ jouées, rien sur 14j</span>
+          </div>
+          <div className="gm-abandoned-grid">
+            {D.abandoned.map((g) => (
+              <div className="gm-abandoned-card" key={g.appid}>
+                {g.header ? (
+                  <div className="gm-abandoned-cover" style={{ backgroundImage: `url("${g.header}")` }}></div>
+                ) : (
+                  <div className="gm-abandoned-cover gm-abandoned-cover-blank"></div>
+                )}
+                <div className="gm-abandoned-body">
+                  <div className="gm-abandoned-title">{g.title}</div>
+                  <div className="gm-abandoned-meta">
+                    <strong>{g.hours_played}h</strong> jouées · {g.genre}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ══ §3 ACTIVITÉ ══ */}
       <section className="gm-section">
@@ -299,7 +377,7 @@ function PanelGaming({ onNavigate }) {
               moyenne mobile 7j
             </div>
             <div className="mz-range">
-              {["30j", "90j", "180j"].map((r) => (
+              {["30j", "90j"].map((r) => (
                 <button
                   key={r}
                   className={`mz-range-btn ${chartRange === r ? "is-active" : ""}`}
@@ -308,34 +386,42 @@ function PanelGaming({ onNavigate }) {
               ))}
             </div>
           </div>
-          <GmActivityChart series={D.daily_sessions} range={chartRange} />
+          {(D.daily_sessions || []).length > 0
+            ? <GmActivityChart series={D.daily_sessions} range={chartRange} />
+            : <div className="gm-empty">Pas de stats quotidiennes — pipeline trop récent.</div>}
         </div>
-        <div className="mz-heatmap">
-          <div className="mz-heatmap-head">
-            <div className="mz-heatmap-title">Heure × jour · moyenne 30j</div>
-            <div className="mz-heatmap-legend">
-              moins
-              <div className="mz-heatmap-scale">
-                <span style={{ background: "var(--bd)" }}></span>
-                <span style={{ background: "rgba(168, 74, 34, 0.25)" }}></span>
-                <span style={{ background: "rgba(168, 74, 34, 0.5)" }}></span>
-                <span style={{ background: "rgba(168, 74, 34, 0.75)" }}></span>
-                <span style={{ background: "rgba(168, 74, 34, 1)" }}></span>
+        {D.heatmap && Array.isArray(D.heatmap) ? (
+          <div className="mz-heatmap">
+            <div className="mz-heatmap-head">
+              <div className="mz-heatmap-title">Heure × jour · moyenne 30j</div>
+              <div className="mz-heatmap-legend">
+                moins
+                <div className="mz-heatmap-scale">
+                  <span style={{ background: "var(--bd)" }}></span>
+                  <span style={{ background: "rgba(168, 74, 34, 0.25)" }}></span>
+                  <span style={{ background: "rgba(168, 74, 34, 0.5)" }}></span>
+                  <span style={{ background: "rgba(168, 74, 34, 0.75)" }}></span>
+                  <span style={{ background: "rgba(168, 74, 34, 1)" }}></span>
+                </div>
+                plus
               </div>
-              plus
             </div>
+            <GmHeatmap grid={D.heatmap} />
           </div>
-          <GmHeatmap grid={D.heatmap} />
-        </div>
+        ) : null}
       </section>
 
       {/* ══ §4 GENRES ══ */}
       <section className="gm-section">
         <div className="gm-section-head">
           <span className="gm-section-num">04</span>
-          <h2 className="gm-section-title">Genres · <em>répartition 30j</em></h2>
-          <span className="gm-section-meta">{D.totals.last30.toFixed(0)}h · toutes plateformes</span>
+          <h2 className="gm-section-title">Genres · <em>répartition 14j</em></h2>
+          <span className="gm-section-meta">basé sur playtime_2weeks Steam · {(D.genres_30d || []).reduce((a, g) => a + (g.hours || 0), 0)}h</span>
         </div>
+        {(D.genres_30d || []).length === 0 ? (
+          <div className="gm-empty">Pas assez de données enrichies (steam_game_details quasi vide).</div>
+        ) : (
+        <>
         <div className="gm-genre-bar">
           {D.genres_30d.map((g) => (
             <div
@@ -368,12 +454,14 @@ function PanelGaming({ onNavigate }) {
               lineHeight: 1.55,
               textWrap: "pretty"
             }}>
-              Les JRPG dominent (P5R crunch) mais TFT reste ta constante — même les jours chargés
-              tu y passes 30 min. Les CRPG ralentissent depuis que BG3 stagne en Acte 2.
-              Le roguelike (Balatro) sert de décompression entre deux sessions longues.
+              Répartition calculée depuis le temps de jeu Steam des 14 derniers jours,
+              croisé avec le genre principal récupéré via la Store API.
+              Les jeux non enrichis tombent dans "Autre".
             </p>
           </div>
         </div>
+        </>
+        )}
       </section>
 
       {/* ══ §5 WISHLIST ══ */}
@@ -381,8 +469,11 @@ function PanelGaming({ onNavigate }) {
         <div className="gm-section-head">
           <span className="gm-section-num">05</span>
           <h2 className="gm-section-title">Wishlist · <em>ce que tu surveilles</em></h2>
-          <span className="gm-section-meta">{D.wishlist.length} titres · croisé avec ta veille gaming</span>
+          <span className="gm-section-meta">{(D.wishlist || []).length} titres · croisé avec ta veille gaming</span>
         </div>
+        {(D.wishlist || []).length === 0 ? (
+          <div className="gm-empty">Wishlist non branchée à ce stade — table Supabase à créer.</div>
+        ) : (
         <div className="gm-wl-grid">
           {D.wishlist.map((w) => (
             <div className={`gm-wl-card ${w.days_out !== null && w.days_out > 0 && w.days_out < 90 ? "is-out" : ""}`} key={w.title}>
@@ -409,11 +500,11 @@ function PanelGaming({ onNavigate }) {
             </div>
           ))}
         </div>
+        )}
         <div style={{ marginTop: 18 }}>
           <div className="gm-veille-link">
             <div className="gm-veille-link-text">
-              <strong>12 nouveautés</strong> détectées par la veille gaming depuis ta dernière visite —
-              Clair Obscur a pris 94/100 sur OpenCritic, Silksong a une date.
+              Bascule sur la <strong>veille gaming</strong> pour voir les nouveautés trackées par le pipeline.
             </div>
             <button className="gm-veille-link-btn" onClick={() => onNavigate && onNavigate("gaming_news")}>
               Veille gaming →
@@ -427,8 +518,11 @@ function PanelGaming({ onNavigate }) {
         <div className="gm-section-head">
           <span className="gm-section-num">06</span>
           <h2 className="gm-section-title">Top all-time · <em>par heures</em></h2>
-          <span className="gm-section-meta">toutes plateformes · depuis 2012</span>
+          <span className="gm-section-meta">Steam · {(D.top_alltime || []).length} jeux</span>
         </div>
+        {(D.top_alltime || []).length === 0 ? (
+          <div className="gm-empty">Pas de snapshot Steam disponible.</div>
+        ) : (
         <div>
           <div className="gm-top-row is-head">
             <div>#</div>
@@ -440,7 +534,7 @@ function PanelGaming({ onNavigate }) {
           </div>
           {D.top_alltime.map((g) => {
             const p = plat(g.platform);
-            const maxH = D.top_alltime[0].hours;
+            const maxH = D.top_alltime[0].hours || 1;
             return (
               <div className="gm-top-row" key={g.rank}>
                 <div className="gm-top-rank">{String(g.rank).padStart(2, "0")}</div>
@@ -453,23 +547,27 @@ function PanelGaming({ onNavigate }) {
                   <div className="gm-top-bar"><div className="gm-top-bar-fill" style={{ width: `${(g.hours / maxH) * 100}%` }}></div></div>
                 </div>
                 <div>
-                  <div className="gm-top-hours">{g.hours.toLocaleString("fr-FR")}<span className="gm-top-hours-unit">h</span></div>
+                  <div className="gm-top-hours">{(g.hours || 0).toLocaleString("fr-FR")}<span className="gm-top-hours-unit">h</span></div>
                 </div>
-                <div className="gm-top-sessions">{g.sessions.toLocaleString("fr-FR")}</div>
+                <div className="gm-top-sessions">{g.sessions ? g.sessions.toLocaleString("fr-FR") : "—"}</div>
                 <div></div>
               </div>
             );
           })}
         </div>
+        )}
       </section>
 
       {/* ══ §7 ACHIEVEMENTS ══ */}
       <section className="gm-section">
         <div className="gm-section-head">
           <span className="gm-section-num">07</span>
-          <h2 className="gm-section-title">Achievements · <em>30 derniers jours</em></h2>
-          <span className="gm-section-meta">{D.recent_achievements.length} débloqués</span>
+          <h2 className="gm-section-title">Achievements · <em>derniers débloqués</em></h2>
+          <span className="gm-section-meta">{(D.recent_achievements || []).length} affichés</span>
         </div>
+        {(D.recent_achievements || []).length === 0 ? (
+          <div className="gm-empty">Aucun achievement Steam tracké pour l'instant — phase D du pipeline ne déclenche que sur les jeux joués les 14 derniers jours.</div>
+        ) : (
         <div className="gm-ach-list">
           {D.recent_achievements.map((a, i) => (
             <div className="gm-ach" key={i}>
@@ -485,7 +583,7 @@ function PanelGaming({ onNavigate }) {
                 <div className="gm-ach-game">{a.game} · {a.date}</div>
               </div>
               <div className="gm-ach-num">
-                {a.rarity !== null && (
+                {a.rarity !== null && a.rarity !== undefined && (
                   <>
                     <strong>{a.rarity.toFixed(1)}%</strong><br />
                     des joueurs
@@ -495,17 +593,18 @@ function PanelGaming({ onNavigate }) {
             </div>
           ))}
         </div>
+        )}
       </section>
 
       {/* ══ §8 MILESTONES ══ */}
       <section className="gm-section">
         <div className="gm-section-head">
           <span className="gm-section-num">08</span>
-          <h2 className="gm-section-title">2026 · <em>year to date</em></h2>
-          <span className="gm-section-meta">depuis le 1er janvier</span>
+          <h2 className="gm-section-title">Indicateurs · <em>tableau de bord</em></h2>
+          <span className="gm-section-meta">depuis Steam + TFT</span>
         </div>
         <div className="gm-milestones">
-          {D.milestones.map((m) => (
+          {(D.milestones || []).map((m) => (
             <div className="gm-milestone" key={m.label}>
               <div className="gm-milestone-label">{m.label}</div>
               <div className="gm-milestone-value">{m.value}</div>

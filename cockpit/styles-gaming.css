@@ -863,3 +863,62 @@
   cursor: pointer;
 }
 .gm-veille-link-btn:hover { background: var(--accent); }
+
+.gm-empty {
+  padding: 36px 24px;
+  border: 1px dashed var(--bd);
+  border-radius: 4px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--tx2);
+  text-align: center;
+  background: rgba(0,0,0,0.02);
+  margin-top: 12px;
+}
+
+.gm-abandoned-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.gm-abandoned-card {
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  background: var(--bg2);
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.gm-abandoned-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.gm-abandoned-cover {
+  height: 100px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #1b2838;
+}
+.gm-abandoned-cover-blank {
+  background: linear-gradient(135deg, #1b2838 0%, #2a3a4d 100%);
+}
+.gm-abandoned-body {
+  padding: 12px 14px;
+}
+.gm-abandoned-title {
+  font-family: var(--font-serif);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--tx);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gm-abandoned-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--tx2);
+  letter-spacing: 0.04em;
+}

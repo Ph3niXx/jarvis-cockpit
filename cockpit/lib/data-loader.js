@@ -1209,10 +1209,20 @@
     },
     async steam_snapshot(){
       const today = isoToday();
-      return once("steam_snapshot_" + today, () => q("steam_games_snapshot", `snapshot_date=eq.${today}&order=playtime_2weeks_minutes.desc&limit=500`));
+      return once("steam_snapshot_" + today, () => q("steam_games_snapshot", `snapshot_date=eq.${today}&order=playtime_forever_minutes.desc.nullslast&limit=2000`));
     },
-    async steam_stats(){ return once("steam_stats", () => q("gaming_stats_daily", "order=stat_date.desc&limit=90")); },
+    async steam_stats(){ return once("steam_stats", () => q("gaming_stats_daily", "order=stat_date.desc&limit=180")); },
     async steam_achievements(){ return once("steam_achievements", () => q("steam_achievements", "order=unlocked_at.desc&limit=50")); },
+    async steam_game_details(){ return once("steam_game_details", () => q("steam_game_details", "select=appid,name,genres,header_image_url,release_date&limit=2000")); },
+    async tft_rank_latest(){ return once("tft_rank_latest", () => q("tft_rank_history", "order=captured_at.desc&limit=1")); },
+    async tft_match_count(){
+      return once("tft_match_count", async () => {
+        try {
+          const rows = await q("tft_matches", "select=match_id&limit=1000");
+          return rows.length;
+        } catch (e) { return 0; }
+      });
+    },
     async weekly_analysis(){ return once("weekly_analysis_all", () => loadWeeklyAnalysis(30)); },
     async jobs_all(){ return once("jobs_all", () => q("jobs", "select=*&order=score_total.desc.nullslast&limit=300")); },
     async sport(){ return once("sport_articles", () => q("sport_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
@@ -2230,50 +2240,303 @@
     };
   }
 
-  // Build GAMING_PERSO_DATA shape from Steam tables.
-  function transformGaming({ snapshot, stats, achievements }){
+  // Build GAMING_PERSO_DATA shape from Steam + TFT tables.
+  // Produces the FULL shape that panel-gaming.jsx reads. Sections without
+  // a backend (backlog, wishlist, heatmap, milestones non-temps) are
+  // returned as empty arrays so the panel renders honestly instead of
+  // displaying invented data.
+  function transformGaming({ snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount }){
     const now = Date.now();
     const dayMs = 24 * 3600 * 1000;
     const statsArr = stats || [];
     const snap = snapshot || [];
     const ach = achievements || [];
+    const details = gameDetails || [];
+    const detailsByAppid = new Map(details.map(d => [d.appid, d]));
     const inRange = (d, days) => d && (new Date(d + "T00:00:00").getTime() >= now - days * dayMs);
 
     const minutes_7d = statsArr.filter(s => inRange(s.stat_date, 7)).reduce((a, s) => a + (Number(s.total_playtime_minutes) || 0), 0);
     const minutes_30d = statsArr.filter(s => inRange(s.stat_date, 30)).reduce((a, s) => a + (Number(s.total_playtime_minutes) || 0), 0);
+    const ytdStart = new Date().getFullYear() + "-01-01";
+    const minutes_ytd = statsArr.filter(s => s.stat_date >= ytdStart).reduce((a, s) => a + (Number(s.total_playtime_minutes) || 0), 0);
+    const minutes_total_lib = snap.reduce((a, g) => a + (Number(g.playtime_forever_minutes) || 0), 0);
 
-    // Daily chart last 30 days.
-    const daily30 = [];
-    for (let i = 29; i >= 0; i--) {
+    const games_owned = snap.length;
+    const games_played = snap.filter(g => (g.playtime_forever_minutes || 0) > 0).length;
+    const completion_rate = games_owned > 0 ? Math.round((games_played / games_owned) * 100) : 0;
+
+    // ── Profils plateformes (Steam réel + Riot réel ; PSN/Xbox marqués non connectés)
+    const tftRow = (tftRank && tftRank[0]) || null;
+    const profiles = [
+      {
+        platform: "Steam",
+        id: "steam",
+        handle: "Bibliothèque Steam",
+        color: "#1b2838",
+        accent: "#66c0f4",
+        games_owned,
+        games_played,
+        hours_total: Math.round(minutes_total_lib / 60),
+        achievements: ach.length,
+        level: null,
+        since: "2012",
+      },
+      {
+        platform: "PlayStation",
+        id: "psn",
+        handle: "non connecté",
+        color: "#003087",
+        accent: "#0070cc",
+        games_owned: 0,
+        games_played: 0,
+        hours_total: 0,
+        trophies: { platinum: 0, gold: 0, silver: 0, bronze: 0 },
+        level: null,
+        since: "—",
+        _placeholder: true,
+      },
+      {
+        platform: "Xbox",
+        id: "xbox",
+        handle: "non connecté",
+        color: "#107c10",
+        accent: "#9bf00b",
+        games_owned: 0,
+        games_played: 0,
+        hours_total: 0,
+        achievements: 0,
+        gamerscore: 0,
+        level: null,
+        since: "—",
+        _placeholder: true,
+      },
+      {
+        platform: "Riot (TFT)",
+        id: "riot",
+        handle: "Pipeline TFT",
+        color: "#151921",
+        accent: "#c89b3c",
+        games_owned: 1,
+        games_played: 1,
+        hours_total: 0,
+        rank: tftRow ? `${tftRow.tier} ${tftRow.rank || ""}`.trim() : "—",
+        lp: tftRow ? (tftRow.lp || 0) : 0,
+        games_season: tftMatchCount || 0,
+        top4_rate: tftRow && (tftRow.wins + tftRow.losses) > 0 ? tftRow.wins / (tftRow.wins + tftRow.losses) : 0,
+        win_rate: 0,
+        level: null,
+        since: "2019",
+      },
+    ];
+
+    // ── En cours : jeux Steam joués les 2 dernières semaines (top 4)
+    const recentlyPlayed = snap
+      .filter(g => (g.playtime_2weeks_minutes || 0) > 0)
+      .sort((a, b) => (b.playtime_2weeks_minutes || 0) - (a.playtime_2weeks_minutes || 0))
+      .slice(0, 4);
+
+    const in_progress = recentlyPlayed.map(g => {
+      const d = detailsByAppid.get(g.appid);
+      const genre = (d && d.genres && d.genres[0]) || "Steam";
+      const playedH = Math.round((g.playtime_forever_minutes || 0) / 60);
+      const last2wH = ((g.playtime_2weeks_minutes || 0) / 60).toFixed(1);
+      return {
+        title: g.name || "—",
+        platform: "PC",
+        platform_id: "steam",
+        genre,
+        cover: d && d.header_image_url ? `center/cover no-repeat url("${d.header_image_url}")` : "#1b2838",
+        cover_accent: "#66c0f4",
+        played_h: playedH,
+        hltb_main: null,
+        hltb_completionist: null,
+        progress_pct: null,
+        last_session: `${last2wH}h ces 14j`,
+        note: `Jeu actif récemment — ${last2wH}h sur les 2 dernières semaines.`,
+        status: "active",
+      };
+    });
+
+    // Si TFT a des matchs récents, l'ajouter en pin (utilisateur "ongoing")
+    if (tftRow && (tftMatchCount || 0) > 0) {
+      in_progress.push({
+        title: "Teamfight Tactics",
+        platform: "PC",
+        platform_id: "riot",
+        genre: "Auto-battler",
+        cover: "#151921",
+        cover_accent: "#c89b3c",
+        played_h: null,
+        rank: `${tftRow.tier} ${tftRow.rank || ""} · ${tftRow.lp || 0} LP`,
+        delta_lp_week: 0,
+        last_session: `${tftMatchCount} match${tftMatchCount > 1 ? "s" : ""} trackés`,
+        note: `Pipeline Riot live · W ${tftRow.wins || 0} / L ${tftRow.losses || 0}.`,
+        status: "active",
+        ongoing: true,
+      });
+    }
+
+    // ── Top all-time depuis snapshot trié par playtime_forever
+    const top_alltime = snap
+      .filter(g => (g.playtime_forever_minutes || 0) > 0)
+      .slice(0, 10)
+      .map((g, i) => ({
+        rank: i + 1,
+        title: g.name || "—",
+        platform: "steam",
+        hours: Math.round((g.playtime_forever_minutes || 0) / 60),
+        sessions: 0,
+        since: "—",
+      }));
+
+    // ── Daily sessions 90 jours pour la courbe d'activité
+    const daily_sessions = [];
+    for (let i = 89; i >= 0; i--) {
       const d = new Date(now - i * dayMs);
       const iso = d.toISOString().slice(0, 10);
       const s = statsArr.find(x => x.stat_date === iso);
-      daily30.push({ date: iso, minutes: s?.total_playtime_minutes || 0 });
+      daily_sessions.push({ date: iso, hours: +(((s?.total_playtime_minutes) || 0) / 60).toFixed(2) });
     }
 
-    const top_games = snap.slice(0, 10).map(g => ({
-      name: g.name || "—",
-      playtime_minutes: g.playtime_forever_minutes || 0,
-      playtime_2weeks: g.playtime_2weeks_minutes || 0,
-      header: g.img_icon_url,
+    // ── Genres 30j depuis snapshot (playtime_2weeks) + game_details
+    const GENRE_PALETTE = ["#3a1e2e", "#2a1e38", "#2a3d2e", "#3a2a1a", "#1a2a3a", "#2a1e2e", "#555"];
+    const genreMin = new Map();
+    snap.forEach(g => {
+      const min2w = g.playtime_2weeks_minutes || 0;
+      if (min2w <= 0) return;
+      const d = detailsByAppid.get(g.appid);
+      const genre = (d && d.genres && d.genres[0]) || "Autre";
+      genreMin.set(genre, (genreMin.get(genre) || 0) + min2w);
+    });
+    const totalGenreMin = Array.from(genreMin.values()).reduce((a, x) => a + x, 0);
+    const genres_30d = Array.from(genreMin.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 7)
+      .map(([label, min], i) => ({
+        label,
+        share: totalGenreMin > 0 ? min / totalGenreMin : 0,
+        hours: Math.round(min / 60),
+        color: GENRE_PALETTE[i % GENRE_PALETTE.length],
+      }));
+
+    // ── Achievements récents (vide tant que la table est pas peuplée)
+    const recent_achievements = ach.slice(0, 6).map(a => ({
+      game: a.appid || "—",
+      label: a.achievement_name || a.achievement_api_name || "—",
+      type: "regular",
+      rarity: null,
+      date: relTime(a.unlocked_at),
     }));
 
-    return {
-      totals: {
-        library_size: snap.length,
-        minutes_7d,
-        minutes_30d,
-        hours_30d: Math.round(minutes_30d / 60),
-        achievements_total: ach.length,
+    // ── Milestones YTD réelles
+    const completedYTD = 0; // pas de signal "fini" en base
+    const milestones = [
+      {
+        label: "Heures de jeu YTD",
+        value: `${Math.round(minutes_ytd / 60)}h`,
+        sub: `${statsArr.filter(s => s.stat_date >= ytdStart).length} jours mesurés`,
+        progress: Math.min(1, minutes_ytd / 60 / 500),
       },
-      top_games,
-      recent_achievements: ach.slice(0, 20).map(a => ({
-        game: a.appid || "—",
-        name: a.display_name || a.api_name || "—",
-        when: relTime(a.unlocked_at),
-      })),
-      daily_series: daily30,
-      now_playing: snap.find(g => (g.playtime_2weeks_minutes || 0) > 0) || null,
+      {
+        label: "Bibliothèque Steam",
+        value: String(games_owned),
+        sub: `${games_played} jamais lancés exclus → ${completion_rate}% lancés`,
+      },
+      {
+        label: "Heures cumulées Steam",
+        value: `${Math.round(minutes_total_lib / 60).toLocaleString("fr-FR")}h`,
+        sub: "depuis 2012",
+      },
+      {
+        label: "Achievements Steam",
+        value: String(ach.length),
+        sub: ach.length === 0 ? "table vide — phase D du pipeline" : "débloqués trackés",
+      },
+      {
+        label: "TFT · rang actuel",
+        value: tftRow ? `${tftRow.tier} ${tftRow.rank || ""}`.trim() : "—",
+        sub: tftRow ? `${tftRow.lp || 0} LP · ${tftMatchCount || 0} matchs` : "pipeline pas encore lancé",
+      },
+      {
+        label: "Sessions 30j",
+        value: `${Math.round(minutes_30d / 60)}h`,
+        sub: `${statsArr.filter(s => inRange(s.stat_date, 30) && (s.total_playtime_minutes || 0) > 0).length} jours actifs`,
+      },
+    ];
+
+    // ── Totals consolidés
+    const totals = {
+      hours_total: Math.round(minutes_total_lib / 60),
+      games_owned,
+      games_played,
+      backlog_count: games_owned - games_played,
+      wishlist_count: 0,
+      last7: +(minutes_7d / 60).toFixed(1),
+      last30: +(minutes_30d / 60).toFixed(1),
+      ytd: +(minutes_ytd / 60).toFixed(1),
+      completion_rate,
+    };
+
+    // ── Backlog : jeux owned avec playtime = 0, top 8
+    const backlog = snap
+      .filter(g => (g.playtime_forever_minutes || 0) === 0)
+      .slice(0, 8)
+      .map(g => {
+        const d = detailsByAppid.get(g.appid);
+        return {
+          title: g.name || "—",
+          platform: "PC",
+          platform_id: "steam",
+          genre: (d && d.genres && d.genres[0]) || "Steam",
+          cover: d && d.header_image_url ? `center/cover no-repeat url("${d.header_image_url}")` : "#1b2838",
+          cover_accent: "#66c0f4",
+          hltb: 0,
+          acquired: "—",
+          acquired_how: "Steam · jamais lancé",
+          hype: 5,
+          reason: "Dans ta bibliothèque, jamais ouvert.",
+          priority: "shame",
+          shame_years: null,
+        };
+      });
+
+    // ── Jeux abandonnés : > 60min cumulées mais 0min sur 14j
+    // (commencés sérieusement puis lâchés — bons candidats à finir ou désinstaller)
+    const abandoned = snap
+      .filter(g => (g.playtime_forever_minutes || 0) >= 60 && (g.playtime_2weeks_minutes || 0) === 0)
+      .sort((a, b) => (b.playtime_forever_minutes || 0) - (a.playtime_forever_minutes || 0))
+      .slice(0, 12)
+      .map(g => {
+        const d = detailsByAppid.get(g.appid);
+        const hoursPlayed = Math.round((g.playtime_forever_minutes || 0) / 60);
+        return {
+          appid: g.appid,
+          title: g.name || "—",
+          hours_played: hoursPlayed,
+          genre: (d && d.genres && d.genres[0]) || "—",
+          header: d && d.header_image_url ? d.header_image_url : null,
+        };
+      });
+
+    return {
+      profiles,
+      totals,
+      in_progress,
+      backlog,
+      abandoned,
+      wishlist: [],
+      daily_sessions,
+      genres_30d,
+      top_alltime,
+      recent_achievements,
+      milestones,
+      _meta: {
+        snapshot_count: snap.length,
+        achievements_count: ach.length,
+        game_details_count: details.length,
+        tft_rank: tftRow,
+        tft_match_count: tftMatchCount,
+      },
     };
   }
 
@@ -3267,15 +3530,20 @@
         return { scrobbles, stats, top, loved, genres, insights, newArtists };
       }
       case "gaming": {
-        const [snapshot, stats, achievements] = await Promise.all([
-          T2.steam_snapshot(), T2.steam_stats(), T2.steam_achievements(),
+        const [snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount] = await Promise.all([
+          T2.steam_snapshot(),
+          T2.steam_stats(),
+          T2.steam_achievements(),
+          T2.steam_game_details().catch(() => []),
+          T2.tft_rank_latest().catch(() => []),
+          T2.tft_match_count().catch(() => 0),
         ]);
         if (window.GAMING_PERSO_DATA && (snapshot || []).length) {
-          const shape = transformGaming({ snapshot, stats, achievements });
-          mergeInto(window.GAMING_PERSO_DATA, shape);
-          window.GAMING_PERSO_DATA._raw = { snapshot, stats, achievements };
+          const shape = transformGaming({ snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount });
+          replaceShape(window.GAMING_PERSO_DATA, shape);
+          window.GAMING_PERSO_DATA._raw = { snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount };
         }
-        return { snapshot, stats, achievements };
+        return { snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount };
       }
       case "stacks": {
         const rows = await T2.weekly_analysis();
