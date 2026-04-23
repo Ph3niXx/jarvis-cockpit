@@ -1145,15 +1145,23 @@
     ]);
 
     const stats = buildStats(articlesToday, signals);
-    // Cost history (last 8 weeks) — best effort
+    // Cost history (last 8 weeks) — best effort.
+    // weekly_analysis.tokens_used is a JSONB with { cost_usd, input_tokens, output_tokens, total_tokens, calls, runs }.
     try {
-      const hist = (weeklyAnalysis || []).slice(0, 7).map(r => Number(r.cost_eur || 0)).reverse();
+      const USD_TO_EUR = 0.92;
+      const costOf = (r) => {
+        const t = r && r.tokens_used;
+        if (!t) return 0;
+        const usd = typeof t === "string" ? (JSON.parse(t).cost_usd || 0) : (t.cost_usd || 0);
+        return Number(usd) * USD_TO_EUR;
+      };
+      const hist = (weeklyAnalysis || []).slice(0, 7).map(costOf).reverse();
       stats.cost_history_7d = hist;
       const now = new Date();
       const monthKey = now.toISOString().slice(0, 7);
       const monthCost = (weeklyAnalysis || [])
         .filter(r => (r.created_at || r.week_start || "").slice(0, 7) === monthKey)
-        .reduce((s, r) => s + Number(r.cost_eur || 0), 0);
+        .reduce((s, r) => s + costOf(r), 0);
       stats.cost_month = monthCost.toFixed(2).replace(".", ",") + " €";
     } catch {}
 
@@ -2892,6 +2900,333 @@
   // Build HISTORY_DATA.days + totals from real articles + daily_briefs.
   // Shape: { days: [{ iso, days_ago, day_label, week, articles, signals_rising,
   // jarvis_calls, intensity, pinned, macro, top, signals }], totals: {...} }
+  // ─────────────────────────────────────────────────────────
+  // transformStacks — builds the real STACKS_DATA shape from
+  // weekly_analysis rows (Claude), articles volume (Gemini
+  // proxy), and get_stack_stats() RPC (Supabase DB).
+  // GitHub stays with indicative placeholders (no public API).
+  // ─────────────────────────────────────────────────────────
+  function transformStacks({ weekly, articles30d, dbStats, todayArts }){
+    const USD_TO_EUR = 0.92;
+    const now = new Date();
+    const isoNow = now.toISOString();
+    const dayOfMonth = now.getDate();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const monthKey = isoNow.slice(0, 7);
+    const monthProgress = dayOfMonth / daysInMonth;
+
+    const parseTokens = (r) => {
+      const t = r && r.tokens_used;
+      if (!t) return { cost_usd: 0, input: 0, output: 0, total: 0, calls: 0, runs: 0 };
+      const obj = typeof t === "string" ? (() => { try { return JSON.parse(t); } catch { return {}; } })() : t;
+      return {
+        cost_usd: Number(obj.cost_usd || 0),
+        input: Number(obj.input_tokens || 0),
+        output: Number(obj.output_tokens || 0),
+        total: Number(obj.total_tokens || 0),
+        calls: Number(obj.calls || 0),
+        runs: Number(obj.runs || 0),
+      };
+    };
+
+    // Build a 30-day series keyed by iso date. Fill zeros where
+    // no run happened (weekly pipeline → 1 datapoint per week).
+    const seriesDays = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now); d.setDate(now.getDate() - i);
+      seriesDays.push({ date: d.toISOString().slice(0, 10), value: 0 });
+    }
+    const dayIndex = Object.fromEntries(seriesDays.map((d, i) => [d.date, i]));
+
+    // ── CLAUDE ────────────────────────────────────────────
+    let monthCostUsd = 0, monthInput = 0, monthOutput = 0, monthCalls = 0, monthRuns = 0;
+    let lastRunAt = null;
+    (weekly || []).forEach(r => {
+      const created = r.created_at || r.week_start || "";
+      const iso = created.slice(0, 10);
+      const tk = parseTokens(r);
+      if (iso && iso in dayIndex) seriesDays[dayIndex[iso]].value += tk.cost_usd * USD_TO_EUR;
+      if (created.slice(0, 7) === monthKey) {
+        monthCostUsd += tk.cost_usd;
+        monthInput += tk.input;
+        monthOutput += tk.output;
+        monthCalls += tk.calls;
+        monthRuns += tk.runs;
+      }
+      if (!lastRunAt || (r.created_at && r.created_at > lastRunAt)) lastRunAt = r.created_at;
+    });
+    const claudeMonthEur = monthCostUsd * USD_TO_EUR;
+    const claudeProjected = monthProgress > 0 ? claudeMonthEur / monthProgress : claudeMonthEur;
+    const claudeBudget = 10; // €/mois — soft cap réaliste vu l'usage actuel (~0.5€/mois)
+    const claudeStatus = claudeProjected > claudeBudget ? "critical"
+      : claudeProjected > claudeBudget * 0.75 ? "warn"
+      : "safe";
+    const claude = {
+      id: "claude",
+      service: "Claude API",
+      provider: "Anthropic",
+      plan: "Pay-as-you-go",
+      type: "paid",
+      color: "#d97757",
+      status: claudeStatus,
+      last_used: lastRunAt ? relTime(lastRunAt) : "—",
+      quotas: [
+        {
+          label: "Budget mensuel (soft)",
+          unit: "€",
+          used: +claudeMonthEur.toFixed(2),
+          limit: claudeBudget,
+          reset: "1er du mois",
+          projected: +claudeProjected.toFixed(2),
+          type: "budget",
+          critical_above: 0.85,
+        },
+        {
+          label: "Input tokens · mois",
+          unit: "tok",
+          used: monthInput,
+          limit: null,
+          raw_used: monthInput.toLocaleString("fr-FR"),
+          type: "usage",
+        },
+        {
+          label: "Output tokens · mois",
+          unit: "tok",
+          used: monthOutput,
+          limit: null,
+          raw_used: monthOutput.toLocaleString("fr-FR"),
+          type: "usage",
+        },
+        {
+          label: "Appels API · mois",
+          unit: "calls",
+          used: monthCalls,
+          limit: null,
+          type: "usage",
+        },
+      ],
+      breakdown: (weekly || []).slice(0, 6).map(r => {
+        const tk = parseTokens(r);
+        return {
+          label: "Semaine " + (r.week_start || "").slice(5),
+          calls: tk.calls,
+          tokens_in_M: +(tk.input / 1e6).toFixed(3),
+          tokens_out_M: +(tk.output / 1e6).toFixed(3),
+          cost: +(tk.cost_usd * USD_TO_EUR).toFixed(2),
+        };
+      }),
+      series_30d: seriesDays.map(d => ({ ...d, value: +d.value.toFixed(3) })),
+      series_unit: "€/jour",
+      rate_limits: {},
+      alerts: claudeStatus === "critical"
+        ? [{ level: "critical", text: "Projection " + claudeProjected.toFixed(2) + "€ > budget " + claudeBudget + "€" }]
+        : claudeStatus === "warn"
+        ? [{ level: "warn", text: "Projection " + claudeProjected.toFixed(2) + "€ approche du budget " + claudeBudget + "€" }]
+        : [],
+    };
+
+    // ── GEMINI (proxy: articles fetched per day) ──────────
+    const artsByDate = {};
+    (articles30d || []).forEach(a => {
+      const d = (a.fetch_date || a.date_fetched || "").slice(0, 10);
+      if (!d) return;
+      artsByDate[d] = (artsByDate[d] || 0) + 1;
+    });
+    const gemSeries = seriesDays.map(d => ({ date: d.date, value: artsByDate[d.date] || 0 }));
+    const gemToday = (todayArts || []).length;
+    const gemMonth = Object.entries(artsByDate)
+      .filter(([d]) => d.slice(0, 7) === monthKey)
+      .reduce((s, [, v]) => s + v, 0);
+    // Each article ≈ 2 Gemini calls (fetch + brief generation)
+    const gemCallsToday = gemToday * 2;
+    const gemLimit = 1500; // Flash free tier req/day
+    const gemStatus = gemCallsToday >= gemLimit * 0.9 ? "critical"
+      : gemCallsToday >= gemLimit * 0.7 ? "warn"
+      : "safe";
+    const gemini = {
+      id: "gemini",
+      service: "Gemini API",
+      provider: "Google",
+      plan: "Free tier",
+      type: "free",
+      color: "#4285f4",
+      status: gemStatus,
+      last_used: (articles30d && articles30d[0] && articles30d[0].fetch_date)
+        ? relTime(articles30d[0].date_fetched || articles30d[0].fetch_date + "T06:00:00Z")
+        : "—",
+      quotas: [
+        {
+          label: "Requêtes/jour · Gemini Flash (proxy articles × 2)",
+          unit: "req",
+          used: gemCallsToday,
+          limit: gemLimit,
+          reset: "minuit Pacific",
+          type: "daily",
+          warn_above: 0.70,
+          critical_above: 0.90,
+        },
+        {
+          label: "Articles fetchés · aujourd'hui",
+          unit: "articles",
+          used: gemToday,
+          limit: null,
+          type: "usage",
+        },
+        {
+          label: "Articles fetchés · mois",
+          unit: "articles",
+          used: gemMonth,
+          limit: null,
+          type: "usage",
+        },
+      ],
+      breakdown: [
+        { label: "gemini-2.5-flash-lite", note: "pipeline veille (main.py)", calls: gemCallsToday + " auj" },
+        { label: "articles totaux · mois", calls: gemMonth + " articles" },
+      ],
+      series_30d: gemSeries,
+      series_unit: "articles/jour",
+      rate_limits: {},
+      alerts: gemStatus === "critical"
+        ? [{ level: "critical", text: "Pic de requêtes aujourd'hui (" + gemCallsToday + "/" + gemLimit + "). Surveiller le fallback." }]
+        : gemStatus === "warn"
+        ? [{ level: "warn", text: "Usage élevé (" + gemCallsToday + "/" + gemLimit + " req). OK pour aujourd'hui." }]
+        : [],
+    };
+
+    // ── SUPABASE (real DB stats from RPC) ─────────────────
+    const dbBytes = (dbStats && dbStats.db_size_bytes) || 0;
+    const dbMB = dbBytes / (1024 * 1024);
+    const DB_LIMIT_MB = 500;
+    const topTables = (dbStats && dbStats.top_tables) || [];
+    const rowCounts = (dbStats && dbStats.row_counts) || {};
+    const sbStatus = dbMB > DB_LIMIT_MB * 0.90 ? "critical"
+      : dbMB > DB_LIMIT_MB * 0.75 ? "warn"
+      : "safe";
+    const supabase = {
+      id: "supabase",
+      service: "Supabase",
+      provider: "Supabase",
+      plan: "Free tier",
+      type: "free",
+      color: "#3ecf8e",
+      status: sbStatus,
+      last_used: dbStats && dbStats.generated_at ? relTime(dbStats.generated_at) : "à l'instant",
+      quotas: [
+        {
+          label: "Database size",
+          unit: "MB",
+          used: +dbMB.toFixed(1),
+          limit: DB_LIMIT_MB,
+          type: "storage",
+          warn_above: 0.75,
+          critical_above: 0.90,
+        },
+        {
+          label: "Monthly Active Users",
+          unit: "MAU",
+          used: 1,
+          limit: 50000,
+          reset: "1er du mois",
+          type: "monthly",
+        },
+        {
+          label: "Articles · rows",
+          unit: "rows",
+          used: rowCounts.articles || 0,
+          limit: null,
+          type: "usage",
+        },
+        {
+          label: "Memories vectors · rows",
+          unit: "rows",
+          used: rowCounts.memories_vectors || 0,
+          limit: null,
+          type: "usage",
+        },
+      ],
+      breakdown: topTables.slice(0, 8).map(t => ({
+        label: t.table_name,
+        size_mb: +(t.size_bytes / (1024 * 1024)).toFixed(2),
+        rows: (t.estimated_rows || 0).toLocaleString("fr-FR"),
+      })),
+      series_30d: seriesDays.map(d => ({ ...d, value: +(dbMB / 30).toFixed(3) })), // flat proxy
+      series_unit: "MB (snapshot)",
+      rate_limits: {},
+      alerts: sbStatus === "critical"
+        ? [{ level: "critical", text: "DB à " + Math.round((dbMB / DB_LIMIT_MB) * 100) + "% du free tier. Penser purge ou Pro." }]
+        : sbStatus === "warn"
+        ? [{ level: "warn", text: "DB à " + Math.round((dbMB / DB_LIMIT_MB) * 100) + "% du free tier." }]
+        : [],
+    };
+
+    // ── GITHUB (indicatif — pas d'API publique gratuite) ──
+    const github = {
+      id: "github",
+      service: "GitHub",
+      provider: "GitHub",
+      plan: "Free",
+      type: "free",
+      color: "#1f1f1f",
+      status: "safe",
+      last_used: "—",
+      quotas: [
+        { label: "Actions · minutes (free tier)", unit: "min", used: 0, limit: 2000, reset: "1er du mois", type: "monthly", warn_above: 0.70, critical_above: 0.90 },
+        { label: "Storage packages", unit: "GB", used: 0, limit: 0.5, type: "storage" },
+      ],
+      breakdown: [
+        { label: "ai-daily-digest", note: "repo principal — valeurs indicatives" },
+      ],
+      series_30d: seriesDays.map(d => ({ ...d, value: 0 })),
+      series_unit: "min/jour",
+      rate_limits: {},
+      alerts: [{ level: "info", text: "Pas d'API publique pour lire l'usage Actions — à vérifier dans github.com/settings/billing." }],
+    };
+
+    const services = [claude, gemini, supabase, github];
+    const critical_count = services.filter(s => s.status === "critical").length;
+    const warn_count = services.filter(s => s.status === "warn").length;
+    const safe_count = services.filter(s => s.status === "safe").length;
+    const paid_count = services.filter(s => s.type === "paid").length;
+    const free_count = services.filter(s => s.type === "free").length;
+    const total_alerts = services.reduce((a, s) => a + (s.alerts?.length || 0), 0);
+    const critical_alerts = services.reduce((a, s) => a + (s.alerts?.filter(al => al.level === "critical").length || 0), 0);
+
+    return {
+      today: isoNow.slice(0, 10),
+      day_of_month: dayOfMonth,
+      days_in_month: daysInMonth,
+      services,
+      totals: {
+        services_count: services.length,
+        paid_count,
+        free_count,
+        critical_count,
+        warn_count,
+        safe_count,
+        cost_mtd: +claudeMonthEur.toFixed(2),
+        cost_projected: +claudeProjected.toFixed(2),
+        cost_budget: claudeBudget,
+        total_alerts,
+        critical_alerts,
+      },
+      hero_sub: buildStacksHeroSub({ claude, supabase, gemini, claudeProjected, claudeBudget, dbMB, DB_LIMIT_MB }),
+    };
+  }
+
+  function buildStacksHeroSub({ claude, supabase, gemini, claudeProjected, claudeBudget, dbMB, DB_LIMIT_MB }){
+    const bits = [];
+    if (supabase.status === "critical") bits.push("Supabase à " + Math.round((dbMB / DB_LIMIT_MB) * 100) + "% du free tier");
+    else if (supabase.status === "warn") bits.push("Supabase DB " + dbMB.toFixed(0) + " MB / " + DB_LIMIT_MB);
+    else bits.push("Supabase DB " + dbMB.toFixed(0) + " MB / " + DB_LIMIT_MB + " (sain)");
+
+    if (gemini.status !== "safe") bits.push("Gemini sous pression");
+    if (claude.status === "critical") bits.push("budget Claude dépassé");
+    else bits.push("Claude à " + Math.round((claudeProjected / claudeBudget) * 100) + "% du budget projeté");
+
+    return bits.join(", ") + ".";
+  }
+
   function transformHistory(articles, briefs){
     const DAYS_FR = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
     const MONTHS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
@@ -3597,24 +3932,19 @@
         return { snapshot, stats, achievements, gameDetails, tftRank, tftMatchCount, wishlist };
       }
       case "stacks": {
-        const rows = await T2.weekly_analysis();
-        const now = new Date();
-        const monthKey = now.toISOString().slice(0, 7);
-        const monthCost = (rows || [])
-          .filter(r => (r.created_at || r.week_start || "").slice(0, 7) === monthKey)
-          .reduce((s, r) => s + Number(r.cost_eur || 0), 0);
-        // Project cost for full month
-        const dayOfMonth = now.getDate();
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const projected = dayOfMonth > 0 ? (monthCost / dayOfMonth) * daysInMonth : monthCost;
-        if (window.STACKS_DATA && window.STACKS_DATA.totals) {
-          window.STACKS_DATA.totals.cost_mtd = monthCost;
-          window.STACKS_DATA.totals.cost_projected = projected;
-          window.STACKS_DATA.day_of_month = dayOfMonth;
-          window.STACKS_DATA.days_in_month = daysInMonth;
-          window.STACKS_DATA._raw = rows;
+        const from30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+        const [weekly, articles30d, dbStats, todayArts] = await Promise.all([
+          T2.weekly_analysis(),
+          once("stacks_articles_30d", () => q("articles", `fetch_date=gte.${from30}&select=id,fetch_date&order=fetch_date.desc&limit=5000`)).catch(() => []),
+          window.sb.rpc("get_stack_stats").catch(() => null),
+          once("articles_today", loadArticlesToday).catch(() => []),
+        ]);
+        if (window.STACKS_DATA) {
+          const shape = transformStacks({ weekly, articles30d, dbStats, todayArts });
+          Object.assign(window.STACKS_DATA, shape);
+          window.STACKS_DATA._raw = { weekly, articles30d, dbStats };
         }
-        return { weekly_analysis: rows };
+        return { weekly, articles30d, dbStats };
       }
       case "history": {
         // 60-day window of articles + daily briefs → rebuild HISTORY_DATA

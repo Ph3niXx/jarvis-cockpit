@@ -260,9 +260,9 @@ function PanelStacks({ data, onNavigate }) {
             )}
           </h1>
           <p className="st-hero-sub">
-            Supabase approche des 500 Mo de base, Gemini Pro est dépassé aujourd'hui.
-            Budget Claude à {((t.cost_mtd / t.cost_budget) * 100).toFixed(0)}% du plafond mensuel,
-            trajectoire dans la tenue.
+            {stacks.hero_sub || (
+              <>Budget Claude à {((t.cost_mtd / t.cost_budget) * 100).toFixed(0)}% du plafond mensuel.</>
+            )}
           </p>
         </div>
 
