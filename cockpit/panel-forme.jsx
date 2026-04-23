@@ -1,12 +1,12 @@
 // ═══════════════════════════════════════════════════════════════
-// PANEL FORME — Withings + Strava
+// PANEL FORME — Strava (runs) + [optionnel] Withings si dispo
 // ─────────────────────────────────────────────
-// Hero : état du jour (poids + lede narratif)
-// §1 Composition (Withings) : poids, fat%, muscle avec sparklines
-// §2 Charbon (courbes mensuelles toggle poids/composition)
-// §3 Entraînement : semaine en cours + cards month
-// §4 Records · Objectifs
-// §5 Séances récentes (liste dense)
+// Hero : volume de la semaine (course) + streak
+// §1 Entraînement : 4 KPI cards (Distance, Allure, Dénivelé, Régularité)
+// §2 Charge hebdo : courbe km/semaine (12 semaines)
+// §3 Composition [Withings — affiché seulement si _has_weight]
+// §4 Records auto-calculés (5k, 10k, semi, marathon, plus longue, volume max)
+// §5 Journal 20 dernières séances
 // ═══════════════════════════════════════════════════════════════
 
 const { useState: useFmState, useMemo: useFmMemo } = React;
@@ -33,84 +33,43 @@ function Sparkline({ data, w = 64, h = 24, color, range }) {
   );
 }
 
-// ── Line chart ──────────────────────────────────────
-function LineChart({ series, ySeries, range, height = 280, showRange }) {
+// ── Bar chart — charge hebdo (km/semaine) ────────────
+function WeekLoadChart({ weeks }) {
+  if (!weeks || !weeks.length) return null;
   const w = 1000;
-  const h = height;
-  const padL = 48, padR = 20, padT = 20, padB = 28;
+  const h = 220;
+  const padL = 48, padR = 20, padT = 20, padB = 32;
   const plotW = w - padL - padR;
   const plotH = h - padT - padB;
-
-  const days = series.length;
-  const windowDays = { "30j": 30, "90j": 90, "180j": 180 }[range] || days;
-  const data = series.slice(-windowDays);
-
-  // y scale : min/max parmi toutes les ySeries
-  const allVals = ySeries.flatMap((s) => data.map((d) => d[s.key]));
-  const yMin = Math.min(...allVals);
-  const yMax = Math.max(...allVals);
-  const ySpan = (yMax - yMin) || 1;
-  const yPad = ySpan * 0.1;
-  const yLo = yMin - yPad;
-  const yHi = yMax + yPad;
-
-  const x = (i) => padL + (i / (data.length - 1)) * plotW;
-  const y = (v) => padT + plotH - ((v - yLo) / (yHi - yLo)) * plotH;
-
-  // x axis labels
-  const tickCount = 6;
-  const ticks = Array.from({ length: tickCount }, (_, i) => Math.floor((i / (tickCount - 1)) * (data.length - 1)));
-  const fmt = (dStr) => {
-    const d = new Date(dStr);
-    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-  };
-
-  // y ticks
-  const yTickCount = 4;
-  const yTicks = Array.from({ length: yTickCount }, (_, i) => yLo + (i / (yTickCount - 1)) * (yHi - yLo));
+  const maxKm = Math.max(10, ...weeks.map((x) => x.km || 0));
+  const barW = plotW / weeks.length * 0.7;
+  const stepX = plotW / weeks.length;
+  const yTicks = [0, maxKm / 2, maxKm];
 
   return (
     <svg className="fm-chart-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-      {/* grid */}
-      {yTicks.map((t, i) => (
-        <g key={"y" + i}>
-          <line className="fm-chart-grid" x1={padL} x2={w - padR} y1={y(t)} y2={y(t)} />
-          <text className="fm-chart-label" x={padL - 8} y={y(t) + 3} textAnchor="end">{t.toFixed(1)}</text>
-        </g>
-      ))}
-      {/* x axis */}
-      <line className="fm-chart-axis" x1={padL} x2={w - padR} y1={h - padB} y2={h - padB} />
-      {ticks.map((t, i) => (
-        <text key={"x" + i} className="fm-chart-label" x={x(t)} y={h - padB + 16} textAnchor="middle">
-          {fmt(data[t].date)}
-        </text>
-      ))}
-      {/* lines */}
-      {ySeries.map((s) => {
-        const path = "M" + data.map((d, i) => `${x(i).toFixed(1)},${y(d[s.key]).toFixed(1)}`).join(" L");
+      {yTicks.map((t, i) => {
+        const y = padT + plotH - (t / maxKm) * plotH;
         return (
-          <path
-            key={s.key}
-            d={path}
-            fill="none"
-            stroke={s.color}
-            strokeWidth="1.75"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
+          <g key={"y" + i}>
+            <line className="fm-chart-grid" x1={padL} x2={w - padR} y1={y} y2={y} />
+            <text className="fm-chart-label" x={padL - 8} y={y + 3} textAnchor="end">{Math.round(t)}</text>
+          </g>
         );
       })}
-      {/* last point markers */}
-      {ySeries.map((s) => {
-        const last = data[data.length - 1];
+      {weeks.map((wk, i) => {
+        const km = wk.km || 0;
+        const barH = (km / maxKm) * plotH;
+        const x = padL + i * stepX + (stepX - barW) / 2;
+        const y = padT + plotH - barH;
+        const d = new Date(wk.week_start);
+        const lbl = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
         return (
-          <circle
-            key={"m" + s.key}
-            cx={x(data.length - 1)}
-            cy={y(last[s.key])}
-            r="3.5"
-            fill={s.color}
-          />
+          <g key={i}>
+            <rect x={x} y={y} width={barW} height={barH} fill="var(--brand)" rx="2" />
+            {km > 0 && <text x={x + barW / 2} y={y - 4} textAnchor="middle" className="fm-chart-label" style={{ fontSize: 10 }}>{km}</text>}
+            <text x={x + barW / 2} y={h - padB + 14} textAnchor="middle" className="fm-chart-label">{lbl}</text>
+          </g>
         );
       })}
     </svg>
@@ -122,20 +81,9 @@ const DOW = ["D", "L", "M", "M", "J", "V", "S"];
 
 function PanelForme({ data, onNavigate }) {
   const FD = window.FORME_DATA;
-  const [chartView, setChartView] = useFmState("weight"); // weight | comp
-  const [range, setRange] = useFmState("90j");
+  const hasWeight = !!FD._has_weight;
 
-  // Sparklines : derniers 30 jours
-  const spark = useFmMemo(() => {
-    const s30 = FD.weight_series.slice(-30);
-    return {
-      weight: s30.map((d) => ({ value: d.weight })),
-      fat: s30.map((d) => ({ value: d.fat_pct })),
-      muscle: s30.map((d) => ({ value: d.muscle_kg })),
-    };
-  }, []);
-
-  // 7 derniers jours glissants terminant aujourd'hui
+  // 7 derniers jours glissants
   const weekBars = useFmMemo(() => {
     const today = new Date(FD.today.date);
     const start = new Date(today);
@@ -145,45 +93,67 @@ function PanelForme({ data, onNavigate }) {
       d.setDate(d.getDate() + i);
       const iso = d.toISOString().slice(0, 10);
       const sess = FD.sessions.filter((s) => s.date === iso);
-      const run = sess.find((s) => s.type === "run");
-      const lift = sess.find((s) => s.type === "lift");
       return {
         iso,
         dow: DOW[d.getDay()],
         dom: d.getDate(),
         isToday: iso === FD.today.date,
-        isFuture: false,
-        run, lift,
+        sessions: sess,
       };
     });
-    const maxKm = Math.max(...days.map((x) => x.run?.distance_km || 0), 10);
+    const maxKm = Math.max(...days.flatMap((x) => x.sessions.map((s) => s.distance_km)), 10);
     return { days, maxKm };
-  }, []);
+  }, [FD]);
 
-  const weekKmTotal = weekBars.days.reduce((a, d) => a + (d.run?.distance_km || 0), 0);
+  // Charge hebdo (12 semaines)
+  const weekLoad = useFmMemo(() => {
+    const acts = FD._raw || [];
+    const dayMs = 24 * 3600 * 1000;
+    const now = Date.now();
+    const weeks = [];
+    for (let w = 11; w >= 0; w--) {
+      const to = now - w * 7 * dayMs;
+      const from = now - (w + 1) * 7 * dayMs;
+      const acsWk = acts.filter((a) => {
+        const t = new Date(a.start_date).getTime();
+        return t >= from && t < to;
+      });
+      weeks.push({
+        week_start: new Date(from).toISOString().slice(0, 10),
+        km: Math.round(acsWk.reduce((s, a) => s + (Number(a.distance_m) || 0) / 1000, 0)),
+        sessions: acsWk.length,
+      });
+    }
+    return weeks;
+  }, [FD._raw]);
 
-  const ySeriesByView = {
-    weight: [{ key: "weight", color: "var(--brand)", label: "poids kg" }],
-    comp: [
-      { key: "fat_pct", color: "#b43a3a", label: "masse grasse %" },
-      { key: "water_pct", color: "#2d7a4e", label: "eau %" },
-    ],
-    muscle: [{ key: "muscle_kg", color: "#2d7a4e", label: "masse musculaire kg" }],
-  };
+  const weekKmTotal = weekBars.days.reduce(
+    (a, d) => a + d.sessions.reduce((s, x) => s + x.distance_km, 0),
+    0
+  );
+
+  const hasData = (FD.sessions && FD.sessions.length > 0) || (FD._raw && FD._raw.length > 0);
+  const latest = FD.sessions && FD.sessions[0];
 
   return (
     <div className="fm-wrap" data-screen-label="Forme">
       {/* ══ HERO ══ */}
       <header className="fm-hero">
         <div>
-          <div className="fm-hero-eyebrow">forme · withings + strava · {FD.today.date}</div>
+          <div className="fm-hero-eyebrow">forme · strava · {FD.today.date}</div>
           <h1 className="fm-hero-title">
-            {FD.today.weight.toFixed(1)} kg · <em>{FD.week.streak} jours</em> actifs
+            {FD.week.km.toFixed(1)} km · <em>{FD.week.runs} sorties</em> cette semaine
           </h1>
           <p className="fm-hero-lede">
-            Recomp en cours — sec depuis fin janvier. {Math.abs(FD.today.weight_delta_3m).toFixed(1)} kg
-            de moins en 90 jours, {FD.today.fat_delta_month > 0 ? "+" : ""}{Math.abs(FD.today.fat_delta_month).toFixed(1)} pt de masse grasse ce mois-ci,
-            muscle stable à {FD.today.muscle_kg.toFixed(0)} kg. Prépa 10k juin — volume course en montée.
+            {hasData ? (
+              <>
+                {FD.year.km} km parcourus en {new Date().getFullYear()} · {FD.year.runs} sorties.
+                {latest && ` Dernière sortie : ${latest.name} (${latest.distance_km.toFixed(1)} km).`}
+                {FD.week.streak > 1 && ` Streak actuel : ${FD.week.streak} jour${FD.week.streak > 1 ? "s" : ""}.`}
+              </>
+            ) : (
+              "Aucune activité Strava synchronisée sur cette période."
+            )}
           </p>
         </div>
         <div className="fm-hero-stat">
@@ -197,130 +167,12 @@ function PanelForme({ data, onNavigate }) {
         </div>
       </header>
 
-      {/* ══ §1 COMPOSITION ══ */}
+      {/* ══ §1 ENTRAÎNEMENT ══ */}
       <section className="fm-section">
         <div className="fm-section-head">
           <span className="fm-section-num">01</span>
-          <h2 className="fm-section-title">Composition · <em>Withings</em></h2>
-          <span className="fm-section-meta">dernière pesée · ce matin 07:42</span>
-        </div>
-        <div className="fm-comp-grid">
-          <div className="fm-comp-card">
-            <div className="fm-comp-card-head">
-              <span className="fm-comp-card-label">poids</span>
-              <Sparkline data={spark.weight} color="var(--brand)" />
-            </div>
-            <div className="fm-comp-card-value">
-              {FD.today.weight.toFixed(1)}<span className="fm-comp-card-unit">kg</span>
-            </div>
-            <div className="fm-comp-deltas">
-              <div className="fm-comp-delta">
-                <span className="fm-comp-delta-key">7j</span>
-                <span className={`fm-comp-delta-val ${FD.today.weight_delta_week < 0 ? "up" : FD.today.weight_delta_week > 0 ? "down" : "flat"}`}>
-                  {FD.today.weight_delta_week > 0 ? "+" : ""}{FD.today.weight_delta_week.toFixed(1)} kg
-                </span>
-              </div>
-              <div className="fm-comp-delta">
-                <span className="fm-comp-delta-key">30j</span>
-                <span className={`fm-comp-delta-val ${FD.today.weight_delta_month < 0 ? "up" : FD.today.weight_delta_month > 0 ? "down" : "flat"}`}>
-                  {FD.today.weight_delta_month > 0 ? "+" : ""}{FD.today.weight_delta_month.toFixed(1)} kg
-                </span>
-              </div>
-              <div className="fm-comp-delta">
-                <span className="fm-comp-delta-key">90j</span>
-                <span className={`fm-comp-delta-val ${FD.today.weight_delta_3m < 0 ? "up" : FD.today.weight_delta_3m > 0 ? "down" : "flat"}`}>
-                  {FD.today.weight_delta_3m > 0 ? "+" : ""}{FD.today.weight_delta_3m.toFixed(1)} kg
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="fm-comp-card">
-            <div className="fm-comp-card-head">
-              <span className="fm-comp-card-label">masse grasse</span>
-              <Sparkline data={spark.fat} color="#b43a3a" />
-            </div>
-            <div className="fm-comp-card-value">
-              {FD.today.fat_pct.toFixed(1)}<span className="fm-comp-card-unit">%</span>
-            </div>
-            <div className="fm-comp-deltas">
-              <div className="fm-comp-delta">
-                <span className="fm-comp-delta-key">30j</span>
-                <span className={`fm-comp-delta-val ${FD.today.fat_delta_month < 0 ? "up" : "down"}`}>
-                  {FD.today.fat_delta_month > 0 ? "+" : ""}{FD.today.fat_delta_month.toFixed(1)} pt
-                </span>
-              </div>
-              <div className="fm-comp-delta">
-                <span className="fm-comp-delta-key">masse grasse kg</span>
-                <span className="fm-comp-delta-val flat">
-                  {(FD.today.weight * FD.today.fat_pct / 100).toFixed(1)} kg
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="fm-comp-card">
-            <div className="fm-comp-card-head">
-              <span className="fm-comp-card-label">masse musculaire</span>
-              <Sparkline data={spark.muscle} color="#2d7a4e" />
-            </div>
-            <div className="fm-comp-card-value">
-              {FD.today.muscle_kg.toFixed(1)}<span className="fm-comp-card-unit">kg</span>
-            </div>
-            <div className="fm-comp-deltas">
-              <div className="fm-comp-delta">
-                <span className="fm-comp-delta-key">30j</span>
-                <span className={`fm-comp-delta-val ${FD.today.muscle_delta_month > 0 ? "up" : FD.today.muscle_delta_month < 0 ? "down" : "flat"}`}>
-                  {FD.today.muscle_delta_month > 0 ? "+" : ""}{FD.today.muscle_delta_month.toFixed(1)} kg
-                </span>
-              </div>
-              <div className="fm-comp-delta">
-                <span className="fm-comp-delta-key">eau</span>
-                <span className="fm-comp-delta-val flat">{FD.today.water_pct.toFixed(1)}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══ §2 COURBES ══ */}
-      <section className="fm-section">
-        <div className="fm-section-head">
-          <span className="fm-section-num">02</span>
-          <h2 className="fm-section-title">Courbes · <em>tendance longue</em></h2>
-          <span className="fm-section-meta">{FD.weight_series.length} jours de données</span>
-        </div>
-        <div className="fm-chart-wrap">
-          <div className="fm-chart-head">
-            <div className="fm-range-toggle">
-              <button className={`fm-range-btn ${chartView === "weight" ? "is-active" : ""}`} onClick={() => setChartView("weight")}>Poids</button>
-              <button className={`fm-range-btn ${chartView === "comp" ? "is-active" : ""}`} onClick={() => setChartView("comp")}>Composition</button>
-              <button className={`fm-range-btn ${chartView === "muscle" ? "is-active" : ""}`} onClick={() => setChartView("muscle")}>Muscle</button>
-            </div>
-            <div className="fm-range-toggle">
-              <button className={`fm-range-btn ${range === "30j" ? "is-active" : ""}`} onClick={() => setRange("30j")}>30j</button>
-              <button className={`fm-range-btn ${range === "90j" ? "is-active" : ""}`} onClick={() => setRange("90j")}>90j</button>
-              <button className={`fm-range-btn ${range === "180j" ? "is-active" : ""}`} onClick={() => setRange("180j")}>180j</button>
-            </div>
-          </div>
-          <LineChart series={FD.weight_series} ySeries={ySeriesByView[chartView]} range={range} />
-          <div className="fm-chart-legend" style={{marginTop:12}}>
-            {ySeriesByView[chartView].map((s) => (
-              <span key={s.key}>
-                <span className="fm-chart-legend-dot" style={{background: s.color}}></span>
-                {s.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══ §3 ENTRAÎNEMENT ══ */}
-      <section className="fm-section">
-        <div className="fm-section-head">
-          <span className="fm-section-num">03</span>
           <h2 className="fm-section-title">Entraînement · <em>30 derniers jours</em></h2>
-          <span className="fm-section-meta">strava · {FD.month.sessions} séances</span>
+          <span className="fm-section-meta">strava · {FD.month.sessions} activités</span>
         </div>
 
         <div className="fm-train-grid">
@@ -328,27 +180,35 @@ function PanelForme({ data, onNavigate }) {
             <div className="fm-train-card-label">Distance</div>
             <div className="fm-train-card-value">{FD.month.km.toFixed(0)}<span className="fm-train-card-unit">km</span></div>
             <div className="fm-train-card-sub">
-              <span className={FD.month.km > FD.month.km_prev ? "up" : "down"}>
-                {FD.month.km > FD.month.km_prev ? "▲" : "▼"} {Math.abs(FD.month.km - FD.month.km_prev).toFixed(1)} km
-              </span> vs 30j préc.
+              {FD.month.km_prev > 0 ? (
+                <>
+                  <span className={FD.month.km > FD.month.km_prev ? "up" : "down"}>
+                    {FD.month.km > FD.month.km_prev ? "▲" : "▼"} {Math.abs(FD.month.km - FD.month.km_prev).toFixed(1)} km
+                  </span> vs 30j préc.
+                </>
+              ) : (
+                <>{FD.month.runs} sorties course</>
+              )}
             </div>
           </div>
           <div className="fm-train-card">
             <div className="fm-train-card-label">Allure moyenne</div>
             <div className="fm-train-card-value">
-              {Math.floor(FD.month.pace_avg)}:{String(Math.round((FD.month.pace_avg % 1) * 60)).padStart(2, "0")}
-              <span className="fm-train-card-unit">/km</span>
+              {FD.month.pace_avg > 0 ? (
+                <>
+                  {Math.floor(FD.month.pace_avg)}:{String(Math.round((FD.month.pace_avg % 1) * 60)).padStart(2, "0")}
+                  <span className="fm-train-card-unit">/km</span>
+                </>
+              ) : (
+                <span style={{ color: "var(--tx3)" }}>—</span>
+              )}
             </div>
             <div className="fm-train-card-sub">{FD.month.runs} sorties course</div>
           </div>
           <div className="fm-train-card">
-            <div className="fm-train-card-label">Volume muscu</div>
-            <div className="fm-train-card-value">{(FD.month.tonnage / 1000).toFixed(1)}<span className="fm-train-card-unit">t</span></div>
-            <div className="fm-train-card-sub">
-              <span className={FD.month.tonnage > FD.month.tonnage_prev ? "up" : "down"}>
-                {FD.month.tonnage > FD.month.tonnage_prev ? "▲" : "▼"} {((FD.month.tonnage - FD.month.tonnage_prev) / 1000).toFixed(1)}t
-              </span> · {FD.month.lifts} séances
-            </div>
+            <div className="fm-train-card-label">Dénivelé</div>
+            <div className="fm-train-card-value">{(FD.month.elev_m || 0).toLocaleString("fr-FR")}<span className="fm-train-card-unit">m D+</span></div>
+            <div className="fm-train-card-sub">{(FD.month.calories || 0).toLocaleString("fr-FR")} kcal</div>
           </div>
           <div className="fm-train-card">
             <div className="fm-train-card-label">Régularité</div>
@@ -360,78 +220,95 @@ function PanelForme({ data, onNavigate }) {
         {/* Week strip */}
         <div className="fm-weekbars">
           <div className="fm-weekbars-head">
-            <span className="fm-weekbars-title">7 derniers jours · course + muscu</span>
+            <span className="fm-weekbars-title">7 derniers jours</span>
             <div className="fm-weekbars-total">
-              {weekKmTotal.toFixed(1)} km <small>· {weekBars.days.filter((d) => d.run || d.lift).length} séances</small>
+              {weekKmTotal.toFixed(1)} km <small>· {weekBars.days.filter((d) => d.sessions.length).length} jours actifs</small>
             </div>
           </div>
           <div className="fm-weekbars-grid">
             {weekBars.days.map((d) => {
-              const runPct = d.run ? (d.run.distance_km / weekBars.maxKm) * 100 : 0;
-              const liftPct = d.lift ? 40 : 0;
+              const dayKm = d.sessions.reduce((s, x) => s + x.distance_km, 0);
+              const runPct = dayKm > 0 ? (dayKm / weekBars.maxKm) * 100 : 0;
               return (
                 <div key={d.iso} className="fm-weekbar">
                   <div className="fm-weekbar-stack" style={{ height: 100 }}>
-                    {d.run && <div className="fm-weekbar-run" style={{ height: `${runPct}%` }} />}
-                    {d.lift && <div className="fm-weekbar-lift" style={{ height: `${liftPct}%` }} />}
-                    {!d.run && !d.lift && !d.isFuture && <div className="fm-weekbar-rest" />}
+                    {dayKm > 0 && <div className="fm-weekbar-run" style={{ height: `${runPct}%` }} />}
+                    {dayKm === 0 && <div className="fm-weekbar-rest" />}
                   </div>
                   <div className={`fm-weekbar-day ${d.isToday ? "is-today" : ""}`}>
                     {d.dow} {d.dom}
                   </div>
-                  {d.run && <div className="fm-weekbar-val">{d.run.distance_km.toFixed(1)}k</div>}
+                  {dayKm > 0 && <div className="fm-weekbar-val">{dayKm.toFixed(1)}k</div>}
                 </div>
               );
             })}
           </div>
-          <div className="fm-chart-legend" style={{marginTop:12}}>
-            <span><span className="fm-chart-legend-dot" style={{background:"var(--brand)", height:8}}></span>Course</span>
-            <span><span className="fm-chart-legend-dot" style={{background:"color-mix(in srgb, var(--brand) 50%, var(--bg2))", height:8}}></span>Muscu</span>
-            <span><span className="fm-chart-legend-dot" style={{background:"var(--bg2)", border:"1px dashed var(--bd)", height:8}}></span>Repos</span>
+          <div className="fm-chart-legend" style={{ marginTop: 12 }}>
+            <span><span className="fm-chart-legend-dot" style={{ background: "var(--brand)", height: 8 }}></span>Course</span>
+            <span><span className="fm-chart-legend-dot" style={{ background: "var(--bg2)", border: "1px dashed var(--bd)", height: 8 }}></span>Repos</span>
           </div>
         </div>
       </section>
 
-      {/* ══ §4 RECORDS + OBJECTIFS ══ */}
+      {/* ══ §2 CHARGE HEBDO ══ */}
       <section className="fm-section">
         <div className="fm-section-head">
-          <span className="fm-section-num">04</span>
-          <h2 className="fm-section-title">Records · <em>&amp; objectifs</em></h2>
-          <span className="fm-section-meta">personal bests sur 12 mois</span>
+          <span className="fm-section-num">02</span>
+          <h2 className="fm-section-title">Charge hebdo · <em>12 dernières semaines</em></h2>
+          <span className="fm-section-meta">km parcourus · tendance</span>
         </div>
-
-        <div className="fm-goals" style={{marginBottom: 24}}>
-          {FD.goals.map((g) => (
-            <div key={g.label} className="fm-goal">
-              <div className="fm-goal-head">
-                <span className="fm-goal-label">{g.label}</span>
-                <span className="fm-goal-nums"><strong>{g.current}</strong> → {g.target}</span>
-              </div>
-              <div className="fm-goal-bar">
-                <div className="fm-goal-bar-fill" style={{ width: `${g.progress * 100}%` }} />
-              </div>
-              <div className="fm-goal-foot">
-                <span>{(g.progress * 100).toFixed(0)}% · échéance {g.deadline}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="fm-records">
-          {FD.records.map((r) => (
-            <div key={r.label} className="fm-record">
-              <div>
-                <div className="fm-record-label">{r.label}</div>
-                {r.pace && <span className="fm-record-pace">{r.pace}</span>}
-              </div>
-              <div>
-                <div className="fm-record-value">{r.value}</div>
-                <span className="fm-record-date">il y a {r.ago}</span>
-              </div>
-            </div>
-          ))}
+        <div className="fm-chart-wrap">
+          <WeekLoadChart weeks={weekLoad} />
         </div>
       </section>
+
+      {/* ══ §3 COMPOSITION — affiché seulement si Withings branché ══ */}
+      {hasWeight ? (
+        <section className="fm-section">
+          <div className="fm-section-head">
+            <span className="fm-section-num">03</span>
+            <h2 className="fm-section-title">Composition · <em>Withings</em></h2>
+          </div>
+          {/* À implémenter quand le pipeline Withings existe */}
+        </section>
+      ) : (
+        <section className="fm-section fm-empty-section">
+          <div className="fm-section-head">
+            <span className="fm-section-num">03</span>
+            <h2 className="fm-section-title">Composition · <em>Withings</em></h2>
+            <span className="fm-section-meta">source non connectée</span>
+          </div>
+          <div className="fm-empty-card">
+            <p>Pas de données de composition corporelle. Branche un pipeline Withings (poids, masse grasse, masse musculaire) pour activer cette section.</p>
+          </div>
+        </section>
+      )}
+
+      {/* ══ §4 RECORDS ══ */}
+      {FD.records && FD.records.length > 0 && (
+        <section className="fm-section">
+          <div className="fm-section-head">
+            <span className="fm-section-num">04</span>
+            <h2 className="fm-section-title">Records · <em>auto-calculés</em></h2>
+            <span className="fm-section-meta">personal bests depuis la synchronisation</span>
+          </div>
+
+          <div className="fm-records">
+            {FD.records.map((r) => (
+              <div key={r.label} className="fm-record">
+                <div>
+                  <div className="fm-record-label">{r.label}</div>
+                  {r.pace && <span className="fm-record-pace">{r.pace}</span>}
+                </div>
+                <div>
+                  <div className="fm-record-value">{r.value}</div>
+                  <span className="fm-record-date">il y a {r.ago}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ══ §5 SÉANCES RÉCENTES ══ */}
       <section className="fm-section">
@@ -440,54 +317,45 @@ function PanelForme({ data, onNavigate }) {
           <h2 className="fm-section-title">Séances · <em>journal</em></h2>
           <span className="fm-section-meta">les 20 dernières</span>
         </div>
-        <div className="fm-sessions">
-          <div className="fm-sess-head">
-            <span>date</span>
-            <span>type</span>
-            <span>séance</span>
-            <span style={{textAlign:"right"}}>métrique</span>
-            <span style={{textAlign:"right"}}>intensité</span>
-            <span style={{textAlign:"right"}}>durée</span>
-          </div>
-          {FD.sessions.slice(0, 20).map((s, i) => {
-            const d = new Date(s.date);
-            const dateFmt = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-            if (s.type === "run") {
+        {FD.sessions && FD.sessions.length > 0 ? (
+          <div className="fm-sessions">
+            <div className="fm-sess-head">
+              <span>date</span>
+              <span>type</span>
+              <span>séance</span>
+              <span style={{ textAlign: "right" }}>distance · allure</span>
+              <span style={{ textAlign: "right" }}>fc · D+</span>
+              <span style={{ textAlign: "right" }}>durée</span>
+            </div>
+            {FD.sessions.slice(0, 20).map((s, i) => {
+              const d = new Date(s.date);
+              const dateFmt = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+              const hasDistance = s.distance_km > 0;
               const paceMin = Math.floor(s.pace_min_km);
               const paceSec = Math.round((s.pace_min_km - paceMin) * 60);
               return (
                 <div key={i} className="fm-sess-row">
                   <span className="fm-sess-date">{dateFmt}</span>
-                  <span className="fm-sess-type" data-t="run">run</span>
+                  <span className="fm-sess-type" data-t="run">{(s.sport_type || "run").toLowerCase()}</span>
                   <span className="fm-sess-name">{s.name}<small>{s.effort}</small></span>
                   <span className="fm-sess-metric">
-                    {s.distance_km.toFixed(1)} km
-                    <span className="fm-sess-metric-sub">{paceMin}:{String(paceSec).padStart(2,"0")}/km</span>
+                    {hasDistance ? `${s.distance_km.toFixed(1)} km` : "—"}
+                    {hasDistance && <span className="fm-sess-metric-sub">{paceMin}:{String(paceSec).padStart(2, "0")}/km</span>}
                   </span>
                   <span className="fm-sess-metric">
-                    {s.hr_avg} bpm
-                    <span className="fm-sess-metric-sub">+{s.elev_m} m D+</span>
+                    {s.hr_avg ? `${s.hr_avg} bpm` : "—"}
+                    {s.elev_m > 0 && <span className="fm-sess-metric-sub">+{s.elev_m} m D+</span>}
                   </span>
                   <span className="fm-sess-dur">{Math.floor(s.duration_min)}'</span>
                 </div>
               );
-            } else {
-              return (
-                <div key={i} className="fm-sess-row">
-                  <span className="fm-sess-date">{dateFmt}</span>
-                  <span className="fm-sess-type" data-t="lift">lift</span>
-                  <span className="fm-sess-name">{s.name}<small>{s.effort}</small></span>
-                  <span className="fm-sess-metric">
-                    {(s.tonnage_kg / 1000).toFixed(1)} t
-                    <span className="fm-sess-metric-sub">{s.sets} sets</span>
-                  </span>
-                  <span className="fm-sess-metric" style={{color:"var(--tx3)"}}>—</span>
-                  <span className="fm-sess-dur">{s.duration_min}'</span>
-                </div>
-              );
-            }
-          })}
-        </div>
+            })}
+          </div>
+        ) : (
+          <div className="fm-empty-card">
+            <p>Aucune séance Strava synchronisée. Vérifie le workflow <code>strava-sync.yml</code>.</p>
+          </div>
+        )}
       </section>
     </div>
   );

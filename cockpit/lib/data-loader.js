@@ -1965,62 +1965,225 @@
   }
 
   // Build FORME_DATA shape from strava_activities.
+  // The panel consumes: today, week, month, weight_series, sessions,
+  // records, goals. We only have running data (no Withings, no muscu),
+  // so weight_series and composition fields stay null — the panel hides
+  // those sections when _has_weight is false.
   function transformForme(activities){
     const now = Date.now();
     const dayMs = 24 * 3600 * 1000;
-    const acts = (activities || []).slice();
+    const acts = (activities || []).slice().sort((a, b) =>
+      new Date(b.start_date || 0) - new Date(a.start_date || 0)
+    );
+    const runs = acts.filter(a => (a.sport_type || "").toLowerCase().includes("run"));
     const inLastN = (iso, n) => iso && (now - new Date(iso).getTime()) <= n * dayMs;
+    const inRange = (iso, from, to) => {
+      if (!iso) return false;
+      const t = new Date(iso).getTime();
+      return t >= from && t < to;
+    };
     const last7 = acts.filter(a => inLastN(a.start_date, 7));
     const last30 = acts.filter(a => inLastN(a.start_date, 30));
-    const last365 = acts.filter(a => inLastN(a.start_date, 365));
+    const prev30 = acts.filter(a => {
+      const t = new Date(a.start_date || 0).getTime();
+      return t >= now - 60 * dayMs && t < now - 30 * dayMs;
+    });
+    const last7runs = last7.filter(a => (a.sport_type || "").toLowerCase().includes("run"));
+    const last30runs = last30.filter(a => (a.sport_type || "").toLowerCase().includes("run"));
+    const prev30runs = prev30.filter(a => (a.sport_type || "").toLowerCase().includes("run"));
+
     const sumKm = rows => rows.reduce((s, a) => s + (Number(a.distance_m) || 0) / 1000, 0);
     const sumMin = rows => rows.reduce((s, a) => s + (Number(a.moving_time_s) || 0) / 60, 0);
-    const sumHours = rows => sumMin(rows) / 60;
+    const sumElev = rows => rows.reduce((s, a) => s + (Number(a.total_elevation_gain) || 0), 0);
+    const sumCal = rows => rows.reduce((s, a) => s + (Number(a.calories) || 0), 0);
+    // Pace (min/km) as float; handle zero-distance activities (squash).
+    const paceOf = a => {
+      const km = (Number(a.distance_m) || 0) / 1000;
+      const min = (Number(a.moving_time_s) || 0) / 60;
+      return km > 0 ? min / km : 0;
+    };
+    const avgPace = rows => {
+      const valid = rows.filter(a => (Number(a.distance_m) || 0) > 0);
+      if (!valid.length) return 0;
+      const km = sumKm(valid), min = sumMin(valid);
+      return km > 0 ? min / km : 0;
+    };
 
-    // Week-by-week training load for the chart (last 12 weeks).
-    const weeks = [];
-    for (let w = 11; w >= 0; w--) {
-      const to = new Date(now - w * 7 * dayMs);
-      const from = new Date(now - (w + 1) * 7 * dayMs);
-      const acsWk = acts.filter(a => {
-        const t = new Date(a.start_date).getTime();
-        return t >= from.getTime() && t < to.getTime();
-      });
-      weeks.push({
-        week_start: from.toISOString().slice(0, 10),
-        sessions: acsWk.length,
-        km: Math.round(sumKm(acsWk)),
-        minutes: Math.round(sumMin(acsWk)),
-        suffer: acsWk.reduce((s, a) => s + (Number(a.suffer_score) || 0), 0),
-      });
+    // Active-day streak: consecutive days back from today with ≥1 activity.
+    const activeDates = new Set(acts.map(a => (a.start_date || "").slice(0, 10)).filter(Boolean));
+    let streak = 0;
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(now - i * dayMs).toISOString().slice(0, 10);
+      if (activeDates.has(d)) streak++;
+      else if (i > 0) break;  // allow today to be empty, stop on first gap after yesterday
     }
+    const daysActiveThisWeek = new Set(
+      last7.map(a => (a.start_date || "").slice(0, 10)).filter(Boolean)
+    ).size;
 
-    // Journal: last 20 activities.
-    const journal = acts.slice(0, 20).map(a => ({
-      id: a.id,
-      date: (a.start_date || "").slice(0, 10),
-      sport_type: a.sport_type || "—",
-      name: a.name || a.sport_type || "Activité",
-      distance_km: Math.round((Number(a.distance_m) || 0) / 100) / 10,
-      moving_min: Math.round((Number(a.moving_time_s) || 0) / 60),
-      avg_hr: a.average_heartrate ? Math.round(a.average_heartrate) : null,
-      calories: a.calories || null,
-      suffer: a.suffer_score || null,
-    }));
+    // Sessions journal: include every sport, map to the shape the panel
+    // reads (run path). "lift" path is dead code now — no source.
+    const sessions = acts.slice(0, 20).map(a => {
+      const km = (Number(a.distance_m) || 0) / 1000;
+      const min = (Number(a.moving_time_s) || 0) / 60;
+      const pace = km > 0 ? min / km : 0;
+      return {
+        date: (a.start_date || "").slice(0, 10),
+        type: "run",
+        sport_type: a.sport_type || "Run",
+        name: a.name || a.sport_type || "Activité",
+        distance_km: +km.toFixed(2),
+        pace_min_km: +pace.toFixed(2),
+        duration_min: +min.toFixed(1),
+        hr_avg: a.average_heartrate ? Math.round(a.average_heartrate) : null,
+        elev_m: Math.round(Number(a.total_elevation_gain) || 0),
+        calories: a.calories ? Math.round(a.calories) : null,
+        effort: pace > 0 && pace < 4.5 ? "tempo" : km > 15 ? "long" : "easy",
+      };
+    });
+
+    // Records: auto-derive from runs. Pace-based PBs (5k/10k) approximate
+    // by taking the fastest activity whose distance is within the window.
+    const between = (a, lo, hi) => {
+      const km = (Number(a.distance_m) || 0) / 1000;
+      return km >= lo && km <= hi;
+    };
+    const fastestIn = (lo, hi) => {
+      const pool = runs.filter(r => between(r, lo, hi));
+      if (!pool.length) return null;
+      return pool.reduce((best, a) => (paceOf(a) < paceOf(best) ? a : best));
+    };
+    const longestRun = runs.length
+      ? runs.reduce((best, a) => ((Number(a.distance_m)||0) > (Number(best.distance_m)||0) ? a : best))
+      : null;
+    // Max weekly volume (rolling ISO week).
+    const weekBuckets = {};
+    runs.forEach(a => {
+      const d = new Date(a.start_date);
+      // Monday-based week key
+      const day = d.getDay() || 7;
+      const monday = new Date(d); monday.setDate(d.getDate() - day + 1);
+      const k = monday.toISOString().slice(0, 10);
+      weekBuckets[k] = (weekBuckets[k] || 0) + (Number(a.distance_m) || 0) / 1000;
+    });
+    const maxWeekKm = Object.entries(weekBuckets).reduce(
+      (best, [k, v]) => v > best.v ? { k, v } : best,
+      { k: null, v: 0 }
+    );
+
+    const relDays = iso => {
+      if (!iso) return "—";
+      const diff = Math.round((now - new Date(iso).getTime()) / dayMs);
+      if (diff < 1) return "aujourd'hui";
+      if (diff < 30) return `${diff}j`;
+      if (diff < 365) return `${Math.round(diff/30)} mois`;
+      return `${Math.round(diff/365)} an${diff > 730 ? "s" : ""}`;
+    };
+    const fmtTime = min => {
+      const m = Math.floor(min);
+      const s = Math.round((min - m) * 60);
+      return `${m}'${String(s).padStart(2, "0")}"`;
+    };
+    const fmtPace = pace => {
+      if (!pace) return "—";
+      const m = Math.floor(pace);
+      const s = Math.round((pace - m) * 60);
+      return `${m}:${String(s).padStart(2, "0")}/km`;
+    };
+
+    const records = [];
+    const r5 = fastestIn(4.8, 5.5);
+    if (r5) records.push({
+      label: "5 km · meilleure allure",
+      value: fmtTime((Number(r5.distance_m)/1000) * paceOf(r5)),
+      pace: fmtPace(paceOf(r5)),
+      ago: relDays(r5.start_date),
+    });
+    const r10 = fastestIn(9.5, 11);
+    if (r10) records.push({
+      label: "10 km · meilleure allure",
+      value: fmtTime((Number(r10.distance_m)/1000) * paceOf(r10)),
+      pace: fmtPace(paceOf(r10)),
+      ago: relDays(r10.start_date),
+    });
+    const r21 = fastestIn(20, 22);
+    if (r21) records.push({
+      label: "Semi · meilleur temps",
+      value: fmtTime((Number(r21.distance_m)/1000) * paceOf(r21)),
+      pace: fmtPace(paceOf(r21)),
+      ago: relDays(r21.start_date),
+    });
+    const r42 = fastestIn(40, 45);
+    if (r42) records.push({
+      label: "Marathon",
+      value: fmtTime((Number(r42.distance_m)/1000) * paceOf(r42)),
+      pace: fmtPace(paceOf(r42)),
+      ago: relDays(r42.start_date),
+    });
+    if (longestRun) records.push({
+      label: "Plus longue sortie",
+      value: `${((Number(longestRun.distance_m)||0)/1000).toFixed(1)} km`,
+      pace: fmtPace(paceOf(longestRun)),
+      ago: relDays(longestRun.start_date),
+    });
+    if (maxWeekKm.v > 0) records.push({
+      label: "Volume hebdo max",
+      value: `${maxWeekKm.v.toFixed(1)} km`,
+      ago: relDays(maxWeekKm.k),
+    });
+
+    // Km Year-to-date
+    const curYear = new Date(now).getFullYear();
+    const ytdRuns = runs.filter(a => (a.start_date || "").startsWith(String(curYear)));
+
+    const km_week = +sumKm(last7runs).toFixed(1);
+    const km_month = +sumKm(last30runs).toFixed(1);
+    const km_prev = +sumKm(prev30runs).toFixed(1);
 
     return {
-      totals: {
-        sessions_7d: last7.length,
-        sessions_30d: last30.length,
-        km_7d: Math.round(sumKm(last7)),
-        km_30d: Math.round(sumKm(last30)),
-        minutes_7d: Math.round(sumMin(last7)),
-        hours_30d: Math.round(sumHours(last30)),
-        km_ytd: Math.round(sumKm(last365.filter(a => a.start_date.startsWith(new Date(now).getFullYear())))),
+      today: {
+        date: new Date(now).toISOString().slice(0, 10),
+        // Withings fields stay null — panel checks _has_weight to render.
+        weight: null,
+        weight_delta_week: null,
+        weight_delta_month: null,
+        weight_delta_3m: null,
+        fat_pct: null,
+        fat_delta_month: null,
+        muscle_kg: null,
+        muscle_delta_month: null,
+        water_pct: null,
       },
-      weeks,
-      journal,
-      latest: acts[0] || null,
+      week: {
+        km: km_week,
+        runs: last7runs.length,
+        lifts: 0,
+        days_active: daysActiveThisWeek,
+        streak,
+        goal_km: 40,
+      },
+      month: {
+        km: km_month,
+        runs: last30runs.length,
+        lifts: 0,
+        sessions: last30.length,
+        pace_avg: +avgPace(last30runs).toFixed(2),
+        tonnage: 0,
+        tonnage_prev: 0,
+        km_prev,
+        elev_m: Math.round(sumElev(last30runs)),
+        calories: Math.round(sumCal(last30runs)),
+      },
+      year: {
+        km: +sumKm(ytdRuns).toFixed(0),
+        runs: ytdRuns.length,
+      },
+      weight_series: [],
+      sessions,
+      records,
+      goals: [],
+      _has_weight: false,
+      _has_muscu: false,
     };
   }
 
@@ -3028,12 +3191,12 @@
       }
       case "perf": {
         const activities = await T2.strava();
-        if (window.FORME_DATA && activities.length) {
-          const shape = transformForme(activities);
-          // Deep-merge: real data overrides matching keys, unknown fake
-          // keys (weight_series, today.*, sessions[], etc.) stay so the
-          // panel never reads undefined on fields we can't produce yet.
-          mergeInto(window.FORME_DATA, shape);
+        const shape = transformForme(activities || []);
+        if (window.FORME_DATA) {
+          // Full replace: no Withings/muscu source yet, so the fake
+          // weight_series and lift sessions are lies. The panel renders
+          // "no source" placeholders when _has_weight/_has_muscu are false.
+          replaceShape(window.FORME_DATA, shape);
           window.FORME_DATA._raw = activities;
         }
         return { activities };
