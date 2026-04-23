@@ -127,7 +127,7 @@ function FlagshipIdea({ idea, onPromote, onOpenSignal, onCreate, onDig, onArchiv
             <Icon name="arrow_up" size={14} stroke={2} /> Promouvoir en opportunité
           </button>
           <button className="btn btn--ghost" onClick={() => onDig && onDig(idea)} disabled={isPending}>
-            <Icon name="edit" size={14} stroke={1.75} /> Creuser plus
+            <Icon name="edit" size={14} stroke={1.75} /> Modifier
           </button>
           <button className="btn btn--ghost" onClick={() => onArchive && onArchive(idea.id)} disabled={isPending}>
             <Icon name="archive" size={14} stroke={1.75} /> Parquer
@@ -460,7 +460,7 @@ function IdeaDetail({ idea, allIdeas, onClose, onOpenSignal, onPromote, onOpen, 
           </button>
         )}
         <button className="btn btn--ghost" onClick={() => onDig && onDig(idea)} disabled={pending && pending[idea.id]}>
-          <Icon name="edit" size={14} stroke={1.75} /> Creuser plus
+          <Icon name="edit" size={14} stroke={1.75} /> Modifier
         </button>
         <button className="btn btn--ghost" onClick={() => onNavigate && onNavigate("jarvis")}>
           <Icon name="assistant" size={14} stroke={1.75} /> Demander à Jarvis
@@ -583,6 +583,8 @@ function PanelIdeas({ data, onNavigate }) {
   const [suggestDismissed, setSuggestDismissed] = useStateId(() => {
     try { return JSON.parse(localStorage.getItem("idea.suggestDismissed") || "[]"); } catch { return []; }
   });
+  // modal d'édition/création — { open, mode: "create"|"edit", ideaId: string|null, initial: Ticket }
+  const [modal, setModal] = useStateId({ open: false, mode: "create", ideaId: null, initial: null });
   const [, forceRender] = useStateId(0);
   const captureRef = React.useRef(null);
 
@@ -610,6 +612,13 @@ function PanelIdeas({ data, onNavigate }) {
       const tag = (e.target && e.target.tagName || "").toLowerCase();
       const inInput = tag === "input" || tag === "textarea" || (e.target && e.target.isContentEditable);
 
+      // Ctrl+Shift+N → ouvre la modale de création complète (depuis ce panel)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "n") {
+        if (inInput) return;
+        e.preventDefault();
+        openCreateModal();
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n" && !e.shiftKey && !e.altKey) {
         if (inInput) return;
         e.preventDefault();
@@ -617,13 +626,13 @@ function PanelIdeas({ data, onNavigate }) {
         return;
       }
       if (inInput || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === "Escape" && openId) { e.preventDefault(); setOpenId(null); return; }
+      if (e.key === "Escape" && openId && !modal.open) { e.preventDefault(); setOpenId(null); return; }
       if (e.key === "p" || e.key === "P") { e.preventDefault(); setView("pipeline"); return; }
       if (e.key === "g" || e.key === "G") { e.preventDefault(); setView("gallery"); return; }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openId]);
+  }, [openId, modal.open]);
 
   // Tous les labels présents + compte — pour les pills dynamiques.
   const labelCounts = useMemoId(() => {
@@ -715,21 +724,55 @@ function PanelIdeas({ data, onNavigate }) {
     }
   };
 
-  const handleDig = async (idea) => {
-    if (pending[idea.id]) return;
-    const current = idea.notes || idea.body || "";
-    const next = prompt("Ajoute ou édite tes notes sur cette idée :", current);
-    if (next == null || next === current) return;
-    setPending(p => ({ ...p, [idea.id]: true }));
-    try {
-      await patchIdea(idea.id, { notes: next, updated_at: new Date().toISOString() });
-      try { window.track && window.track("idea_dug", { id: idea.id }); } catch {}
-    } catch (e) {
-      console.error(e);
-      alert("Échec de la sauvegarde — réessaie.");
-    } finally {
-      setPending(p => { const n = { ...p }; delete n[idea.id]; return n; });
+  // "Modifier" (legacy, notes quick-edit). La vraie édition complète
+  // passe désormais par openEditModal ci-dessous.
+  const handleDig = (idea) => openEditModal(idea);
+
+  // ─── Ticket modal : create & edit ─────────────────────
+  const openCreateModal = (prefillTitle = "", prefillLabels = []) => {
+    setModal({
+      open: true,
+      mode: "create",
+      ideaId: null,
+      initial: { title: prefillTitle, description: "", labels: prefillLabels },
+    });
+  };
+  const openEditModal = (idea) => {
+    setModal({
+      open: true,
+      mode: "edit",
+      ideaId: idea.id,
+      initial: {
+        title: idea.title || "",
+        // On utilise notes si présent (édition perso), sinon body (description d'origine).
+        description: idea.notes || idea.body || "",
+        labels: Array.isArray(idea.labels) ? [...idea.labels] : [],
+      },
+    });
+  };
+  const closeModal = () => setModal(m => ({ ...m, open: false }));
+
+  const handleModalSave = async (ticket) => {
+    // ticket: { title, description, labels }
+    if (modal.mode === "create") {
+      await createIdea({
+        title: ticket.title,
+        body: ticket.description,
+        labels: ticket.labels,
+      });
+    } else if (modal.mode === "edit" && modal.ideaId) {
+      // Écrit à la fois description (canon) et notes (affiché dans le détail)
+      // pour que les deux restent synchrones jusqu'à ce qu'on unifie.
+      await patchIdea(modal.ideaId, {
+        title: ticket.title,
+        description: ticket.description,
+        notes: ticket.description,
+        labels: ticket.labels,
+        updated_at: new Date().toISOString(),
+      });
+      try { window.track && window.track("idea_edited", { id: modal.ideaId }); } catch {}
     }
+    closeModal();
   };
 
   const handleOpenSignal = () => onNavigate("signals");
@@ -931,6 +974,20 @@ function PanelIdeas({ data, onNavigate }) {
             {capturing ? "…" : "Capturer"}
           </button>
         )}
+        <button
+          type="button"
+          className="btn btn--ghost id-capture-detailed"
+          onClick={() => {
+            const { title, labels } = parseHashtags(captureValue);
+            openCreateModal(title, labels);
+            setCaptureValue("");
+          }}
+          disabled={capturing}
+          title="Ouvrir le formulaire complet (Ctrl+Shift+N)"
+          style={{fontSize: 12, padding: "6px 12px"}}
+        >
+          <Icon name="edit" size={13} stroke={1.75} /> Détails
+        </button>
         {captureMsg && (
           <span style={{
             fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.04em",
@@ -940,7 +997,7 @@ function PanelIdeas({ data, onNavigate }) {
           </span>
         )}
         <span className="id-capture-hint">
-          <span className="id-capture-kbd">⌘</span> <span className="id-capture-kbd">N</span> pour focus
+          <span className="id-capture-kbd">Ctrl</span>+<span className="id-capture-kbd">N</span> rapide · <span className="id-capture-kbd">Ctrl</span>+<span className="id-capture-kbd">⇧</span>+<span className="id-capture-kbd">N</span> modal
         </span>
       </div>
 
@@ -1061,6 +1118,36 @@ function PanelIdeas({ data, onNavigate }) {
           />
         </div>
       )}
+
+      {/* ── TICKET MODAL (create/edit) ────────────── */}
+      <TicketModalSlot
+        state={modal}
+        onSave={handleModalSave}
+        onCancel={closeModal}
+        suggestions={labelCounts.map(([l]) => l)}
+      />
     </div>
+  );
+}
+
+// Slot qui lit window.TicketModal à l'exécution (composant chargé avant
+// panel-ideas.jsx via <script type="text/babel">).
+function TicketModalSlot({ state, onSave, onCancel, suggestions }) {
+  const Mod = window.TicketModal;
+  if (!Mod) return null;
+  return (
+    <Mod
+      open={state.open}
+      mode={state.mode}
+      initial={state.initial}
+      title={state.mode === "edit" ? "Modifier l'idée" : "Nouvelle idée"}
+      hint={state.mode === "create"
+        ? "Structure réutilisable : titre, description, libellés. Tu pourras enrichir plus tard."
+        : "Modifie le ticket. Scores, signaux, statut se pilotent ailleurs."
+      }
+      onSave={onSave}
+      onCancel={onCancel}
+      labelSuggestions={suggestions}
+    />
   );
 }

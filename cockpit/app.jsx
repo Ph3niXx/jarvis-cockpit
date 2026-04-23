@@ -5,7 +5,8 @@ const { useState, useEffect } = React;
 // panel file; this is only the top-level index.
 const KEYBOARD_SHORTCUTS = [
   { group: "Navigation", keys: ["Ctrl", "K"],         label: "Ouvrir la recherche" },
-  { group: "Navigation", keys: ["Ctrl", "N"],         label: "Nouvelle idée (carnet)" },
+  { group: "Navigation", keys: ["Ctrl", "N"],         label: "Capture rapide (carnet)" },
+  { group: "Navigation", keys: ["Ctrl", "Shift", "N"], label: "Nouvelle idée avec modal (titre, description, libellés)" },
   { group: "Navigation", keys: ["Ctrl", "1-8"],       label: "Aller au panel N (Brief, Top, Nouveautés, Signaux, Opportunités, Idées, Radar, Jarvis)" },
   { group: "Navigation", keys: ["Ctrl", "B"],         label: "Replier / déplier la sidebar" },
   { group: "Navigation", keys: ["?"],                  label: "Afficher cette aide" },
@@ -14,6 +15,9 @@ const KEYBOARD_SHORTCUTS = [
   { group: "Carnet d'idées", keys: ["G"],              label: "Vue galerie" },
   { group: "Carnet d'idées", keys: ["#libellé"],       label: "Tagger l'idée pendant la capture" },
   { group: "Carnet d'idées", keys: ["Glisser carte"],  label: "Changer de statut (entre colonnes)" },
+  { group: "Modal ticket",    keys: ["Ctrl", "Entrée"], label: "Enregistrer" },
+  { group: "Modal ticket",    keys: ["Tab"],            label: "Valider le libellé en cours de saisie" },
+  { group: "Modal ticket",    keys: ["Échap"],          label: "Annuler sans enregistrer" },
 ];
 
 function ShortcutsOverlay({ open, onClose }) {
