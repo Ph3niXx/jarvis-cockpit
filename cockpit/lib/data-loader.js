@@ -216,9 +216,14 @@
         summary: { avg: 0, strongest: null, weakest: null, level_global: "—", position_peers: "—" },
       };
     }
+    // Score scale: DB stores 0-5 canonical (granular +0.5 rewards from
+    // challenges), display is 0-100. Values already ≥ 6 are assumed to be
+    // on the 0-100 scale (migration forward-compat). The x20 factor now
+    // matches bumpSkillRadar's optimistic update — fixes the earlier
+    // discrepancy where 5 showed as 50.
     const norm = r => {
       const s = Number(r.score || 0);
-      return s <= 10 ? s * 10 : Math.min(100, s);
+      return s <= 5 ? s * 20 : Math.min(100, s);
     };
     // 30-day delta from the per-axis history JSONB (written by the
     // diagnostic + weekly scoring). Falls back to 0 if the axis has no
@@ -235,8 +240,28 @@
         .filter(h => !Number.isNaN(h.t) && h.t <= CUTOFF_MS)
         .sort((a, b) => b.t - a.t)[0];
       if (!older) return 0;
-      const oldNorm = older.s <= 10 ? older.s * 10 : Math.min(100, older.s);
+      const oldNorm = older.s <= 5 ? older.s * 20 : Math.min(100, older.s);
       return Math.round(currentScore - oldNorm);
+    }
+    // Parse history once and expose the last 12 entries as a normalized
+    // series, used by the AxisDetail sparkline.
+    function parseHistory(rawHistory){
+      let hist = rawHistory;
+      if (typeof hist === "string") {
+        try { hist = JSON.parse(hist); } catch { return []; }
+      }
+      if (!Array.isArray(hist)) return [];
+      return hist
+        .map(h => {
+          const t = new Date(h.date).getTime();
+          const s = Number(h.score);
+          if (Number.isNaN(t) || Number.isNaN(s)) return null;
+          const scaled = s <= 5 ? Math.round(s * 20) : Math.min(100, Math.round(s));
+          return { date: h.date, score: scaled };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-12);
     }
     const axes = rows.map(r => {
       const label = r.axis_label || r.axis;
@@ -251,6 +276,7 @@
         gap: score < 50,
         target: Number(r.target || 85),
         delta_30d: delta30(r.history, score),
+        history_12w: parseHistory(r.history),
         axis: r.axis,
         axis_label: label,
         strengths: r.strengths || "",

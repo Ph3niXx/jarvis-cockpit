@@ -132,8 +132,21 @@ function PanelChallenges({ data, onNavigate }) {
   const [filter, setFilter] = useStateChal("open"); // "open" | "recommended" | "all" | "done"
   const [active, setActive] = useStateChal(null); // challenge in progress
   const [completed, setCompleted] = useStateChal(null); // challenge just completed
+  const [axisFilter, setAxisFilter] = useStateChal(null); // axis id prefilled from radar
   // Bump to force re-render after applyAttemptsToChallenges mutates CHALLENGES_DATA.
   const [revision, setRevision] = useStateChal(0);
+
+  // Consume axis prefill stashed by panel-radar's "Défi cet axe" CTA.
+  // The prefill is single-use — cleared after consumption.
+  useEffectChal(() => {
+    try {
+      const axis = localStorage.getItem("challenges-prefill-axis");
+      if (axis) {
+        localStorage.removeItem("challenges-prefill-axis");
+        setAxisFilter(axis);
+      }
+    } catch {}
+  }, []);
 
   const recordAttempt = async (result) => {
     const priorAttempts = c._attempts || [];
@@ -161,10 +174,12 @@ function PanelChallenges({ data, onNavigate }) {
 
   const list = mode === "theory" ? c.theory : c.practice;
   const filtered = useMemoChal(() => {
-    if (filter === "all") return list;
-    if (filter === "recommended") return list.filter(x => x.status === "recommended" || x.status === "open");
-    return list.filter(x => x.status === filter);
-  }, [list, filter]);
+    let l = list;
+    if (axisFilter) l = l.filter(x => x.axis === axisFilter);
+    if (filter === "all") return l;
+    if (filter === "recommended") return l.filter(x => x.status === "recommended" || x.status === "open");
+    return l.filter(x => x.status === filter);
+  }, [list, filter, axisFilter]);
 
   const recommended = list.filter(x => x.status === "recommended");
   const openCount = list.filter(x => x.status === "open" || x.status === "recommended").length;

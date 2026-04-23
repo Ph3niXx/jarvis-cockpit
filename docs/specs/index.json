@@ -98,7 +98,8 @@
       "group": "Apprentissage",
       "dom_id": "radar",
       "scope": "pro",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-23"
     },
     {
       "slug": "recos",

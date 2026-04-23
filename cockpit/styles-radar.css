@@ -530,3 +530,35 @@
     max-height: none;
   }
 }
+
+/* ─── Axis detail sparkline (12-week history) ─── */
+.radar-detail-spark {
+  margin: 18px 0 14px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+}
+.radar-detail-spark-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.radar-detail-spark-label {
+  font-family: var(--font-mono, "JetBrains Mono"), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+.radar-detail-spark-range {
+  font-family: var(--font-mono, "JetBrains Mono"), monospace;
+  font-size: 10px;
+  color: var(--tx3);
+}
+.radar-detail-spark-svg {
+  width: 100%;
+  height: 44px;
+  display: block;
+}

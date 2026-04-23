@@ -35,7 +35,7 @@ function PanelRadar({ data, onNavigate }) {
           Ton niveau IA, <em className="serif-italic">axe par axe</em>
         </h1>
         <p className="panel-hero-sub">
-          Moyenne générale <strong>{summary.avg}/100</strong> — <strong>{summary.level_global}</strong>. Score calculé sur tes lectures, challenges complétés et diagnostic. Clique un axe pour le détail et les recos associées.
+          Moyenne générale <strong>{summary.avg}/100</strong> — <strong>{summary.level_global}</strong>. Les scores bougent quand tu complètes des challenges IA (+0,5 pt par challenge passé à 70%+). Clique un axe pour le détail, l'historique 12 semaines et les recos associées.
         </p>
       </div>
 
@@ -133,7 +133,7 @@ function RadarSpider({ axes, summary, selectedAxis, onSelectAxis, selected, stro
             <p className="radar-narrative-body">
               {strongest ? (
                 <>Tu domines sur <strong>{strongest.label}</strong> ({strongest.score}/100, niveau {strongest.level.toLowerCase()}). C'est là où tu peux rayonner auprès de tes pairs.</>
-              ) : "Radar non initialisé — lance le diagnostic pour voir tes forces."}
+              ) : "Radar vide — complète un premier challenge pour lancer ton historique."}
             </p>
           </div>
           <div className="radar-narrative-item">
@@ -289,6 +289,38 @@ function AxisList({ axes, onSelect }) {
   );
 }
 
+// 12-week mini sparkline — SVG polyline of the axis history (post-
+// normalization to 0-100). Silent if history too short to be meaningful.
+function AxisSparkline({ history }) {
+  if (!Array.isArray(history) || history.length < 2) return null;
+  const W = 220, H = 44, PAD = 4;
+  const scores = history.map(h => h.score);
+  const minV = Math.min(...scores, 0);
+  const maxV = Math.max(...scores, 100);
+  const span = Math.max(1, maxV - minV);
+  const step = (W - PAD * 2) / Math.max(1, history.length - 1);
+  const pts = history.map((h, i) => {
+    const x = PAD + i * step;
+    const y = PAD + (H - PAD * 2) * (1 - (h.score - minV) / span);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const last = history[history.length - 1];
+  const lastX = PAD + (history.length - 1) * step;
+  const lastY = PAD + (H - PAD * 2) * (1 - (last.score - minV) / span);
+  return (
+    <div className="radar-detail-spark">
+      <div className="radar-detail-spark-head">
+        <span className="radar-detail-spark-label">Historique · {history.length} points</span>
+        <span className="radar-detail-spark-range">{history[0].date.slice(5)} → {last.date.slice(5)}</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="radar-detail-spark-svg" preserveAspectRatio="none">
+        <polyline points={pts.join(" ")} fill="none" stroke="var(--brand)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={lastX} cy={lastY} r="2.5" fill="var(--brand)" />
+      </svg>
+    </div>
+  );
+}
+
 function AxisDetail({ axis, onClose, onNavigate }) {
   const trend = axis.delta_30d > 0 ? "up" : axis.delta_30d < 0 ? "down" : "flat";
   const gap = axis.target - axis.score;
@@ -326,6 +358,7 @@ function AxisDetail({ axis, onClose, onNavigate }) {
           </span>
         </div>
       </div>
+      <AxisSparkline history={axis.history_12w} />
       <blockquote className="radar-detail-note">
         <span className="radar-detail-note-mark">Note de Jarvis</span>
         <span className="radar-detail-note-text">{axis.note}</span>
@@ -333,13 +366,19 @@ function AxisDetail({ axis, onClose, onNavigate }) {
       <div className="radar-detail-actions">
         <button
           className="btn btn--primary btn--sm"
-          onClick={() => onNavigate && onNavigate("recos")}
+          onClick={() => {
+            try { localStorage.setItem("recos-prefill-axis", axis.axis || axis.id); } catch {}
+            if (onNavigate) onNavigate("recos");
+          }}
         >
           <Icon name="arrow_right" size={12} stroke={2} /> Voir recos
         </button>
         <button
           className="btn btn--ghost btn--sm"
-          onClick={() => onNavigate && onNavigate("challenges")}
+          onClick={() => {
+            try { localStorage.setItem("challenges-prefill-axis", axis.axis || axis.id); } catch {}
+            if (onNavigate) onNavigate("challenges");
+          }}
         >
           <Icon name="trophy" size={12} stroke={1.75} /> Défi cet axe
         </button>

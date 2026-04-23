@@ -1,6 +1,6 @@
 // Panel : Apprentissage → Recommandations
 // Deux variantes : "flux" (éditorial priorisé) et "constellation" (metaphore visuelle)
-const { useState: useStateReco, useMemo: useMemoReco } = React;
+const { useState: useStateReco, useMemo: useMemoReco, useEffect: useEffectReco } = React;
 
 function isoWeekReco(d){
   const t = new Date(d);
@@ -30,6 +30,17 @@ function PanelRecos({ data, onNavigate }) {
   const [axisFilter, setAxisFilter] = useStateReco(null);
   const [timeFilter, setTimeFilter] = useStateReco("all");
   const [hideDone, setHideDone] = useStateReco(false);
+
+  // Consume axis prefill stashed by panel-radar's "Voir recos" CTA.
+  useEffectReco(() => {
+    try {
+      const axis = localStorage.getItem("recos-prefill-axis");
+      if (axis) {
+        localStorage.removeItem("recos-prefill-axis");
+        setAxisFilter(axis);
+      }
+    } catch {}
+  }, []);
   // id -> true | false (instant optimistic override of r.completed / r.unread)
   const [completedOverrides, setCompletedOverrides] = useStateReco({});
   const [pendingIds, setPendingIds] = useStateReco({});
