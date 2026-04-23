@@ -1,0 +1,26 @@
+name: Validate Jarvis Spec
+
+on:
+  push:
+    paths:
+      - 'jarvis/spec.json'
+      - 'scripts/validate_spec.py'
+      - '.github/workflows/validate-spec.yml'
+  pull_request:
+    paths:
+      - 'jarvis/spec.json'
+      - 'scripts/validate_spec.py'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run spec validator
+        run: python scripts/validate_spec.py

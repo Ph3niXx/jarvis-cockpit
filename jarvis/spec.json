@@ -1,0 +1,266 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "updated_at": "2026-04-23",
+    "description": "Source de vérité des features du projet Jarvis. Tenu à jour par Claude Code à chaque modification."
+  },
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Inférence locale",
+      "status": "done",
+      "order": 1,
+      "features": [
+        {
+          "id": "lm-studio-qwen",
+          "name": "LM Studio + Qwen3.5 9B",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Inférence locale via LM Studio avec Qwen3.5 9B Q4_K_M sur RTX 5070. Choisi pour son support stable des GPU Blackwell RTX 50-series.",
+          "implementation": {
+            "files": [],
+            "dependencies": ["LM Studio installé", "RTX 5070 12GB VRAM", "32GB RAM"],
+            "key_decisions": [
+              "LM Studio plutôt qu'Ollama pour support Blackwell stable",
+              "Quantization Q4_K_M pour équilibre qualité/VRAM",
+              "Thinking mode désactivé via UI LM Studio (pas en code client) — ~12x plus rapide sur tâches simples"
+            ]
+          },
+          "metrics": {
+            "throughput": "~36 tok/s",
+            "vram_usage": "~7GB"
+          },
+          "depends_on": [],
+          "updated_at": "2026-04-23"
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "RAG pipeline",
+      "status": "done",
+      "order": 2,
+      "features": [
+        {
+          "id": "pgvector-setup",
+          "name": "pgvector sur Supabase",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Extension pgvector activée sur Supabase, table `memories_vectors` pour stocker les embeddings des mémoires indexées.",
+          "implementation": {
+            "files": [],
+            "dependencies": ["Supabase project", "pgvector extension"],
+            "key_decisions": [
+              "Table dédiée memories_vectors (append-only comme le reste)",
+              "Embeddings Qwen3-Embedding-0.6B Q8_0"
+            ]
+          },
+          "depends_on": [],
+          "updated_at": "2026-04-23"
+        },
+        {
+          "id": "indexer",
+          "name": "Indexer",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Script d'indexation qui génère les embeddings localement et les pousse dans memories_vectors.",
+          "implementation": {
+            "files": ["jarvis/indexer.py"],
+            "dependencies": ["LM Studio avec Qwen3-Embedding chargé", "pgvector-setup"],
+            "key_decisions": [
+              "Freshness check par COUNT de lignes (pas par timestamp)"
+            ]
+          },
+          "depends_on": ["phase-2.pgvector-setup"],
+          "updated_at": "2026-04-23"
+        },
+        {
+          "id": "retriever",
+          "name": "Retriever",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Recherche par similarité sémantique dans pgvector. Seuil calibré à 0.3 pour la distribution spécifique de Qwen3-Embedding.",
+          "implementation": {
+            "files": ["jarvis/retriever.py"],
+            "dependencies": ["indexer"],
+            "key_decisions": [
+              "Seuil 0.3 (plus bas que les tutoriels standards)",
+              "Cross-language FR/EN identifié comme limitation — traduction prévue Phase 4"
+            ]
+          },
+          "metrics": {
+            "similarity_threshold": 0.3
+          },
+          "depends_on": ["phase-2.indexer"],
+          "updated_at": "2026-04-23"
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "Serveur FastAPI & Chat Tab",
+      "status": "in_progress",
+      "order": 3,
+      "features": [
+        {
+          "id": "fastapi-server",
+          "name": "Serveur FastAPI localhost:8765",
+          "status": "in_progress",
+          "scope": "perso",
+          "progress": 70,
+          "description": "Serveur FastAPI local qui expose le pipeline Jarvis (retrieve + génération) via HTTP pour consommation par le cockpit.",
+          "implementation": {
+            "files": ["jarvis/server.py"],
+            "dependencies": ["retriever", "LM Studio running"],
+            "key_decisions": [
+              "Port 8765 fixe",
+              "Pas d'authentification (localhost uniquement)"
+            ]
+          },
+          "depends_on": ["phase-2.retriever"],
+          "next_steps": ["Ajouter endpoint /health", "Finaliser gestion d'erreur LM Studio off"],
+          "updated_at": "2026-04-23"
+        },
+        {
+          "id": "start-script",
+          "name": "start_jarvis.bat",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Launcher Windows qui démarre le serveur FastAPI avec freshness-check préalable avant réindexation.",
+          "implementation": {
+            "files": ["jarvis/start_jarvis.bat"],
+            "dependencies": ["fastapi-server"],
+            "key_decisions": [
+              "Freshness check avant indexing (COUNT comparison)"
+            ]
+          },
+          "depends_on": ["phase-3.fastapi-server"],
+          "updated_at": "2026-04-23"
+        },
+        {
+          "id": "chat-tab",
+          "name": "Onglet Jarvis dans le cockpit",
+          "status": "in_progress",
+          "scope": "perso",
+          "progress": 50,
+          "description": "Interface de chat intégrée au cockpit qui consomme le serveur FastAPI local.",
+          "implementation": {
+            "files": ["index.html"],
+            "dependencies": ["fastapi-server"],
+            "key_decisions": []
+          },
+          "depends_on": ["phase-3.fastapi-server"],
+          "updated_at": "2026-04-23"
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Orchestrator",
+      "status": "backlog",
+      "order": 4,
+      "features": [
+        {
+          "id": "manual-routing",
+          "name": "Routage manuel /cloud /deep",
+          "status": "backlog",
+          "scope": "perso",
+          "progress": 0,
+          "description": "Commandes slash pour router explicitement vers Qwen local, Claude cloud, ou mode deep-thinking. Phase de collecte de données avant automatisation.",
+          "implementation": {
+            "files": [],
+            "dependencies": ["fastapi-server"],
+            "key_decisions": [
+              "Manuel avant automatique — collecter usage réel d'abord"
+            ]
+          },
+          "depends_on": ["phase-3.fastapi-server"],
+          "updated_at": "2026-04-23"
+        },
+        {
+          "id": "auto-router",
+          "name": "Router automatique LLM",
+          "status": "backlog",
+          "scope": "perso",
+          "progress": 0,
+          "description": "Classifieur qui route automatiquement les requêtes vers le bon modèle selon la complexité. Construit à partir des données collectées en routage manuel.",
+          "implementation": {
+            "files": [],
+            "dependencies": ["manual-routing avec données accumulées"],
+            "key_decisions": []
+          },
+          "depends_on": ["phase-4.manual-routing"],
+          "updated_at": "2026-04-23"
+        },
+        {
+          "id": "cross-language-rag",
+          "name": "RAG cross-language FR/EN",
+          "status": "backlog",
+          "scope": "perso",
+          "progress": 0,
+          "description": "Traduction de requête pour résoudre la limitation cross-language identifiée en Phase 2.",
+          "implementation": {
+            "files": [],
+            "dependencies": ["retriever"],
+            "key_decisions": []
+          },
+          "depends_on": ["phase-2.retriever"],
+          "updated_at": "2026-04-23"
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "Nightly learning loop",
+      "status": "backlog",
+      "order": 5,
+      "features": [
+        {
+          "id": "nightly-loop",
+          "name": "Boucle d'apprentissage nocturne",
+          "status": "backlog",
+          "scope": "perso",
+          "progress": 0,
+          "description": "Pipeline nocturne qui consolide les conversations de la journée, extrait patterns et met à jour la base de mémoires.",
+          "implementation": {
+            "files": [],
+            "dependencies": [],
+            "key_decisions": [
+              "Extraction faits/entités en temps réel via Qwen local (pas en batch nocturne)"
+            ]
+          },
+          "depends_on": ["phase-4.manual-routing"],
+          "updated_at": "2026-04-23"
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "name": "Interface ambiante",
+      "status": "backlog",
+      "order": 6,
+      "features": [
+        {
+          "id": "voice-interface",
+          "name": "Interface vocale",
+          "status": "backlog",
+          "scope": "perso",
+          "progress": 0,
+          "description": "Whisper pour STT, Piper ou Kokoro pour TTS. Jarvis accessible à la voix.",
+          "implementation": {
+            "files": [],
+            "dependencies": ["Whisper installé", "Piper ou Kokoro installé"],
+            "key_decisions": []
+          },
+          "depends_on": ["phase-3.fastapi-server"],
+          "updated_at": "2026-04-23"
+        }
+      ]
+    }
+  ]
+}
