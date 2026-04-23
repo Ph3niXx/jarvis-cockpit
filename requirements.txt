@@ -1,6 +1,6 @@
 fastapi>=0.110.0
 feedparser==6.0.11
-google-generativeai==0.8.5
+google-genai>=1.0.0
 openai>=1.0.0
 requests==2.32.3
 uvicorn[standard]>=0.27.0

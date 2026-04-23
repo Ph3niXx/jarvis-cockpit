@@ -24,7 +24,8 @@ from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from html.parser import HTMLParser
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 
@@ -176,15 +177,36 @@ def _log_gemini_call(pipeline, step, model_name, prompt, response=None, error=No
         print(f"   [WARN] gemini_api_calls log failed: {e}")
 
 
-def call_gemini(model, prompt, *, pipeline, step, model_name):
-    """Wrapper around model.generate_content that logs the call to gemini_api_calls.
+_genai_client = None
 
-    Re-raises exceptions so callers can still handle errors locally; we only
-    tap the logging on the way through.
+
+def _get_genai_client():
+    global _genai_client
+    if _genai_client is None:
+        _genai_client = genai.Client(api_key=GEMINI_API_KEY)
+    return _genai_client
+
+
+def call_gemini(prompt, *, pipeline, step, model_name, use_grounding=False):
+    """Appelle Gemini via le SDK google-genai et log chaque appel dans gemini_api_calls.
+
+    use_grounding=True active l'outil Google Search (pour web search temps reel).
+    Re-raise les exceptions — le logging est transparent.
     """
+    client = _get_genai_client()
+    config = None
+    if use_grounding:
+        config = genai_types.GenerateContentConfig(
+            tools=[genai_types.Tool(google_search=genai_types.GoogleSearch())],
+        )
+
     t0 = _time.time()
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=config,
+        )
         latency_ms = int((_time.time() - t0) * 1000)
         _log_gemini_call(pipeline, step, model_name, prompt, response=response, latency_ms=latency_ms)
         return response
@@ -288,8 +310,7 @@ def fetch_recent_articles():
 # ─── STEP 3 : WEB SEARCH VIA GEMINI ──────────────────────────────────────────
 
 def web_search_ai_news():
-    """Recherche web temps réel via Gemini grounding."""
-    genai.configure(api_key=GEMINI_API_KEY)
+    """Recherche web temps réel via Gemini grounding (google_search tool)."""
     today = datetime.now().strftime("%d %B %Y")
 
     queries = [
@@ -300,17 +321,6 @@ def web_search_ai_news():
         f"AI regulation Europe energy sector {today}",
     ]
 
-    # Essayer le grounding Google Search (API Gemini 2.x : google_search, plus google_search_retrieval)
-    try:
-        model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash-lite",
-            tools="google_search",
-        )
-        use_grounding = True
-    except Exception:
-        model = genai.GenerativeModel("gemini-2.5-flash-lite")
-        use_grounding = False
-
     web_results = []
     for query in queries:
         try:
@@ -319,10 +329,11 @@ def web_search_ai_news():
                 f"Résume en 3-4 points factuels avec les URLs des sources. Sois très concis."
             )
             response = call_gemini(
-                model, prompt,
+                prompt,
                 pipeline="main.py",
-                step="web_search_grounded" if use_grounding else "web_search",
+                step="web_search_grounded",
                 model_name="gemini-2.5-flash-lite",
+                use_grounding=True,
             )
             web_results.append({
                 "query": query,
@@ -331,7 +342,7 @@ def web_search_ai_news():
         except Exception as e:
             web_results.append({"query": query, "result": f"Erreur: {str(e)[:100]}"})
 
-    print(f"   → {len(web_results)} recherches web complétées (grounding={'on' if use_grounding else 'fallback'})")
+    print(f"   → {len(web_results)} recherches web complétées (grounding=on)")
     return web_results
 
 
@@ -364,7 +375,6 @@ RTE_SEARCH_QUERIES = {
 
 def search_rte_articles():
     """Recherche web d'articles RTE concrets via Gemini grounding (2 queries/jour, rotation)."""
-    genai.configure(api_key=GEMINI_API_KEY)
     today = datetime.now()
     weekday = today.weekday()
 
@@ -373,16 +383,6 @@ def search_rte_articles():
         return 0
 
     queries = RTE_SEARCH_QUERIES.get(weekday, RTE_SEARCH_QUERIES[0])
-
-    try:
-        model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash-lite",
-            tools="google_search",
-        )
-        use_grounding = True
-    except Exception:
-        model = genai.GenerativeModel("gemini-2.5-flash-lite")
-        use_grounding = False
 
     articles = []
     for tool_label, query in queries:
@@ -395,10 +395,11 @@ def search_rte_articles():
                 f"Only include real articles with real URLs. Be factual."
             )
             response = call_gemini(
-                model, prompt,
+                prompt,
                 pipeline="main.py",
-                step="rte_search",
+                step="rte_search_grounded",
                 model_name="gemini-2.5-flash-lite",
+                use_grounding=True,
             )
             text = response.text or ""
 
@@ -809,9 +810,6 @@ def save_to_supabase(articles):
 # ─── STEP 7 : GENERATE BRIEF ─────────────────────────────────────────────────
 
 def generate_brief(articles, web_results):
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-2.5-flash-lite")
-
     articles_text = "\n\n".join([
         f"[{a['source']} | {a['section']}] {a['title']} ({a['date']})\n{a['summary'][:300]}\nURL: {a['link']}"
         for a in articles[:80]  # Limiter pour rester dans le context
@@ -872,7 +870,7 @@ RÈGLES :
 
     try:
         response = call_gemini(
-            model, prompt,
+            prompt,
             pipeline="main.py",
             step="brief_generation",
             model_name="gemini-2.5-flash-lite",
