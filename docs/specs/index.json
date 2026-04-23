@@ -128,7 +128,8 @@
       "group": "Apprentissage",
       "dom_id": "wiki",
       "scope": "pro",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-23"
     },
     {
       "slug": "signals",

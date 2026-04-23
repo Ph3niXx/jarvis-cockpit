@@ -11,6 +11,18 @@ function PanelWiki({ data, onNavigate }) {
   const [kind, setKind] = useStateWiki("all"); // all | auto | perso
   const [sort, setSort] = useStateWiki("recent"); // recent | alpha | popular
 
+  // Consume deep-link stash from app.jsx (#wiki/slug) — single-use.
+  useEffectWiki(() => {
+    try {
+      const slug = localStorage.getItem("wiki-open-entry");
+      if (slug) {
+        localStorage.removeItem("wiki-open-entry");
+        const entry = (w.entries || []).find(e => e.id === slug || e.slug === slug);
+        if (entry) setActive(entry);
+      }
+    } catch {}
+  }, []);
+
   const filtered = useMemoWiki(() => {
     let list = w.entries.slice();
     if (category !== "all") list = list.filter(e => e.category === category);
@@ -242,70 +254,44 @@ function WikiDetail({ entry: e, allEntries, onBack, onOpen, onNavigate }) {
     if (onNavigate) onNavigate("jarvis");
   };
 
-  // parse markdown-lite
-  const parts = useMemoWiki(() => {
-    const lines = e.content.split(/\n/);
-    const out = [];
-    let inList = false;
-    let listItems = [];
-    const flushList = () => {
-      if (listItems.length) {
-        out.push({ type: "list", items: listItems });
-        listItems = [];
-      }
-      inList = false;
-    };
-    lines.forEach((ln) => {
-      if (ln.startsWith("## ")) {
-        flushList();
-        out.push({ type: "h2", text: ln.slice(3) });
-      } else if (ln.startsWith("# ")) {
-        flushList();
-        out.push({ type: "h1", text: ln.slice(2) });
-      } else if (ln.startsWith("> ")) {
-        flushList();
-        out.push({ type: "quote", text: ln.slice(2) });
-      } else if (ln.startsWith("- ")) {
-        inList = true;
-        listItems.push(ln.slice(2));
-      } else if (ln.match(/^\d+\. /)) {
-        inList = true;
-        listItems.push(ln.replace(/^\d+\. /, ""));
-      } else if (ln.trim() === "") {
-        flushList();
-        out.push({ type: "br" });
-      } else {
-        flushList();
-        out.push({ type: "p", text: ln });
+  // Markdown rendering via marked + DOMPurify (both loaded via CDN).
+  // Strategy: lex the source to pull heading metadata for the TOC, then
+  // feed the same token list to the default parser. After rendering,
+  // regex-inject stable ids into the top-level heading tags so the TOC
+  // scroll-to works. Avoids overriding the renderer (API quirks in
+  // marked v11).
+  const { contentHtml, tocItems } = useMemoWiki(() => {
+    const src = e.content || "";
+    if (typeof window.marked === "undefined") {
+      const escaped = src.replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+      return { contentHtml: `<pre>${escaped}</pre>`, tocItems: [] };
+    }
+    const slug = (s) => String(s || "").toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").slice(0, 80);
+    const tokens = window.marked.lexer(src);
+    const toc = [];
+    const ids = [];  // parallel list of ids for every heading, depth ≤ 3 OR higher
+    const seen = new Set();
+    tokens.forEach(t => {
+      if (t.type === "heading") {
+        let id = slug(t.text || t.raw) || `h-${ids.length}`;
+        let i = 1;
+        while (seen.has(id)) { id = slug(t.text || t.raw) + "-" + i++; }
+        seen.add(id);
+        ids.push(id);
+        if (t.depth <= 3) toc.push({ id, depth: t.depth, text: t.text });
       }
     });
-    flushList();
-    return out;
+    let html = window.marked.parser(tokens);
+    let headingIdx = 0;
+    html = html.replace(/<h([1-6])>/g, (_, d) => {
+      const id = ids[headingIdx++];
+      return id ? `<h${d} id="${id}">` : `<h${d}>`;
+    });
+    const safeHtml = window.DOMPurify ? window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } }) : html;
+    return { contentHtml: safeHtml, tocItems: toc };
   }, [e.content]);
-
-  // render with ** bold ** and * italic * simple parsing
-  const renderInline = (t) => {
-    const tokens = [];
-    let rest = t;
-    let key = 0;
-    while (rest.length) {
-      const m = rest.match(/\*\*([^*]+)\*\*/);
-      const mI = rest.match(/\*([^*]+)\*/);
-      if (m && (!mI || m.index <= mI.index)) {
-        tokens.push(rest.slice(0, m.index));
-        tokens.push(<strong key={key++}>{m[1]}</strong>);
-        rest = rest.slice(m.index + m[0].length);
-      } else if (mI) {
-        tokens.push(rest.slice(0, mI.index));
-        tokens.push(<em key={key++}>{mI[1]}</em>);
-        rest = rest.slice(mI.index + mI[0].length);
-      } else {
-        tokens.push(rest);
-        rest = "";
-      }
-    }
-    return tokens;
-  };
 
   return (
     <div className="panel-page panel-page--wiki-detail" data-screen-label="Wiki — détail">
@@ -351,21 +337,10 @@ function WikiDetail({ entry: e, allEntries, onBack, onOpen, onNavigate }) {
             </div>
           </header>
 
-          <div className="wiki-detail-content">
-            {parts.map((part, i) => {
-              if (part.type === "h1") return <h2 key={i} id={`toc-${i}`} className="wiki-content-h2">{renderInline(part.text)}</h2>;
-              if (part.type === "h2") return <h3 key={i} id={`toc-${i}`} className="wiki-content-h3">{renderInline(part.text)}</h3>;
-              if (part.type === "p") return <p key={i} className="wiki-content-p">{renderInline(part.text)}</p>;
-              if (part.type === "quote") return <blockquote key={i} className="wiki-content-quote">{renderInline(part.text)}</blockquote>;
-              if (part.type === "list") return (
-                <ul key={i} className="wiki-content-list">
-                  {part.items.map((li, j) => <li key={j}>{renderInline(li)}</li>)}
-                </ul>
-              );
-              if (part.type === "br") return null;
-              return null;
-            })}
-          </div>
+          <div
+            className="wiki-detail-content wiki-markdown"
+            dangerouslySetInnerHTML={{ __html: contentHtml }}
+          />
 
           {e.kind === "auto" && (
             <div className="wiki-detail-foot-auto">
@@ -380,21 +355,21 @@ function WikiDetail({ entry: e, allEntries, onBack, onOpen, onNavigate }) {
           <section className="wiki-aside-section">
             <div className="section-kicker">Dans cette entrée</div>
             <ul className="wiki-toc">
-              {parts.filter(p => p.type === "h1" || p.type === "h2").map((p, i) => (
-                <li key={i}>
+              {tocItems.map((it) => (
+                <li key={it.id} className={`wiki-toc-depth-${it.depth}`}>
                   <a
-                    href={`#toc-${i}`}
+                    href={`#${it.id}`}
                     onClick={ev => {
                       ev.preventDefault();
-                      const el = document.getElementById(`toc-${i}`);
+                      const el = document.getElementById(it.id);
                       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
                     }}
                   >
-                    {p.text}
+                    {it.text}
                   </a>
                 </li>
               ))}
-              {parts.filter(p => p.type === "h1" || p.type === "h2").length === 0 && (
+              {tocItems.length === 0 && (
                 <li className="wiki-toc-empty">Pas de sous-titres</li>
               )}
             </ul>
@@ -454,19 +429,60 @@ function formatDate(s) {
 }
 
 // ─────────────────────────────────────────────────────────
-// Create flow — Jarvis génère
+// Perso write path — POST wiki_concepts with source_type='perso'.
+// Slug derived from the title (stripped + dashed). Idempotent via
+// on_conflict=slug (returns the upserted row).
+// ─────────────────────────────────────────────────────────
+function wikiSlugify(s){
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 80);
+}
+
+async function persistPersoWikiEntry({ title, slug, category, content, tags }){
+  if (!window.sb || !window.SUPABASE_URL) return null;
+  const payload = {
+    slug,
+    name: title,
+    category: category || "general",
+    source_type: "perso",
+    summary_intermediate: content,
+    mention_count: 0,
+    first_seen: new Date().toISOString().slice(0, 10),
+    last_mentioned: new Date().toISOString().slice(0, 10),
+    related_concepts: [],
+  };
+  if (Array.isArray(tags) && tags.length) payload.sources = tags;
+  const url = `${window.SUPABASE_URL}/rest/v1/wiki_concepts?on_conflict=slug`;
+  try {
+    const rows = await window.sb.postJSON(url, payload, { upsert: true });
+    try { window.track && window.track("wiki_perso_created", { slug }); } catch {}
+    return Array.isArray(rows) && rows[0] ? rows[0] : payload;
+  } catch (e) {
+    console.error("[wiki] perso persist failed", e);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// Create flow — 2 modes : demande à Jarvis OU note perso manuelle
 // ─────────────────────────────────────────────────────────
 function WikiCreate({ onBack, onDone, onNavigate }) {
-  const [step, setStep] = useStateWiki("brief"); // brief | generating | review
+  const [mode, setMode] = useStateWiki("jarvis"); // jarvis | perso
   const [subject, setSubject] = useStateWiki("");
   const [sources, setSources] = useStateWiki({ veille: true, notes: true, web: true });
   const [depth, setDepth] = useStateWiki("standard"); // quick | standard | deep
   const [category, setCategory] = useStateWiki("agents");
-  const [genProgress, setGenProgress] = useStateWiki(0);
+  const [persoContent, setPersoContent] = useStateWiki("");
+  const [persoTags, setPersoTags] = useStateWiki("");
+  const [persoPending, setPersoPending] = useStateWiki(false);
 
-  // No in-page fake generator anymore: clicking Générer hands off to
-  // Jarvis with a pre-filled prompt. Jarvis has the RAG + local LLM to
-  // actually synthesise the entry instead of printing a skeleton.
+  // Delegate to Jarvis with a pre-filled prompt — unchanged. The panel
+  // doesn't stream the generation; Jarvis owns the RAG + LLM.
   const handleGenerate = () => {
     if (!subject.trim()) return;
     const depthHint = depth === "deep" ? "2000-2500 mots, détail technique" : depth === "quick" ? "~500 mots, synthèse rapide" : "~1200 mots, équilibré";
@@ -487,73 +503,57 @@ Sors en markdown, je collerai le résultat comme entrée wiki.`;
     else onBack && onBack();
   };
 
-  // Kept as a no-op stub in case some caller still hits the old
-  // review step — the timer/auto-save flow is gone.
-  const handleSave = () => { onBack && onBack(); };
-
-  // ─── UI ────────────────────────────
-  if (step === "generating") {
-    return (
-      <div className="panel-page panel-page--quiz" data-screen-label="Wiki — génération">
-        <div className="quiz-topbar">
-          <button className="quiz-topbar-back" onClick={onBack}>
-            <Icon name="arrow_left" size={14} stroke={2} /> Annuler
-          </button>
-          <div className="quiz-topbar-title">Génération en cours</div>
-          <div className="quiz-topbar-progress">{genProgress}%</div>
-        </div>
-        <div className="wiki-gen">
-          <div className="wiki-gen-pulse" />
-          <div className="section-kicker">Jarvis rédige</div>
-          <h2 className="wiki-gen-title">
-            <em className="serif-italic">Synthèse</em> sur {subject}
-          </h2>
-          <ul className="wiki-gen-steps">
-            <li className={genProgress > 10 ? "is-done" : "is-active"}>Collecte des sources ({Object.values(sources).filter(Boolean).length} activées)</li>
-            <li className={genProgress > 30 ? "is-done" : genProgress > 10 ? "is-active" : ""}>Extraction des points saillants</li>
-            <li className={genProgress > 60 ? "is-done" : genProgress > 30 ? "is-active" : ""}>Croisement avec ton radar compétences</li>
-            <li className={genProgress > 85 ? "is-done" : genProgress > 60 ? "is-active" : ""}>Rédaction de la synthèse ({depth === "deep" ? "~2400" : depth === "standard" ? "~1200" : "~500"} mots)</li>
-            <li className={genProgress === 100 ? "is-done" : genProgress > 85 ? "is-active" : ""}>Extraction des tags et liens</li>
-          </ul>
-          <div className="wiki-gen-progress">
-            <div className="wiki-gen-progress-track">
-              <div className="wiki-gen-progress-fill" style={{ width: `${genProgress}%` }} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === "review") {
-    return (
-      <div className="panel-page panel-page--quiz" data-screen-label="Wiki — revue">
-        <div className="quiz-topbar">
-          <button className="quiz-topbar-back" onClick={onBack}>
-            <Icon name="arrow_left" size={14} stroke={2} /> Annuler
-          </button>
-          <div className="quiz-topbar-title">Prêt à ajouter</div>
-          <div className="quiz-topbar-progress">✓ Généré</div>
-        </div>
-        <div className="wiki-review">
-          <div className="section-kicker">Jarvis a terminé</div>
-          <h2 className="wiki-review-title">
-            Ta synthèse sur <em className="serif-italic">{subject}</em> est prête
-          </h2>
-          <p className="wiki-review-body">
-            Environ {depth === "deep" ? "2400" : depth === "standard" ? "1200" : "500"} mots · {depth === "deep" ? 11 : depth === "standard" ? 6 : 3} min de lecture · catégorie <strong>{window.WIKI_DATA.categories.find(c => c.id === category)?.label}</strong>.
-            Jarvis la maintiendra automatiquement à chaque évolution significative du sujet dans ta veille.
-          </p>
-          <div className="wiki-review-cta">
-            <button className="btn btn--ghost btn--lg" onClick={onBack}>Jeter</button>
-            <button className="btn btn--primary btn--lg" onClick={handleSave}>
-              Ajouter au wiki <Icon name="arrow_right" size={14} stroke={2} />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Save a personal note directly — no LLM, just a user-authored entry.
+  const handleSavePerso = async () => {
+    if (!subject.trim() || !persoContent.trim()) return;
+    setPersoPending(true);
+    const slug = wikiSlugify(subject);
+    const tags = persoTags.split(",").map(t => t.trim()).filter(Boolean);
+    const saved = await persistPersoWikiEntry({
+      title: subject.trim(),
+      slug,
+      category,
+      content: persoContent,
+      tags,
+    });
+    setPersoPending(false);
+    if (!saved) {
+      alert("Impossible de sauvegarder la note. Vérifie ta connexion Supabase.");
+      return;
+    }
+    // Optimistic local insert so the panel shows it immediately.
+    const w = window.WIKI_DATA;
+    if (w && Array.isArray(w.entries)) {
+      const newEntry = {
+        id: slug,
+        slug,
+        kind: "perso",
+        category: (category || "general").toLowerCase(),
+        category_label: w.categories?.find(c => c.id === category)?.label || category,
+        title: subject.trim(),
+        excerpt: persoContent.split("\n")[0].slice(0, 220),
+        updated: "aujourd'hui",
+        updated_iso: new Date().toISOString(),
+        created: new Date().toISOString().slice(0, 10),
+        word_count: persoContent.trim().split(/\s+/).length,
+        read_count: 0,
+        read_time: Math.max(1, Math.round(persoContent.trim().split(/\s+/).length / 200)),
+        tags,
+        related: [],
+        backlinks: [],
+        pinned: false,
+        content: persoContent,
+        mention_count: 0,
+      };
+      // Replace if slug exists, otherwise prepend.
+      const idx = w.entries.findIndex(e => e.slug === slug);
+      if (idx >= 0) w.entries[idx] = newEntry; else w.entries.unshift(newEntry);
+      w.stats = { ...(w.stats || {}), total: w.entries.length, perso: (w.stats?.perso || 0) + (idx >= 0 ? 0 : 1) };
+      if (onDone) onDone(newEntry);
+    } else {
+      onBack && onBack();
+    }
+  };
 
   // Brief
   return (
@@ -567,20 +567,35 @@ Sors en markdown, je collerai le résultat comme entrée wiki.`;
       </div>
 
       <div className="wiki-create">
-        <div className="section-kicker">Demander à Jarvis</div>
+        <div className="section-kicker">Nouvelle entrée wiki</div>
         <h1 className="wiki-create-title">
-          Sur quoi veux-tu <em className="serif-italic">une synthèse</em> ?
+          {mode === "jarvis" ? <>Sur quoi veux-tu <em className="serif-italic">une synthèse</em> ?</> : <>Ta note <em className="serif-italic">perso</em></>}
         </h1>
-        <p className="wiki-create-body">
-          Donne un sujet, Jarvis croise ta veille, tes notes perso et le web pour produire une entrée maintenue automatiquement.
-        </p>
+
+        {/* Mode switcher — 2 options */}
+        <div className="wiki-create-modes">
+          <button
+            className={`wiki-create-mode ${mode === "jarvis" ? "is-active" : ""}`}
+            onClick={() => setMode("jarvis")}
+          >
+            <div className="wiki-create-mode-title"><Icon name="sparkles" size={14} stroke={1.75} /> Demande à Jarvis</div>
+            <div className="wiki-create-mode-desc">Jarvis croise ta veille + notes + web → synthèse maintenue</div>
+          </button>
+          <button
+            className={`wiki-create-mode ${mode === "perso" ? "is-active" : ""}`}
+            onClick={() => setMode("perso")}
+          >
+            <div className="wiki-create-mode-title"><Icon name="file_text" size={14} stroke={1.75} /> J'écris ma note</div>
+            <div className="wiki-create-mode-desc">Entrée perso en markdown, enregistrée immédiatement</div>
+          </button>
+        </div>
 
         <div className="wiki-create-field">
-          <label className="wiki-create-label">Sujet</label>
+          <label className="wiki-create-label">{mode === "jarvis" ? "Sujet" : "Titre"}</label>
           <input
             type="text"
             className="wiki-create-input"
-            placeholder="Ex : Context engineering, évaluations d'agents, AI Act phase 3…"
+            placeholder={mode === "jarvis" ? "Ex : Context engineering, évaluations d'agents, AI Act phase 3…" : "Titre de ta note"}
             value={subject}
             onChange={e => setSubject(e.target.value)}
             autoFocus
@@ -598,60 +613,101 @@ Sors en markdown, je collerai le résultat comme entrée wiki.`;
           </div>
         </div>
 
-        <div className="wiki-create-field">
-          <label className="wiki-create-label">Sources à utiliser</label>
-          <div className="wiki-source-grid">
-            <label className={`wiki-source ${sources.veille ? "is-on" : ""}`}>
-              <input type="checkbox" checked={sources.veille} onChange={e => setSources({...sources, veille: e.target.checked})} />
-              <div className="wiki-source-head">
-                <Icon name="wave" size={14} stroke={1.75} />
-                <span>Ta veille IA</span>
+        {mode === "jarvis" && (
+          <>
+            <div className="wiki-create-field">
+              <label className="wiki-create-label">Sources à utiliser</label>
+              <div className="wiki-source-grid">
+                <label className={`wiki-source ${sources.veille ? "is-on" : ""}`}>
+                  <input type="checkbox" checked={sources.veille} onChange={e => setSources({...sources, veille: e.target.checked})} />
+                  <div className="wiki-source-head">
+                    <Icon name="wave" size={14} stroke={1.75} />
+                    <span>Ta veille IA</span>
+                  </div>
+                  <div className="wiki-source-desc">Articles des 30 derniers jours</div>
+                </label>
+                <label className={`wiki-source ${sources.notes ? "is-on" : ""}`}>
+                  <input type="checkbox" checked={sources.notes} onChange={e => setSources({...sources, notes: e.target.checked})} />
+                  <div className="wiki-source-head">
+                    <Icon name="file_text" size={14} stroke={1.75} />
+                    <span>Tes notes perso</span>
+                  </div>
+                  <div className="wiki-source-desc">Notes et entrées wiki liées</div>
+                </label>
+                <label className={`wiki-source ${sources.web ? "is-on" : ""}`}>
+                  <input type="checkbox" checked={sources.web} onChange={e => setSources({...sources, web: e.target.checked})} />
+                  <div className="wiki-source-head">
+                    <Icon name="search" size={14} stroke={1.75} />
+                    <span>Web (dernières 4 semaines)</span>
+                  </div>
+                  <div className="wiki-source-desc">Papers, blogs techniques, docs officielles</div>
+                </label>
               </div>
-              <div className="wiki-source-desc">340 articles lus ces 30 derniers jours</div>
-            </label>
-            <label className={`wiki-source ${sources.notes ? "is-on" : ""}`}>
-              <input type="checkbox" checked={sources.notes} onChange={e => setSources({...sources, notes: e.target.checked})} />
-              <div className="wiki-source-head">
-                <Icon name="file_text" size={14} stroke={1.75} />
-                <span>Tes notes perso</span>
-              </div>
-              <div className="wiki-source-desc">44 notes, dont celles rattachées au sujet</div>
-            </label>
-            <label className={`wiki-source ${sources.web ? "is-on" : ""}`}>
-              <input type="checkbox" checked={sources.web} onChange={e => setSources({...sources, web: e.target.checked})} />
-              <div className="wiki-source-head">
-                <Icon name="search" size={14} stroke={1.75} />
-                <span>Web (dernières 4 semaines)</span>
-              </div>
-              <div className="wiki-source-desc">Papers, blogs techniques, docs officielles</div>
-            </label>
-          </div>
-        </div>
+            </div>
 
-        <div className="wiki-create-field">
-          <label className="wiki-create-label">Profondeur</label>
-          <div className="wiki-depth-grid">
-            <button className={`wiki-depth ${depth === "quick" ? "is-on" : ""}`} onClick={() => setDepth("quick")}>
-              <div className="wiki-depth-name">Rapide</div>
-              <div className="wiki-depth-meta">~500 mots · 3 min</div>
-            </button>
-            <button className={`wiki-depth ${depth === "standard" ? "is-on" : ""}`} onClick={() => setDepth("standard")}>
-              <div className="wiki-depth-name">Standard</div>
-              <div className="wiki-depth-meta">~1200 mots · 6 min</div>
-            </button>
-            <button className={`wiki-depth ${depth === "deep" ? "is-on" : ""}`} onClick={() => setDepth("deep")}>
-              <div className="wiki-depth-name">Approfondie</div>
-              <div className="wiki-depth-meta">~2400 mots · 11 min</div>
-            </button>
-          </div>
-        </div>
+            <div className="wiki-create-field">
+              <label className="wiki-create-label">Profondeur</label>
+              <div className="wiki-depth-grid">
+                <button className={`wiki-depth ${depth === "quick" ? "is-on" : ""}`} onClick={() => setDepth("quick")}>
+                  <div className="wiki-depth-name">Rapide</div>
+                  <div className="wiki-depth-meta">~500 mots · 3 min</div>
+                </button>
+                <button className={`wiki-depth ${depth === "standard" ? "is-on" : ""}`} onClick={() => setDepth("standard")}>
+                  <div className="wiki-depth-name">Standard</div>
+                  <div className="wiki-depth-meta">~1200 mots · 6 min</div>
+                </button>
+                <button className={`wiki-depth ${depth === "deep" ? "is-on" : ""}`} onClick={() => setDepth("deep")}>
+                  <div className="wiki-depth-name">Approfondie</div>
+                  <div className="wiki-depth-meta">~2400 mots · 11 min</div>
+                </button>
+              </div>
+            </div>
 
-        <div className="wiki-create-cta">
-          <button className="btn btn--primary btn--lg" onClick={handleGenerate} disabled={!subject.trim()}>
-            Lancer Jarvis <Icon name="arrow_right" size={14} stroke={2} />
-          </button>
-          <span className="wiki-create-hint">Génération estimée : {depth === "deep" ? "90" : depth === "standard" ? "50" : "25"} secondes</span>
-        </div>
+            <div className="wiki-create-cta">
+              <button className="btn btn--primary btn--lg" onClick={handleGenerate} disabled={!subject.trim()}>
+                Lancer Jarvis <Icon name="arrow_right" size={14} stroke={2} />
+              </button>
+              <span className="wiki-create-hint">Jarvis s'ouvre avec ton prompt, tu peux ensuite coller sa réponse en note perso.</span>
+            </div>
+          </>
+        )}
+
+        {mode === "perso" && (
+          <>
+            <div className="wiki-create-field">
+              <label className="wiki-create-label">Contenu (markdown)</label>
+              <textarea
+                className="wiki-create-textarea"
+                placeholder={"## Vue d'ensemble\n\nEcris ici en markdown. Les `code blocks`, **gras**, *italique*, listes, liens sont supportés."}
+                value={persoContent}
+                onChange={e => setPersoContent(e.target.value)}
+                rows={14}
+              />
+            </div>
+
+            <div className="wiki-create-field">
+              <label className="wiki-create-label">Tags (séparés par virgule)</label>
+              <input
+                type="text"
+                className="wiki-create-input"
+                placeholder="prompting, agents, rag…"
+                value={persoTags}
+                onChange={e => setPersoTags(e.target.value)}
+              />
+            </div>
+
+            <div className="wiki-create-cta">
+              <button
+                className="btn btn--primary btn--lg"
+                onClick={handleSavePerso}
+                disabled={!subject.trim() || !persoContent.trim() || persoPending}
+              >
+                {persoPending ? "Enregistrement…" : <>Enregistrer la note <Icon name="arrow_right" size={14} stroke={2} /></>}
+              </button>
+              <span className="wiki-create-hint">Stockée comme `source_type=perso` dans wiki_concepts — visible immédiatement dans le filtre "Mes notes".</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

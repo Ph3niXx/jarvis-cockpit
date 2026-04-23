@@ -149,7 +149,21 @@ function App() {
   const [activePanel, setActivePanel] = useState(() => {
     try {
       const h = (window.location.hash || "").replace(/^#/, "").trim();
-      if (h) return h;
+      if (!h) return "brief";
+      // Compound deep-links like `#wiki/slug-x`: route to the panel and stash
+      // the sub-id so the panel can consume it at mount. panel-wiki.jsx reads
+      // `wiki-open-entry` from localStorage to auto-open the detail view.
+      const slashIdx = h.indexOf("/");
+      if (slashIdx > 0) {
+        const panel = h.slice(0, slashIdx);
+        const subId = h.slice(slashIdx + 1);
+        if (panel === "wiki" && subId) {
+          try { localStorage.setItem("wiki-open-entry", decodeURIComponent(subId)); } catch {}
+          return "wiki";
+        }
+        return panel;
+      }
+      return h;
     } catch {}
     return "brief";
   });
@@ -243,10 +257,25 @@ function App() {
   };
 
   // Hash deep-link: sync browser hash → activePanel (back/forward nav).
+  // Supports compound links like `#wiki/slug-x` — same parsing as the
+  // initial-state reader.
   useEffect(() => {
     const onHash = () => {
       const h = (window.location.hash || "").replace(/^#/, "").trim();
-      if (h && h !== activePanel) setActivePanel(h);
+      if (!h) return;
+      const slashIdx = h.indexOf("/");
+      if (slashIdx > 0) {
+        const panel = h.slice(0, slashIdx);
+        const subId = h.slice(slashIdx + 1);
+        if (panel === "wiki" && subId) {
+          try { localStorage.setItem("wiki-open-entry", decodeURIComponent(subId)); } catch {}
+          if (panel !== activePanel) setActivePanel(panel);
+          return;
+        }
+        if (panel !== activePanel) setActivePanel(panel);
+        return;
+      }
+      if (h !== activePanel) setActivePanel(h);
     };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);

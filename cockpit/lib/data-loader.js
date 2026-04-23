@@ -383,7 +383,9 @@
       return {
         id: r.slug || r.id,
         slug: r.slug,
-        kind: "auto",  // Toutes les entrées DB sont maintenues par Jarvis
+        // source_type drives the auto-vs-perso split surfaced in the panel's
+        // "Source" filter. Pre-migration rows default to "auto" via SQL.
+        kind: (r.source_type === "perso") ? "perso" : "auto",
         category: (r.category || "general").toLowerCase(),
         category_label: catLabel,
         title: r.name || r.slug || "(sans titre)",
@@ -420,7 +422,7 @@
       categories.push({ id: cid, label: wikiCategoryLabel(cid) });
     });
 
-    // Stats: réels vs fake. Pas de distinction auto/perso en DB → tout en auto.
+    // Stats: auto-vs-perso split now reflects real source_type column.
     const sevenDaysAgo = Date.now() - 7 * 86400000;
     const updatedThisWeek = entries.filter(e => {
       const t = e.updated_iso ? new Date(e.updated_iso).getTime() : 0;
@@ -431,14 +433,16 @@
       return t >= sevenDaysAgo;
     }).length;
     const mostRead = entries.slice().sort((a, b) => b.mention_count - a.mention_count)[0];
+    const autoCount = entries.filter(e => e.kind === "auto").length;
+    const persoCount = entries.filter(e => e.kind === "perso").length;
 
     return {
       entries,
       categories,
       stats: {
         total: entries.length,
-        auto: entries.length,
-        perso: 0,
+        auto: autoCount,
+        perso: persoCount,
         created_this_week: createdThisWeek,
         updated_this_week: updatedThisWeek,
         most_read: mostRead?.title || "",
