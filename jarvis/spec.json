@@ -1,8 +1,8 @@
 {
   "meta": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "updated_at": "2026-04-23",
-    "description": "Source de vérité des features du projet Jarvis. Tenu à jour par Claude Code à chaque modification."
+    "description": "Source de vérité du projet Jarvis : phases de build + catalogue des onglets du cockpit. Tenu à jour par Claude Code à chaque modification."
   },
   "phases": [
     {
@@ -103,26 +103,27 @@
     {
       "id": "phase-3",
       "name": "Serveur FastAPI & Chat Tab",
-      "status": "in_progress",
+      "status": "done",
       "order": 3,
       "features": [
         {
           "id": "fastapi-server",
           "name": "Serveur FastAPI localhost:8765",
-          "status": "in_progress",
+          "status": "done",
           "scope": "perso",
-          "progress": 70,
-          "description": "Serveur FastAPI local qui expose le pipeline Jarvis (retrieve + génération) via HTTP pour consommation par le cockpit.",
+          "progress": 100,
+          "description": "Serveur FastAPI local qui expose le pipeline Jarvis (retrieve + génération) via HTTP pour consommation par le cockpit. Endpoints /chat, /health, /generate-activity-brief, /nightly-learner. Tunnel Cloudflare pour accès mobile.",
           "implementation": {
             "files": ["jarvis/server.py"],
             "dependencies": ["retriever", "LM Studio running"],
             "key_decisions": [
               "Port 8765 fixe",
-              "Pas d'authentification (localhost uniquement)"
+              "Pas d'authentification (localhost uniquement)",
+              "3 modes chat : Rapide (local no RAG), Deep (local + RAG), Cloud (Claude Haiku + RAG)",
+              "Cloudflare Tunnel pour accès mobile HTTPS"
             ]
           },
           "depends_on": ["phase-2.retriever"],
-          "next_steps": ["Ajouter endpoint /health", "Finaliser gestion d'erreur LM Studio off"],
           "updated_at": "2026-04-23"
         },
         {
@@ -131,12 +132,13 @@
           "status": "done",
           "scope": "perso",
           "progress": 100,
-          "description": "Launcher Windows qui démarre le serveur FastAPI avec freshness-check préalable avant réindexation.",
+          "description": "Launcher Windows qui démarre le serveur FastAPI avec freshness-check préalable avant réindexation, lance Cloudflare tunnel, et sauvegarde l'URL tunnel dans user_profile.",
           "implementation": {
             "files": ["jarvis/start_jarvis.bat"],
             "dependencies": ["fastapi-server"],
             "key_decisions": [
-              "Freshness check avant indexing (COUNT comparison)"
+              "Freshness check avant indexing (COUNT comparison)",
+              "Refuse de démarrer sans SUPABASE_SERVICE_KEY"
             ]
           },
           "depends_on": ["phase-3.fastapi-server"],
@@ -145,14 +147,17 @@
         {
           "id": "chat-tab",
           "name": "Onglet Jarvis dans le cockpit",
-          "status": "in_progress",
+          "status": "done",
           "scope": "perso",
-          "progress": 50,
-          "description": "Interface de chat intégrée au cockpit qui consomme le serveur FastAPI local.",
+          "progress": 100,
+          "description": "Interface de chat intégrée au cockpit qui consomme le serveur FastAPI local. Découverte auto localhost → tunnel Cloudflare. Affichage citations RAG, historique persistant.",
           "implementation": {
-            "files": ["index.html"],
+            "files": ["cockpit/panel-jarvis.jsx"],
             "dependencies": ["fastapi-server"],
-            "key_decisions": []
+            "key_decisions": [
+              "Accessible depuis GitHub Pages et mobile via tunnel",
+              "URL tunnel lue depuis user_profile.jarvis_tunnel_url"
+            ]
           },
           "depends_on": ["phase-3.fastapi-server"],
           "updated_at": "2026-04-23"
@@ -162,21 +167,22 @@
     {
       "id": "phase-4",
       "name": "Orchestrator",
-      "status": "backlog",
+      "status": "in_progress",
       "order": 4,
       "features": [
         {
           "id": "manual-routing",
           "name": "Routage manuel /cloud /deep",
-          "status": "backlog",
+          "status": "done",
           "scope": "perso",
-          "progress": 0,
-          "description": "Commandes slash pour router explicitement vers Qwen local, Claude cloud, ou mode deep-thinking. Phase de collecte de données avant automatisation.",
+          "progress": 100,
+          "description": "3 modes chat sélectionnables par l'utilisateur : Rapide (Qwen local sans RAG, 512 tokens), Deep (Qwen local + RAG, 2048 tokens), Cloud (Claude Haiku + RAG, 4096 tokens, ~0.01$/requête).",
           "implementation": {
-            "files": [],
+            "files": ["cockpit/panel-jarvis.jsx", "jarvis/server.py"],
             "dependencies": ["fastapi-server"],
             "key_decisions": [
-              "Manuel avant automatique — collecter usage réel d'abord"
+              "Manuel avant automatique — collecter usage réel d'abord",
+              "Fallback automatique sur local si ANTHROPIC_API_KEY absente"
             ]
           },
           "depends_on": ["phase-3.fastapi-server"],
@@ -217,21 +223,23 @@
     {
       "id": "phase-5",
       "name": "Nightly learning loop",
-      "status": "backlog",
+      "status": "done",
       "order": 5,
       "features": [
         {
           "id": "nightly-loop",
           "name": "Boucle d'apprentissage nocturne",
-          "status": "backlog",
+          "status": "done",
           "scope": "perso",
-          "progress": 0,
-          "description": "Pipeline nocturne qui consolide les conversations de la journée, extrait patterns et met à jour la base de mémoires.",
+          "progress": 100,
+          "description": "Pipeline nocturne multi-source idempotent (conversations Jarvis, activité fenêtre, Outlook). Envoie chaque bloc à Qwen pour extraction JSON (faits + entités), upsert dans profile_facts et entities, réindexe. Déclenché à minuit par scheduler asyncio.",
           "implementation": {
-            "files": [],
-            "dependencies": [],
+            "files": ["jarvis/nightly_learner.py"],
+            "dependencies": ["fastapi-server", "indexer"],
             "key_decisions": [
-              "Extraction faits/entités en temps réel via Qwen local (pas en batch nocturne)"
+              "Extraction en batch nocturne via Qwen3-4B non-thinking (dédié, pas le modèle principal)",
+              "Checkpoint par source dans jarvis_data/nightly_learner_state.json",
+              "Déclenchable manuellement via POST /nightly-learner ou --days=N"
             ]
           },
           "depends_on": ["phase-4.manual-routing"],
@@ -241,10 +249,64 @@
     },
     {
       "id": "phase-6",
-      "name": "Interface ambiante",
-      "status": "backlog",
+      "name": "Capteurs d'observation & interface ambiante",
+      "status": "in_progress",
       "order": 6,
       "features": [
+        {
+          "id": "window-observer",
+          "name": "Capteur fenêtre active",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Capture toutes les 30s via ctypes.windll (Windows), déduplique par changement de titre, stocke en JSONL local. Catégorise automatiquement (dev/communication/browsing/documents/other).",
+          "implementation": {
+            "files": ["jarvis/observers/window_observer.py"],
+            "dependencies": ["Windows"],
+            "key_decisions": [
+              "Données brutes restent locales dans jarvis_data/",
+              "Seul le brief résumé va dans Supabase"
+            ]
+          },
+          "depends_on": ["phase-3.fastapi-server"],
+          "updated_at": "2026-04-23"
+        },
+        {
+          "id": "outlook-observer",
+          "name": "Capteur Outlook COM",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Collecte réunions du jour (sujet, durée, Teams, participants) et emails via COM automation. Poll toutes les 5 min. Pas besoin d'Azure AD.",
+          "implementation": {
+            "files": ["jarvis/observers/outlook_observer.py"],
+            "dependencies": ["pywin32", "Outlook desktop"],
+            "key_decisions": [
+              "COM plutôt qu'Azure AD — zéro config entreprise",
+              "Sujets de réunions restent locaux"
+            ]
+          },
+          "depends_on": ["phase-3.fastapi-server"],
+          "updated_at": "2026-04-23"
+        },
+        {
+          "id": "daily-brief-generator",
+          "name": "Brief d'activité quotidien",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Génère un brief HTML à 18h à partir de l'activité du jour (window + Outlook fusionnés) : stats par catégorie, réunions, emails, top apps, timeline, résumé LLM. Upsert dans activity_briefs.",
+          "implementation": {
+            "files": ["jarvis/observers/daily_brief_generator.py"],
+            "dependencies": ["window-observer", "outlook-observer"],
+            "key_decisions": [
+              "Déclenché par scheduler asyncio à 18h",
+              "Affichage dans l'onglet Brief du jour (home.jsx)"
+            ]
+          },
+          "depends_on": ["phase-6.window-observer", "phase-6.outlook-observer"],
+          "updated_at": "2026-04-23"
+        },
         {
           "id": "voice-interface",
           "name": "Interface vocale",
@@ -262,5 +324,292 @@
         }
       ]
     }
-  ]
+  ],
+  "cockpit_tabs": {
+    "summary": "Catalogue des 25 onglets du cockpit, leur rôle, leurs sources de données et leur cadence de mise à jour.",
+    "updated_at": "2026-04-23",
+    "groups": [
+      {
+        "id": "aujourdhui",
+        "label": "Aujourd'hui",
+        "tabs": [
+          {
+            "id": "brief",
+            "label": "Brief du jour",
+            "icon": "sun",
+            "description": "Hero visuel quotidien : résumé IA, top 3 incontournables, signaux montants, radar compétences, résumé de la semaine. Synthèse décisionnelle du matin.",
+            "panel_file": "cockpit/home.jsx",
+            "data_sources": ["daily_briefs", "articles", "signal_tracking", "skill_radar", "activity_briefs"],
+            "frequency": "daily",
+            "update_details": "Généré chaque matin à 06:00 UTC (Gemini Flash-Lite)"
+          },
+          {
+            "id": "top",
+            "label": "Top du jour",
+            "icon": "star",
+            "description": "Magazine éditorial : articles top scorés (impact RTE/IA), filtrables par section, export markdown, marque-page localStorage.",
+            "panel_file": "cockpit/panel-top.jsx",
+            "data_sources": ["articles", "localStorage (read/pin)"],
+            "frequency": "daily",
+            "update_details": "Scoring par Gemini pendant le pipeline quotidien"
+          },
+          {
+            "id": "week",
+            "label": "Ma semaine",
+            "icon": "calendar",
+            "description": "Mini-heatmap personnelle : articles lus, séances sport, heures musique/gaming par jour. Comparaison avec la semaine précédente.",
+            "panel_file": "cockpit/panel-week.jsx",
+            "data_sources": ["articles", "strava_activities", "music_stats_daily", "gaming_stats_daily", "localStorage"],
+            "frequency": "realtime",
+            "update_details": "Agrégation temps réel côté front"
+          },
+          {
+            "id": "search",
+            "label": "Recherche",
+            "icon": "search",
+            "description": "Command-K modal : full-text ilike sur articles, historique de recherches, raccourcis OS-aware (Cmd/Ctrl+K).",
+            "panel_file": "cockpit/panel-search.jsx",
+            "data_sources": ["articles", "localStorage (recent queries)"],
+            "frequency": "realtime",
+            "update_details": "Live search"
+          }
+        ]
+      },
+      {
+        "id": "veille",
+        "label": "Veille",
+        "tabs": [
+          {
+            "id": "updates",
+            "label": "Veille IA",
+            "icon": "sparkles",
+            "description": "Feed éditorial des actualités IA : articles regroupés par section (LLMs, Agents, Régulation, FinServ, Outils...) et période. Pulse sparklines par thème.",
+            "panel_file": "cockpit/panel-veille.jsx",
+            "data_sources": ["articles (section=updates)"],
+            "frequency": "daily"
+          },
+          {
+            "id": "sport",
+            "label": "Sport",
+            "icon": "flag",
+            "description": "Feed sport multi-disciplines (foot, e-sport, rugby, cyclisme, tennis, natation) — mêmes mécaniques que Veille IA, corpus SPORT_DATA.",
+            "panel_file": "cockpit/panel-veille.jsx",
+            "data_sources": ["articles (section=sport)"],
+            "frequency": "daily"
+          },
+          {
+            "id": "gaming_news",
+            "label": "Gaming (news)",
+            "icon": "wrench",
+            "description": "Actualités gaming : sorties récentes, à venir, e-sport, industrie. Corpus GAMING_DATA sur panel-veille.",
+            "panel_file": "cockpit/panel-veille.jsx",
+            "data_sources": ["articles (section=gaming_news)"],
+            "frequency": "daily"
+          },
+          {
+            "id": "anime",
+            "label": "Anime / Ciné / Séries",
+            "icon": "star",
+            "description": "Sorties et annonces anime, ciné, séries. Prochaines sorties via MyAnimeList. Corpus ANIME_DATA.",
+            "panel_file": "cockpit/panel-veille.jsx",
+            "data_sources": ["articles (section=anime)"],
+            "frequency": "daily"
+          },
+          {
+            "id": "news",
+            "label": "Actualités",
+            "icon": "paper",
+            "description": "Actualités Paris / France / International. Corpus NEWS_DATA.",
+            "panel_file": "cockpit/panel-veille.jsx",
+            "data_sources": ["articles (section=news)"],
+            "frequency": "daily"
+          }
+        ]
+      },
+      {
+        "id": "apprentissage",
+        "label": "Apprentissage",
+        "tabs": [
+          {
+            "id": "radar",
+            "label": "Radar compétences",
+            "icon": "target",
+            "description": "8 axes IA (scores 0-100), delta 30j, progression. Diagnostic manuel + challenges auto-calibrés par Claude Haiku hebdo.",
+            "panel_file": "cockpit/panel-radar.jsx",
+            "data_sources": ["skill_radar", "weekly_challenges"],
+            "frequency": "mixed",
+            "update_details": "Diagnostic manuel + challenges hebdomadaires"
+          },
+          {
+            "id": "recos",
+            "label": "Recommandations",
+            "icon": "bookmark",
+            "description": "Flow éditorial de micro-tâches d'apprentissage (< 1h). Filtrables par niveau, axe, durée. Toggle complétées persistant en Supabase.",
+            "panel_file": "cockpit/panel-recos.jsx",
+            "data_sources": ["learning_recommendations"],
+            "frequency": "weekly",
+            "update_details": "Généré chaque dimanche à 22:00 UTC (Claude Haiku 4.5)"
+          },
+          {
+            "id": "challenges",
+            "label": "Challenges",
+            "icon": "trophy",
+            "description": "Mini-défis gamifiés calibrés sur le profil et le radar compétences. Scoring XP, progression visible.",
+            "panel_file": "cockpit/panel-challenges.jsx",
+            "data_sources": ["weekly_challenges"],
+            "frequency": "weekly",
+            "update_details": "Généré hebdomadairement par Claude Haiku"
+          },
+          {
+            "id": "wiki",
+            "label": "Wiki IA",
+            "icon": "book",
+            "description": "Glossaire auto-alimenté : entrées détectées dans les articles + enrichies par Claude Haiku. 3 niveaux de description (débutant / pro / expert), tags, recherche.",
+            "panel_file": "cockpit/panel-wiki.jsx",
+            "data_sources": ["wiki_concepts"],
+            "frequency": "mixed",
+            "update_details": "Détection quotidienne + enrichissement hebdo Claude"
+          },
+          {
+            "id": "signals",
+            "label": "Signaux faibles",
+            "icon": "wave",
+            "description": "Termes IA trackés sur 12 semaines avec sparklines, catégorisés new/rising/stable/declining. Top 4 prioritaires en haut.",
+            "panel_file": "cockpit/panel-signals.jsx",
+            "data_sources": ["signal_tracking", "weekly_analysis"],
+            "frequency": "mixed",
+            "update_details": "Comptage quotidien + analyse hebdo Claude"
+          }
+        ]
+      },
+      {
+        "id": "business",
+        "label": "Business",
+        "tabs": [
+          {
+            "id": "opps",
+            "label": "Opportunités",
+            "icon": "lightbulb",
+            "description": "Fenêtres de tir stratégiques détectées dans l'actualité : cards effort/concurrence, urgency bar, vues kanban/éditorial/timeline. Décision 'Je saisis' vs 'Je passe'.",
+            "panel_file": "cockpit/panel-opportunities.jsx",
+            "data_sources": ["weekly_opportunities"],
+            "frequency": "weekly",
+            "update_details": "Généré hebdomadairement par Claude Haiku"
+          },
+          {
+            "id": "ideas",
+            "label": "Carnet d'idées",
+            "icon": "notebook",
+            "description": "Incubateur d'idées business : pipeline kanban 5 colonnes (seed → parked), capture rapide avec hashtags, galerie post-its. Entièrement éditable depuis le front.",
+            "panel_file": "cockpit/panel-ideas.jsx",
+            "data_sources": ["business_ideas"],
+            "frequency": "realtime",
+            "update_details": "CRUD front → Supabase"
+          },
+          {
+            "id": "jobs",
+            "label": "Jobs Radar",
+            "icon": "target",
+            "description": "Scan LinkedIn scoré par fit (hot/mid/low). Scan banner, hero leads, liste dense. Status + notes personnelles.",
+            "panel_file": "cockpit/panel-jobs-radar.jsx",
+            "data_sources": ["jobs"],
+            "frequency": "daily",
+            "update_details": "Scan quotidien"
+          }
+        ]
+      },
+      {
+        "id": "personnel",
+        "label": "Personnel",
+        "tabs": [
+          {
+            "id": "jarvis",
+            "label": "Jarvis",
+            "icon": "assistant",
+            "description": "Conversation avec LM Studio local ou Claude Haiku cloud. Mémoire structurée (faits, entités), citations RAG, quick prompts, 3 modes (Rapide/Deep/Cloud).",
+            "panel_file": "cockpit/panel-jarvis.jsx",
+            "data_sources": ["jarvis_conversations", "profile_facts", "memories_vectors", "server.py (localhost:8765)"],
+            "frequency": "realtime",
+            "update_details": "Serveur FastAPI local avec tunnel Cloudflare"
+          },
+          {
+            "id": "jarvis-lab",
+            "label": "Jarvis Lab",
+            "icon": "chart",
+            "description": "Vue méta du projet Jarvis : roadmap des phases, grille de features avec filtres, drawer de détail, et catalogue des onglets du cockpit. Alimenté par jarvis/spec.json.",
+            "panel_file": "cockpit/panel-jarvis-lab.jsx",
+            "data_sources": ["jarvis/spec.json"],
+            "frequency": "manual",
+            "update_details": "Mis à jour manuellement par Claude Code à chaque évolution"
+          },
+          {
+            "id": "profile",
+            "label": "Mon profil",
+            "icon": "user",
+            "description": "Contexte personnel injecté dans Claude : identité, ambitions, intérêts. Faits appris, entités détectées, commitments, questions gênantes. Score de complétude + historique append-only.",
+            "panel_file": "cockpit/panel-profile.jsx",
+            "data_sources": ["user_profile", "profile_facts", "entities"],
+            "frequency": "mixed",
+            "update_details": "Édition manuelle + extraction nocturne Jarvis"
+          },
+          {
+            "id": "perf",
+            "label": "Performance",
+            "icon": "activity",
+            "description": "KPIs Strava (distance, allure, dénivelé, régularité), graphe charge/forme 12 semaines, composition Withings, records personnels, journal des 20 dernières séances.",
+            "panel_file": "cockpit/panel-forme.jsx",
+            "data_sources": ["strava_activities", "withings_measurements"],
+            "frequency": "daily",
+            "update_details": "Sync Strava 04:30 UTC · Sync Withings 04:45 UTC"
+          },
+          {
+            "id": "music",
+            "label": "Musique",
+            "icon": "music",
+            "description": "Last.fm : now playing, top artists/tracks/albums (7d/30d/6m/all), heatmap d'écoute horaire, répartition par genres, découvertes, milestones annuels.",
+            "panel_file": "cockpit/panel-musique.jsx",
+            "data_sources": ["music_scrobbles", "music_stats_daily", "music_top_weekly", "Last.fm API (front)"],
+            "frequency": "mixed",
+            "update_details": "Sync quotidien 05:00 UTC + polling Last.fm live"
+          },
+          {
+            "id": "gaming",
+            "label": "Gaming",
+            "icon": "gamepad",
+            "description": "Cross-plateforme Steam + TFT : jeux en cours, backlog, activité 180 derniers jours, heatmap 24×7, genres, wishlist, top all-time, achievements, rank ranked TFT et matches.",
+            "panel_file": "cockpit/panel-gaming.jsx",
+            "data_sources": ["steam_games_snapshot", "gaming_stats_daily", "steam_achievements", "tft_matches", "tft_rank_history"],
+            "frequency": "mixed",
+            "update_details": "Sync Steam quotidien 05:30 UTC · Sync TFT toutes les 2h"
+          }
+        ]
+      },
+      {
+        "id": "systeme",
+        "label": "Système",
+        "tabs": [
+          {
+            "id": "stacks",
+            "label": "Stacks & Limits",
+            "icon": "wallet",
+            "description": "Synthèse des coûts API (Gemini/Claude/Supabase/Last.fm), quotas et progression sur 30 jours. Gauges d'effort par service.",
+            "panel_file": "cockpit/panel-stacks.jsx",
+            "data_sources": ["weekly_analysis"],
+            "frequency": "weekly",
+            "update_details": "Auto-loggé à chaque run du pipeline hebdo"
+          },
+          {
+            "id": "history",
+            "label": "Historique",
+            "icon": "clock",
+            "description": "Archive 60 jours des articles veille : sparkline + heatmap, top sources, filtres (intensité/pinned/search), timeline par semaine, drawer enrichi, notes libres.",
+            "panel_file": "cockpit/panel-history.jsx",
+            "data_sources": ["articles", "localStorage (notes)"],
+            "frequency": "mixed",
+            "update_details": "Quotidien (articles) + realtime (notes)"
+          }
+        ]
+      }
+    ]
+  }
 }

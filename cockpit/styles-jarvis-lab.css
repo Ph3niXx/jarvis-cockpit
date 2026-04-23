@@ -646,3 +646,151 @@
   margin: 24px 0 0;
   letter-spacing: 0.04em;
 }
+
+/* ── Specs cockpit — catalogue des onglets ──────────── */
+.jl-specs {
+  margin-top: 56px;
+  padding-top: 36px;
+  border-top: 1px solid var(--jl-divider);
+}
+.jl-specs-head {
+  margin-bottom: 28px;
+}
+.jl-section-eyebrow {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--jl-accent);
+  margin-bottom: 8px;
+}
+.jl-specs-title {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--jl-text-max);
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+}
+.jl-specs-sub {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  color: var(--jl-text-mute);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.jl-tab-group {
+  margin-top: 28px;
+}
+.jl-tab-group-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.jl-tab-group-name {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--jl-text-strong);
+  letter-spacing: -0.005em;
+}
+.jl-tab-group-count {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  color: var(--jl-text-mute);
+  padding: 2px 8px;
+  border: 1px solid var(--jl-divider);
+  border-radius: 2px;
+}
+
+.jl-tab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.jl-tab-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--jl-surface);
+  border: 1px solid var(--jl-divider);
+  border-radius: 2px;
+  padding: 14px 16px;
+  transition: border-color .14s ease, background .14s ease;
+}
+.jl-tab-card:hover {
+  border-color: var(--jl-text-mute);
+  background: var(--jl-surface-alt);
+}
+.jl-tab-card[data-frequency="daily"]    { border-left: 2px solid var(--jl-accent); }
+.jl-tab-card[data-frequency="weekly"]   { border-left: 2px solid #8a74ff; }
+.jl-tab-card[data-frequency="realtime"] { border-left: 2px solid var(--jl-text-strong); }
+.jl-tab-card[data-frequency="manual"]   { border-left: 2px solid var(--jl-text-mute); }
+.jl-tab-card[data-frequency="mixed"]    { border-left: 2px solid var(--jl-warning); }
+
+.jl-tab-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.jl-tab-name {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--jl-text-max);
+  line-height: 1.3;
+}
+.jl-tab-freq {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--jl-text-mute);
+  white-space: nowrap;
+}
+.jl-tab-desc {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 12.5px;
+  color: var(--jl-text);
+  line-height: 1.5;
+  margin: 0 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.jl-tab-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.jl-tab-source {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10.5px;
+  color: var(--jl-text-mute);
+  padding: 2px 7px;
+  background: var(--jl-bg);
+  border-radius: 2px;
+}
+.jl-tab-detail {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  color: var(--jl-text-mute);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.jl-tab-file {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10.5px;
+  color: var(--jl-text-mute);
+  opacity: 0.7;
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px dashed var(--jl-divider);
+}

@@ -19,6 +19,7 @@ SPEC_PATH = Path(__file__).parent.parent / "jarvis" / "spec.json"
 VALID_PHASE_STATUS = {"done", "in_progress", "backlog", "blocked"}
 VALID_FEATURE_STATUS = {"done", "in_progress", "backlog", "blocked"}
 VALID_SCOPE = {"perso", "pro"}
+VALID_TAB_FREQUENCY = {"realtime", "daily", "weekly", "manual", "mixed"}
 
 REQUIRED_FEATURE_FIELDS = {
     "id", "name", "status", "scope", "progress",
@@ -26,6 +27,8 @@ REQUIRED_FEATURE_FIELDS = {
 }
 REQUIRED_IMPL_FIELDS = {"files", "dependencies", "key_decisions"}
 REQUIRED_PHASE_FIELDS = {"id", "name", "status", "order", "features"}
+REQUIRED_TAB_FIELDS = {"id", "label", "description", "data_sources", "frequency", "panel_file"}
+REQUIRED_TAB_GROUP_FIELDS = {"id", "label", "tabs"}
 
 
 def fail(errors: list[str]) -> None:
@@ -138,6 +141,55 @@ def validate(spec: dict) -> list[str]:
                         f"{phase['id']}.{feat['id']} depends_on unknown ref: '{dep}'"
                     )
 
+    # Optional: cockpit_tabs catalog
+    ctabs = spec.get("cockpit_tabs")
+    if ctabs is not None:
+        if not isinstance(ctabs, dict):
+            errors.append("cockpit_tabs must be an object")
+        else:
+            groups = ctabs.get("groups")
+            if not isinstance(groups, list):
+                errors.append("cockpit_tabs.groups must be a list")
+            else:
+                tab_ids_seen = set()
+                group_ids_seen = set()
+                for gi, group in enumerate(groups):
+                    gprefix = f"cockpit_tabs.groups[{gi}]"
+                    if not isinstance(group, dict):
+                        errors.append(f"{gprefix} must be an object")
+                        continue
+                    missing_g = REQUIRED_TAB_GROUP_FIELDS - group.keys()
+                    if missing_g:
+                        errors.append(f"{gprefix} missing fields: {missing_g}")
+                        continue
+                    if group["id"] in group_ids_seen:
+                        errors.append(f"{gprefix} duplicate group id: {group['id']}")
+                    group_ids_seen.add(group["id"])
+                    if not isinstance(group["tabs"], list):
+                        errors.append(f"{gprefix}.tabs must be a list")
+                        continue
+                    for ti, tab in enumerate(group["tabs"]):
+                        tprefix = f"{gprefix}.tabs[{ti}]"
+                        if not isinstance(tab, dict):
+                            errors.append(f"{tprefix} must be an object")
+                            continue
+                        missing_t = REQUIRED_TAB_FIELDS - tab.keys()
+                        if missing_t:
+                            errors.append(f"{tprefix} missing fields: {missing_t}")
+                            continue
+                        if tab["id"] in tab_ids_seen:
+                            errors.append(f"{tprefix} duplicate tab id: {tab['id']}")
+                        tab_ids_seen.add(tab["id"])
+                        if tab["frequency"] not in VALID_TAB_FREQUENCY:
+                            errors.append(
+                                f"{tprefix} invalid frequency: {tab['frequency']} "
+                                f"(must be one of {sorted(VALID_TAB_FREQUENCY)})"
+                            )
+                        if not isinstance(tab["data_sources"], list):
+                            errors.append(f"{tprefix}.data_sources must be a list")
+                        elif not tab["data_sources"]:
+                            errors.append(f"{tprefix}.data_sources is empty")
+
     return errors
 
 
@@ -158,7 +210,13 @@ def main() -> None:
     # Summary
     n_phases = len(spec["phases"])
     n_features = sum(len(p.get("features", [])) for p in spec["phases"])
-    print(f"✅ spec.json valid — {n_phases} phases, {n_features} features")
+    summary = f"✅ spec.json valid — {n_phases} phases, {n_features} features"
+    ctabs = spec.get("cockpit_tabs")
+    if ctabs and isinstance(ctabs, dict):
+        groups = ctabs.get("groups") or []
+        n_tabs = sum(len(g.get("tabs", [])) for g in groups)
+        summary += f", {len(groups)} cockpit groups, {n_tabs} cockpit tabs"
+    print(summary)
 
 
 if __name__ == "__main__":

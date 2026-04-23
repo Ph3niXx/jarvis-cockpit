@@ -152,6 +152,66 @@ function JLFilterBar({ statusFilter, scopeFilter, onStatusChange, onScopeChange 
   );
 }
 
+const JL_FREQ_LABEL = {
+  realtime: "Temps réel",
+  daily:    "Quotidien",
+  weekly:   "Hebdo",
+  manual:   "Manuel",
+  mixed:    "Mixte",
+};
+
+function JLCockpitTabCard({ tab }) {
+  return (
+    <div className="jl-tab-card" data-frequency={tab.frequency}>
+      <div className="jl-tab-head">
+        <div className="jl-tab-name">{tab.label}</div>
+        <span className="jl-tab-freq">{JL_FREQ_LABEL[tab.frequency] || tab.frequency}</span>
+      </div>
+      <p className="jl-tab-desc">{tab.description}</p>
+      <div className="jl-tab-sources">
+        {tab.data_sources.map((ds, i) => (
+          <span key={i} className="jl-tab-source">{ds}</span>
+        ))}
+      </div>
+      {tab.update_details && (
+        <div className="jl-tab-detail">{tab.update_details}</div>
+      )}
+      <div className="jl-tab-file">{tab.panel_file}</div>
+    </div>
+  );
+}
+
+function JLCockpitSpecs({ spec }) {
+  const ct = spec.cockpit_tabs;
+  if (!ct || !Array.isArray(ct.groups)) return null;
+  const totalTabs = ct.groups.reduce((s, g) => s + (g.tabs || []).length, 0);
+  return (
+    <section className="jl-specs">
+      <div className="jl-specs-head">
+        <div className="jl-section-eyebrow">Specs cockpit</div>
+        <h2 className="jl-specs-title">Catalogue des onglets</h2>
+        <p className="jl-specs-sub">
+          {totalTabs} onglets · {ct.groups.length} groupes ·
+          {ct.summary ? ` ${ct.summary}` : ""}
+        </p>
+      </div>
+      {ct.groups.map(group => (
+        <div key={group.id} className="jl-tab-group">
+          <div className="jl-tab-group-header">
+            <span className="jl-tab-group-name">{group.label}</span>
+            <span className="jl-tab-group-count">{(group.tabs || []).length}</span>
+          </div>
+          <div className="jl-tab-grid">
+            {(group.tabs || []).map(t => (
+              <JLCockpitTabCard key={t.id} tab={t} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function JLFeaturesGrid({ phase, statusFilter, scopeFilter, onFeatureClick }) {
   if (!phase) return null;
   const all = phase.features || [];
@@ -501,6 +561,8 @@ function PanelJarvisLab() {
           onFeatureClick={openFeature}
         />
       </div>
+
+      <JLCockpitSpecs spec={spec} />
 
       <JLDrawer
         data={drawerData}
