@@ -79,9 +79,100 @@ function WeekLoadChart({ weeks }) {
 // ── Day of week label ────────────────────────────────
 const DOW = ["D", "L", "M", "M", "J", "V", "S"];
 
+// ── Line chart (composition) ────────────────────────
+function LineChart({ series, ySeries, range, height = 280 }) {
+  const w = 1000;
+  const h = height;
+  const padL = 52, padR = 20, padT = 20, padB = 28;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const windowDays = { "30j": 30, "90j": 90, "180j": 180 }[range] || series.length;
+  const data = series.slice(-windowDays).filter(d => ySeries.every(s => d[s.key] != null));
+  if (data.length < 2) {
+    return (
+      <div className="fm-chart-empty" style={{ padding: "60px 20px", textAlign: "center", color: "var(--tx3)" }}>
+        Pas assez de mesures sur {range} pour tracer une courbe.
+      </div>
+    );
+  }
+
+  const allVals = ySeries.flatMap((s) => data.map((d) => d[s.key]));
+  const yMin = Math.min(...allVals);
+  const yMax = Math.max(...allVals);
+  const ySpan = (yMax - yMin) || 1;
+  const yPad = ySpan * 0.1;
+  const yLo = yMin - yPad;
+  const yHi = yMax + yPad;
+
+  const x = (i) => padL + (i / (data.length - 1)) * plotW;
+  const y = (v) => padT + plotH - ((v - yLo) / (yHi - yLo)) * plotH;
+
+  const tickCount = 6;
+  const ticks = Array.from({ length: tickCount }, (_, i) => Math.floor((i / (tickCount - 1)) * (data.length - 1)));
+  const fmt = (dStr) => {
+    const d = new Date(dStr);
+    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  };
+  const yTickCount = 4;
+  const yTicks = Array.from({ length: yTickCount }, (_, i) => yLo + (i / (yTickCount - 1)) * (yHi - yLo));
+
+  return (
+    <svg className="fm-chart-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      {yTicks.map((t, i) => (
+        <g key={"y" + i}>
+          <line className="fm-chart-grid" x1={padL} x2={w - padR} y1={y(t)} y2={y(t)} />
+          <text className="fm-chart-label" x={padL - 8} y={y(t) + 3} textAnchor="end">{t.toFixed(1)}</text>
+        </g>
+      ))}
+      <line className="fm-chart-axis" x1={padL} x2={w - padR} y1={h - padB} y2={h - padB} />
+      {ticks.map((t, i) => (
+        <text key={"x" + i} className="fm-chart-label" x={x(t)} y={h - padB + 16} textAnchor="middle">
+          {fmt(data[t].date)}
+        </text>
+      ))}
+      {ySeries.map((s) => {
+        const path = "M" + data.map((d, i) => `${x(i).toFixed(1)},${y(d[s.key]).toFixed(1)}`).join(" L");
+        return (
+          <path key={s.key} d={path} fill="none" stroke={s.color}
+            strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
+        );
+      })}
+      {ySeries.map((s) => {
+        const last = data[data.length - 1];
+        return (
+          <circle key={"m" + s.key} cx={x(data.length - 1)} cy={y(last[s.key])} r="3.5" fill={s.color} />
+        );
+      })}
+    </svg>
+  );
+}
+
 function PanelForme({ data, onNavigate }) {
   const FD = window.FORME_DATA;
   const hasWeight = !!FD._has_weight;
+  const [chartView, setChartView] = useFmState("weight");
+  const [range, setRange] = useFmState("90j");
+
+  // Sparklines composition
+  const spark = useFmMemo(() => {
+    if (!hasWeight) return null;
+    const s30 = FD.weight_series.slice(-30);
+    return {
+      weight: s30.filter(d => d.weight != null).map((d) => ({ value: d.weight })),
+      fat: s30.filter(d => d.fat_pct != null).map((d) => ({ value: d.fat_pct })),
+      muscle: s30.filter(d => d.muscle_kg != null).map((d) => ({ value: d.muscle_kg })),
+    };
+  }, [FD, hasWeight]);
+
+  const ySeriesByView = {
+    weight: [{ key: "weight", color: "var(--brand)", label: "poids kg" }],
+    comp: [
+      { key: "fat_pct", color: "#b43a3a", label: "masse grasse %" },
+      { key: "water_pct", color: "#2d7a4e", label: "eau %" },
+    ],
+    muscle: [{ key: "muscle_kg", color: "#2d7a4e", label: "masse musculaire kg" }],
+  };
 
   // 7 derniers jours glissants
   const weekBars = useFmMemo(() => {
@@ -140,9 +231,15 @@ function PanelForme({ data, onNavigate }) {
       {/* ══ HERO ══ */}
       <header className="fm-hero">
         <div>
-          <div className="fm-hero-eyebrow">forme · strava · {FD.today.date}</div>
+          <div className="fm-hero-eyebrow">
+            forme · {hasWeight ? "withings + strava" : "strava"} · {FD.today.date}
+          </div>
           <h1 className="fm-hero-title">
-            {FD.week.km.toFixed(1)} km · <em>{FD.week.runs} sorties</em> cette semaine
+            {hasWeight && FD.today.weight != null ? (
+              <>{FD.today.weight.toFixed(1)} kg · <em>{FD.week.km.toFixed(1)} km</em> cette semaine</>
+            ) : (
+              <>{FD.week.km.toFixed(1)} km · <em>{FD.week.runs} sorties</em> cette semaine</>
+            )}
           </h1>
           <p className="fm-hero-lede">
             {hasData ? (
@@ -262,15 +359,150 @@ function PanelForme({ data, onNavigate }) {
         </div>
       </section>
 
-      {/* ══ §3 COMPOSITION — affiché seulement si Withings branché ══ */}
+      {/* ══ §3 COMPOSITION — Withings ══ */}
       {hasWeight ? (
-        <section className="fm-section">
-          <div className="fm-section-head">
-            <span className="fm-section-num">03</span>
-            <h2 className="fm-section-title">Composition · <em>Withings</em></h2>
-          </div>
-          {/* À implémenter quand le pipeline Withings existe */}
-        </section>
+        <>
+          <section className="fm-section">
+            <div className="fm-section-head">
+              <span className="fm-section-num">03</span>
+              <h2 className="fm-section-title">Composition · <em>Withings</em></h2>
+              <span className="fm-section-meta">
+                {FD.today.weighed_at
+                  ? `dernière pesée · ${new Date(FD.today.weighed_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                  : "—"}
+              </span>
+            </div>
+            <div className="fm-comp-grid">
+              {FD.today.weight != null && (
+                <div className="fm-comp-card">
+                  <div className="fm-comp-card-head">
+                    <span className="fm-comp-card-label">poids</span>
+                    {spark && spark.weight.length > 1 && <Sparkline data={spark.weight} color="var(--brand)" />}
+                  </div>
+                  <div className="fm-comp-card-value">
+                    {FD.today.weight.toFixed(1)}<span className="fm-comp-card-unit">kg</span>
+                  </div>
+                  <div className="fm-comp-deltas">
+                    {FD.today.weight_delta_week != null && (
+                      <div className="fm-comp-delta">
+                        <span className="fm-comp-delta-key">7j</span>
+                        <span className={`fm-comp-delta-val ${FD.today.weight_delta_week < 0 ? "up" : FD.today.weight_delta_week > 0 ? "down" : "flat"}`}>
+                          {FD.today.weight_delta_week > 0 ? "+" : ""}{FD.today.weight_delta_week.toFixed(1)} kg
+                        </span>
+                      </div>
+                    )}
+                    {FD.today.weight_delta_month != null && (
+                      <div className="fm-comp-delta">
+                        <span className="fm-comp-delta-key">30j</span>
+                        <span className={`fm-comp-delta-val ${FD.today.weight_delta_month < 0 ? "up" : FD.today.weight_delta_month > 0 ? "down" : "flat"}`}>
+                          {FD.today.weight_delta_month > 0 ? "+" : ""}{FD.today.weight_delta_month.toFixed(1)} kg
+                        </span>
+                      </div>
+                    )}
+                    {FD.today.weight_delta_3m != null && (
+                      <div className="fm-comp-delta">
+                        <span className="fm-comp-delta-key">90j</span>
+                        <span className={`fm-comp-delta-val ${FD.today.weight_delta_3m < 0 ? "up" : FD.today.weight_delta_3m > 0 ? "down" : "flat"}`}>
+                          {FD.today.weight_delta_3m > 0 ? "+" : ""}{FD.today.weight_delta_3m.toFixed(1)} kg
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {FD.today.fat_pct != null && (
+                <div className="fm-comp-card">
+                  <div className="fm-comp-card-head">
+                    <span className="fm-comp-card-label">masse grasse</span>
+                    {spark && spark.fat.length > 1 && <Sparkline data={spark.fat} color="#b43a3a" />}
+                  </div>
+                  <div className="fm-comp-card-value">
+                    {FD.today.fat_pct.toFixed(1)}<span className="fm-comp-card-unit">%</span>
+                  </div>
+                  <div className="fm-comp-deltas">
+                    {FD.today.fat_delta_month != null && (
+                      <div className="fm-comp-delta">
+                        <span className="fm-comp-delta-key">30j</span>
+                        <span className={`fm-comp-delta-val ${FD.today.fat_delta_month < 0 ? "up" : "down"}`}>
+                          {FD.today.fat_delta_month > 0 ? "+" : ""}{FD.today.fat_delta_month.toFixed(1)} pt
+                        </span>
+                      </div>
+                    )}
+                    {FD.today.weight != null && (
+                      <div className="fm-comp-delta">
+                        <span className="fm-comp-delta-key">mg kg</span>
+                        <span className="fm-comp-delta-val flat">
+                          {(FD.today.weight * FD.today.fat_pct / 100).toFixed(1)} kg
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {FD.today.muscle_kg != null && (
+                <div className="fm-comp-card">
+                  <div className="fm-comp-card-head">
+                    <span className="fm-comp-card-label">masse musculaire</span>
+                    {spark && spark.muscle.length > 1 && <Sparkline data={spark.muscle} color="#2d7a4e" />}
+                  </div>
+                  <div className="fm-comp-card-value">
+                    {FD.today.muscle_kg.toFixed(1)}<span className="fm-comp-card-unit">kg</span>
+                  </div>
+                  <div className="fm-comp-deltas">
+                    {FD.today.muscle_delta_month != null && (
+                      <div className="fm-comp-delta">
+                        <span className="fm-comp-delta-key">30j</span>
+                        <span className={`fm-comp-delta-val ${FD.today.muscle_delta_month > 0 ? "up" : FD.today.muscle_delta_month < 0 ? "down" : "flat"}`}>
+                          {FD.today.muscle_delta_month > 0 ? "+" : ""}{FD.today.muscle_delta_month.toFixed(1)} kg
+                        </span>
+                      </div>
+                    )}
+                    {FD.today.water_pct != null && (
+                      <div className="fm-comp-delta">
+                        <span className="fm-comp-delta-key">eau</span>
+                        <span className="fm-comp-delta-val flat">{FD.today.water_pct.toFixed(1)}%</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* ══ §3b COURBES composition ══ */}
+          <section className="fm-section">
+            <div className="fm-section-head">
+              <span className="fm-section-num">03b</span>
+              <h2 className="fm-section-title">Courbes · <em>tendance longue</em></h2>
+              <span className="fm-section-meta">{FD.weight_series.length} jours de données</span>
+            </div>
+            <div className="fm-chart-wrap">
+              <div className="fm-chart-head">
+                <div className="fm-range-toggle">
+                  <button className={`fm-range-btn ${chartView === "weight" ? "is-active" : ""}`} onClick={() => setChartView("weight")}>Poids</button>
+                  <button className={`fm-range-btn ${chartView === "comp" ? "is-active" : ""}`} onClick={() => setChartView("comp")}>Composition</button>
+                  <button className={`fm-range-btn ${chartView === "muscle" ? "is-active" : ""}`} onClick={() => setChartView("muscle")}>Muscle</button>
+                </div>
+                <div className="fm-range-toggle">
+                  <button className={`fm-range-btn ${range === "30j" ? "is-active" : ""}`} onClick={() => setRange("30j")}>30j</button>
+                  <button className={`fm-range-btn ${range === "90j" ? "is-active" : ""}`} onClick={() => setRange("90j")}>90j</button>
+                  <button className={`fm-range-btn ${range === "180j" ? "is-active" : ""}`} onClick={() => setRange("180j")}>180j</button>
+                </div>
+              </div>
+              <LineChart series={FD.weight_series} ySeries={ySeriesByView[chartView]} range={range} />
+              <div className="fm-chart-legend" style={{ marginTop: 12 }}>
+                {ySeriesByView[chartView].map((s) => (
+                  <span key={s.key}>
+                    <span className="fm-chart-legend-dot" style={{ background: s.color }}></span>
+                    {s.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </section>
+        </>
       ) : (
         <section className="fm-section fm-empty-section">
           <div className="fm-section-head">
@@ -279,7 +511,7 @@ function PanelForme({ data, onNavigate }) {
             <span className="fm-section-meta">source non connectée</span>
           </div>
           <div className="fm-empty-card">
-            <p>Pas de données de composition corporelle. Branche un pipeline Withings (poids, masse grasse, masse musculaire) pour activer cette section.</p>
+            <p>Pas encore de données Withings. Lance le setup dans <code>docs/withings-setup.md</code> puis déclenche manuellement le workflow <code>withings-sync.yml</code> pour un backfill initial.</p>
           </div>
         </section>
       )}

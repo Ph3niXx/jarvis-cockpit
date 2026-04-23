@@ -1,0 +1,41 @@
+name: Withings — Measurements Sync
+
+on:
+  schedule:
+    # Quotidien à 4h45 UTC (6h45 Paris), entre Strava (4h30) et Last.fm (5h00)
+    - cron: '45 4 * * *'
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: "Backfill full history (ignore incremental window)"
+        required: false
+        default: "false"
+
+jobs:
+  withings-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r pipelines/requirements-withings.txt
+
+      - name: Run Withings sync
+        env:
+          WITHINGS_CLIENT_ID: ${{ secrets.WITHINGS_CLIENT_ID }}
+          WITHINGS_CLIENT_SECRET: ${{ secrets.WITHINGS_CLIENT_SECRET }}
+          WITHINGS_REFRESH_TOKEN: ${{ secrets.WITHINGS_REFRESH_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          if [ "${{ github.event.inputs.backfill }}" = "true" ]; then
+            python pipelines/withings_sync.py --backfill
+          else
+            python pipelines/withings_sync.py
+          fi

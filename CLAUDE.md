@@ -30,6 +30,8 @@ Cockpit IA personnel pour un manager en transformation digitale qui veut :
   - API Riot TFT → Supabase (matchs, compos, lobby, rank)
 - **Pipeline Strava** : `pipelines/strava_sync.py` via GitHub Actions (quotidien 4h30 UTC)
   - API Strava → Supabase (activités sportives, raw + mappé)
+- **Pipeline Withings** : `pipelines/withings_sync.py` via GitHub Actions (quotidien 4h45 UTC)
+  - API Withings → Supabase (poids, masse grasse/muscle/eau/os — 1 ligne/jour)
 - **Pipeline Last.fm** : `pipelines/lastfm_sync.py` via GitHub Actions (quotidien 5h UTC)
   - API Last.fm → Supabase (scrobbles, stats quotidiennes, tops hebdo, loved tracks)
 - **Pipeline Steam** : `pipelines/steam_sync.py` via GitHub Actions (quotidien 5h30 UTC)
@@ -72,6 +74,11 @@ jarvis_data/                         # Données perso Jarvis (non versionné)
 scripts/strava_oauth_init.py         # Script one-shot OAuth Strava (local)
 pipelines/strava_sync.py             # Pipeline sync Strava → Supabase
 pipelines/requirements-strava.txt    # Dépendances isolées pour le pipeline Strava
+scripts/withings_oauth_init.py       # Script one-shot OAuth Withings (local)
+pipelines/withings_sync.py           # Pipeline sync Withings → Supabase
+pipelines/requirements-withings.txt  # Dépendances isolées pour le pipeline Withings
+.github/workflows/withings-sync.yml  # Cron Withings quotidien 4h45 UTC
+docs/withings-setup.md               # Procédure de setup Withings
 pipelines/lastfm_sync.py             # Pipeline sync Last.fm → Supabase
 pipelines/requirements-lastfm.txt    # Dépendances isolées pour le pipeline Last.fm
 .github/workflows/lastfm-sync.yml   # Cron Last.fm quotidien 5h UTC
@@ -100,6 +107,9 @@ RIOT_PUUID          # PUUID du joueur TFT à tracker
 STRAVA_CLIENT_ID    # Strava API app client ID
 STRAVA_CLIENT_SECRET # Strava API app client secret
 STRAVA_REFRESH_TOKEN # Strava OAuth2 refresh token (obtenu via scripts/strava_oauth_init.py)
+WITHINGS_CLIENT_ID     # Withings API app client ID
+WITHINGS_CLIENT_SECRET # Withings API app consumer secret
+WITHINGS_REFRESH_TOKEN # Withings OAuth2 refresh token (obtenu via scripts/withings_oauth_init.py)
 LASTFM_API_KEY      # Last.fm API key (https://www.last.fm/api/account/create)
 LASTFM_USERNAME     # Last.fm username
 STEAM_API_KEY       # Steam Web API key (https://steamcommunity.com/dev/apikey)
@@ -151,6 +161,10 @@ Tables existantes :
 **Tables Strava :**
 - `strava_activities_raw` — archive brute des réponses API (id Strava, athlete_id, payload JSONB complet, fetched_at)
 - `strava_activities` — données mappées pour le cockpit (sport_type, distance_m, moving_time_s, heartrate, watts, calories, etc.)
+
+**Tables Withings :**
+- `withings_measurements` — 1 ligne par jour (measure_date PK, weight_kg, fat_pct, fat_mass_kg, muscle_mass_kg, hydration_kg, bone_mass_kg, measured_at). Latest per-column wins.
+- `withings_measurements_raw` — archive brute par groupe de mesures (measure_group_id PK, user_id, payload JSONB)
 
 **RLS (après migration 006)** : toutes les tables requièrent `authenticated` pour SELECT. 4 tables frontend (business_ideas, user_profile, skill_radar, tft_matches) ont aussi INSERT/UPDATE pour `authenticated`. Anon ne peut plus rien lire. Les pipelines backend (main.py, weekly_analysis.py, tft_pipeline.py, Jarvis) utilisent `service_role` key qui bypass RLS.
 

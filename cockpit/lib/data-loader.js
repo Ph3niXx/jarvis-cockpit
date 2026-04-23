@@ -1191,6 +1191,7 @@
     async opps(){ return once("opps", () => q("weekly_opportunities", "order=week_start.desc&limit=40")); },
     async ideas(){ return once("ideas", () => q("business_ideas", "order=created_at.desc&limit=100")); },
     async strava(){ return once("strava", () => q("strava_activities", "order=start_date.desc&limit=300")); },
+    async withings(){ return once("withings", () => q("withings_measurements", "order=measure_date.desc&limit=365").catch(() => [])); },
     async music_scrobbles(){ return once("music_scrobbles", () => q("music_scrobbles", "order=scrobbled_at.desc&limit=200")); },
     async music_stats(){ return once("music_stats", () => q("music_stats_daily", "order=stat_date.desc&limit=400")); },
     async music_top(){ return once("music_top", () => q("music_top_weekly", "order=week_start.desc&limit=1000")); },
@@ -1964,12 +1965,11 @@
     };
   }
 
-  // Build FORME_DATA shape from strava_activities.
+  // Build FORME_DATA shape from strava_activities + withings_measurements.
   // The panel consumes: today, week, month, weight_series, sessions,
-  // records, goals. We only have running data (no Withings, no muscu),
-  // so weight_series and composition fields stay null — the panel hides
-  // those sections when _has_weight is false.
-  function transformForme(activities){
+  // records, goals. Withings fields stay null until a sync exists —
+  // the panel hides the composition section when _has_weight is false.
+  function transformForme(activities, withings){
     const now = Date.now();
     const dayMs = 24 * 3600 * 1000;
     const acts = (activities || []).slice().sort((a, b) =>
@@ -2140,19 +2140,62 @@
     const km_month = +sumKm(last30runs).toFixed(1);
     const km_prev = +sumKm(prev30runs).toFixed(1);
 
+    // Withings: weight_series + today deltas (7d, 30d, 90d).
+    const w = Array.isArray(withings) ? withings.slice() : [];
+    // Rows come sorted DESC by measure_date. Reverse for chronological chart.
+    w.sort((a, b) => a.measure_date.localeCompare(b.measure_date));
+    const weightSeries = w.map(r => ({
+      date: r.measure_date,
+      weight: Number(r.weight_kg) || null,
+      fat_pct: Number(r.fat_pct) || null,
+      muscle_kg: Number(r.muscle_mass_kg) || null,
+      water_pct: r.hydration_kg && r.weight_kg
+        ? +((Number(r.hydration_kg) / Number(r.weight_kg)) * 100).toFixed(2)
+        : null,
+      fat_mass_kg: Number(r.fat_mass_kg) || null,
+    }));
+    const hasWeight = weightSeries.length > 0;
+    const last = hasWeight ? weightSeries[weightSeries.length - 1] : null;
+    const pickOffsetAgo = days => {
+      if (!last) return null;
+      const target = new Date(last.date);
+      target.setDate(target.getDate() - days);
+      const iso = target.toISOString().slice(0, 10);
+      // Find the closest row ≤ target (max 3 days before)
+      let best = null;
+      for (const r of weightSeries) {
+        if (r.date <= iso) best = r;
+        else break;
+      }
+      // Also accept a row within ±3 days of target if nothing older
+      if (!best) {
+        best = weightSeries.find(r => {
+          const diff = Math.abs((new Date(r.date) - new Date(iso)) / dayMs);
+          return diff <= 3;
+        });
+      }
+      return best || null;
+    };
+    const w7 = pickOffsetAgo(7);
+    const w30 = pickOffsetAgo(30);
+    const w90 = pickOffsetAgo(90);
+    const delta = (a, b, field) => (a && b && a[field] != null && b[field] != null)
+      ? +((a[field] - b[field])).toFixed(2)
+      : null;
+
     return {
       today: {
         date: new Date(now).toISOString().slice(0, 10),
-        // Withings fields stay null — panel checks _has_weight to render.
-        weight: null,
-        weight_delta_week: null,
-        weight_delta_month: null,
-        weight_delta_3m: null,
-        fat_pct: null,
-        fat_delta_month: null,
-        muscle_kg: null,
-        muscle_delta_month: null,
-        water_pct: null,
+        weight: last ? last.weight : null,
+        weight_delta_week: delta(last, w7, "weight"),
+        weight_delta_month: delta(last, w30, "weight"),
+        weight_delta_3m: delta(last, w90, "weight"),
+        fat_pct: last ? last.fat_pct : null,
+        fat_delta_month: delta(last, w30, "fat_pct"),
+        muscle_kg: last ? last.muscle_kg : null,
+        muscle_delta_month: delta(last, w30, "muscle_kg"),
+        water_pct: last ? last.water_pct : null,
+        weighed_at: hasWeight ? w[w.length - 1].measured_at : null,
       },
       week: {
         km: km_week,
@@ -2178,11 +2221,11 @@
         km: +sumKm(ytdRuns).toFixed(0),
         runs: ytdRuns.length,
       },
-      weight_series: [],
+      weight_series: weightSeries,
       sessions,
       records,
       goals: [],
-      _has_weight: false,
+      _has_weight: hasWeight,
       _has_muscu: false,
     };
   }
@@ -3190,16 +3233,19 @@
         return { profile: rows, facts, entities: entitiesRows, history, commitments, uqs };
       }
       case "perf": {
-        const activities = await T2.strava();
-        const shape = transformForme(activities || []);
+        const [activities, withings] = await Promise.all([
+          T2.strava(),
+          T2.withings(),
+        ]);
+        const shape = transformForme(activities || [], withings || []);
         if (window.FORME_DATA) {
-          // Full replace: no Withings/muscu source yet, so the fake
-          // weight_series and lift sessions are lies. The panel renders
-          // "no source" placeholders when _has_weight/_has_muscu are false.
+          // Full replace: _has_weight/_has_muscu flags drive the panel's
+          // conditional rendering of Withings / muscu sections.
           replaceShape(window.FORME_DATA, shape);
           window.FORME_DATA._raw = activities;
+          window.FORME_DATA._withings = withings;
         }
-        return { activities };
+        return { activities, withings };
       }
       case "music": {
         // Fail-hard version: if any of the 7 fetches throws, let the
