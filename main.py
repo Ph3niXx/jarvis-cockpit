@@ -300,11 +300,11 @@ def web_search_ai_news():
         f"AI regulation Europe energy sector {today}",
     ]
 
-    # Essayer le grounding Google Search
+    # Essayer le grounding Google Search (API Gemini 2.x : google_search, plus google_search_retrieval)
     try:
         model = genai.GenerativeModel(
             model_name="gemini-2.5-flash-lite",
-            tools="google_search_retrieval",
+            tools=[{"google_search": {}}],
         )
         use_grounding = True
     except Exception:
@@ -377,7 +377,7 @@ def search_rte_articles():
     try:
         model = genai.GenerativeModel(
             model_name="gemini-2.5-flash-lite",
-            tools="google_search_retrieval",
+            tools=[{"google_search": {}}],
         )
         use_grounding = True
     except Exception:
