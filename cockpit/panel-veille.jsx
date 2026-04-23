@@ -1,5 +1,20 @@
 // Panel : Veille IA — feed éditorial unifié
-const { useState: useStateVeille, useMemo: useMemoVeille } = React;
+const { useState: useStateVeille, useMemo: useMemoVeille, useEffect: useEffectVeille } = React;
+
+// Persistent read/archive state across navigations — single key for all
+// panel-veille corpora since IDs come from distinct tables (no collision).
+const VEILLE_READ_KEY = "veille-read-state";
+function loadVeilleReadState(){
+  try {
+    const raw = localStorage.getItem(VEILLE_READ_KEY);
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    return (obj && typeof obj === "object") ? obj : {};
+  } catch { return {}; }
+}
+function saveVeilleReadState(state){
+  try { localStorage.setItem(VEILLE_READ_KEY, JSON.stringify(state)); } catch {}
+}
 
 const VEILLE_TYPES = ["Tous", "Release", "Framework", "Cas prod", "Papier", "Deal", "Régulation", "Analyse"];
 const VEILLE_PERIODS = [
@@ -180,7 +195,10 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
   const [typeFilter, setTypeFilter] = useStateVeille("Tous");
   const [period, setPeriod] = useStateVeille("7j");
   const [trendFilter, setTrendFilter] = useStateVeille(null); // id of selected trend
-  const [readState, setReadState] = useStateVeille({}); // id -> "read" | "archived" | undefined
+  const [readState, setReadState] = useStateVeille(() => loadVeilleReadState()); // id -> "read" | "archived" | undefined, persisted to localStorage
+
+  // Persist on every change — LS write is cheap and keeps cross-nav state
+  useEffectVeille(() => { saveVeilleReadState(readState); }, [readState]);
   const [expandedGroups, setExpandedGroups] = useStateVeille({}); // type -> true = show all in group
   const GROUP_PREVIEW = 5;
 
@@ -264,8 +282,33 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
           <h1 className="vl-hero-title">{v.headline.tagline}</h1>
           <p className="vl-hero-body">{v.headline.body}</p>
           <div className="vl-hero-cta">
-            <button className="btn btn--primary"><Icon name="paper" size={13} stroke={2}/> Lire le détail</button>
-            <button className="btn btn--ghost"><Icon name="archive" size={13} stroke={2}/> Sauvegarder</button>
+            <button
+              className="btn btn--primary"
+              disabled={!v.headline.url}
+              onClick={() => {
+                if (!v.headline.url) return;
+                try {
+                  if (v.headline.id) {
+                    const rm = JSON.parse(localStorage.getItem("read-articles") || "{}");
+                    rm[v.headline.id] = { ts: Date.now(), kept: !!rm[v.headline.id]?.kept };
+                    localStorage.setItem("read-articles", JSON.stringify(rm));
+                  }
+                } catch {}
+                window.open(v.headline.url, "_blank", "noopener");
+              }}
+            ><Icon name="paper" size={13} stroke={2}/> Lire le détail</button>
+            <button
+              className="btn btn--ghost"
+              disabled={!v.headline.id}
+              onClick={() => {
+                if (!v.headline.id) return;
+                try {
+                  const rm = JSON.parse(localStorage.getItem("read-articles") || "{}");
+                  rm[v.headline.id] = { ts: Date.now(), kept: true };
+                  localStorage.setItem("read-articles", JSON.stringify(rm));
+                } catch {}
+              }}
+            ><Icon name="archive" size={13} stroke={2}/> Sauvegarder</button>
           </div>
         </div>
         <div className="vl-hero-right">
@@ -290,7 +333,9 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
             <div className="vl-section-kicker">Acteurs suivis</div>
             <h2 className="vl-section-title">{actors.filter(a => a.followed).length} {actorsLabel} dans ton radar</h2>
           </div>
-          <button className="link-more"><Icon name="plus" size={12} stroke={2}/> Ajouter un acteur</button>
+          <span className="vl-section-hint" title="Les acteurs sont détectés automatiquement depuis le flux RSS des 30 derniers jours">
+            Auto-détecté · top 12
+          </span>
         </div>
         <div className="vl-actors-grid">
           {actors.map((a) => (

@@ -1,49 +1,152 @@
 # Veille IA
 
-> <Phrase-résumé de la finalité — 1 ligne>
+> Feed unifié des actualités IA : hero release + acteurs suivis + tendances transverses + chronologie filtrable + cas prod, sur 30 jours d'articles.
 
 ## Scope
 pro
 
 ## Finalité fonctionnelle
-<Pourquoi cet onglet existe, quel problème il résout>
+Panel le plus dense du cockpit. Centralise tout ce qui tombe des flux RSS veille IA : releases de labos/éditeurs, frameworks, cas prod entreprise, papiers, deals, régulation, analyses. Transforme les 400 articles des 30 derniers jours (`T2.veille()`) en un feed navigable avec filtres triples (acteur / type / période) + filtre "tendance" cliquable.
+
+⚠️ Ce panel **partage le composant** `PanelVeille` avec 4 autres routes (`sport`, `gaming_news`, `anime`, `news`) via un système de props/corpus. Le corpus "updates" pointe sur `window.VEILLE_DATA`.
 
 ## Parcours utilisateur
-<Comment Jean utilise concrètement cet onglet>
+1. Clic sidebar "Veille IA" → navigation vers route `updates` → Tier 2 `loadPanel("updates")` déclenche `T2.veille()` pendant 2-3 s.
+2. React mount bloqué sur `<PanelLoader>` jusqu'à hydratation (cf. [app.jsx:361](cockpit/app.jsx:361)).
+3. Page rendue avec hero (dernière release), ticker d'acteurs suivis, grille de tendances, feed chronologique, grille de cas prod.
+4. Options : filtrer le feed par acteur (cartes ou pills), par type (Release / Framework / Cas prod / Papier / Deal / Régulation / Analyse), par période (24h / 7j / 30j).
+5. Clic sur une **carte tendance** → filtre supplémentaire par keyword matching sur title/summary/tags.
+6. Par défaut : feed groupé par type (collapsible `<details>`), preview 5 items par groupe avec bouton "Voir les N autres" pour expand.
+7. Clic sur un item → `window.open(url, "_blank")` + écrit `localStorage.read-articles[id] = { ts, kept }` + marque lu dans l'état local.
+8. Actions par item : marquer lu/non-lu (icon), archiver (filtre out), ouvrir (→ tab).
+9. Bouton "Tout marquer lu" en header du feed quand `unreadCount > 0`.
+10. Toggle tone "Éditorial" / "Dense" flottant en bas à droite (change le thème visuel, `.vl-dense` / `.vl-dawn`).
 
 ## Fonctionnalités
-- <Feature 1> : <description>
-- <Feature 2> : <description>
+- **Hero release** : carte de la dernière release (actor + version + tagline + body + benchmarks 4 colonnes).
+- **Acteurs suivis** : grid de cartes par acteur (mark + nom + momentum + dernier contenu + sparkline pulse 8 semaines). Clic → filtre le feed. Acteurs non-`followed` grisés.
+- **Tendances transverses** : 4-6 cartes (label + kicker + résumé + status new/rising/stable/debated + pulse bars + acteurs impliqués). Clic → active le `trendFilter`.
+- **Feed chronologique** : groupé par type ou flat si un type spécifique est sélectionné.
+  - Groupement avec tri : unread DESC, puis count DESC
+  - Preview 5 items par groupe, expansion par `setExpandedGroups`
+  - Premier groupe ouvert par défaut (`open={idx === 0}`)
+- **Filtres** : 3 groupes de pills (catégorie / type / période). Réinitialisables via bouton dans l'empty state.
+- **Read state** : `readState[id]` = `"read"` | `"archived"` | `undefined`. Archivé = filtré out du feed. Lu écrit aussi dans `localStorage.read-articles` quand l'URL est ouverte.
+- **Cas prod** : grid de cartes (company + logo_mark + domain + scale + headline + model + impact) OU `<ProdTable>` (mode `prodTableMode=true`, utilisé uniquement par `anime`) avec filtres année + mois.
+- **Tone toggle** : "Éditorial" vs "Dense" (state local, pas de persistance).
 
 ## Front — structure UI
-<HTML principal, composants, interactions JS, IDs/classes clés>
+Fichier : [cockpit/panel-veille.jsx](cockpit/panel-veille.jsx) — 620 lignes, monté par [app.jsx:384-385](cockpit/app.jsx:384) avec props `corpus="VEILLE_DATA"`, `title="Veille IA"`, `actorsLabel="labos + éditeurs"`, `prodSection={ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }`.
+
+Structure DOM (`.vl-panel`) :
+- `.vl-hero` (split left/right)
+  - `.vl-hero-left` — kicker + actor + tagline + body + CTAs
+  - `.vl-hero-right` — `.vl-hero-metrics` (4 `.vl-metric`)
+- `.vl-section` **Acteurs suivis** (si `showActors=true`) — `.vl-actors-grid > .vl-actor-card × N`
+- `.vl-section` **Tendances transverses** — `.vl-trends-grid > .vl-trend-card × N`
+- `.vl-section` **Feed chronologique**
+  - `.vl-filters > .vl-filter-group × 3` (acteur/type/période)
+  - `.vl-feed-groups > <details>.vl-feed-group × N` (ou `.vl-feed > .vl-feed-item × N` si flat)
+- `.vl-section` **Cas prod / Agents en production** — `.vl-prod-grid > .vl-prod-card × N` OU `<ProdTable>`
+- `.vl-tone-toggle` flottant en bas à droite
+
+Route id = `"updates"`, URL hash `#updates`. **Panel Tier 2** (listé dans `TIER2_PANELS` à [data-loader.js:4251](cockpit/lib/data-loader.js:4251)).
 
 ## Front — fonctions JS
 | Fonction | Rôle | Fichier/ligne |
 |----------|------|---------------|
-| `renderXxx()` | ... | `index.html:L123` |
+| `PanelVeille({ data, corpus, title, actorsLabel, prodSection, showActors, categoryLabel, categories, typeLabel, prodTableMode })` | Composant racine paramétrique | [panel-veille.jsx:175](cockpit/panel-veille.jsx:175) |
+| `ActorMark({ actor, size })` | Pastille d'acteur coloré avec initiale | [panel-veille.jsx:11](cockpit/panel-veille.jsx:11) |
+| `PulseBars({ pulse, color })` | Mini-histogramme 8 barres (activité hebdo) | [panel-veille.jsx:23](cockpit/panel-veille.jsx:23) |
+| `ProdTable({ prodSection, items })` | Table triée des sorties prévues avec filtres année+mois (mode `prodTableMode`) | [panel-veille.jsx:36](cockpit/panel-veille.jsx:36) |
+| `renderItem(f)` (inline) | Rend une card `.vl-feed-item` avec actor mark + meta + title + summary + tags + actions | [panel-veille.jsx:464-516](cockpit/panel-veille.jsx:464) |
+| `openArticle()` (inline) | `localStorage.read-articles[id] = {ts, kept}` + `markRead` + `window.open(url)` | [panel-veille.jsx:467-476](cockpit/panel-veille.jsx:467) |
+| `markRead(id)` (inline) | Toggle `readState[id]` entre "read" et undefined | [panel-veille.jsx:218](cockpit/panel-veille.jsx:218) |
+| `archive(id)` (inline) | `readState[id] = "archived"` → filtré out | [panel-veille.jsx:219](cockpit/panel-veille.jsx:219) |
+| `markAllRead()` (inline) | Passe tout le feed filtré à `read` en un clic | [panel-veille.jsx:220-224](cockpit/panel-veille.jsx:220) |
+| `useMemoVeille filtered` | Applique actor/type/period/trend avec matching keyword sur le label | [panel-veille.jsx:190-208](cockpit/panel-veille.jsx:190) |
+| `useMemoVeille availableTypes` | Extrait `Set(feed.map(f => f.type))`, préfixe "Tous" | [panel-veille.jsx:211-214](cockpit/panel-veille.jsx:211) |
+| `T2.veille()` | `GET articles?fetch_date=gte.<d-30>&order=fetch_date.desc&limit=400`, mémoïsé via `once()` | [data-loader.js:1195](cockpit/lib/data-loader.js:1195) |
+| `transformVeilleFeed(articles)` | Mappe chaque article → shape feed (id, actor, type, date_h, date_label, title, summary, tags, unread, icon, url) | [data-loader.js:2880](cockpit/lib/data-loader.js:2880) |
+| `loadPanel("updates")` case | Appelle `T2.veille()`, remplace `VEILLE_DATA.feed`, patch headline avec l'article le plus frais | [data-loader.js:3560-3578](cockpit/lib/data-loader.js:3560) |
+
+Mapping section → type (hardcoded) dans [data-loader.js:2605-2614](cockpit/lib/data-loader.js:2605) :
+- `updates, llm` → Release
+- `agents, tools` → Framework
+- `energy, biz` → Analyse
+- `finserv` → Deal
+- `reg` → Régulation
+- `papers` → Papier
+- fallback → Analyse
 
 ## Back — sources de données
-<Tables Supabase concernées, colonnes clés, volumétrie>
+
+| Table | Colonnes lues | Volumétrie |
+|-------|--------------|------------|
+| `articles` | `id, title, summary, source, section, tags, url, date_published, fetch_date` | 400 lignes / 30j max |
+
+**Données maintenant branchées** :
+- `VEILLE_DATA.actors` — top 12 sources agrégées depuis `articles` sur 30j avec momentum `7d - 30d/4.3`, latest article, couleur dérivée du nom. Fallback sur le fake data-veille.js si aucun article ([data-loader.js:3593-3624](cockpit/lib/data-loader.js:3593)).
+- `VEILLE_DATA.trends` — top 6 termes de `signal_tracking` (via `__COCKPIT_RAW.signals` chargé en Tier 1). Mapping status : `new → new`, `rising → rising`, `stable → stable`, `declining → debated`. Pulse dérivée de `history` JSONB ([data-loader.js:3627-3657](cockpit/lib/data-loader.js:3627)).
+- `VEILLE_DATA.headline` — patch complet incluant `url` + `id` pour activer les CTAs.
+
+**Données toujours fake** :
+- `VEILLE_DATA.prod_cases` — grid des agents en prod (contenu spécifique par corpus, pas de pipeline générique).
+- `VEILLE_DATA.headline.metrics` — 4 benchmarks (SWE-bench, τ-bench, prix, contexte) — difficile à auto-générer.
+
+Le `feed` est toujours reconstruit depuis `articles` (même si vide).
 
 ## Back — pipelines qui alimentent
-- Daily pipeline → <étapes/modules concernés>
-- Weekly pipeline → <idem>
-- Jarvis (local) → <idem>
+- **Daily pipeline** ([main.py](main.py)) — cron `0 6 * * 1-5` :
+  - Fetch RSS → Gemini enrichit (extract tags, section, date_published)
+  - `POST articles` par batch de 50 ([main.py:797](main.py:797))
+  - La `section` détermine le `type` affiché via `SECTION_TO_TYPE` côté front
+- **Weekly pipeline** ([weekly_analysis.py](weekly_analysis.py)) : aucune interaction directe.
+- **Jarvis (local)** : aucune.
+
+Pas de pipeline qui alimente `actors`, `trends`, `prod_cases` — tout est du contenu curé hardcodé.
 
 ## Appels externes
-<API externes, endpoints, clés utilisées, fréquence>
+- **Supabase REST** : `T2.veille()` via `q("articles", ...)`. Partagé avec `history` (même clé de cache via `once()`).
+- **localStorage** : `read-articles` (persistant, pour le "lu" cross-session) et `readState` in-memory (pour "archived").
+- **`window.open(url, "_blank", "noopener")`** : ouverture article.
 
 ## Dépendances
-- Onglets : <liste>
-- Pipelines : <liste>
-- Variables d'env / secrets : <liste>
+- **Onglets in** : aucune navigation entrante autre que la sidebar.
+- **Onglets out** : aucune (les clics ouvrent en externe, pas en interne).
+- **Panels frères** (mêmes codepath) : `sport`, `gaming_news`, `anime`, `news` via `PanelVeille` + corpus différents.
+- **Pipelines** : `daily_digest.yml` obligatoire (articles).
+- **Variables d'env / secrets** : aucune côté front.
 
 ## États & edge cases
-<Loading, empty state, erreur, mode dégradé>
+- **Loading** : `<PanelLoader>` pendant `loadPanel("updates")` (Tier 2). [app.jsx:361](cockpit/app.jsx:361).
+- **Corpus introuvable** : fallback `"Corpus VEILLE_DATA introuvable."` ([panel-veille.jsx:177](cockpit/panel-veille.jsx:177)) — ne devrait pas arriver car le corpus est chargé par `data-veille.js` avant le mount.
+- **Empty feed après filtres** : bloc `.vl-empty` avec icône + bouton "Réinitialiser" qui remet actorFilter=all / typeFilter=Tous / period=30j ([panel-veille.jsx:454-461](cockpit/panel-veille.jsx:454)).
+- **Empty après Tier 2** : si `T2.veille()` retourne `[]`, le feed reste celui du fake data (pas de fallback `feed = []`). **Bug potentiel** : la condition `if (window.VEILLE_DATA && articles.length)` signifie qu'avec 0 articles Supabase, le fake feed reste affiché ([data-loader.js:3562](cockpit/lib/data-loader.js:3562)).
+- **Erreur Tier 2** : `PanelError` avec bouton Réessayer ([app.jsx:363](cockpit/app.jsx:363)).
+- **Article sans URL** : la card n'a pas de `cursor: pointer` ; `openArticle` no-op mais `markRead` via le bouton marche quand même.
+- **Article sans section** : `SECTION_TO_TYPE[undefined]` → fallback "Analyse".
+- **Trend filter** : si le label contient uniquement des mots courts (≤3 chars), `trendKeywords` est vide → aucun filtrage effectif ([panel-veille.jsx:192](cockpit/panel-veille.jsx:192)).
+- **Acteur inexistant dans actors** : `actors.find(a => a.name === f.actor)` retourne `undefined` → fallback `<span className="vl-actor-mark vl-actor-mark--neutral">` avec première lettre du source ([panel-veille.jsx:485](cockpit/panel-veille.jsx:485)).
+- **Tone toggle** : reset à `"dense"` à chaque navigation vers le panel.
+- **readState** : reset à `{}` à chaque navigation (in-memory only, perdu).
 
 ## Limitations connues / TODO
-- [ ] ...
+- [x] ~~`actors`, `trends` = fake data~~ → **fixé** : actors agrégés depuis `articles` (top 12 sources avec momentum), trends depuis `signal_tracking` (top 6 termes). `prod_cases` et `headline.metrics` restent fake (trop spécifiques).
+- [x] ~~Feed reste fake si Supabase vide~~ → **fixé** : `if (window.VEILLE_DATA)` au lieu de `if (window.VEILLE_DATA && articles.length)`. Feed vide quand le corpus l'est.
+- [x] ~~Bouton "Ajouter un acteur" sans onClick~~ → **remplacé** par un hint non-interactif "Auto-détecté · top 12".
+- [x] ~~CTAs hero "Lire le détail" / "Sauvegarder" sans onClick~~ → **wirés** : "Lire le détail" ouvre `headline.url` + marque lu, "Sauvegarder" écrit `kept: true` dans `localStorage.read-articles[headline.id]`. Boutons `disabled` si `url/id` absents.
+- [x] ~~`readState` perdu à la navigation~~ → **persisté** dans `localStorage.veille-read-state` (un seul key cross-corpus, OK car IDs viennent de tables distinctes). Lecture au mount, save à chaque changement via `useEffect`.
+- [ ] **Trend filter naïf** : keyword matching via `split(/\s+/).filter(w => w.length > 3)` sur le label. Les tendances courtes (ex: "MCP", "RAG") ne filtrent rien.
+- [ ] **`SECTION_TO_TYPE` hardcodé** : toute nouvelle section côté pipeline tombera dans "Analyse" par défaut ([data-loader.js:2607](cockpit/lib/data-loader.js:2607)).
+- [ ] **Tone toggle non persistant** : revient à "dense" à chaque navigation.
+- [ ] **`<details>` natifs pour les groupes** : bon pour l'accessibilité mais l'UX est moyen (pas de transition, indicateur basique).
+- [ ] **Pas de pagination au-delà de 400 articles** : un cockpit actif depuis 2 mois perdra les articles plus anciens du corpus visible.
+- [ ] **Hero ne gère pas "pas de release récente"** : `fresh = articles[0]` prend toujours le dernier, même si c'est un vieux article.
+- [ ] **`prod_cases` + `headline.metrics` restent fake** — benchmarks et cas prod demandent une curation manuelle.
+- [ ] **`actors_involved` des trends toujours vide** : nécessiterait une dénormalisation dans `signal_tracking` (liste des sources citant le terme).
+- [ ] **Panels frères partagent le composant** : toute modif sur `updates` affecte aussi `sport`, `gaming_news`, `anime`, `news`. Les helpers `loadVeilleReadState` / `saveVeilleReadState` sont donc globaux cross-corpus.
+- [ ] **Couleurs acteurs dérivées d'un hash** : conflits de couleurs possibles avec beaucoup de sources similaires. Palette de 10 couleurs.
 
 ## Dernière MAJ
-<date ISO> — <commit SHA court>
+2026-04-23 — acteurs/tendances dynamiques + fix feed fake + CTAs wirés + persistance readState (local, non pushé)

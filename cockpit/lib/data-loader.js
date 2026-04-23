@@ -3559,9 +3559,13 @@
     switch (id) {
       case "updates": {
         const articles = await T2.veille();
-        if (window.VEILLE_DATA && articles.length) {
+        if (window.VEILLE_DATA) {
+          // Always replace feed, even when empty — prevents stale fake
+          // content from persisting when the Supabase corpus is empty.
           window.VEILLE_DATA.feed = transformVeilleFeed(articles);
-          // Update hero headline with the freshest article
+
+          // Hero headline: patch with the freshest article so CTAs point
+          // to a real URL + id. Only touched when we actually have articles.
           const fresh = articles[0];
           if (fresh) {
             window.VEILLE_DATA.headline = {
@@ -3572,7 +3576,83 @@
               tagline: stripHtml(fresh.summary || "").slice(0, 120),
               body: stripHtml(fresh.summary || "").slice(0, 320),
               tags: (fresh.tags || []).map(t => "#" + String(t).replace(/^#/, "")),
+              url: fresh.url || null,
+              id: fresh.id || null,
             };
+          }
+
+          // Dynamic actors — aggregate by source over the 30-day corpus.
+          // Replaces the hardcoded actor list with real sources + momentum
+          // computed as 7d volume vs 30d weekly average.
+          const bySource = {};
+          articles.forEach(a => {
+            const src = a.source || "—";
+            if (!bySource[src]) bySource[src] = { count: 0, count7d: 0, count1d: 0, latest: null };
+            bySource[src].count++;
+            const whenMs = new Date(a.date_published || a.date_fetched || Date.now()).getTime();
+            const ageH = (Date.now() - whenMs) / 3600000;
+            if (ageH <= 168) bySource[src].count7d++;
+            if (ageH <= 24) bySource[src].count1d++;
+            if (!bySource[src].latest || whenMs > bySource[src].latest.when) {
+              bySource[src].latest = { when: whenMs, title: a.title || "", url: a.url || null };
+            }
+          });
+          const ACTOR_COLORS = ["#c06443", "#4a7d5a", "#6b5b95", "#b27536", "#4b8d94", "#a84a63", "#5a7a8f", "#8c6d3f", "#786d5f", "#4f6d7a"];
+          const hash = (s) => { let h = 0; for (const c of s) h = ((h << 5) - h + c.charCodeAt(0)) | 0; return Math.abs(h); };
+          const dynamicActors = Object.entries(bySource)
+            .sort((a, b) => b[1].count - a[1].count)
+            .slice(0, 12)
+            .map(([name, st]) => {
+              const rate30d = st.count / 4.3;
+              const delta = Math.round(st.count7d - rate30d);
+              return {
+                id: name.toLowerCase().replace(/\s+/g, "-"),
+                name,
+                mark: name.charAt(0).toUpperCase(),
+                color: ACTOR_COLORS[hash(name) % ACTOR_COLORS.length],
+                followed: true,
+                last_activity: st.latest ? relTime(new Date(st.latest.when).toISOString()) : "—",
+                last_title: st.latest?.title || "",
+                momentum: delta > 0 ? `+${delta} vs rythme moyen` : delta < 0 ? `${delta} vs rythme moyen` : "rythme stable",
+                pulse: [1, 1, 1, 1, 1, 1, Math.max(1, Math.round(st.count7d / 2)), Math.max(1, st.count7d)],
+              };
+            });
+          if (dynamicActors.length > 0) {
+            window.VEILLE_DATA.actors = dynamicActors;
+          }
+
+          // Trends from signal_tracking (already loaded in Tier 1 → raw).
+          // Maps the top 6 tracked terms to the panel's trend shape.
+          const sigRaw = (window.__COCKPIT_RAW || {}).signals || [];
+          if (sigRaw.length > 0) {
+            const byTerm = {};
+            sigRaw.forEach(s => {
+              if (!byTerm[s.term] || (byTerm[s.term].week_start || "") < (s.week_start || "")) byTerm[s.term] = s;
+            });
+            const STATUS_MAP = { new: "new", rising: "rising", stable: "stable", declining: "debated" };
+            const topSignals = Object.values(byTerm)
+              .sort((a, b) => (b.mention_count || 0) - (a.mention_count || 0))
+              .slice(0, 6);
+            window.VEILLE_DATA.trends = topSignals.map((s, i) => {
+              let hist = s.history;
+              if (typeof hist === "string") { try { hist = JSON.parse(hist); } catch { hist = null; } }
+              const pulse = Array.isArray(hist) && hist.length
+                ? hist.slice(-8).map(h => Number(typeof h === "object" ? (h.mentions || h.count || 0) : h) || 0)
+                : [0, 0, 0, 0, 0, 0, 0, s.mention_count || 0];
+              return {
+                id: (s.term || `trend-${i}`).toLowerCase().replace(/\s+/g, "-"),
+                kicker: s.category || "Signal faible",
+                label: s.term || "—",
+                status: STATUS_MAP[s.trend] || "stable",
+                summary: s.context || `Mentionné ${s.mention_count || 0}× cette semaine.`,
+                momentum: s.delta != null && s.delta !== 0
+                  ? (s.delta > 0 ? `+${s.delta} vs S-1` : `${s.delta} vs S-1`)
+                  : "stable",
+                articles_count: s.mention_count || 0,
+                pulse,
+                actors_involved: [],
+              };
+            });
           }
         }
         return { articles };
