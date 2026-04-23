@@ -3928,13 +3928,15 @@
               tags: ["#anime", "#" + (fresh.category || "actu")],
             };
           }
-          // Actors = sources
-          const sourceColors = {
+          // Actors = sources. Hand-picked brand colors for known outlets,
+          // hash fallback for the rest (shared nameHashColor helper).
+          const ANIME_SOURCE_COLORS = {
             "AlloCiné": "#fec300",
             "Première": "#000000",
             "Écran Large": "#c62828",
             "Anime News Network": "#265a8f",
             "MyAnimeList": "#2e51a2",
+            "TMDB": "#0d253f",
             "Deadline": "#d50000",
             "Variety": "#003c71",
             "Hollywood Reporter": "#bf1a1a",
@@ -3948,7 +3950,7 @@
                 id: name.toLowerCase().replace(/\W+/g, "-"),
                 name,
                 mark: name.split(/[\s.]/).map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase(),
-                color: sourceColors[name] || "#555",
+                color: ANIME_SOURCE_COLORS[name] || nameHashColor(name),
                 followed: true,
                 last_activity: relTime(a.date_published || a.date_fetched),
                 last_title: a.title || "",
@@ -3960,6 +3962,24 @@
             srcMap.get(name).pulse[7]++;
           });
           window.ANIME_DATA.actors = Array.from(srcMap.values());
+          // Dynamic category pills — auto-detected from corpus.
+          const ANIME_CATEGORY_COLORS = {
+            released: "#1f1f1f",
+            upcoming: "#2e6a4f",
+            industry: "#555",
+          };
+          const byCategoryAll = {};
+          articles.forEach(a => {
+            const k = a.category || "released";
+            byCategoryAll[k] = (byCategoryAll[k] || 0) + 1;
+          });
+          window.ANIME_DATA.categories = Object.entries(byCategoryAll)
+            .sort((a, b) => b[1] - a[1])
+            .map(([id]) => ({
+              id,
+              label: ANIME_CATEGORY_LABELS[id] || id,
+              color: ANIME_CATEGORY_COLORS[id] || "#888",
+            }));
           // Trends
           window.ANIME_DATA.trends = Object.entries(catCounts7d)
             .map(([cat, count]) => ({
@@ -3974,34 +3994,43 @@
               status: count >= 15 ? "rising" : count >= 8 ? "stable" : "new",
             }))
             .sort((a, b) => b.articles_count - a.articles_count);
-          // prod_cases = tous les animes Jikan upcoming triés par date de diffusion asc.
-          // Le panel affiche ces données en mode tableau + filtre 3 prochains mois.
+          // prod_cases = toutes les sorties à venir (Jikan anime + TMDB
+          // movies/tv) triées par date de diffusion asc. Le filtre est
+          // source-agnostique : tout `category === "upcoming"` avec une
+          // `date_published` valide atterrit dans la table.
           const MONTHS_FR = ["janv.","févr.","mars","avril","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
-          const jikanUpcoming = articles
-            .filter(a => a.source === "MyAnimeList" && a.category === "upcoming" && a.date_published)
+          const upcomingReleases = articles
+            .filter(a => a.category === "upcoming" && a.date_published)
             .sort((a, b) => new Date(a.date_published) - new Date(b.date_published));
-          window.ANIME_DATA.prod_cases = jikanUpcoming.map(a => {
+          window.ANIME_DATA.prod_cases = upcomingReleases.map(a => {
             const dt = new Date(a.date_published);
             const isoValid = !isNaN(dt);
             const whenLabel = isoValid ? `${dt.getDate()} ${MONTHS_FR[dt.getMonth()]} ${dt.getFullYear()}` : "—";
             const typeMatch = (a.title || "").match(/^\[(TV|Movie|OVA|Special|ONA)\]\s*/i);
             const cleanTitle = (a.title || "").replace(/^\[[^\]]+\]\s*/, "");
             const atype = typeMatch ? typeMatch[1] : "Anime";
-            const studioMatch = (a.summary || "").match(/Studio\s*:\s*([^·]+?)(?:\s*·|$)/);
+            // Studio/label detection — "Studio:" for Jikan, "Producteur:" for TMDB-style.
+            const studioMatch = (a.summary || "").match(/(?:Studio|Producteur)\s*:\s*([^·]+?)(?:\s*·|$)/);
             const studio = studioMatch ? studioMatch[1].trim() : "";
             const mark = cleanTitle.split(/\s+/).map(w => w[0]).filter(Boolean).join("").slice(0, 3).toUpperCase();
+            // Row accent color by source — MAL blue for Jikan, TMDB dark
+            // navy for TMDB, neutral for anything else.
+            const ROW_COLOR = a.source === "TMDB" ? "#0d253f" : a.source === "MyAnimeList" ? "#2e51a2" : "#555";
+            const SOURCE_SCALE = a.source === "TMDB" ? "TMDB" : "MyAnimeList";
+            const SOURCE_MODEL = a.source === "TMDB" ? "TMDB" : "MAL";
             return {
               company: cleanTitle.slice(0, 80),
               logo_mark: mark || "??",
-              color: "#2e51a2",
-              scale: studio || "MyAnimeList",
-              model: studio || "MAL",
+              color: ROW_COLOR,
+              scale: studio || SOURCE_SCALE,
+              model: studio || SOURCE_MODEL,
               domain: atype,
               when: whenLabel,
               air_iso: isoValid ? dt.toISOString() : null,
-              headline: (a.summary || "").replace(/^Studio\s*:[^·]+·\s*(?:[^·]+·\s*)?/, "").slice(0, 200) || "À paraître prochainement.",
+              headline: (a.summary || "").replace(/^(?:Studio|Producteur)\s*:[^·]+·\s*(?:[^·]+·\s*)?/, "").slice(0, 200) || "À paraître prochainement.",
               impact: `Diffusion ${whenLabel}`,
               url: a.url,
+              source: a.source || "",
             };
           });
         }

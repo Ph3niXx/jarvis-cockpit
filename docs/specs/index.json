@@ -78,7 +78,8 @@
       "group": "Veille",
       "dom_id": "anime",
       "scope": "perso",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-23"
     },
     {
       "slug": "news",

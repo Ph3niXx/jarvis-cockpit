@@ -70,6 +70,7 @@ function ProdTable({ prodSection, items }){
   const defaultYear = years.includes(currentYear) ? currentYear : (years[0] || currentYear);
   const [yearFilter, setYearFilter] = useStateVeille(defaultYear); // number | "all"
   const [monthFilter, setMonthFilter] = useStateVeille("all");    // "all" | 0-11
+  const [typeFilter, setTypeFilter] = useStateVeille("all");      // "all" | domain string
 
   // Reset month when year changes to avoid stale selection
   React.useEffect(() => { setMonthFilter("all"); }, [yearFilter]);
@@ -85,15 +86,27 @@ function ProdTable({ prodSection, items }){
     return Array.from(set).sort((a, b) => a - b);
   }, [sorted, yearFilter]);
 
+  // Types (TV/Movie/OVA/Special/ONA/Anime) detected in the corpus within
+  // the current year scope — hidden when there's only one kind.
+  const typesAvailable = useMemoVeille(() => {
+    const set = new Set();
+    sorted.forEach(p => {
+      if (!p.air_iso || !p.domain) return;
+      if (yearFilter === "all" || new Date(p.air_iso).getFullYear() === yearFilter) set.add(p.domain);
+    });
+    return Array.from(set).sort();
+  }, [sorted, yearFilter]);
+
   const filtered = useMemoVeille(() => {
     return sorted.filter(p => {
       if (!p.air_iso) return false;
       const d = new Date(p.air_iso);
       if (yearFilter !== "all" && d.getFullYear() !== yearFilter) return false;
       if (monthFilter !== "all" && d.getMonth() !== monthFilter) return false;
+      if (typeFilter !== "all" && p.domain !== typeFilter) return false;
       return true;
     });
-  }, [sorted, yearFilter, monthFilter]);
+  }, [sorted, yearFilter, monthFilter, typeFilter]);
 
   const yearCount = (y) => sorted.filter(p => p.air_iso && new Date(p.air_iso).getFullYear() === y).length;
   const monthCount = (m) => sorted.filter(p => {
@@ -101,6 +114,11 @@ function ProdTable({ prodSection, items }){
     const d = new Date(p.air_iso);
     if (yearFilter !== "all" && d.getFullYear() !== yearFilter) return false;
     return d.getMonth() === m;
+  }).length;
+  const typeCount = (t) => sorted.filter(p => {
+    if (!p.air_iso) return false;
+    if (yearFilter !== "all" && new Date(p.air_iso).getFullYear() !== yearFilter) return false;
+    return p.domain === t;
   }).length;
 
   return (
@@ -151,6 +169,28 @@ function ProdTable({ prodSection, items }){
           ))}
         </div>
       </div>
+      {typesAvailable.length > 1 && (
+        <div className="vl-prod-filter-row">
+          <span className="vl-prod-filter-label">Type</span>
+          <div className="vl-prod-filters">
+            <button
+              className={`vl-prod-filter ${typeFilter === "all" ? "is-active" : ""}`}
+              onClick={() => setTypeFilter("all")}
+            >
+              Tout
+            </button>
+            {typesAvailable.map(t => (
+              <button
+                key={t}
+                className={`vl-prod-filter ${typeFilter === t ? "is-active" : ""}`}
+                onClick={() => setTypeFilter(t)}
+              >
+                {t} <span className="vl-prod-filter-count">{typeCount(t)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {filtered.length === 0 ? (
         <div className="vl-prod-empty">Aucune sortie prévue sur cette période.</div>
       ) : (
@@ -161,12 +201,14 @@ function ProdTable({ prodSection, items }){
                 <th>Date</th>
                 <th>Titre</th>
                 <th>Type</th>
-                <th>Studio</th>
+                <th>Label</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(p => (
+              {filtered.map(p => {
+                const linkLabel = p.source === "TMDB" ? "TMDB ↗" : p.source === "MyAnimeList" ? "MAL ↗" : "↗";
+                return (
                 <tr key={p.url || p.company}>
                   <td className="vl-prod-date">{p.when}</td>
                   <td className="vl-prod-title">{p.company}</td>
@@ -174,11 +216,12 @@ function ProdTable({ prodSection, items }){
                   <td className="vl-prod-studio">{p.model}</td>
                   <td>
                     {p.url && (
-                      <a className="vl-prod-link" href={p.url} target="_blank" rel="noopener noreferrer">MAL ↗</a>
+                      <a className="vl-prod-link" href={p.url} target="_blank" rel="noopener noreferrer">{linkLabel}</a>
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

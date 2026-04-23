@@ -390,11 +390,7 @@ function App() {
   else if (activePanel === "gaming_news")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="GAMING_DATA" title="Gaming" showActors={false} categoryLabel="Rubrique" typeLabel="Format" prodSection={null} />;
   else if (activePanel === "anime")
-    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="ANIME_DATA" title="Anime / Ciné / Séries" showActors={false} categoryLabel="Statut" typeLabel="Format" categories={[
-      { id: "released", label: "Sorties récentes", color: "#1f1f1f" },
-      { id: "upcoming", label: "À venir prochainement", color: "#2e6a4f" },
-      { id: "industry", label: "Industrie", color: "#555" },
-    ]} prodSection={{ kicker: "Prochaines sorties anime", title: "Les animes à venir — source MyAnimeList" }} prodTableMode={true} />;
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="ANIME_DATA" title="Anime / Ciné / Séries" showActors={false} categoryLabel="Statut" typeLabel="Format" prodSection={{ kicker: "Prochaines sorties", title: "Animes + films + séries à venir" }} prodTableMode={true} />;
   else if (activePanel === "news")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="NEWS_DATA" title="Actualités" showActors={false} categoryLabel="Zone" typeLabel="Rubrique" categories={[
       { id: "paris", label: "Paris", color: "#1a5f3f" },
