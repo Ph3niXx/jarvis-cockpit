@@ -952,7 +952,7 @@
       status: r.status === "recommended" ? "recommended"
             : r.status === "completed"   ? "done"
             : "open",
-      impact_axis: `+${impactPts} pts si ≥80%`,
+      impact_axis: `+${impactPts} pts si ≥70%`,
       score_reward: Number(r.score_reward || 0.5),
     };
     if (isTheory) {

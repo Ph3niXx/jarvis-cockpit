@@ -185,6 +185,20 @@ function PanelChallenges({ data, onNavigate }) {
   const openCount = list.filter(x => x.status === "open" || x.status === "recommended").length;
   const doneCount = list.filter(x => x.status === "done").length;
 
+  // Weakest axis derived from the current radar state. Counts the open
+  // challenges on that axis across both modes so the stats card doesn't
+  // lie when there's no actual challenge targeting the gap.
+  const weakestAxis = (() => {
+    const axes = window.APPRENTISSAGE_DATA?.radar?.axes || [];
+    if (!axes.length) return null;
+    return [...axes].sort((a, b) => a.score - b.score)[0];
+  })();
+  const weakestOpenCount = weakestAxis
+    ? [...(c.theory || []), ...(c.practice || [])].filter(
+        ch => ch.axis === weakestAxis.id && ch.status !== "done"
+      ).length
+    : 0;
+
   // ─── Flow states ───────────────────
   if (active && mode === "theory") {
     return <TheoryQuiz challenge={active} onBack={() => setActive(null)} onComplete={(r) => { setActive(null); recordAttempt(r); }} />;
@@ -193,7 +207,12 @@ function PanelChallenges({ data, onNavigate }) {
     return <PracticeExercise challenge={active} onBack={() => setActive(null)} onComplete={(r) => { setActive(null); recordAttempt(r); }} />;
   }
   if (completed) {
-    return <ResultScreen result={completed} onBack={() => setCompleted(null)} onRetry={() => { setActive(completed.challenge); setCompleted(null); }} />;
+    return <ResultScreen
+      result={completed}
+      onBack={() => setCompleted(null)}
+      onRetry={() => { setActive(completed.challenge); setCompleted(null); }}
+      onNavigate={onNavigate}
+    />;
   }
 
   // ─── HUB ───────────────────────────
@@ -231,8 +250,21 @@ function PanelChallenges({ data, onNavigate }) {
         </div>
         <div className="chal-stat chal-stat--weak">
           <div className="chal-stat-lbl chal-stat-lbl--top">Axe à travailler</div>
-          <div className="chal-stat-axis">Fine-tuning</div>
-          <div className="chal-stat-axis-sub">38/100 · challenges ciblés dispo</div>
+          {weakestAxis ? (
+            <>
+              <div className="chal-stat-axis">{weakestAxis.label}</div>
+              <div className="chal-stat-axis-sub">
+                {weakestAxis.score}/100 · {weakestOpenCount > 0
+                  ? `${weakestOpenCount} challenge${weakestOpenCount > 1 ? "s" : ""} ciblé${weakestOpenCount > 1 ? "s" : ""}`
+                  : "aucun challenge ciblé"}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="chal-stat-axis">—</div>
+              <div className="chal-stat-axis-sub">Radar non initialisé</div>
+            </>
+          )}
         </div>
       </div>
 
@@ -300,6 +332,17 @@ function PanelChallenges({ data, onNavigate }) {
 
       {/* Cards list */}
       <div className="chal-cards">
+        {filtered.length === 0 && (
+          <div className="chal-empty-inline">
+            {list.length === 0
+              ? `Aucun challenge ${mode === "theory" ? "théorie" : "pratique"} généré pour cette semaine. Le pipeline hebdomadaire tourne chaque dimanche soir (22h UTC).`
+              : axisFilter
+                ? `Aucun challenge ${mode === "theory" ? "théorie" : "pratique"} sur cet axe. Change d'axe dans la sidebar du radar ou enlève le filtre.`
+                : filter === "done"
+                  ? "Tu n'as encore réussi aucun challenge. Commence par un ouvert."
+                  : "Aucun challenge pour ce filtre — essaye un autre statut."}
+          </div>
+        )}
         {filtered.map(ch => (
           <ChallengeCard key={ch.id} challenge={ch} mode={mode} onStart={() => setActive(ch)} />
         ))}
@@ -659,10 +702,24 @@ function ScoreBar({ label, value }) {
 // ─────────────────────────────────────────────────────────
 // Result Screen — après passage
 // ─────────────────────────────────────────────────────────
-function ResultScreen({ result, onBack, onRetry }) {
+function ResultScreen({ result, onBack, onRetry, onNavigate }) {
   const { challenge: ch, score, mode } = result;
   const passed = score >= 70;
   const excellent = score >= 85;
+  // Pass threshold expressed in number-of-correct-answers for theory mode.
+  // Derived from the real 70% cutoff instead of the previously hardcoded "7".
+  const passThreshold = mode === "theory" ? Math.ceil(0.7 * Number(result.total || 0)) : null;
+  const isHeuristic = mode === "practice" && result.evaluation?.source === "heuristic";
+
+  // Navigate to recos with the challenge's axis pre-selected. Uses the
+  // same localStorage key panel-recos.jsx consumes on mount.
+  const gotoRecosForAxis = () => {
+    if (ch.axis) {
+      try { localStorage.setItem("recos-prefill-axis", ch.axis); } catch {}
+    }
+    if (onNavigate) onNavigate("recos");
+  };
+  const gotoRadar = () => { if (onNavigate) onNavigate("radar"); };
 
   return (
     <div className="panel-page panel-page--result" data-screen-label="Résultat challenge">
@@ -688,7 +745,9 @@ function ResultScreen({ result, onBack, onRetry }) {
         <p className="result-hero-body">
           {excellent && `Tu as ${mode === "theory" ? "répondu correctement à " + result.correctCount + "/" + result.total : "livré une réponse solide sur les 4 axes d'évaluation"}. Jarvis ajoute ce challenge à ta zone maîtrisée.`}
           {passed && !excellent && `Bien — ${mode === "theory" ? result.correctCount + "/" + result.total + " bonnes réponses" : "une réponse correcte sur la majorité des axes"}. Revois les points faibles ci-dessous pour consolider.`}
-          {!passed && `${mode === "theory" ? "Moins de 7 bonnes réponses sur " + result.total : "Ta réponse manque de précision sur plusieurs axes"}. Pas grave — Jarvis te propose 2 lectures avant de retenter.`}
+          {!passed && `${mode === "theory"
+            ? `${result.correctCount}/${result.total} bonnes réponses — il en fallait ${passThreshold} pour valider`
+            : "Ta réponse manque de précision sur plusieurs axes"}. Pas grave — Jarvis te propose des lectures avant de retenter.`}
         </p>
       </div>
 
@@ -722,15 +781,27 @@ function ResultScreen({ result, onBack, onRetry }) {
         </section>
       )}
 
+      {/* Heuristic fallback warning (practice mode, Jarvis offline) */}
+      {isHeuristic && (
+        <div className="result-heuristic-warn">
+          <div className="section-kicker">Jarvis hors ligne</div>
+          <p>
+            Le score ci-dessus est <strong>heuristique</strong> (calculé depuis la longueur + structure de ta réponse). Pour une évaluation réelle sur les 4 axes, lance <code>start_jarvis.bat</code> localement ou vérifie le tunnel Cloudflare, puis clique "Retenter" ci-dessous.
+          </p>
+        </div>
+      )}
+
       {/* Breakdown */}
       <div className="result-grid">
         <section className="result-card">
           <div className="section-kicker">Impact radar</div>
           <h3 className="result-card-title">{ch.axis_label} · {ch.impact_axis}</h3>
           <p className="result-card-body">
-            Ton axe <strong>{ch.axis_label}</strong> bouge en fonction du score. Tu peux voir le détail sur la page radar.
+            {passed
+              ? `Ton axe ${ch.axis_label} vient d'être bumpé sur le radar (si c'était ta 1ère réussite ≥ 70% sur ce challenge).`
+              : `Aucun bump radar cette fois — seules les réussites ≥ 70% font bouger le score de l'axe ${ch.axis_label}.`}
           </p>
-          <button className="btn btn--ghost btn--sm" onClick={onBack}>
+          <button className="btn btn--ghost btn--sm" onClick={gotoRadar}>
             Voir mon radar <Icon name="arrow_right" size={12} stroke={2} />
           </button>
         </section>
@@ -746,30 +817,25 @@ function ResultScreen({ result, onBack, onRetry }) {
         <section className="result-card">
           <div className="section-kicker">Prochaines étapes</div>
           <h3 className="result-card-title">
-            {passed ? "Jarvis recommande" : "Pour retenter"}
+            {passed ? "Consolide ton acquis" : "Avant de retenter"}
           </h3>
-          <ul className="result-next">
-            {passed ? (
-              <>
-                <li>Un challenge pratique lié : <strong>{mode === "theory" ? "Prépare un dataset LoRA" : "Quiz avancé sur le même axe"}</strong></li>
-                <li>2 lectures pour pousser le niveau</li>
-                <li>Un challenge sur l'axe voisin (éval)</li>
-              </>
-            ) : (
-              <>
-                <li>Lecture prioritaire : <strong>LoRA efficace en 90 min — HuggingFace</strong></li>
-                <li>Mini quiz de révision (5 min)</li>
-                <li>Retenter ce challenge dans 24h</li>
-              </>
-            )}
-          </ul>
+          <p className="result-card-body">
+            {passed
+              ? `Pousse encore l'axe ${ch.axis_label} via les lectures recommandées, ou tente un challenge sur un axe voisin pour élargir.`
+              : `Jette un œil aux recos de l'axe ${ch.axis_label} pour combler l'écart, puis retente ce challenge quand tu te sens prêt.`}
+          </p>
+          <button className="btn btn--primary btn--sm" onClick={gotoRecosForAxis}>
+            <Icon name="bookmark" size={12} stroke={1.75} /> Voir les recos pour cet axe
+          </button>
         </section>
       </div>
 
       {/* CTA bar */}
       <div className="result-cta">
         <button className="btn btn--ghost btn--lg" onClick={onBack}>Retour aux challenges</button>
-        <button className="btn btn--primary btn--lg" onClick={onRetry}>Retenter ce challenge</button>
+        <button className="btn btn--primary btn--lg" onClick={onRetry}>
+          {isHeuristic ? "Retenter (avec Jarvis)" : "Retenter ce challenge"}
+        </button>
       </div>
     </div>
   );
