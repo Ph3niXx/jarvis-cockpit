@@ -374,6 +374,7 @@ function App() {
   else if (activePanel === "jobs") content = <PanelJobsRadar key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "week") content = <PanelWeek key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "jarvis") content = <PanelJarvis key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "jarvis-lab") content = <PanelJarvisLab key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "profile") content = <PanelProfile key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "perf") content = <PanelForme key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "music") content = <PanelMusique key={panelKey} data={data} onNavigate={handleNavigate} />;

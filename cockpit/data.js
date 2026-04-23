@@ -106,6 +106,7 @@ window.COCKPIT_DATA = {
     ]},
     { group: "Personnel", items: [
       { id: "jarvis", label: "Jarvis", icon: "assistant" },
+      { id: "jarvis-lab", label: "Jarvis Lab", icon: "chart" },
       { id: "profile", label: "Mon profil", icon: "user" },
       { id: "perf", label: "Forme", icon: "activity" },
       { id: "music", label: "Musique", icon: "music" },
