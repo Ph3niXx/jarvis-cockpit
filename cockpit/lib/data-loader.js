@@ -4116,8 +4116,9 @@
               tags: ["#actu", "#" + (fresh.category || "france")],
             };
           }
-          // Actors = sources
-          const sourceColors = {
+          // Actors = sources. Hand-picked brand colors + nameHashColor
+          // fallback (shared helper).
+          const NEWS_SOURCE_COLORS = {
             "Le Parisien": "#003594",
             "20 Minutes": "#00ad97",
             "BFM Paris": "#0066cc",
@@ -4137,7 +4138,7 @@
                 id: name.toLowerCase().replace(/\W+/g, "-"),
                 name,
                 mark: name.split(/[\s.]/).map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase(),
-                color: sourceColors[name] || "#555",
+                color: NEWS_SOURCE_COLORS[name] || nameHashColor(name),
                 followed: true,
                 last_activity: relTime(a.date_published || a.date_fetched),
                 last_title: a.title || "",
@@ -4149,6 +4150,25 @@
             srcMap.get(name).pulse[7]++;
           });
           window.NEWS_DATA.actors = Array.from(srcMap.values());
+          // Dynamic category pills — auto-detected from corpus. Replaces
+          // the hardcoded list in app.jsx.
+          const NEWS_CATEGORY_COLORS = {
+            paris:         "#1a5f3f",
+            france:        "#1e3a8a",
+            international: "#bf0a30",
+          };
+          const byCategoryAll = {};
+          articles.forEach(a => {
+            const k = a.category || "france";
+            byCategoryAll[k] = (byCategoryAll[k] || 0) + 1;
+          });
+          window.NEWS_DATA.categories = Object.entries(byCategoryAll)
+            .sort((a, b) => b[1] - a[1])
+            .map(([id]) => ({
+              id,
+              label: NEWS_CATEGORY_LABELS[id] || id,
+              color: NEWS_CATEGORY_COLORS[id] || "#888",
+            }));
           // Trends = one per zone
           window.NEWS_DATA.trends = Object.entries(catCounts7d)
             .map(([cat, count]) => ({

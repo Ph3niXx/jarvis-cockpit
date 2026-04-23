@@ -88,7 +88,8 @@
       "group": "Veille",
       "dom_id": "news",
       "scope": "mixte",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-23"
     },
     {
       "slug": "radar",

@@ -392,11 +392,7 @@ function App() {
   else if (activePanel === "anime")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="ANIME_DATA" title="Anime / Ciné / Séries" showActors={false} categoryLabel="Statut" typeLabel="Format" prodSection={{ kicker: "Prochaines sorties", title: "Animes + films + séries à venir" }} prodTableMode={true} />;
   else if (activePanel === "news")
-    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="NEWS_DATA" title="Actualités" showActors={false} categoryLabel="Zone" typeLabel="Rubrique" categories={[
-      { id: "paris", label: "Paris", color: "#1a5f3f" },
-      { id: "france", label: "France", color: "#1e3a8a" },
-      { id: "international", label: "International", color: "#bf0a30" },
-    ]} prodSection={null} />;
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="NEWS_DATA" title="Actualités" showActors={false} categoryLabel="Zone" typeLabel="Rubrique" prodSection={null} />;
   else content = <Stub id={activePanel} theme={theme} onBack={() => setActivePanel("brief")} />;
 
   return (
