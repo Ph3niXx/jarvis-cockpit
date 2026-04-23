@@ -59,13 +59,43 @@ function readSavedSearches(){
   } catch { return []; }
 }
 
+function saveCurrentSearch(q){
+  try {
+    const name = (window.prompt("Nom de cette recherche :", q) || "").trim();
+    if (!name) return false;
+    const prev = readSavedSearches().filter(s => s.name !== name);
+    const next = [{ name, query: q, ts: new Date().toISOString() }, ...prev].slice(0, 20);
+    localStorage.setItem("search.saved", JSON.stringify(next));
+    return true;
+  } catch { return false; }
+}
+
+function stripSnippet(html){
+  const d = document.createElement("div");
+  d.innerHTML = String(html || "");
+  return (d.textContent || "");
+}
+
 // ── Shortcut display helper ─────────────────────────────────
 function Kbd({ children }) {
   return <span className="cmdk-kbd">{children}</span>;
 }
 
 // ── The Command-K modal content ─────────────────────────────
-function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, setSelectedIdx, onClose }) {
+function openResult(r, onClose, onAskJarvis){
+  if (!r) return;
+  if (r.url) {
+    window.open(r.url, "_blank");
+    return;
+  }
+  if (r.navTo) {
+    onClose();
+    if (r.navTo === "jarvis" && onAskJarvis) onAskJarvis(r.title || "");
+    else if (window.__cockpitNavigate) window.__cockpitNavigate(r.navTo);
+  }
+}
+
+function CmdKModal({ query, setQuery, filtered, selectedIdx, setSelectedIdx, onClose, onAskJarvis, onSaveSearch }) {
   const inputRef = useRefSearch(null);
 
   useEffectSearch(() => {
@@ -77,23 +107,21 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
     const handler = (e) => {
       if (e.key === "Escape") { onClose(); return; }
       if (!query) return;
-      const items = aiMode ? [] : filtered;
+      const items = filtered;
       if (items.length === 0) return;
       if (e.key === "ArrowDown") { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, items.length - 1)); }
       if (e.key === "ArrowUp") { e.preventDefault(); setSelectedIdx((i) => Math.max(i - 1, 0)); }
       if (e.key === "Enter") {
         e.preventDefault();
-        const sel = items[selectedIdx];
-        if (sel && sel.url) window.open(sel.url, "_blank");
-      }
-      // Toggle AI mode with Ctrl+I / Cmd+I
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
-        e.preventDefault(); setAiMode((m) => !m);
+        openResult(items[selectedIdx], onClose, onAskJarvis);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [query, filtered, aiMode, selectedIdx, onClose, setSelectedIdx, setAiMode]);
+  }, [query, filtered, selectedIdx, onClose, setSelectedIdx, onAskJarvis]);
+
+  const hasQuery = !!query;
+  const resultCount = filtered.length;
 
   return (
     <div className="cmdk-modal" onClick={(e) => e.stopPropagation()}>
@@ -102,18 +130,20 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
         <input
           ref={inputRef}
           className="cmdk-input"
-          placeholder={aiMode ? "Pose ta question à Jarvis…" : "Cherche dans tes articles, notes, wiki, conversations…"}
+          placeholder="Cherche dans articles, wiki, idées, conversations Jarvis…"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setSelectedIdx(0); }}
         />
-        <button
-          className={`cmdk-ai-toggle ${aiMode ? "is-on" : ""}`}
-          onClick={() => setAiMode(!aiMode)}
-          title={`Mode IA (${OS_INFO.modKey}+I)`}
-        >
-          <Icon name="sparkles" size={12} stroke={1.75} />
-          <span>Mode IA</span>
-        </button>
+        {hasQuery && (
+          <button
+            className="cmdk-ai-toggle"
+            onClick={() => { onClose(); onAskJarvis(query); }}
+            title="Envoyer cette question à Jarvis"
+          >
+            <Icon name="assistant" size={12} stroke={1.75} />
+            <span>Demander à Jarvis</span>
+          </button>
+        )}
         {!OS_INFO.isTouch && <span className="cmdk-esc">esc</span>}
         {OS_INFO.isTouch && (
           <button className="cmdk-close-touch" onClick={onClose} aria-label="Fermer">×</button>
@@ -121,16 +151,7 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
       </div>
 
       <div className="cmdk-body">
-        {aiMode && query && (
-          <div className="cmdk-ai-response">
-            <div className="cmdk-ai-kicker"><Icon name="sparkles" size={11} stroke={1.75} /> Mode IA — ouvre Jarvis pour une vraie réponse contextualisée</div>
-            <p className="cmdk-ai-text">
-              Tape <strong>Entrée</strong> pour envoyer « <strong>{query}</strong> » à Jarvis avec le RAG activé, ou ferme cette modale et utilise la recherche classique ci-dessous.
-            </p>
-          </div>
-        )}
-
-        {!query && (
+        {!hasQuery && (
           <>
             {(() => {
               const recents = readRecentQueries();
@@ -141,7 +162,7 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
                     <div className="cmdk-group-label">Astuce</div>
                     <div className="cmdk-item" style={{ color: "var(--tx3)", cursor: "default" }}>
                       <Icon name="search" size={14} stroke={1.75} />
-                      <span className="cmdk-item-title">Tape 2 caractères ou plus pour lancer la recherche sur tes articles.</span>
+                      <span className="cmdk-item-title">Tape 2 caractères ou plus pour chercher dans articles, wiki, idées et conversations Jarvis.</span>
                     </div>
                   </div>
                 );
@@ -177,10 +198,6 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
               <div className="cmdk-group">
                 <div className="cmdk-group-label">Raccourcis</div>
                 <div className="cmdk-item cmdk-item--shortcut">
-                  <Kbd>{OS_INFO.modSymbol}</Kbd><Kbd>I</Kbd>
-                  <span className="cmdk-item-title">Basculer en mode IA</span>
-                </div>
-                <div className="cmdk-item cmdk-item--shortcut">
                   <Kbd>↑</Kbd><Kbd>↓</Kbd>
                   <span className="cmdk-item-title">Naviguer dans les résultats</span>
                 </div>
@@ -193,19 +210,41 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
           </>
         )}
 
-        {query && !aiMode && (
+        {hasQuery && (
           <div className="cmdk-group">
-            <div className="cmdk-group-label">{filtered.length} résultat{filtered.length > 1 ? "s" : ""}</div>
-            {filtered.length === 0 && (
+            <div className="cmdk-group-label" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span>{resultCount} résultat{resultCount > 1 ? "s" : ""}</span>
+              {resultCount > 0 && (
+                <button
+                  onClick={() => onSaveSearch(query)}
+                  title="Sauvegarder cette recherche"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid var(--div, rgba(120,120,120,.3))",
+                    borderRadius: 4,
+                    padding: "3px 8px",
+                    fontSize: 11,
+                    color: "var(--tx2)",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <Icon name="bookmark" size={11} stroke={1.75} /> Sauvegarder
+                </button>
+              )}
+            </div>
+            {resultCount === 0 && (
               <div className="cmdk-noresult">
-                Aucun résultat. Essaie le mode IA {!OS_INFO.isTouch && <>(<Kbd>{OS_INFO.modSymbol}</Kbd><Kbd>I</Kbd>)</>} pour une réponse en langage naturel.
+                Aucun résultat dans ton corpus. Clic sur « Demander à Jarvis » pour une réponse en langage naturel.
               </div>
             )}
-            {filtered.slice(0, 6).map((r, i) => (
+            {filtered.slice(0, 10).map((r, i) => (
               <button
                 key={r.id}
                 className={`cmdk-item cmdk-item--result ${i === selectedIdx ? "is-selected" : ""}`}
-                onClick={() => { if (r.url) window.open(r.url, "_blank"); }}
+                onClick={() => openResult(r, onClose, onAskJarvis)}
                 onMouseEnter={() => setSelectedIdx(i)}
               >
                 <Icon name={r.icon} size={14} stroke={1.75} />
@@ -227,7 +266,6 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
         <div className="cmdk-footer">
           <div className="cmdk-footer-item"><Kbd>↑</Kbd><Kbd>↓</Kbd><span>naviguer</span></div>
           <div className="cmdk-footer-item"><Kbd>↵</Kbd><span>ouvrir</span></div>
-          <div className="cmdk-footer-item"><Kbd>{OS_INFO.modSymbol}</Kbd><Kbd>I</Kbd><span>mode IA</span></div>
           <div className="cmdk-footer-item" style={{ marginLeft: "auto" }}>
             <span className="cmdk-footer-brand">Cockpit</span>
           </div>
@@ -243,10 +281,18 @@ function CmdKModal({ query, setQuery, filtered, aiMode, setAiMode, selectedIdx, 
 function PanelSearch({ data, onNavigate }) {
   const [open, setOpen] = useStateSearch(false);
   const [query, setQuery] = useStateSearch("");
-  const [aiMode, setAiMode] = useStateSearch(false);
   const [selectedIdx, setSelectedIdx] = useStateSearch(0);
 
-  // Global shortcut to open modal
+  // Expose the router so CmdKModal's openResult helper can navigate
+  // internally without prop-drilling through every call site.
+  useEffectSearch(() => {
+    window.__cockpitNavigate = onNavigate;
+    return () => { if (window.__cockpitNavigate === onNavigate) delete window.__cockpitNavigate; };
+  }, [onNavigate]);
+
+  // Global shortcut to open modal — covers the case where the user is
+  // already on the search panel (the app-level Ctrl+K sets the flag,
+  // this panel-local one just opens straight away).
   useEffectSearch(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -258,7 +304,18 @@ function PanelSearch({ data, onNavigate }) {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Prefill depuis d'autres panels (ex: "Voir la veille filtrée" depuis Signaux)
+  // Auto-open on mount when the app-level Ctrl+K handler set a flag
+  // (fixes the "two presses needed" bug from other panels).
+  useEffectSearch(() => {
+    try {
+      if (window.__openSearchOnMount) {
+        window.__openSearchOnMount = false;
+        setOpen(true);
+      }
+    } catch {}
+  }, []);
+
+  // Prefill depuis d'autres panels (ex: clic sur un signal → recherche)
   useEffectSearch(() => {
     try {
       const stash = localStorage.getItem("veille-prefill-query");
@@ -270,7 +327,7 @@ function PanelSearch({ data, onNavigate }) {
     } catch {}
   }, []);
 
-  // ── Live Supabase search ──────────────────────────────────
+  // ── Live Supabase search on 4 tables in parallel ──────────
   const [liveResults, setLiveResults] = useStateSearch([]);
   const searchAbortRef = useRefSearch({ last: null, timer: null });
   useEffectSearch(() => {
@@ -280,25 +337,63 @@ function PanelSearch({ data, onNavigate }) {
     searchAbortRef.current.timer = setTimeout(async () => {
       const token = Math.random();
       searchAbortRef.current.last = token;
+      const encoded = encodeURIComponent(q);
+      const base = window.SUPABASE_URL + "/rest/v1/";
+      const urls = [
+        base + "articles?or=(title.ilike.*" + encoded + "*,summary.ilike.*" + encoded + "*,source.ilike.*" + encoded + "*)&order=date_fetched.desc&limit=10",
+        base + "wiki_concepts?or=(name.ilike.*" + encoded + "*,slug.ilike.*" + encoded + "*,summary_beginner.ilike.*" + encoded + "*,summary_intermediate.ilike.*" + encoded + "*)&order=mention_count.desc&limit=5",
+        base + "business_ideas?or=(title.ilike.*" + encoded + "*,description.ilike.*" + encoded + "*,teaser.ilike.*" + encoded + "*)&order=created_at.desc&limit=5",
+        base + "jarvis_conversations?or=(content.ilike.*" + encoded + "*)&order=created_at.desc&limit=5&select=id,session_id,role,content,created_at",
+      ];
       try {
-        const encoded = encodeURIComponent(q);
-        const url = window.SUPABASE_URL + "/rest/v1/articles?or=(title.ilike.*" + encoded + "*,summary.ilike.*" + encoded + "*,source.ilike.*" + encoded + "*)&order=date_fetched.desc&limit=20";
-        const rows = await window.sb.fetchJSON(url);
+        const [arts, wikis, ideas, msgs] = await Promise.all(
+          urls.map(u => window.sb.fetchJSON(u).catch(() => []))
+        );
         if (searchAbortRef.current.last !== token) return;
-        setLiveResults((rows || []).map((a, i) => ({
-          id: a.id || ("sr" + i),
-          type: "article",
-          scope: (a.section || "Veille IA").toUpperCase(),
-          title: a.title || "—",
-          source: a.source || "—",
-          date: a.date_published ? new Date(a.date_published).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "",
-          snippet: (function(s){ const d=document.createElement("div"); d.innerHTML=String(s||""); return (d.textContent||"").slice(0, 180); })(a.summary),
-          tags: a.tags || [],
-          icon: "sparkles",
-          url: a.url,
-        })));
-        try { window.track && window.track("search_performed", { query_length: q.length, results_count: rows.length }); } catch {}
-        try { pushRecentQuery(q, (rows || []).length); } catch {}
+        const mapped = [
+          ...(arts || []).map((a, i) => ({
+            id: "a_" + (a.id || i),
+            type: "article",
+            scope: (a.section || "Veille IA").toUpperCase(),
+            title: a.title || "—",
+            snippet: stripSnippet(a.summary).slice(0, 180),
+            icon: "sparkles",
+            url: a.url,
+          })),
+          ...(wikis || []).map((w, i) => ({
+            id: "w_" + (w.id || w.slug || i),
+            type: "wiki",
+            scope: "WIKI",
+            title: w.name || w.slug || "—",
+            snippet: stripSnippet(w.summary_beginner || w.summary_intermediate || "").slice(0, 180) || (w.category || ""),
+            icon: "book",
+            navTo: "wiki",
+          })),
+          ...(ideas || []).map((it, i) => ({
+            id: "i_" + (it.id || i),
+            type: "idea",
+            scope: "IDÉE",
+            title: it.title || "(sans titre)",
+            snippet: stripSnippet(it.teaser || it.description || "").slice(0, 180),
+            icon: "lightbulb",
+            navTo: "ideas",
+          })),
+          ...(msgs || []).map((m, i) => {
+            const content = stripSnippet(m.content || "");
+            return {
+              id: "j_" + (m.id || i),
+              type: "jarvis",
+              scope: (m.role ? m.role.toUpperCase() : "JARVIS"),
+              title: content.slice(0, 80) || "(message vide)",
+              snippet: content.slice(80, 260),
+              icon: "assistant",
+              navTo: "jarvis",
+            };
+          }),
+        ];
+        setLiveResults(mapped);
+        try { window.track && window.track("search_performed", { query_length: q.length, results_count: mapped.length }); } catch {}
+        try { pushRecentQuery(q, mapped.length); } catch {}
       } catch (e) {
         if (searchAbortRef.current.last !== token) return;
         console.error("[search]", e);
@@ -308,20 +403,26 @@ function PanelSearch({ data, onNavigate }) {
     return () => clearTimeout(searchAbortRef.current.timer);
   }, [query]);
 
-  // Live results win when available; short queries (<2 chars) fall back
-  // to the in-memory demo corpus so typing feedback stays instant.
   const filtered = useMemoSearch(() => {
-    if (!query) return [];
-    if (query.trim().length >= 2) return liveResults;
-    const q = query.toLowerCase();
-    return CORPUS.filter(c =>
-      c.title.toLowerCase().includes(q) ||
-      c.snippet.toLowerCase().includes(q) ||
-      c.tags.some(t => t.includes(q))
-    );
+    if (!query || query.trim().length < 2) return [];
+    return liveResults;
   }, [query, liveResults]);
 
-  const close = () => { setOpen(false); setQuery(""); setAiMode(false); setSelectedIdx(0); setLiveResults([]); };
+  const close = () => { setOpen(false); setQuery(""); setSelectedIdx(0); setLiveResults([]); };
+
+  // Ask Jarvis: stash the query and navigate to the Jarvis panel (uses
+  // the same localStorage key panel-jarvis.jsx already consumes on mount).
+  const askJarvis = (q) => {
+    try { localStorage.setItem("jarvis-prefill-input", q || query); } catch {}
+    onNavigate("jarvis");
+  };
+
+  const handleSaveSearch = (q) => {
+    const ok = saveCurrentSearch(q);
+    if (ok) {
+      try { window.track && window.track("search_saved", { query_length: q.length }); } catch {}
+    }
+  };
 
   return (
     <div className="panel-page">
@@ -351,8 +452,8 @@ function PanelSearch({ data, onNavigate }) {
           <button className="pill" onClick={() => { setOpen(true); setQuery("agents"); }}>
             Démo : rechercher "agents"
           </button>
-          <button className="pill" onClick={() => { setOpen(true); setQuery("mistral bnp"); setAiMode(true); }}>
-            Démo : question IA
+          <button className="pill" onClick={() => askJarvis("Explique-moi ce qu'est le Model Context Protocol")}>
+            Démo : demander à Jarvis
           </button>
           <button className="pill" onClick={() => { setOpen(true); setQuery("xyznothing"); }}>
             Démo : 0 résultat
@@ -375,11 +476,11 @@ function PanelSearch({ data, onNavigate }) {
           </button>
           <button className="cmdk-preview" onClick={() => { setOpen(true); setQuery("agents"); }}>
             <div className="cmdk-preview-label">Résultats</div>
-            <div className="cmdk-preview-desc">Filtré par mot-clé, navigation ↑↓ ↵</div>
+            <div className="cmdk-preview-desc">Articles, wiki, idées, conversations — navigation ↑↓ ↵</div>
           </button>
-          <button className="cmdk-preview" onClick={() => { setOpen(true); setQuery("claude agents GA"); setAiMode(true); }}>
-            <div className="cmdk-preview-label">Réponse IA</div>
-            <div className="cmdk-preview-desc">Synthèse + sources citées</div>
+          <button className="cmdk-preview" onClick={() => askJarvis("Donne-moi une synthèse des derniers signaux IA")}>
+            <div className="cmdk-preview-label">Demander à Jarvis</div>
+            <div className="cmdk-preview-desc">Bascule sur le panel Jarvis avec la requête en prefill</div>
           </button>
         </div>
       </div>
@@ -390,11 +491,11 @@ function PanelSearch({ data, onNavigate }) {
             query={query}
             setQuery={setQuery}
             filtered={filtered}
-            aiMode={aiMode}
-            setAiMode={setAiMode}
             selectedIdx={selectedIdx}
             setSelectedIdx={setSelectedIdx}
             onClose={close}
+            onAskJarvis={askJarvis}
+            onSaveSearch={handleSaveSearch}
           />
         </div>
       )}

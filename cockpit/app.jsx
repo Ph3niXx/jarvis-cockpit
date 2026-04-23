@@ -252,11 +252,12 @@ function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, [activePanel]);
 
-  // Cmd/Ctrl+K → search panel
+  // Cmd/Ctrl+K → search panel + flag so the panel opens its modal on mount
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
+        try { window.__openSearchOnMount = true; } catch {}
         handleNavigate("search");
       }
     };
