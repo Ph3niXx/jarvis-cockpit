@@ -1,7 +1,6 @@
 // Home — Brief du jour. Three theme variants share this component
 // but the theme's vibe tokens (dividerStyle, accentShape, etc.)
 // meaningfully reshape the layout feel.
-// [spec-drift-check test — to be reverted]
 
 // Audio brief — reads the macro title + body via Web Speech API.
 // No external provider: uses the browser's built-in French voice.
