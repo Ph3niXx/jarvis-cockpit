@@ -322,6 +322,55 @@ Les 5 onglets Veille partagent `panel-veille.jsx` : une modif de ce fichier peut
 
   Ensuite, chaque `git commit` sans `-m` ouvre l'éditeur pré-rempli avec la checklist. Laisse la ligne `Specs mises à jour:` dans le commit final comme trace.
 
+## Maintenance de l'architecture (`docs/architecture/`)
+
+Le dossier `docs/architecture/` est la source de vérité versionnée pour la topologie du projet (couches, pipelines, dépendances, flows par domaine, décisions). Il est consommé en lecture par la section *Architecture* du panel Jarvis Lab (rendu SVG React) et par la CI (`validate-arch` bloquant + `arch-drift-check` warning).
+
+### Règle cardinale
+
+Toute PR qui touche un chemin à impact architectural **doit** mettre à jour le ou les fichiers de `docs/architecture/` **dans le même commit**. `arch-drift-check` détecte les dérives (warning-only au départ, durci après deux semaines).
+
+Chemins à impact archi watchés par la CI :
+- `sql/*.sql`, `jarvis/migrations/*.sql` (nouvelles tables, changement RLS)
+- `pipelines/*.py`, `main.py`, `weekly_analysis.py`, `tft_pipeline.py` (pipelines backend)
+- `.github/workflows/*-sync.yml`, `daily_digest.yml`, `weekly_analysis.yml`, `tft-sync.yml` (crons)
+- `cockpit/lib/bootstrap.js`, `data-loader.js`, `supabase.js`, `auth.js` (data layer front)
+- `cockpit/panel-*.jsx` (ajout / suppression détecté via `git diff --name-status`)
+- `jarvis/server.py`, `jarvis/nightly_learner.py`, `jarvis/indexer.py`, `jarvis/status_generator.py`, `jarvis/observers/*.py` (composants Jarvis locaux)
+
+### Checklist par type de modification
+
+| Type de modif | Fichiers à éditer dans le même commit |
+|---|---|
+| **Nouveau pipeline** (script + workflow + cron) | `docs/architecture/pipelines.yaml` (entrée pipelines[]) + `docs/architecture/flows/<domaine>.yaml` (ou création) + `docs/architecture/dependencies.yaml` si le pipeline crée de nouvelles tables + `docs/architecture/decisions.md` si choix structurant |
+| **Nouveau panel** | `docs/architecture/dependencies.yaml` (entrée panels[] avec file + reads + writes) + `docs/architecture/layers.yaml` uniquement si impact topologique (rare) + `docs/specs/tab-<slug>.md` (cf. section specs) |
+| **Suppression d'un panel ou d'un pipeline** | Retirer de `dependencies.yaml` + `pipelines.yaml` ; archiver le flow associé en `status: archived` dans `docs/architecture/flows/<domaine>.yaml` |
+| **Nouvelle table Supabase** | `docs/architecture/dependencies.yaml` (entrée tables[] avec owner_pipeline + rls + domain) + mise à jour des panels/flows qui la lisent ou l'écrivent |
+| **Changement de RLS** | `docs/architecture/dependencies.yaml::tables[].rls` (enum `authenticated` / `service_role` / `public`) |
+| **Nouveau secret / variable d'env** | `docs/architecture/decisions.md` entrée dédiée + mention dans la section *GitHub Secrets* de ce CLAUDE.md |
+| **Nouveau service local** (ex : 2e modèle LM Studio, nouvel observer) | `docs/architecture/layers.yaml` (couche middle) + `docs/architecture/decisions.md` |
+| **Refacto cosmétique / iso-fonctionnel** | Aucun fichier archi à toucher |
+
+### Grammaire de routage des diagrammes en couches
+
+`layers.yaml` ne spécifie pas les positions (x, y) — le renderer les calcule depuis l'ordre de `boxes[]` dans chaque couche. La discipline de routage est stricte :
+
+- **3 couches** empilées (front / middle / back) séparées par 2 gutters. Labels des couches écrits **à gauche, verticaux** (rotate -90). Jamais de texte horizontal dans les layer-bg (collisions avec les arêtes).
+- **Colonnes alignées** : les composants qui se parlent directement (panels / jarvis_api / supabase) sont tous sur la colonne 1 pour que leurs arêtes restent droites.
+- **3 types d'arêtes, 3 couloirs** :
+  - `cross_layer` → rail vertical à droite (x ≈ 1014, **hors** des layer-bg), accent orange, L-shape par-dessus. Pour les sauts de couche (front → back).
+  - `adjacent` → couloir vertical entre deux couches voisines, segment droit + virages à 90° au milieu du gutter.
+  - `intra_layer` → flèche horizontale courte entre deux boîtes de la même couche.
+- Chaque label d'edge a un `<rect edge-label-bg>` opaque derrière le texte pour ne jamais se superposer au trait.
+- Pas de diagonales. Jamais.
+
+Le renderer utilise les CSS variables globales `--brand`, `--tx`, `--tx2`, `--tx3`, `--bd`, `--surface`, `--bg2`, `--bg3` → le diagramme s'adapte automatiquement aux 3 thèmes Dawn / Obsidian / Atlas.
+
+### Garde-fous CI
+
+- **CI `validate-arch`** ([.github/workflows/validate-arch.yml](.github/workflows/validate-arch.yml)) — **bloquant**. Run [scripts/validate_architecture.py](scripts/validate_architecture.py) qui valide les schémas des 4 YAML (layers, pipelines, dependencies, flows/*), vérifie que chaque `workflow_file` + `script` + `panel.file` existe réellement, que les edges de `layers.yaml` pointent vers des boxes déclarées, et que les tables référencées dans `panels.reads/writes` existent dans `tables[]`. Fail = YAML à réparer.
+- **CI `arch-drift-check`** ([.github/workflows/arch-drift-check.yml](.github/workflows/arch-drift-check.yml)) — **non-bloquant au départ** (`continue-on-error: true`). Compare les fichiers modifiés de la PR au pattern *chemins à impact archi*. Si un match est trouvé et que `docs/architecture/` n'est pas touché, remonte un `::warning::` par fichier avec un hint contextuel (nouveau panel → dependencies.yaml, nouveau pipeline → pipelines.yaml + flows/…). À durcir en bloquant après deux semaines d'observation.
+
 ## Conventions
 
 - Le site est en React 18 + `@babel/standalone` via CDN unpkg — no build step, ouvrable directement en file:// pour itérer
