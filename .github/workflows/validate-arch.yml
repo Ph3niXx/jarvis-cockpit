@@ -1,0 +1,40 @@
+name: validate-arch
+
+# Validateur structurel bloquant pour docs/architecture/*.yaml.
+# Vérifie les schémas des YAML + que les fichiers référencés (workflow_file,
+# panel .jsx, script) existent vraiment dans le repo, et que les edges de
+# layers.yaml pointent vers des boxes existantes.
+
+on:
+  push:
+    paths:
+      - 'docs/architecture/**'
+      - 'scripts/validate_architecture.py'
+      - '.github/workflows/validate-arch.yml'
+  pull_request:
+    paths:
+      - 'docs/architecture/**'
+      - 'scripts/validate_architecture.py'
+      - '.github/workflows/validate-arch.yml'
+
+jobs:
+  validate:
+    name: Architecture YAML schema (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Validate docs/architecture/*.yaml
+        # Bloquant. En cas de fail : soit tu casses un schéma et tu dois
+        # réparer le YAML, soit tu as renommé un fichier référencé
+        # (workflow / panel) sans mettre à jour l'archi — va éditer le YAML
+        # correspondant.
+        run: python scripts/validate_architecture.py

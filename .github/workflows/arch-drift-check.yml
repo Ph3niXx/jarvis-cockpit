@@ -1,0 +1,109 @@
+name: arch-drift-check
+
+# Détecte quand une PR modifie un chemin à impact architectural sans toucher
+# docs/architecture/**. Non-bloquant : émet des annotations GitHub (::warning::)
+# pour que le relecteur décide. Durcir en bloquant après deux semaines
+# d'observation du bruit.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  drift:
+    name: Architecture sync (warning only)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # warning-only : la PR reste mergeable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect architecture drift
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          echo "Base: $BASE_SHA"
+          echo "Head: $HEAD_SHA"
+
+          # Fichiers modifiés dans la PR (status + nom pour détecter les ajouts
+          # / suppressions — utiles pour les nouveaux panels).
+          CHANGED_WITH_STATUS=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA")
+          CHANGED=$(echo "$CHANGED_WITH_STATUS" | awk '{print $2}')
+          echo "Fichiers modifiés :"
+          echo "$CHANGED" | sed 's/^/  - /'
+          echo ""
+
+          # Chemins à impact architectural :
+          #  - migrations SQL
+          #  - scripts de pipeline (backend jobs + top-level)
+          #  - workflows GitHub Actions de pipelines (sync + digest + analysis)
+          #  - coeur du data layer front (bootstrap, data-loader, supabase wrapper, auth)
+          #  - panels React (ajout/suppression/renommage = impact topologique)
+          #  - serveur Jarvis + observers + nightly learner
+          ARCH_PATTERN='^(sql/.*\.sql|jarvis/migrations/.*\.sql|pipelines/.*\.py|(main|weekly_analysis|tft_pipeline)\.py|\.github/workflows/(.*-sync|daily_digest|weekly_analysis|tft-sync)\.yml|cockpit/lib/(bootstrap|data-loader|supabase|auth)\.js|cockpit/panel-.*\.jsx|jarvis/(server|nightly_learner|indexer|status_generator)\.py|jarvis/observers/.*\.py)$'
+          ARCH_TOUCHED=$(echo "$CHANGED" | grep -E "$ARCH_PATTERN" || true)
+
+          # Doc archi touchée ?
+          DOC_PATTERN='^docs/architecture/'
+          DOC_TOUCHED=$(echo "$CHANGED" | grep -E "$DOC_PATTERN" || true)
+
+          if [ -z "$ARCH_TOUCHED" ]; then
+            echo "::notice::Aucun chemin à impact archi modifié — pas de vérif de dérive à faire."
+            exit 0
+          fi
+
+          if [ -n "$DOC_TOUCHED" ]; then
+            echo "::notice::Code à impact archi modifié ET docs/architecture/ mis à jour — OK."
+            echo "Docs touchées :"
+            echo "$DOC_TOUCHED" | sed 's/^/  - /'
+            exit 0
+          fi
+
+          # Dérive détectée — remonte un warning par fichier avec un hint contextuel
+          # pour pointer le fichier archi à mettre à jour.
+          echo "::warning::Dérive archi détectée — du code à impact architectural a été modifié sans mettre à jour docs/architecture/**."
+
+          echo "$ARCH_TOUCHED" | while IFS= read -r f; do
+            case "$f" in
+              pipelines/*.py|main.py|weekly_analysis.py|tft_pipeline.py)
+                echo "::warning file=$f::Pipeline modifié → mets à jour docs/architecture/pipelines.yaml + docs/architecture/flows/<domaine>.yaml dans le même commit."
+                ;;
+              .github/workflows/*-sync.yml|.github/workflows/daily_digest.yml|.github/workflows/weekly_analysis.yml|.github/workflows/tft-sync.yml)
+                echo "::warning file=$f::Workflow cron modifié → vérifie pipelines.yaml::cron + human_time + workflow_file."
+                ;;
+              sql/*.sql|jarvis/migrations/*.sql)
+                echo "::warning file=$f::Migration SQL → mets à jour docs/architecture/dependencies.yaml (nouvelle table ? changement RLS ?)."
+                ;;
+              cockpit/panel-*.jsx)
+                ADD_STATUS=$(echo "$CHANGED_WITH_STATUS" | awk -v f="$f" '$2 == f {print $1}')
+                if [ "$ADD_STATUS" = "A" ]; then
+                  echo "::warning file=$f::Nouveau panel détecté → mets à jour docs/architecture/dependencies.yaml (entrée panels[]) + layers.yaml si impact topologique + docs/specs/tab-<slug>.md."
+                elif [ "$ADD_STATUS" = "D" ]; then
+                  echo "::warning file=$f::Panel supprimé → retire-le de docs/architecture/dependencies.yaml + archive le flow associé si applicable."
+                else
+                  echo "::warning file=$f::Panel modifié → vérifie si dependencies.yaml::panels[].reads/writes est toujours exact."
+                fi
+                ;;
+              cockpit/lib/*.js)
+                echo "::warning file=$f::Data layer front modifié → vérifie si layers.yaml reflète toujours l'architecture Tier 1 / Tier 2."
+                ;;
+              jarvis/*.py|jarvis/observers/*.py)
+                echo "::warning file=$f::Composant Jarvis local modifié → vérifie layers.yaml (middle layer) + flows/jarvis-rag.yaml ou flows/activity-briefs.yaml."
+                ;;
+              *)
+                echo "::warning file=$f::Chemin à impact archi modifié — vérifie docs/architecture/."
+                ;;
+            esac
+          done
+
+          echo ""
+          echo "Rappel : non-bloquant pour l'instant. Merge autorisé mais laisser un warning rouge nuit à la discipline de maintenance."
