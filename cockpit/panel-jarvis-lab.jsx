@@ -5,17 +5,77 @@
 // Source : jarvis/spec.json (fetch lazy avec cache mémoire).
 // ═══════════════════════════════════════════════════════════════
 
-const { useState: useJLState, useEffect: useJLEffect, useRef: useJLRef } = React;
+const { useState: useJLState, useEffect: useJLEffect, useRef: useJLRef, useMemo: useJLMemo } = React;
 
 let __jarvisLabSpecCache = null;
 
-async function __fetchJarvisSpec() {
-  if (__jarvisLabSpecCache) return __jarvisLabSpecCache;
+// Caches pour la section "Specs détaillées" (docs/specs/*.md)
+let __jlSpecsIndexCache = null;
+const __jlSpecsMdCache = {};
+
+async function __fetchSpecsIndex(force = false) {
+  if (!force && __jlSpecsIndexCache) return __jlSpecsIndexCache;
+  const res = await fetch("./docs/specs/index.json", { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  __jlSpecsIndexCache = json;
+  return json;
+}
+
+async function __fetchSpecMd(slug) {
+  if (__jlSpecsMdCache[slug] !== undefined) return __jlSpecsMdCache[slug];
+  const res = await fetch(`./docs/specs/tab-${slug}.md`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${slug}`);
+  const txt = await res.text();
+  __jlSpecsMdCache[slug] = txt;
+  return txt;
+}
+
+function __parseSpecMd(src) {
+  if (typeof window.marked === "undefined") {
+    const escaped = String(src || "").replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+    return { html: `<pre>${escaped}</pre>`, toc: [] };
+  }
+  const slugify = (s) => String(s || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").slice(0, 80);
+  const tokens = window.marked.lexer(src || "");
+  const toc = [];
+  const ids = [];
+  const seen = new Set();
+  tokens.forEach(t => {
+    if (t.type === "heading") {
+      let id = slugify(t.text || t.raw) || `h-${ids.length}`;
+      let i = 1;
+      while (seen.has(id)) { id = slugify(t.text || t.raw) + "-" + i++; }
+      seen.add(id);
+      ids.push(id);
+      if (t.depth === 2) toc.push({ id, text: t.text });
+    }
+  });
+  let html = window.marked.parser(tokens);
+  let idx = 0;
+  html = html.replace(/<h([1-6])>/g, (_, d) => {
+    const id = ids[idx++];
+    return id ? `<h${d} id="${id}">` : `<h${d}>`;
+  });
+  const safe = window.DOMPurify
+    ? window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } })
+    : html;
+  return { html: safe, toc };
+}
+
+async function __fetchJarvisSpec(force = false) {
+  if (!force && __jarvisLabSpecCache) return __jarvisLabSpecCache;
   const res = await fetch("./jarvis/spec.json", { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
   __jarvisLabSpecCache = json;
   return json;
+}
+
+function __invalidateJarvisSpecCache() {
+  __jarvisLabSpecCache = null;
 }
 
 function JLRoadmapNode({ phase, selected, onClick }) {
@@ -160,9 +220,26 @@ const JL_FREQ_LABEL = {
   mixed:    "Mixte",
 };
 
-function JLCockpitTabCard({ tab }) {
+function JLCockpitTabCard({ tab, onFocusSpec, onNavigate }) {
+  const handleCardClick = () => {
+    if (!tab.id) return;
+    if (onFocusSpec) { onFocusSpec(tab.id); return; }
+    if (onNavigate) onNavigate(tab.id);
+  };
+  const handleOpenClick = (e) => {
+    e.stopPropagation();
+    if (onNavigate && tab.id) onNavigate(tab.id);
+  };
   return (
-    <div className="jl-tab-card" data-frequency={tab.frequency}>
+    <div
+      role="button"
+      tabIndex={0}
+      className="jl-tab-card"
+      data-frequency={tab.frequency}
+      onClick={handleCardClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleCardClick(); } }}
+      title={`Voir la spec de ${tab.label}`}
+    >
       <div className="jl-tab-head">
         <div className="jl-tab-name">{tab.label}</div>
         <span className="jl-tab-freq">{JL_FREQ_LABEL[tab.frequency] || tab.frequency}</span>
@@ -176,12 +253,22 @@ function JLCockpitTabCard({ tab }) {
       {tab.update_details && (
         <div className="jl-tab-detail">{tab.update_details}</div>
       )}
-      <div className="jl-tab-file">{tab.panel_file}</div>
+      <div className="jl-tab-foot">
+        <span className="jl-tab-file">{tab.panel_file}</span>
+        <button
+          type="button"
+          className="jl-tab-open"
+          onClick={handleOpenClick}
+          title={`Ouvrir l'onglet ${tab.label}`}
+        >
+          Ouvrir ↗
+        </button>
+      </div>
     </div>
   );
 }
 
-function JLCockpitSpecs({ spec }) {
+function JLCockpitSpecs({ spec, onFocusSpec, onNavigate }) {
   const ct = spec.cockpit_tabs;
   if (!ct || !Array.isArray(ct.groups)) return null;
   const totalTabs = ct.groups.reduce((s, g) => s + (g.tabs || []).length, 0);
@@ -203,7 +290,7 @@ function JLCockpitSpecs({ spec }) {
           </div>
           <div className="jl-tab-grid">
             {(group.tabs || []).map(t => (
-              <JLCockpitTabCard key={t.id} tab={t} />
+              <JLCockpitTabCard key={t.id} tab={t} onFocusSpec={onFocusSpec} onNavigate={onNavigate} />
             ))}
           </div>
         </div>
@@ -445,7 +532,277 @@ function JLDrawer({ data, spec, open, onClose, onNavigate }) {
   );
 }
 
-function PanelJarvisLab() {
+const JL_SCOPE_ORDER = ["pro", "perso", "mixte"];
+const JL_SCOPE_LABEL = { pro: "Pro", perso: "Perso", mixte: "Mixte" };
+
+function JLSpecStatusBadge({ status }) {
+  if (status === "stub") {
+    return <span className="jl-spec-badge jl-spec-badge--stub">à documenter</span>;
+  }
+  return <span className="jl-spec-badge jl-spec-badge--documented">documentée</span>;
+}
+
+function JLSpecsSidebar({ tabs, selectedSlug, onSelect }) {
+  const groups = {};
+  tabs.forEach(t => {
+    const sc = JL_SCOPE_ORDER.includes(t.scope) ? t.scope : "mixte";
+    (groups[sc] = groups[sc] || []).push(t);
+  });
+  Object.values(groups).forEach(arr => {
+    arr.sort((a, b) => {
+      const as = a.status === "stub" ? 1 : 0;
+      const bs = b.status === "stub" ? 1 : 0;
+      if (as !== bs) return as - bs;
+      return (a.order || 0) - (b.order || 0);
+    });
+  });
+
+  return (
+    <aside className="jl-specs-sidebar" aria-label="Liste des specs">
+      {JL_SCOPE_ORDER.map(sc => {
+        const arr = groups[sc];
+        if (!arr || !arr.length) return null;
+        return (
+          <div key={sc} className="jl-specs-scope">
+            <div className="jl-specs-scope-label">
+              {JL_SCOPE_LABEL[sc]}
+              <span className="jl-specs-scope-count">{arr.length}</span>
+            </div>
+            <ul className="jl-specs-nav">
+              {arr.map(t => (
+                <li key={t.slug}>
+                  <button
+                    type="button"
+                    className={`jl-specs-nav-item ${t.slug === selectedSlug ? "is-active" : ""}`}
+                    data-status={t.status}
+                    onClick={() => onSelect(t.slug)}
+                  >
+                    <span className="jl-specs-nav-title">{t.title}</span>
+                    {t.status === "stub" && (
+                      <span className="jl-specs-nav-stub" aria-label="Stub">todo</span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </aside>
+  );
+}
+
+function JLSpecsMobileSelect({ tabs, selectedSlug, onSelect }) {
+  return (
+    <div className="jl-specs-mobile-select">
+      <label className="jl-specs-mobile-label">Spec</label>
+      <select
+        value={selectedSlug || ""}
+        onChange={(e) => onSelect(e.target.value || null)}
+      >
+        <option value="">— Choisir un onglet —</option>
+        {tabs.map(t => (
+          <option key={t.slug} value={t.slug}>
+            {t.title}{t.status === "stub" ? "  (à documenter)" : ""}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function JLSpecsDoc({ tab, mdState, onOpenTab }) {
+  if (!tab) {
+    return (
+      <div className="jl-specs-doc-empty">
+        <div className="jl-specs-doc-empty-title">Aucune spec sélectionnée</div>
+        <p>Choisis un onglet dans la colonne de gauche pour lire sa spec détaillée.</p>
+      </div>
+    );
+  }
+
+  const scopeKey = JL_SCOPE_ORDER.includes(tab.scope) ? tab.scope : "mixte";
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  let body;
+  if (tab.status === "stub") {
+    body = (
+      <div className="jl-specs-doc-stub">
+        <p><strong>Cette spec est un stub.</strong></p>
+        <p>Le fichier <code>docs/specs/tab-{tab.slug}.md</code> n'a pas encore été rédigé — ou a été marqué comme incomplet dans l'index.</p>
+      </div>
+    );
+  } else if (mdState.err) {
+    body = (
+      <div className="jl-error">
+        Impossible de charger <code>docs/specs/tab-{tab.slug}.md</code> — {mdState.err.message}
+      </div>
+    );
+  } else if (mdState.loading || !mdState.parsed) {
+    body = <div className="jl-loading">Chargement de la spec…</div>;
+  } else {
+    body = (
+      <div
+        className="jl-specs-doc-body"
+        dangerouslySetInnerHTML={{ __html: mdState.parsed.html }}
+      />
+    );
+  }
+
+  const toc = mdState.parsed?.toc || [];
+
+  return (
+    <div className="jl-specs-doc-wrap">
+      <article className="jl-specs-doc">
+        <header className="jl-specs-doc-header">
+          <div className="jl-specs-doc-meta">
+            <span className={`jl-spec-badge jl-spec-badge--scope jl-spec-badge--scope-${scopeKey}`}>
+              {JL_SCOPE_LABEL[scopeKey]}
+            </span>
+            <JLSpecStatusBadge status={tab.status} />
+            {tab.last_updated && (
+              <span className="jl-specs-doc-date">MAJ {tab.last_updated}</span>
+            )}
+          </div>
+          <button
+            type="button"
+            className="jl-specs-doc-open"
+            onClick={() => onOpenTab && onOpenTab(tab.dom_id || tab.slug)}
+            title={`Ouvrir l'onglet ${tab.title}`}
+          >
+            Ouvrir l'onglet →
+          </button>
+        </header>
+        {body}
+      </article>
+      {toc.length > 0 && (
+        <aside className="jl-specs-toc" aria-label="Sommaire de la spec">
+          <div className="jl-specs-toc-label">Sections</div>
+          <ul>
+            {toc.map(item => (
+              <li key={item.id}>
+                <button type="button" onClick={() => scrollTo(item.id)}>
+                  {item.text}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
+    </div>
+  );
+}
+
+function JLSpecsViewer({ onOpenTab, selectedSlug, onSelectSlug, forwardRef }) {
+  const [index, setIndex] = useJLState(__jlSpecsIndexCache);
+  const [indexErr, setIndexErr] = useJLState(null);
+  const [mdState, setMdState] = useJLState({ loading: false, parsed: null, err: null });
+  const setSelectedSlug = onSelectSlug;
+
+  useJLEffect(() => {
+    if (index) return;
+    let cancelled = false;
+    __fetchSpecsIndex()
+      .then(json => { if (!cancelled) setIndex(json); })
+      .catch(e => {
+        if (cancelled) return;
+        console.error("[jarvis-lab] specs index load failed", e);
+        setIndexErr(e);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const tabs = useJLMemo(() => {
+    const arr = index?.tabs || [];
+    return arr.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [index]);
+
+  const selectedTab = tabs.find(t => t.slug === selectedSlug) || null;
+
+  useJLEffect(() => {
+    if (!selectedTab || selectedTab.status === "stub") {
+      setMdState({ loading: false, parsed: null, err: null });
+      return;
+    }
+    let cancelled = false;
+    setMdState({ loading: true, parsed: null, err: null });
+    __fetchSpecMd(selectedTab.slug)
+      .then(src => {
+        if (cancelled) return;
+        setMdState({ loading: false, parsed: __parseSpecMd(src), err: null });
+      })
+      .catch(e => {
+        if (cancelled) return;
+        console.error(`[jarvis-lab] md load failed for ${selectedTab.slug}`, e);
+        setMdState({ loading: false, parsed: null, err: e });
+      });
+    return () => { cancelled = true; };
+  }, [selectedTab && selectedTab.slug]);
+
+  if (indexErr) {
+    return (
+      <section className="jl-specs-viewer" ref={forwardRef}>
+        <div className="jl-specs-head">
+          <div className="jl-section-eyebrow">Specs détaillées</div>
+          <h2 className="jl-specs-title">Parcours de la documentation</h2>
+        </div>
+        <div className="jl-error">
+          Impossible de charger <code>docs/specs/index.json</code> — {indexErr.message}
+        </div>
+      </section>
+    );
+  }
+  if (!index) {
+    return (
+      <section className="jl-specs-viewer" ref={forwardRef}>
+        <div className="jl-specs-head">
+          <div className="jl-section-eyebrow">Specs détaillées</div>
+          <h2 className="jl-specs-title">Parcours de la documentation</h2>
+        </div>
+        <div className="jl-loading">Chargement de l'index…</div>
+      </section>
+    );
+  }
+
+  const documented = tabs.filter(t => t.status !== "stub").length;
+  const stubs = tabs.length - documented;
+
+  return (
+    <section className="jl-specs-viewer" ref={forwardRef}>
+      <div className="jl-specs-head">
+        <div className="jl-section-eyebrow">Specs détaillées</div>
+        <h2 className="jl-specs-title">Parcours de la documentation</h2>
+        <p className="jl-specs-sub">
+          {tabs.length} onglets · {documented} documentée{documented > 1 ? "s" : ""}
+          {stubs > 0 ? ` · ${stubs} à documenter` : ""}
+          {" · source : "}<code>docs/specs/*.md</code>
+        </p>
+      </div>
+      <JLSpecsMobileSelect
+        tabs={tabs}
+        selectedSlug={selectedSlug}
+        onSelect={setSelectedSlug}
+      />
+      <div className="jl-specs-viewer-grid">
+        <JLSpecsSidebar
+          tabs={tabs}
+          selectedSlug={selectedSlug}
+          onSelect={setSelectedSlug}
+        />
+        <JLSpecsDoc
+          tab={selectedTab}
+          mdState={mdState}
+          onOpenTab={onOpenTab}
+        />
+      </div>
+    </section>
+  );
+}
+
+function PanelJarvisLab({ onNavigate }) {
   const [spec, setSpec] = useJLState(__jarvisLabSpecCache);
   const [err, setErr] = useJLState(null);
   const [selectedPhaseId, setSelectedPhaseId] = useJLState(null);
@@ -453,7 +810,20 @@ function PanelJarvisLab() {
   const [drawerOpen, setDrawerOpen] = useJLState(false);
   const [filterStatus, setFilterStatus] = useJLState("all");
   const [filterScope, setFilterScope] = useJLState("all");
+  const [refreshing, setRefreshing] = useJLState(false);
+  const [specsFocusedSlug, setSpecsFocusedSlug] = useJLState(null);
   const lastOpenerRef = useJLRef(null);
+  const specsViewerRef = useJLRef(null);
+
+  const focusSpec = (tabId) => {
+    if (!tabId) return;
+    const slug = String(tabId).replace(/_/g, "-");
+    setSpecsFocusedSlug(slug);
+    requestAnimationFrame(() => {
+      const el = specsViewerRef.current;
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   useJLEffect(() => {
     if (spec) return;
@@ -468,6 +838,22 @@ function PanelJarvisLab() {
       });
     return () => { cancelled = true; };
   }, []);
+
+  const refreshSpec = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setErr(null);
+    try {
+      __invalidateJarvisSpecCache();
+      const json = await __fetchJarvisSpec(true);
+      setSpec(json);
+    } catch (e) {
+      console.error("[jarvis-lab] refresh failed", e);
+      setErr(e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useJLEffect(() => {
     if (!spec || selectedPhaseId) return;
@@ -525,10 +911,21 @@ function PanelJarvisLab() {
   return (
     <section id="jarvis-lab" className="jl-root">
       <header className="jl-header">
-        <div className="jl-title">JARVIS LAB</div>
-        <div className="jl-subtitle">
-          Source : jarvis/spec.json · Dernière MAJ : {spec.meta?.updated_at || "—"}
+        <div className="jl-header-main">
+          <div className="jl-title">JARVIS LAB</div>
+          <div className="jl-subtitle">
+            Source : jarvis/spec.json · Dernière MAJ : {spec.meta?.updated_at || "—"}
+          </div>
         </div>
+        <button
+          type="button"
+          className="jl-refresh-btn"
+          onClick={refreshSpec}
+          disabled={refreshing}
+          title="Recharger spec.json (vide le cache)"
+        >
+          {refreshing ? "Rechargement…" : "Rafraîchir"}
+        </button>
       </header>
 
       <div className="jl-roadmap">
@@ -562,7 +959,14 @@ function PanelJarvisLab() {
         />
       </div>
 
-      <JLCockpitSpecs spec={spec} />
+      <JLCockpitSpecs spec={spec} onFocusSpec={focusSpec} onNavigate={onNavigate} />
+
+      <JLSpecsViewer
+        onOpenTab={onNavigate}
+        selectedSlug={specsFocusedSlug}
+        onSelectSlug={setSpecsFocusedSlug}
+        forwardRef={specsViewerRef}
+      />
 
       <JLDrawer
         data={drawerData}
