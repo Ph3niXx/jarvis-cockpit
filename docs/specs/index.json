@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-23T19:02:37Z",
+  "generated_at": "2026-04-24T14:00:00Z",
   "tabs": [
     {
       "slug": "brief",
@@ -129,7 +129,7 @@
       "dom_id": "wiki",
       "scope": "pro",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "signals",
@@ -138,7 +138,8 @@
       "group": "Apprentissage",
       "dom_id": "signals",
       "scope": "pro",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "opps",
@@ -147,7 +148,8 @@
       "group": "Business",
       "dom_id": "opps",
       "scope": "pro",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "ideas",
@@ -156,7 +158,8 @@
       "group": "Business",
       "dom_id": "ideas",
       "scope": "pro",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "jobs",
@@ -165,7 +168,8 @@
       "group": "Business",
       "dom_id": "jobs",
       "scope": "pro",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "jarvis",
@@ -174,61 +178,78 @@
       "group": "Personnel",
       "dom_id": "jarvis",
       "scope": "mixte",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
+    },
+    {
+      "slug": "jarvis-lab",
+      "title": "Jarvis Lab",
+      "order": 19,
+      "group": "Personnel",
+      "dom_id": "jarvis-lab",
+      "scope": "perso",
+      "status": "documented",
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "profile",
       "title": "Mon profil",
-      "order": 19,
+      "order": 20,
       "group": "Personnel",
       "dom_id": "profile",
       "scope": "mixte",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "perf",
       "title": "Forme",
-      "order": 20,
+      "order": 21,
       "group": "Personnel",
       "dom_id": "perf",
       "scope": "perso",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "music",
       "title": "Musique",
-      "order": 21,
+      "order": 22,
       "group": "Personnel",
       "dom_id": "music",
       "scope": "perso",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "gaming",
       "title": "Gaming",
-      "order": 22,
+      "order": 23,
       "group": "Personnel",
       "dom_id": "gaming",
       "scope": "perso",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "stacks",
       "title": "Stacks & Limits",
-      "order": 23,
-      "group": "Systeme",
+      "order": 24,
+      "group": "Système",
       "dom_id": "stacks",
       "scope": "mixte",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "history",
       "title": "Historique",
-      "order": 24,
-      "group": "Systeme",
+      "order": 25,
+      "group": "Système",
       "dom_id": "history",
       "scope": "mixte",
-      "status": "stub"
+      "status": "documented",
+      "last_updated": "2026-04-24"
     }
   ]
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://mrmgptqpflzyavdfqwwv.supabase.co http://localhost:8765 https://*.trycloudflare.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://ws.audioscrobbler.com; img-src 'self' data: https://raw.communitydragon.org https://lastfm.freetls.fastly.net https://*.lastfm.freetls.fastly.net https://coverartarchive.org https://*.archive.org https://*.dzcdn.net https://cdn-images.dzcdn.net https://*.steamstatic.com https://media.steampowered.com https://cdn.akamai.steamstatic.com; frame-src 'none'; object-src 'none'; base-uri 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://mrmgptqpflzyavdfqwwv.supabase.co http://localhost:8765 https://*.trycloudflare.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://ws.audioscrobbler.com https://api.frankfurter.dev; img-src 'self' data: https://raw.communitydragon.org https://lastfm.freetls.fastly.net https://*.lastfm.freetls.fastly.net https://coverartarchive.org https://*.archive.org https://*.dzcdn.net https://cdn-images.dzcdn.net https://*.steamstatic.com https://media.steampowered.com https://cdn.akamai.steamstatic.com; frame-src 'none'; object-src 'none'; base-uri 'self';">
 <title>AI Cockpit</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C2410C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><circle cx='12' cy='12' r='4'/></svg>">
 <link rel="manifest" href="manifest.json">
@@ -20,17 +20,17 @@
 <link rel="stylesheet" href="cockpit/styles-challenges.css?v=3">
 <link rel="stylesheet" href="cockpit/styles-wiki.css?v=5">
 <link rel="stylesheet" href="cockpit/styles-signals.css?v=4">
-<link rel="stylesheet" href="cockpit/styles-opportunities.css?v=2">
+<link rel="stylesheet" href="cockpit/styles-opportunities.css?v=3">
 <link rel="stylesheet" href="cockpit/styles-ideas.css?v=1">
 <link rel="stylesheet" href="cockpit/styles-jarvis.css?v=5">
-<link rel="stylesheet" href="cockpit/styles-profile.css?v=3">
+<link rel="stylesheet" href="cockpit/styles-profile.css?v=4">
 <link rel="stylesheet" href="cockpit/styles-forme.css?v=2">
 <link rel="stylesheet" href="cockpit/styles-musique.css?v=1">
-<link rel="stylesheet" href="cockpit/styles-gaming.css?v=4">
+<link rel="stylesheet" href="cockpit/styles-gaming.css?v=5">
 <link rel="stylesheet" href="cockpit/styles-stacks.css?v=1">
 <link rel="stylesheet" href="cockpit/styles-history.css?v=1">
 <link rel="stylesheet" href="cockpit/styles-jobs-radar.css?v=2">
-<link rel="stylesheet" href="cockpit/styles-jarvis-lab.css?v=4">
+<link rel="stylesheet" href="cockpit/styles-jarvis-lab.css?v=6">
 <link rel="stylesheet" href="cockpit/styles-mobile.css?v=1">
 </head>
 <body>
@@ -61,13 +61,13 @@
 <script src="cockpit/data-challenges.js?v=1"></script>
 <script src="cockpit/data-wiki.js?v=1"></script>
 <script src="cockpit/data-signals.js?v=2"></script>
-<script src="cockpit/data-opportunities.js?v=1"></script>
+<script src="cockpit/data-opportunities.js?v=2"></script>
 <script src="cockpit/data-ideas.js?v=1"></script>
 <script src="cockpit/data-jarvis.js?v=1"></script>
 <script src="cockpit/data-profile.js?v=1"></script>
 <script src="cockpit/data-forme.js?v=2"></script>
 <script src="cockpit/data-musique.js?v=1"></script>
-<script src="cockpit/data-gaming-perso.js?v=1"></script>
+<script src="cockpit/data-gaming-perso.js?v=2"></script>
 <script src="cockpit/data-stacks.js?v=1"></script>
 <script src="cockpit/data-history.js?v=3"></script>
 <script src="cockpit/data-jobs.js?v=1"></script>
@@ -84,15 +84,15 @@
 <script type="text/babel" src="cockpit/panel-recos.jsx?v=4"></script>
 <script type="text/babel" src="cockpit/panel-challenges.jsx?v=5"></script>
 <script type="text/babel" src="cockpit/panel-wiki.jsx?v=4"></script>
-<script type="text/babel" src="cockpit/panel-opportunities.jsx?v=3"></script>
+<script type="text/babel" src="cockpit/panel-opportunities.jsx?v=4"></script>
 <script type="text/babel" src="cockpit/components-ticket.jsx?v=2"></script>
 <script type="text/babel" src="cockpit/panel-ideas.jsx?v=4"></script>
 <script type="text/babel" src="cockpit/panel-jarvis.jsx?v=3"></script>
-<script type="text/babel" src="cockpit/panel-jarvis-lab.jsx?v=4"></script>
-<script type="text/babel" src="cockpit/panel-profile.jsx?v=1"></script>
+<script type="text/babel" src="cockpit/panel-jarvis-lab.jsx?v=6"></script>
+<script type="text/babel" src="cockpit/panel-profile.jsx?v=2"></script>
 <script type="text/babel" src="cockpit/panel-forme.jsx?v=4"></script>
 <script type="text/babel" src="cockpit/panel-musique.jsx?v=4"></script>
-<script type="text/babel" src="cockpit/panel-gaming.jsx?v=3"></script>
+<script type="text/babel" src="cockpit/panel-gaming.jsx?v=5"></script>
 <script type="text/babel" src="cockpit/panel-stacks.jsx?v=1"></script>
 <script type="text/babel" src="cockpit/panel-history.jsx?v=3"></script>
 <script type="text/babel" src="cockpit/panel-jobs-radar.jsx?v=3"></script>
