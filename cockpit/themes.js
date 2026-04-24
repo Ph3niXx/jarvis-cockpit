@@ -42,6 +42,15 @@ window.THEMES = {
       "--shadow-md": "0 4px 14px rgba(48, 32, 24, 0.08)",
       "--shadow-lg": "0 16px 40px rgba(48, 32, 24, 0.10)",
       "--grid-line": "rgba(31, 24, 21, 0.06)",
+      // Spacing — échelle 4px
+      "--space-1": "4px",
+      "--space-2": "8px",
+      "--space-3": "12px",
+      "--space-4": "16px",
+      "--space-5": "24px",
+      "--space-6": "32px",
+      "--space-7": "48px",
+      "--space-8": "64px",
     },
     vibe: {
       displayWeight: 500,
@@ -93,6 +102,15 @@ window.THEMES = {
       "--shadow-md": "0 8px 24px rgba(0, 0, 0, 0.5)",
       "--shadow-lg": "0 24px 60px rgba(0, 0, 0, 0.6)",
       "--grid-line": "rgba(255, 255, 255, 0.04)",
+      // Spacing — échelle 4px
+      "--space-1": "4px",
+      "--space-2": "8px",
+      "--space-3": "12px",
+      "--space-4": "16px",
+      "--space-5": "24px",
+      "--space-6": "32px",
+      "--space-7": "48px",
+      "--space-8": "64px",
     },
     vibe: {
       displayWeight: 600,
@@ -144,6 +162,15 @@ window.THEMES = {
       "--shadow-md": "0 2px 0 rgba(17, 19, 21, 0.04)",
       "--shadow-lg": "0 12px 32px rgba(17, 19, 21, 0.08)",
       "--grid-line": "rgba(17, 19, 21, 0.06)",
+      // Spacing — échelle 4px
+      "--space-1": "4px",
+      "--space-2": "8px",
+      "--space-3": "12px",
+      "--space-4": "16px",
+      "--space-5": "24px",
+      "--space-6": "32px",
+      "--space-7": "48px",
+      "--space-8": "64px",
     },
     vibe: {
       displayWeight: 400,

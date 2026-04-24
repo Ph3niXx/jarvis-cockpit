@@ -296,11 +296,9 @@ function Home({ theme, data, onNavigate }) {
                     {t.tags.map(tag => <span key={tag} className="top-tag">{tag}</span>)}
                   </div>
                   <div className="top-actions">
-                    <button className="card-action" onClick={() => toggleRead(t.rank)}>
-                      <Icon name="check" size={12} stroke={2.5} />
-                      {readTop[t.rank] ? "Lu" : "Marquer lu"}
+                    <button className="card-action card-action--bookmark" aria-label="Garder cet article">
+                      <Icon name="bookmark" size={12} stroke={2} />
                     </button>
-                    <button className="card-action"><Icon name="bookmark" size={12} stroke={2} /> Garder</button>
                   </div>
                 </div>
               </div>

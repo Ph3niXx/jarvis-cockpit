@@ -40,8 +40,9 @@ function SbSparkline({ values, width = 48, height = 14 }) {
 }
 
 function Sidebar({ theme, activeId, onSelect, data, onThemeChange, mobileOpen = false, onMobileClose }) {
-  const [openGroups, setOpenGroups] = React.useState(
-    () => Object.fromEntries(data.nav.map((g) => [g.group, true]))
+  const [openGroups, setOpenGroups] = useSbLocalState(
+    "cockpit-sb-open-groups",
+    Object.fromEntries(data.nav.map((g, i) => [g.group, g.group === "Grille matinale" || i === 0]))
   );
   const [collapsed, setCollapsed] = useSbLocalState(SB_COLLAPSED_KEY, false);
   const vibe = theme.vibe;

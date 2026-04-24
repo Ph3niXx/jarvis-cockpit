@@ -113,16 +113,28 @@ function Stub({ id, theme, onBack }) {
 // skeleton hidden until real data lands — no more "is this my data?" UX.
 function PanelLoader({ id }) {
   return (
-    <div style={{ padding: "120px 48px", maxWidth: 680, margin: "0 auto", fontFamily: "var(--font-body, Inter)", textAlign: "left" }}>
-      <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--tx3, #9A8D82)", marginBottom: 14 }}>
-        Chargement · {id}
+    <div className="panel-skeleton" aria-busy="true" aria-label={`Chargement du panel ${id}`}>
+      <div className="psk-header">
+        <div className="psk-eyebrow" />
+        <div className="psk-title" />
       </div>
-      <h2 style={{ fontFamily: "var(--font-display, 'Fraunces', serif)", fontSize: 26, fontWeight: 500, color: "var(--tx, #1F1815)", margin: "0 0 10px", letterSpacing: "-.01em" }}>
-        On récupère tes données…
-      </h2>
-      <p style={{ fontSize: 13, color: "var(--tx2, #5E524A)", lineHeight: 1.6, margin: 0 }}>
-        Premier chargement de ce panel depuis Supabase. Ça prend 2-3 secondes.
-      </p>
+      <div className="psk-hero">
+        <div className="psk-hero-main">
+          <div className="psk-line psk-line--lg" />
+          <div className="psk-line psk-line--md" />
+          <div className="psk-line psk-line--sm" />
+        </div>
+        <div className="psk-hero-side">
+          <div className="psk-stat" />
+          <div className="psk-stat" />
+          <div className="psk-stat" />
+        </div>
+      </div>
+      <div className="psk-grid">
+        <div className="psk-card" />
+        <div className="psk-card" />
+        <div className="psk-card" />
+      </div>
     </div>
   );
 }

@@ -80,9 +80,11 @@ window.COCKPIT_DATA = {
   ],
   // Sections du cockpit — sidebar
   nav: [
-    { group: "Aujourd'hui", items: [
+    { group: "Grille matinale", items: [
       { id: "brief", label: "Brief du jour", icon: "sun", count: 47, active: true },
       { id: "top", label: "Top du jour", icon: "star", count: 8 },
+      { id: "signals", label: "Signaux faibles", icon: "wave", count: 6 },
+      { id: "jarvis", label: "Jarvis", icon: "assistant" },
       { id: "week", label: "Ma semaine", icon: "calendar" },
       { id: "search", label: "Recherche", icon: "search" },
     ]},
@@ -98,14 +100,12 @@ window.COCKPIT_DATA = {
       { id: "recos", label: "Recommandations", icon: "bookmark", count: 4, unread: 2 },
       { id: "challenges", label: "Challenges", icon: "trophy", count: 3, unread: 1 },
       { id: "wiki", label: "Wiki IA", icon: "book", count: 142 },
-      { id: "signals", label: "Signaux faibles", icon: "wave", count: 6 },
     ]},
     { group: "Business", items: [
       { id: "opps", label: "Opportunités", icon: "lightbulb", count: 11, unread: 3 },
       { id: "ideas", label: "Carnet d'idées", icon: "notebook", count: 7 },
     ]},
     { group: "Personnel", items: [
-      { id: "jarvis", label: "Jarvis", icon: "assistant" },
       { id: "jarvis-lab", label: "Jarvis Lab", icon: "chart" },
       { id: "profile", label: "Mon profil", icon: "user" },
       { id: "perf", label: "Forme", icon: "activity" },

@@ -22,7 +22,7 @@ C'est le premier écran à l'ouverture du cockpit (route `"brief"`, panel par d�
 - **Synthèse du jour** : un paragraphe éditorial en tête de page qui résume l'actualité IA du jour, avec deux raccourcis vers le Top du jour et la Veille complète.
 - **Lecture audio** : un bouton qui lit la synthèse à voix haute en français, avec une estimation du temps de lecture. Utile pour démarrer la journée mains-libres.
 - **Stats macro** : quatre tuiles clés en haut de page — articles du jour, signaux en hausse, streak de veille, heure du prochain brief automatique.
-- **Top 3 incontournables** : les trois articles à lire en priorité ce matin, chacun avec son score, sa source, son résumé et ses tags. Un clic sur la carte ouvre l'article et le marque lu.
+- **Top 3 incontournables** : les trois articles à lire en priorité ce matin, chacun avec son score, sa source, son résumé et ses tags. Un clic sur la carte ouvre l'article et le marque lu. Au survol de la carte, un petit bouton "Garder" (pictogramme signet) apparaît en bas à droite pour bookmarker sans ouvrir.
 - **Signaux faibles** : les quatre tendances à surveiller, chacune avec sa courbe sur huit semaines et son delta, pour voir d'un coup d'œil si elle monte, stagne ou redescend.
 - **Radar compétences** : une vue circulaire des axes IA avec les lacunes mises en évidence par des points plus gros, pour repérer les zones à travailler.
 - **Prochain gap à combler** : un bloc à côté du radar qui désigne l'axe le plus faible et propose un raccourci direct vers un challenge ciblé.
@@ -130,6 +130,7 @@ Table **non lue malgré mention dans spec.json** : `activity_briefs` — écrite
 - [ ] **`<inconnu>` : seuils de score Top** — les scores 94/88/82 sont dérivés de `94 - i*6` ([data-loader.js:174](cockpit/lib/data-loader.js:174)), donc toujours les mêmes 3 valeurs selon le rang, **pas** un vrai score d'impact côté backend. À confirmer : est-ce intentionnel ou est-ce qu'un vrai score existe ailleurs ?
 
 ## Dernière MAJ
+2026-04-24 — top-cards : bouton "Marquer lu" supprimé (redondant avec le clic carte), bouton "Garder" devient pictogramme visible au survol uniquement.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit (retrait Tier 1, bootTier1, paths code, localStorage technique).
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit (retrait chemins code, props, formules, colonnes DB).
 2026-04-24 — retry Gemini 4× + fallback HTML construit depuis les articles si toutes les tentatives échouent (plus de brief affichant l'erreur 503 brute dans le hero).
