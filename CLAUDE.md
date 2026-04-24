@@ -255,6 +255,25 @@ Exemptions (pas d'update doc nécessaire) : refacto interne strictement iso-fonc
 4. **Nouvel onglet** : copier `docs/specs/_template.md` vers `tab-<slug>.md`, remplir toutes les sections, ajouter l'entrée dans `index.json` avec `status: "documented"` ou `"stub"`.
 5. **Onglet supprimé** : déplacer le `.md` dans `docs/specs/_archive/` (créer le dossier si absent) plutôt que de le supprimer, et passer l'entrée `index.json` à `status: "archived"` (ne pas retirer du tableau — garder la trace).
 
+### Règle éditoriale section Fonctionnalités
+
+La section `## Fonctionnalités` de chaque spec décrit **ce que l'utilisateur voit et fait**, pas comment c'est implémenté. Les détails techniques appartiennent aux sections `Front — structure UI` et `Back — sources de données`.
+
+**Banni dans Fonctionnalités :**
+- Chemins de fichier + ligne (`home.jsx:127`, `data-loader.js:1136`)
+- Noms de composants JSX (`<SignalCard>`, `<RadarSVG>`)
+- Props / variables / globals (`gap=true`, `data.signals`, `COCKPIT_DATA`, `window.X_DATA`)
+- Noms de colonnes DB (`brief_html`, `mention_count`, `article_id`)
+- Formules / heuristiques (`body.length / 280`, `94 - i*6`)
+- Endpoints / SDK (`/rest/v1/articles`, `supabase.from(...)`)
+
+**Format cible** :
+```
+- **<Nom feature>** : <ce que l'utilisateur voit> + <ce qu'il peut faire> + <besoin couvert>. 1-2 phrases max, vocabulaire produit.
+```
+
+Cette règle est **vérifiée automatiquement en CI** par le workflow `lint-specs` (voir section *Garde-fous automatiques* ci-dessous) — toute PR qui introduit du vocabulaire technique dans une section Fonctionnalités est bloquée.
+
 ### Mapping panel ↔ spec
 
 Les 5 onglets Veille partagent `panel-veille.jsx` : une modif de ce fichier peut impliquer plusieurs specs simultanément.

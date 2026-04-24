@@ -12,8 +12,15 @@ pro | perso | mixte
 <Comment Jean utilise concrètement cet onglet>
 
 ## Fonctionnalités
-- <Feature 1> : <description>
-- <Feature 2> : <description>
+<!--
+RÈGLE : cette section décrit CE QUE L'UTILISATEUR VOIT ET FAIT, pas comment c'est implémenté.
+BANNI : chemins de fichier (home.jsx:127), noms de composants (<SignalCard>), props/variables (gap=true, data.signals),
+noms de colonnes DB (brief_html), formules (body.length / 280), endpoints (/rest/v1/…).
+Les détails techniques vont dans "Front — structure UI" et "Back — sources de données".
+Format bullet : **[Nom]** : [ce que l'utilisateur voit] + [ce qu'il peut faire] + [quel besoin ça couvre]. 1-2 phrases max.
+-->
+- **<Nom feature 1>** : <ce que l'utilisateur voit et peut faire, 1-2 phrases max, vocabulaire produit>
+- **<Nom feature 2>** : <idem>
 
 ## Front — structure UI
 <HTML principal, composants, interactions JS, IDs/classes clés>
