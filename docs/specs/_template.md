@@ -9,7 +9,14 @@ pro | perso | mixte
 <Pourquoi cet onglet existe, quel problème il résout>
 
 ## Parcours utilisateur
-<Comment Jean utilise concrètement cet onglet>
+<!--
+RÈGLE : cette section raconte CE QUE L'UTILISATEUR FAIT pas à pas, pas le code qui tourne en dessous.
+BANNI : chemins de fichier (home.jsx:127), noms de composants (<SignalCard>), props/variables (gap=true, data.signals),
+noms de colonnes DB (brief_html), formules (body.length / 280), endpoints (/rest/v1/…), bootTier1/loadPanel/localStorage.xxx.
+Les détails techniques vont dans "Front — structure UI" et "Back — sources de données".
+Format : liste numérotée d'étapes, verbe d'action à l'utilisateur en tête ("Clic sidebar…", "Scan des signaux…", "Lit le brief…").
+-->
+<Liste numérotée de ce que fait l'utilisateur, étape par étape, en vocabulaire produit>
 
 ## Fonctionnalités
 <!--

@@ -274,6 +274,26 @@ La section `## Fonctionnalités` de chaque spec décrit **ce que l'utilisateur v
 
 Cette règle est **vérifiée automatiquement en CI** par le workflow `lint-specs` (voir section *Garde-fous automatiques* ci-dessous) — toute PR qui introduit du vocabulaire technique dans une section Fonctionnalités est bloquée.
 
+### Règle éditoriale section Parcours utilisateur
+
+La section `## Parcours utilisateur` de chaque spec raconte **ce que l'utilisateur fait pas à pas** — sa séquence d'actions et ce qu'il voit en retour —, pas le code qui tourne en dessous. Mêmes interdits que pour Fonctionnalités.
+
+**Banni dans Parcours utilisateur :**
+- Chemins de fichier + ligne (`home.jsx:127`, `data-loader.js:1136`)
+- Noms de composants JSX (`<SignalCard>`, `<RadarSVG>`)
+- Props / variables / globals (`gap=true`, `data.signals`, `COCKPIT_DATA`, `window.X_DATA`)
+- Noms de colonnes DB (`brief_html`, `mention_count`, `article_id`)
+- Endpoints / SDK (`/rest/v1/articles`, `supabase.from(...)`)
+- Jargon infra (`Tier 1`, `Tier 2`, `bootTier1()`, `loadPanel("x")`, `localStorage.cle-technique`, `PATCH`/`POST`/`RPC`, `useEffect`…)
+
+**Format cible** :
+```
+1. <Verbe d'action à l'utilisateur> — <ce qu'il voit en retour, vocabulaire produit>.
+2. <Étape suivante> — …
+```
+
+Cette règle est **vérifiée automatiquement en CI** par le même workflow `lint-specs` que Fonctionnalités — toute PR qui introduit du vocabulaire technique dans une section Parcours utilisateur est bloquée.
+
 ### Mapping panel ↔ spec
 
 Les 5 onglets Veille partagent `panel-veille.jsx` : une modif de ce fichier peut impliquer plusieurs specs simultanément.
