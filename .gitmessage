@@ -1,0 +1,27 @@
+# <type>(<scope>): <sujet>   ← 50 chars max, impératif, minuscule
+#
+# Types courants : feat · fix · refactor · docs · style · test · chore · ci
+# Scopes courants : brief · top · week · search · veille · radar · recos ·
+#                   challenges · wiki · signals · opps · ideas · jobs · jarvis ·
+#                   jarvis-lab · profile · perf · music · gaming · stacks ·
+#                   history · pipelines · ci · deps
+#
+# ─── Corps (pourquoi, pas quoi) ────────────────────────────────────────────
+# Explique le motif et le contexte. Wrap à 72 chars. Le diff dit déjà quoi
+# a changé ; ici on dit pourquoi c'était nécessaire, quelle contrainte est
+# levée, quel incident ça évite.
+#
+#
+#
+# ─── Checklist ─────────────────────────────────────────────────────────────
+# Specs mises à jour: tab-<slug> | aucune | N/A
+#   → "tab-<slug>" : liste les specs touchées dans le même commit
+#   → "aucune"     : modif UX/UI sans mise à jour spec (flag la dette à fixer)
+#   → "N/A"        : refacto iso-fonctionnel, cosmétique, ou bump de dep
+#
+# Tests effectués:
+#   → preview manuelle / script de validation / rien (à éviter)
+#
+# ───────────────────────────────────────────────────────────────────────────
+# Activation one-shot par clone : `git config commit.template .gitmessage`
+# Les lignes commençant par # sont supprimées à la validation.

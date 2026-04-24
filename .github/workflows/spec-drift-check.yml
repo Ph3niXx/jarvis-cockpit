@@ -1,0 +1,87 @@
+name: spec-drift-check
+
+# Détecte quand une PR modifie le code d'un onglet du cockpit sans toucher
+# la spec correspondante dans docs/specs/tab-*.md.
+# Non-bloquant : émet des annotations GitHub (::warning::) et laisse la PR
+# merger. Durcir en bloquant après avoir mesuré le bruit en conditions réelles.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  drift:
+    name: Specs sync (warning only)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # warning-only: la PR reste mergeable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect spec drift
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          echo "Base: $BASE_SHA"
+          echo "Head: $HEAD_SHA"
+
+          # Liste des fichiers modifiés dans la PR.
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          echo "Fichiers modifiés :"
+          echo "$CHANGED" | sed 's/^/  - /'
+          echo ""
+
+          # Code d'onglet touché ?
+          # On watche : les panels, les styles par panel, le shell index.html,
+          # et les pipelines qui alimentent les specs back.
+          SRC_PATTERN='^(cockpit/(home\.jsx|panel-.*\.jsx|styles-.*\.css)|index\.html|(main|weekly_analysis|tft_pipeline)\.py|pipelines/.*\.py)$'
+          SRC_TOUCHED=$(echo "$CHANGED" | grep -E "$SRC_PATTERN" || true)
+
+          # Spec touchée ?
+          SPEC_PATTERN='^docs/specs/(tab-.*\.md|index\.json)$'
+          SPEC_TOUCHED=$(echo "$CHANGED" | grep -E "$SPEC_PATTERN" || true)
+
+          if [ -z "$SRC_TOUCHED" ]; then
+            echo "::notice::Aucun fichier d'onglet modifié — pas de vérif de dérive à faire."
+            exit 0
+          fi
+
+          if [ -n "$SPEC_TOUCHED" ]; then
+            echo "::notice::Code d'onglet modifié ET specs mises à jour — OK."
+            echo "Specs touchées :"
+            echo "$SPEC_TOUCHED" | sed 's/^/  - /'
+            exit 0
+          fi
+
+          echo "::warning::Dérive potentielle détectée — du code d'onglet a été modifié sans mise à jour de spec."
+          echo ""
+          echo "$SRC_TOUCHED" | while IFS= read -r f; do
+            if [ -n "$f" ]; then
+              echo "::warning file=$f::Pense à bumper docs/specs/tab-<slug>.md + last_updated dans docs/specs/index.json (règle CLAUDE.md §Maintenance des specs)."
+            fi
+          done
+
+          cat <<'EOF'
+
+          Si la modif est purement cosmétique / refacto iso-fonctionnel, ignore
+          ce warning. Sinon, dans le même PR :
+            1. Mettre à jour la section concernée du tab-<slug>.md
+            2. Rédiger une ligne changelog dans '## Dernière MAJ'
+            3. Bumper 'last_updated' dans docs/specs/index.json
+            4. Cocher 'Specs mises à jour:' dans le message de commit
+
+          Mapping panel ↔ spec : voir CLAUDE.md §Maintenance des specs Jarvis Lab.
+          EOF
+
+          # Exit 1 pour que le step apparaisse en rouge dans l'UI GitHub.
+          # continue-on-error: true au niveau job empêche le workflow de fail.
+          exit 1
