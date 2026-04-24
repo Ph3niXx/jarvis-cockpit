@@ -197,8 +197,8 @@ a { color: inherit; text-decoration: none; }
   animation: sbHotPulse 2s ease infinite;
 }
 @keyframes sbHotPulse {
-  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent); }
-  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--brand) 5%, transparent); }
+  0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 15%, transparent); }
+  50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 5%, transparent); }
 }
 
 .sb-items { display: flex; flex-direction: column; gap: 1px; padding: 2px 0 6px; }
@@ -563,7 +563,7 @@ a { color: inherit; text-decoration: none; }
 }
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 0 var(--brand-tint); }
-  50% { box-shadow: 0 0 0 8px transparent; }
+  50% { box-shadow: 0 0 0 4px transparent; }
 }
 .hero-kicker-sep { color: var(--tx3); }
 .hero-kicker-meta { color: var(--tx3); font-weight: 400; letter-spacing: 0.02em; text-transform: none; font-family: var(--font-body); font-size: 12px; }
@@ -4185,5 +4185,18 @@ a { color: inherit; text-decoration: none; }
   .vl-filter-label { width: auto; }
   .vl-feed-item { grid-template-columns: 40px 1fr; }
   .vl-feed-actions-col { grid-column: 2; flex-direction: row; opacity: 1; }
+}
+
+/* ═══ Motion preferences ═══════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .kicker-dot,
+  .sb-group-hotdot,
+  .sb-foot-user-status { animation: none !important; box-shadow: none !important; }
 }
 
