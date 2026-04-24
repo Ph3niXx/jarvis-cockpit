@@ -23,6 +23,11 @@ Le panel fetch le JSON une fois (cache mémoire module-level), affiche une roadm
 8. Lecture du catalogue cockpit au milieu de page : onglets groupés (Aujourd'hui / Veille / Apprentissage / Business / Personnel / Système) avec sources de données et fréquences. Clic sur le corps d'une carte amène au lecteur de spec tout en bas ; clic sur "Ouvrir ↗" quitte Jarvis Lab pour basculer sur le vrai onglet.
 9. Lecture des specs détaillées en pied de page : sidebar gauche avec les onglets groupés par scope (Pro / Perso / Mixte), document central en rendu Markdown riche, table des matières à droite avec scroll fluide vers chaque section au clic.
 10. Clic sur "Rafraîchir" dans le header pour vider le cache local et recharger la spec sans recharger la page.
+11. Scroll vers la section **Architecture** pour explorer l'architecture en 4 vues — Couches, Flux par domaine, Timeline crons, Dépendances. Clic sur un onglet charge la vue correspondante (chaque YAML est chargé en lazy, mémoïsé ensuite).
+12. En vue **Couches**, lecture du diagramme en trois bandes horizontales Front / Middle / Back avec le rail orange à droite pour les sauts de couche et les flèches internes dans les couloirs. Légende en pied de diagramme.
+13. En vue **Flux par domaine**, clic sur une pill (veille-ia, jarvis-rag, perso-strava…) pour afficher le diagramme linéaire gauche→droite de ce domaine (source API → pipeline → tables → panels).
+14. En vue **Timeline crons**, lecture de la bande 24 heures UTC avec les 11 crons positionnés à leur heure, libellés staggerés sur trois lanes pour éviter le chevauchement, plus un rappel du cron hebdo et du cron toutes les 2h.
+15. En vue **Dépendances**, clic sur un panel à gauche pour voir à droite les tables qu'il lit, écrit, ses RPCs éventuelles, ses appels externes et ses sources statiques, avec pastille RLS (authenticated / service_role / public) sur chaque table.
 
 ## Fonctionnalités
 - **Roadmap 6 phases** : six chips en tête de page (Inférence locale, RAG, Mémoire, Orchestrateur, Boucle nocturne, Observation) avec leur statut coloré. Clic sur une phase ouvre la grille de ses features.
@@ -35,6 +40,7 @@ Le panel fetch le JSON une fois (cache mémoire module-level), affiche une roadm
 - **Badge de statut des specs** : indique clairement si l'onglet est « documenté » ou si le spec est encore un stub (un message explicite remplace le contenu dans ce dernier cas).
 - **Bouton « Rafraîchir »** : en header, vide le cache local et recharge la spec pour voir immédiatement les modifications récentes sans recharger la page.
 - **Accessibilité clavier** : drawer navigable au clavier avec Escape pour fermer et restauration automatique du focus sur l'élément déclencheur.
+- **Section Architecture en 4 vues** : sous le catalogue cockpit, un bloc dédié expose l'architecture du projet sous forme de quatre onglets sélectionnables — Couches (diagramme Front / Middle / Back avec rail droit pour les sauts de couche), Flux par domaine (diagrammes linéaires par flux fonctionnel type veille-ia ou jarvis-rag), Timeline crons (24 h UTC avec les onze crons positionnés), Dépendances (matrice panel ↔ table avec pastille RLS et compteurs lecture/écriture). Les contenus sont lus depuis des fichiers YAML versionnés, donc éditer un fichier recharge la vue au prochain reload sans toucher au code.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-jarvis-lab.jsx](cockpit/panel-jarvis-lab.jsx) — 620 lignes, monté à [app.jsx:407](cockpit/app.jsx:407). Stylesheet : [cockpit/styles-jarvis-lab.css](cockpit/styles-jarvis-lab.css) — 796 lignes, préfixe `.jl-*`.
@@ -176,6 +182,7 @@ Format spec.json (haut niveau) :
 - [ ] **`scope` binaire perso/pro** : le CLAUDE.md note que beaucoup d'onglets sont "mixte" — le spec.json (validé par `VALID_SCOPE = {"perso", "pro"}`) force à choisir. Les features mixtes sont rangées en "perso" par défaut.
 
 ## Dernière MAJ
+2026-04-24 — ajout section Architecture (4 vues : Couches / Flux / Timeline / Dépendances) lues depuis docs/architecture/*.yaml.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — retrodoc initial basé sur HEAD `c456ac9`. Correctifs appliqués le même jour :

@@ -1297,3 +1297,528 @@
   .jl-specs-mobile-select { display: block; }
   .jl-specs-doc { padding: 20px 18px 28px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ARCHITECTURE SECTION — s'adapte aux thèmes Dawn/Obsidian/Atlas
+   via les CSS variables globales --brand, --tx, --tx2, --tx3, etc.
+   ═══════════════════════════════════════════════════════════════ */
+
+.jl-arch-section {
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid var(--bd, #333);
+}
+.jl-arch-section-head { margin-bottom: 20px; }
+.jl-arch-section-eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--brand, #c2410c);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.jl-arch-section-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--tx, #fafafa);
+  margin: 0 0 6px 0;
+  font-family: var(--font-serif, Georgia, serif);
+}
+.jl-arch-section-sub {
+  font-size: 13px;
+  color: var(--tx2, #9aa3ad);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 820px;
+}
+.jl-arch-section-sub code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  background: var(--bg2, #141414);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--bd, #333);
+}
+
+.jl-arch-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 20px 0 16px;
+  border-bottom: 1px solid var(--bd, #333);
+}
+.jl-arch-tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tx3, #737373);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color .12s, border-color .12s;
+}
+.jl-arch-tab:hover { color: var(--tx, #fafafa); }
+.jl-arch-tab.is-active {
+  color: var(--brand, #c2410c);
+  border-bottom-color: var(--brand, #c2410c);
+}
+.jl-arch-tab:focus-visible {
+  outline: 1px solid var(--brand, #c2410c);
+  outline-offset: 2px;
+}
+
+.jl-arch-tab-body { min-height: 400px; }
+.jl-arch-loading,
+.jl-arch-error {
+  padding: 32px;
+  text-align: center;
+  color: var(--tx2, #9aa3ad);
+  font-size: 13px;
+}
+.jl-arch-error { color: var(--alert, #c53030); }
+
+/* ── Vue Couches (SVG) ─────────────────────────────── */
+
+.jl-arch-svg-wrap {
+  background: var(--bg2, #141414);
+  border: 1px solid var(--bd, #333);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+}
+.jl-arch-couches-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 900px;
+  font-family: var(--font-body, 'Inter', sans-serif);
+}
+
+.jl-arch-layer-bg {
+  fill: var(--bg3, #1a1e23);
+  stroke: var(--bd, #333);
+  stroke-width: 1;
+  opacity: 0.55;
+}
+.jl-arch-layer-label {
+  fill: var(--tx2, #9aa3ad);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+}
+.jl-arch-layer-sublabel {
+  fill: var(--tx3, #737373);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.jl-arch-box > rect {
+  fill: var(--surface, #13161a);
+  stroke: var(--bd, #333);
+  stroke-width: 1;
+}
+.jl-arch-box.is-accent > rect {
+  stroke: var(--brand, #c2410c);
+  stroke-width: 2;
+}
+.jl-arch-box-title {
+  fill: var(--tx, #fafafa);
+  font-size: 13px;
+  font-weight: 600;
+}
+.jl-arch-box-subtitle {
+  fill: var(--tx2, #9aa3ad);
+  font-size: 11px;
+}
+.jl-arch-box-meta {
+  fill: var(--tx3, #737373);
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.jl-arch-edge-line {
+  stroke: var(--tx3, #737373);
+  stroke-width: 1.25;
+  fill: none;
+}
+.jl-arch-edge.is-cross_layer .jl-arch-edge-line {
+  stroke: var(--brand, #c2410c);
+  stroke-width: 1.75;
+}
+.jl-arch-edge-label-bg {
+  fill: var(--bg2, #141414);
+  stroke: var(--bd, #333);
+  stroke-width: 0.5;
+}
+.jl-arch-edge-label-text {
+  fill: var(--tx2, #9aa3ad);
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.jl-arch-edge.is-cross_layer .jl-arch-edge-label-text {
+  fill: var(--brand, #c2410c);
+  font-weight: 600;
+}
+
+.jl-arch-legend-rail { stroke: var(--brand, #c2410c); stroke-width: 2; }
+.jl-arch-legend-line { stroke: var(--tx3, #737373); stroke-width: 1.25; }
+.jl-arch-legend-accent-box {
+  fill: var(--surface, #13161a);
+  stroke: var(--brand, #c2410c);
+  stroke-width: 1.5;
+}
+.jl-arch-legend-text {
+  fill: var(--tx3, #737373);
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ── Vue Flux par domaine ──────────────────────────── */
+
+.jl-arch-flows { display: flex; flex-direction: column; gap: 16px; }
+.jl-arch-flows-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.jl-arch-flow-pill {
+  appearance: none;
+  background: var(--bg2, #141414);
+  border: 1px solid var(--bd, #333);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--tx2, #9aa3ad);
+  cursor: pointer;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.jl-arch-flow-pill:hover {
+  color: var(--tx, #fafafa);
+  border-color: var(--brand, #c2410c);
+}
+.jl-arch-flow-pill.is-active {
+  color: var(--brand, #c2410c);
+  border-color: var(--brand, #c2410c);
+  background: var(--bg3, #1a1e23);
+}
+
+.jl-arch-flow-diagram {
+  background: var(--bg2, #141414);
+  border: 1px solid var(--bd, #333);
+  border-radius: 8px;
+  padding: 20px;
+}
+.jl-arch-flow-diagram.is-todo { border-style: dashed; }
+
+.jl-arch-flow-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.jl-arch-flow-label { font-size: 16px; font-weight: 600; color: var(--tx, #fafafa); }
+.jl-arch-flow-badge {
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 3px 8px;
+  background: var(--bg3, #1a1e23);
+  color: var(--brand, #c2410c);
+  border: 1px dashed var(--brand, #c2410c);
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.jl-arch-flow-columns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  position: relative;
+}
+.jl-arch-flow-columns::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 34px;
+  height: 1px;
+  background: var(--bd, #333);
+  z-index: 0;
+}
+.jl-arch-flow-col { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 1; }
+.jl-arch-flow-col-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--tx3, #737373);
+  text-transform: uppercase;
+  padding-bottom: 8px;
+  padding-left: 10px;
+  font-weight: 600;
+}
+.jl-arch-flow-col-items { display: flex; flex-direction: column; gap: 8px; }
+.jl-arch-flow-item {
+  background: var(--surface, #13161a);
+  border: 1px solid var(--bd, #333);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.jl-arch-flow-item.is-accent { border-color: var(--brand, #c2410c); }
+.jl-arch-flow-item-title { font-size: 12px; font-weight: 600; color: var(--tx, #fafafa); margin-bottom: 2px; }
+.jl-arch-flow-item-sub {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--brand, #c2410c);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.jl-arch-flow-item-extra { font-size: 11px; color: var(--tx2, #9aa3ad); line-height: 1.4; }
+.jl-arch-flow-item-steps,
+.jl-arch-flow-item-components {
+  margin: 6px 0 0 14px;
+  padding: 0;
+  font-size: 10px;
+  color: var(--tx3, #737373);
+  line-height: 1.4;
+}
+.jl-arch-flow-item-steps li,
+.jl-arch-flow-item-components li { margin-bottom: 2px; }
+.jl-arch-flow-item code {
+  background: var(--bg2, #141414);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 10px;
+}
+.jl-arch-flow-notes {
+  margin: 16px 0 0 18px;
+  font-size: 11px;
+  color: var(--tx2, #9aa3ad);
+  line-height: 1.5;
+}
+.jl-arch-flow-notes li { margin-bottom: 4px; }
+
+/* ── Timeline crons 24h ────────────────────────────── */
+
+.jl-arch-timeline {
+  background: var(--bg2, #141414);
+  border: 1px solid var(--bd, #333);
+  border-radius: 8px;
+  padding: 20px;
+}
+.jl-arch-timeline-head { margin-bottom: 16px; }
+.jl-arch-timeline-label { font-size: 14px; font-weight: 600; color: var(--tx, #fafafa); margin-bottom: 4px; }
+.jl-arch-timeline-sub { font-size: 11px; color: var(--tx3, #737373); }
+
+.jl-arch-timeline-bar-wrap { padding: 60px 20px 150px 20px; overflow: visible; }
+.jl-arch-timeline-bar {
+  position: relative;
+  height: 6px;
+  background: var(--surface, #13161a);
+  border: 1px solid var(--bd, #333);
+  border-radius: 3px;
+}
+.jl-arch-timeline-tick {
+  position: absolute;
+  top: -6px;
+  width: 1px;
+  height: 18px;
+  background: var(--bd, #333);
+  transform: translateX(-50%);
+}
+.jl-arch-timeline-tick.is-major { background: var(--tx3, #737373); height: 20px; }
+.jl-arch-timeline-tick-label {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--tx3, #737373);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.jl-arch-timeline-pin {
+  position: absolute;
+  top: 3px;
+  transform: translateX(-50%);
+  width: 120px;
+}
+.jl-arch-timeline-pin-line {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 30px;
+  background: var(--brand, #c2410c);
+}
+.jl-arch-timeline-pin--lane-0 .jl-arch-timeline-pin-line { height: 30px; }
+.jl-arch-timeline-pin--lane-1 .jl-arch-timeline-pin-line { height: 60px; }
+.jl-arch-timeline-pin--lane-2 .jl-arch-timeline-pin-line { height: 90px; }
+
+.jl-arch-timeline-pin-label {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 9px;
+  background: var(--surface, #13161a);
+  border: 1px solid var(--bd, #333);
+  border-left: 2px solid var(--brand, #c2410c);
+  border-radius: 3px;
+  min-width: 110px;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.jl-arch-timeline-pin--lane-1 .jl-arch-timeline-pin-label { top: 60px; }
+.jl-arch-timeline-pin--lane-2 .jl-arch-timeline-pin-label { top: 90px; }
+
+.jl-arch-timeline-pin-name { font-size: 11px; color: var(--tx, #fafafa); font-weight: 600; }
+.jl-arch-timeline-pin-time { font-size: 10px; color: var(--tx2, #9aa3ad); margin-top: 2px; }
+.jl-arch-timeline-pin-duration { font-size: 9px; color: var(--tx3, #737373); margin-top: 1px; }
+
+.jl-arch-timeline-note,
+.jl-arch-timeline-weekly {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--surface, #13161a);
+  border: 1px solid var(--bd, #333);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--tx2, #9aa3ad);
+  line-height: 1.5;
+}
+.jl-arch-timeline-note strong,
+.jl-arch-timeline-weekly strong {
+  color: var(--brand, #c2410c);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ── Dépendances panel × table ─────────────────────── */
+
+.jl-arch-deps {
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  background: var(--bg2, #141414);
+  border: 1px solid var(--bd, #333);
+  border-radius: 8px;
+  padding: 16px;
+}
+.jl-arch-deps-panel-list {
+  background: var(--surface, #13161a);
+  border: 1px solid var(--bd, #333);
+  border-radius: 6px;
+  padding: 10px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+.jl-arch-deps-list-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--tx3, #737373);
+  padding: 4px 8px 10px 8px;
+  font-weight: 600;
+}
+.jl-arch-deps-list-items { display: flex; flex-direction: column; gap: 2px; }
+.jl-arch-deps-panel-item {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--tx2, #9aa3ad);
+  cursor: pointer;
+  text-align: left;
+  transition: color .12s, background .12s, border-color .12s;
+}
+.jl-arch-deps-panel-item:hover { color: var(--tx, #fafafa); background: var(--bg3, #1a1e23); }
+.jl-arch-deps-panel-item.is-active {
+  color: var(--brand, #c2410c);
+  background: var(--bg3, #1a1e23);
+  border-color: var(--brand, #c2410c);
+}
+.jl-arch-deps-panel-name { flex: 1; }
+.jl-arch-deps-panel-counts { display: flex; gap: 4px; font-size: 9px; }
+.jl-arch-deps-r, .jl-arch-deps-w { padding: 1px 5px; border-radius: 2px; font-weight: 600; }
+.jl-arch-deps-r { background: var(--bg2, #141414); color: var(--tx3, #737373); }
+.jl-arch-deps-w { background: var(--brand, #c2410c); color: #fff; }
+
+.jl-arch-deps-detail {
+  background: var(--surface, #13161a);
+  border: 1px solid var(--bd, #333);
+  border-radius: 6px;
+  padding: 16px 18px;
+}
+.jl-arch-deps-head {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--bd, #333);
+}
+.jl-arch-deps-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--brand, #c2410c);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.jl-arch-deps-file { font-size: 11px; color: var(--tx3, #737373); margin-top: 2px; }
+.jl-arch-deps-file code {
+  background: var(--bg2, #141414);
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+.jl-arch-deps-group { margin-bottom: 14px; }
+.jl-arch-deps-group-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--tx3, #737373);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.jl-arch-deps-group-items { display: flex; flex-wrap: wrap; gap: 6px; }
+.jl-arch-deps-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  border: 1px solid var(--bd, #333);
+  background: var(--bg2, #141414);
+}
+.jl-arch-deps-chip.is-read { color: var(--tx2, #9aa3ad); }
+.jl-arch-deps-chip.is-write { color: var(--brand, #c2410c); border-color: var(--brand, #c2410c); }
+.jl-arch-deps-chip.is-rpc { color: var(--positive, #0e7a5f); border-color: var(--positive, #0e7a5f); }
+.jl-arch-deps-chip-rls {
+  font-size: 9px;
+  opacity: 0.7;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: var(--bg3, #1a1e23);
+}
+.jl-arch-deps-external {
+  margin: 0 0 0 14px;
+  padding: 0;
+  font-size: 11px;
+  color: var(--tx2, #9aa3ad);
+  line-height: 1.5;
+}
+.jl-arch-deps-external li { margin-bottom: 3px; }
+
+/* ── Responsive ────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .jl-arch-flow-columns { grid-template-columns: 1fr 1fr; }
+  .jl-arch-flow-columns::before { display: none; }
+  .jl-arch-deps { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .jl-arch-flow-columns { grid-template-columns: 1fr; }
+}

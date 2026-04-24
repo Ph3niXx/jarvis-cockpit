@@ -802,6 +802,607 @@ function JLSpecsViewer({ onOpenTab, selectedSlug, onSelectSlug, forwardRef }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ARCHITECTURE VIEWER — 4 vues lues depuis docs/architecture/*.yaml
+// (layers.yaml, flows/*.yaml, pipelines.yaml, dependencies.yaml).
+// Cache module-level, rendu SVG custom pour routage contrôlé.
+// ═══════════════════════════════════════════════════════════════
+
+const __jlArchCache = {};
+
+async function __fetchArchYaml(path) {
+  if (__jlArchCache[path] !== undefined) return __jlArchCache[path];
+  const res = await fetch(`./docs/architecture/${path}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status} on ${path}`);
+  const txt = await res.text();
+  if (!window.jsyaml) throw new Error("js-yaml library not loaded (check index.html CDN)");
+  const data = window.jsyaml.load(txt);
+  __jlArchCache[path] = data;
+  return data;
+}
+
+// ----- Couches (vue en couches Front / Middle / Back) -----
+
+const ARCH_W = 1100;
+const ARCH_LAYER_H = 210;
+const ARCH_GUTTER_H = 54;
+const ARCH_LABEL_BAND_W = 64;
+const ARCH_PAD_X = 24;
+const ARCH_BOX_PAD_V = 28;
+const ARCH_BOX_GAP = 16;
+const ARCH_RIGHT_RAIL_X = 1014;
+const ARCH_LEGEND_H = 64;
+
+function __archLayerYs() {
+  return {
+    front: 0,
+    middle: ARCH_LAYER_H + ARCH_GUTTER_H,
+    back: 2 * (ARCH_LAYER_H + ARCH_GUTTER_H),
+  };
+}
+
+function __archLayerRects(n) {
+  const xStart = ARCH_LABEL_BAND_W + ARCH_PAD_X;
+  const xEnd = ARCH_W - ARCH_PAD_X - 40;
+  const avail = xEnd - xStart;
+  const bw = Math.max(140, (avail - (n - 1) * ARCH_BOX_GAP) / n);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    out.push({ x: xStart + i * (bw + ARCH_BOX_GAP), w: bw });
+  }
+  return out;
+}
+
+function __archComputePositions(layers) {
+  const ys = __archLayerYs();
+  const out = {};
+  for (const layer of layers) {
+    const rects = __archLayerRects(layer.boxes.length);
+    const yTop = ys[layer.id] + ARCH_BOX_PAD_V;
+    const h = ARCH_LAYER_H - 2 * ARCH_BOX_PAD_V;
+    layer.boxes.forEach((b, i) => {
+      out[`${layer.id}.${b.id}`] = {
+        x: rects[i].x, y: yTop, w: rects[i].w, h,
+        box: b, layerId: layer.id,
+      };
+    });
+  }
+  return out;
+}
+
+function ArchBox({ rect }) {
+  const { x, y, w, h, box } = rect;
+  return (
+    <g className={`jl-arch-box ${box.accent ? "is-accent" : ""}`}>
+      <rect x={x} y={y} width={w} height={h} rx={12} />
+      <text x={x + 14} y={y + 26} className="jl-arch-box-title">{box.title}</text>
+      <text x={x + 14} y={y + 48} className="jl-arch-box-subtitle">{box.subtitle}</text>
+      {(box.meta || []).slice(0, 2).map((m, i) => (
+        <text key={i} x={x + 14} y={y + 74 + i * 18} className="jl-arch-box-meta">{m}</text>
+      ))}
+    </g>
+  );
+}
+
+function ArchEdgeLabel({ x, y, text, type }) {
+  const w = Math.max(60, text.length * 6.5 + 14);
+  const h = 18;
+  return (
+    <g className={`jl-arch-edge-label is-${type}`}>
+      <rect x={x - w / 2} y={y - h / 2} width={w} height={h} rx={4} className="jl-arch-edge-label-bg" />
+      <text x={x} y={y + 4} textAnchor="middle" className="jl-arch-edge-label-text">{text}</text>
+    </g>
+  );
+}
+
+function ArchEdge({ edge, rects }) {
+  const src = rects[edge.from];
+  const tgt = rects[edge.to];
+  if (!src || !tgt) return null;
+  const type = edge.type || "adjacent";
+  const srcCx = src.x + src.w / 2;
+  const tgtCx = tgt.x + tgt.w / 2;
+  let path = "";
+  let labelX = 0, labelY = 0;
+
+  if (type === "intra_layer") {
+    const srcLeft = src.x < tgt.x;
+    const x1 = srcLeft ? src.x + src.w : src.x;
+    const x2 = srcLeft ? tgt.x : tgt.x + tgt.w;
+    const y = src.y + src.h / 2;
+    path = `M ${x1} ${y} L ${x2} ${y}`;
+    labelX = (x1 + x2) / 2;
+    labelY = y - 10;
+  } else if (type === "adjacent") {
+    const srcAbove = src.y < tgt.y;
+    const y1 = srcAbove ? src.y + src.h : src.y;
+    const y2 = srcAbove ? tgt.y : tgt.y + tgt.h;
+    const gutterMid = (y1 + y2) / 2;
+    if (Math.abs(srcCx - tgtCx) < 1) {
+      path = `M ${srcCx} ${y1} L ${srcCx} ${y2}`;
+      labelX = srcCx;
+      labelY = gutterMid;
+    } else {
+      path = `M ${srcCx} ${y1} L ${srcCx} ${gutterMid} L ${tgtCx} ${gutterMid} L ${tgtCx} ${y2}`;
+      labelX = (srcCx + tgtCx) / 2;
+      labelY = gutterMid - 8;
+    }
+  } else if (type === "cross_layer") {
+    const sy = src.y + src.h / 2;
+    const ty = tgt.y + tgt.h / 2;
+    const rx = ARCH_RIGHT_RAIL_X;
+    path = `M ${src.x + src.w} ${sy} L ${rx} ${sy} L ${rx} ${ty} L ${tgt.x + tgt.w} ${ty}`;
+    labelX = rx - 70;
+    labelY = (sy + ty) / 2;
+  }
+
+  return (
+    <g className={`jl-arch-edge is-${type}`}>
+      <path d={path} className="jl-arch-edge-line" fill="none" />
+      <ArchEdgeLabel x={labelX} y={labelY} text={edge.label} type={type} />
+    </g>
+  );
+}
+
+function ArchLayerBand({ layer, y }) {
+  return (
+    <g className="jl-arch-layer">
+      <rect
+        x={ARCH_LABEL_BAND_W}
+        y={y}
+        width={ARCH_W - ARCH_LABEL_BAND_W}
+        height={ARCH_LAYER_H}
+        className="jl-arch-layer-bg"
+      />
+      <text
+        className="jl-arch-layer-label"
+        x={ARCH_LABEL_BAND_W / 2}
+        y={y + ARCH_LAYER_H / 2}
+        textAnchor="middle"
+        transform={`rotate(-90, ${ARCH_LABEL_BAND_W / 2}, ${y + ARCH_LAYER_H / 2})`}
+      >{layer.label}</text>
+      <text
+        className="jl-arch-layer-sublabel"
+        x={ARCH_LABEL_BAND_W / 2 + 18}
+        y={y + ARCH_LAYER_H / 2}
+        textAnchor="middle"
+        transform={`rotate(-90, ${ARCH_LABEL_BAND_W / 2 + 18}, ${y + ARCH_LAYER_H / 2})`}
+      >{layer.sublabel}</text>
+    </g>
+  );
+}
+
+function ArchCouchesView({ data }) {
+  const rects = useJLMemo(() => __archComputePositions(data.layers || []), [data]);
+  const ys = __archLayerYs();
+  const totalH = 3 * ARCH_LAYER_H + 2 * ARCH_GUTTER_H + ARCH_LEGEND_H;
+  const legendY = 3 * ARCH_LAYER_H + 2 * ARCH_GUTTER_H + 22;
+
+  return (
+    <div className="jl-arch-svg-wrap">
+      <svg
+        className="jl-arch-couches-svg"
+        viewBox={`0 0 ${ARCH_W} ${totalH}`}
+        role="img"
+        aria-label="Vue en couches Front / Middle / Back"
+      >
+        {(data.layers || []).map((l) => (
+          <ArchLayerBand key={l.id} layer={l} y={ys[l.id]} />
+        ))}
+        {Object.values(rects).map((r) => (
+          <ArchBox key={`${r.layerId}.${r.box.id}`} rect={r} />
+        ))}
+        {(data.edges || []).map((e) => (
+          <ArchEdge key={e.id} edge={e} rects={rects} />
+        ))}
+        <g transform={`translate(${ARCH_LABEL_BAND_W + ARCH_PAD_X}, ${legendY})`} className="jl-arch-legend">
+          <line x1="0" y1="8" x2="28" y2="8" className="jl-arch-legend-rail" />
+          <text x="36" y="12" className="jl-arch-legend-text">rail orange = saut de couche</text>
+          <line x1="280" y1="8" x2="308" y2="8" className="jl-arch-legend-line" />
+          <text x="316" y="12" className="jl-arch-legend-text">traits gris = appel interne</text>
+          <rect x="520" y="2" width="14" height="14" className="jl-arch-legend-accent-box" />
+          <text x="542" y="12" className="jl-arch-legend-text">bord orange = composant pivot</text>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+// ----- Flux par domaine (4 colonnes linéaires) -----
+
+const __ARCH_FLOW_SLUGS = [
+  "veille-ia", "jarvis-rag", "perso-strava",
+  "perso-withings", "perso-lastfm", "perso-steam",
+  "tft", "business-opps", "activity-briefs",
+];
+
+function FlowCol({ label, items }) {
+  return (
+    <div className="jl-arch-flow-col">
+      <div className="jl-arch-flow-col-label">{label}</div>
+      <div className="jl-arch-flow-col-items">
+        {items.map((it, i) => (
+          <div key={i} className={`jl-arch-flow-item ${it.accent ? "is-accent" : ""}`}>
+            <div className="jl-arch-flow-item-title">{it.title}</div>
+            {it.sub && <div className="jl-arch-flow-item-sub">{it.sub}</div>}
+            {it.extra && <div className="jl-arch-flow-item-extra">{it.extra}</div>}
+            {it.components && (
+              <ul className="jl-arch-flow-item-components">
+                {it.components.map((c, j) => (
+                  <li key={j}><code>{c.id}</code> — {c.detail || c.trigger || ""}</li>
+                ))}
+              </ul>
+            )}
+            {it.steps && (
+              <ol className="jl-arch-flow-item-steps">
+                {it.steps.slice(0, 5).map((s, j) => <li key={j}>{s}</li>)}
+              </ol>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ArchFlowDiagram({ flow }) {
+  const status = flow.status || "active";
+  return (
+    <div className={`jl-arch-flow-diagram is-${status}`}>
+      <div className="jl-arch-flow-head">
+        <div className="jl-arch-flow-label">{flow.label}</div>
+        {status === "todo" && <span className="jl-arch-flow-badge">stub — à étoffer</span>}
+      </div>
+      <div className="jl-arch-flow-columns">
+        <FlowCol
+          label="Source API"
+          items={(flow.source_api || []).map(x => ({ title: x.name, sub: "", extra: x.detail }))}
+        />
+        <FlowCol
+          label="Pipeline"
+          items={[{
+            title: flow.pipeline?.id || "—",
+            sub: flow.pipeline?.cron || flow.pipeline?.trigger || "",
+            extra: flow.pipeline?.workflow || flow.pipeline?.script,
+            steps: flow.pipeline?.steps,
+            components: flow.pipeline?.components,
+            accent: true,
+          }]}
+        />
+        <FlowCol
+          label="Tables Supabase"
+          items={(flow.tables || []).map(t => ({
+            title: t.name,
+            sub: t.write ? "WRITE" : "READ",
+            extra: t.detail,
+            accent: !!t.write,
+          }))}
+        />
+        <FlowCol
+          label="Panels consommateurs"
+          items={(flow.panels || []).map(p => ({ title: p.id, sub: "", extra: p.detail }))}
+        />
+      </div>
+      {flow.notes && flow.notes.length > 0 && (
+        <ul className="jl-arch-flow-notes">
+          {flow.notes.map((n, i) => <li key={i}>{n}</li>)}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function ArchFlowsView() {
+  const [slug, setSlug] = useJLState("veille-ia");
+  const [data, setData] = useJLState(null);
+  const [err, setErr] = useJLState(null);
+
+  useJLEffect(() => {
+    let cancelled = false;
+    setData(null); setErr(null);
+    __fetchArchYaml(`flows/${slug}.yaml`)
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(e => { if (!cancelled) setErr(e); });
+    return () => { cancelled = true; };
+  }, [slug]);
+
+  return (
+    <div className="jl-arch-flows">
+      <div className="jl-arch-flows-picker">
+        {__ARCH_FLOW_SLUGS.map(s => (
+          <button
+            key={s}
+            type="button"
+            className={`jl-arch-flow-pill ${slug === s ? "is-active" : ""}`}
+            onClick={() => setSlug(s)}
+          >{s}</button>
+        ))}
+      </div>
+      {err && <div className="jl-arch-error">Erreur : {String(err.message || err)}</div>}
+      {!err && !data && <div className="jl-arch-loading">Chargement de flows/{slug}.yaml…</div>}
+      {data && <ArchFlowDiagram flow={data} />}
+    </div>
+  );
+}
+
+// ----- Timeline crons 24h -----
+
+function ArchTimelineView() {
+  const [data, setData] = useJLState(null);
+  const [err, setErr] = useJLState(null);
+
+  useJLEffect(() => {
+    let cancelled = false;
+    __fetchArchYaml("pipelines.yaml")
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(e => { if (!cancelled) setErr(e); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (err) return <div className="jl-arch-error">Erreur : {String(err.message || err)}</div>;
+  if (!data) return <div className="jl-arch-loading">Chargement de pipelines.yaml…</div>;
+
+  const positioned = (data.pipelines || []).map(p => {
+    const m = (p.cron || "").match(/^(\d+) (\d+) \* \* (\S+)$/);
+    if (m) {
+      const mn = parseInt(m[1], 10);
+      const h = parseInt(m[2], 10);
+      const dow = m[3];
+      const minutesOfDay = h * 60 + mn;
+      const xPct = (minutesOfDay / 1440) * 100;
+      // dow "*" ou intervalle "1-5" = quotidien ; "0", "6", "0,3" = hebdo.
+      const weekly = dow !== "*" && !dow.includes("-");
+      return { ...p, _x: xPct, _dow: dow, _weekly: weekly };
+    }
+    if ((p.cron || "").includes("*/2")) {
+      return { ...p, _x: null, _every2h: true };
+    }
+    return { ...p, _x: null };
+  });
+
+  const dailyPins = positioned.filter(p => p._x != null && !p._weekly);
+  const weeklyPins = positioned.filter(p => p._weekly);
+  const everyNh = positioned.filter(p => p._every2h);
+
+  // Stagger vertically by proximity to avoid label overlap.
+  dailyPins.sort((a, b) => a._x - b._x);
+  let lastX = -100;
+  let lane = 0;
+  dailyPins.forEach(p => {
+    if (p._x - lastX < 6) lane = (lane + 1) % 3;
+    else lane = 0;
+    p._lane = lane;
+    lastX = p._x;
+  });
+
+  return (
+    <div className="jl-arch-timeline">
+      <div className="jl-arch-timeline-head">
+        <div className="jl-arch-timeline-label">Timeline 24 h (UTC)</div>
+        <div className="jl-arch-timeline-sub">
+          {dailyPins.length} crons quotidiens positionnés · {everyNh.length} cron(s) toutes les 2 h · {weeklyPins.length} cron hebdo
+        </div>
+      </div>
+      <div className="jl-arch-timeline-bar-wrap">
+        <div className="jl-arch-timeline-bar">
+          {Array.from({ length: 25 }, (_, i) => (
+            <div
+              key={i}
+              className={`jl-arch-timeline-tick ${i % 6 === 0 ? "is-major" : ""}`}
+              style={{ left: `${(i / 24) * 100}%` }}
+            >
+              {i % 3 === 0 && <span className="jl-arch-timeline-tick-label">{String(i).padStart(2, "0")}h</span>}
+            </div>
+          ))}
+          {dailyPins.map(p => (
+            <div
+              key={p.id}
+              className={`jl-arch-timeline-pin jl-arch-timeline-pin--lane-${p._lane || 0}`}
+              style={{ left: `${p._x}%` }}
+              title={`${p.name} — ${p.cron}`}
+            >
+              <div className="jl-arch-timeline-pin-line" />
+              <div className="jl-arch-timeline-pin-label">
+                <div className="jl-arch-timeline-pin-name">{p.id}</div>
+                <div className="jl-arch-timeline-pin-time">{p.human_time}</div>
+                <div className="jl-arch-timeline-pin-duration">~{p.avg_duration_s || "?"}s</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {everyNh.length > 0 && (
+        <div className="jl-arch-timeline-note">
+          <strong>Toutes les 2 h :</strong> {everyNh.map(p => p.id).join(", ")} (12 runs/jour).
+        </div>
+      )}
+      {weeklyPins.length > 0 && (
+        <div className="jl-arch-timeline-weekly">
+          <strong>Cron hebdomadaire :</strong> {weeklyPins.map(p => `${p.id} — ${p.human_time}`).join(", ")}.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----- Dépendances panel × table -----
+
+function ArchDepsView() {
+  const [data, setData] = useJLState(null);
+  const [err, setErr] = useJLState(null);
+  const [selectedPanel, setSelectedPanel] = useJLState("brief");
+
+  useJLEffect(() => {
+    let cancelled = false;
+    __fetchArchYaml("dependencies.yaml")
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(e => { if (!cancelled) setErr(e); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (err) return <div className="jl-arch-error">Erreur : {String(err.message || err)}</div>;
+  if (!data) return <div className="jl-arch-loading">Chargement de dependencies.yaml…</div>;
+
+  const panels = data.panels || [];
+  const tablesByName = {};
+  (data.tables || []).forEach(t => { tablesByName[t.name] = t; });
+  const selected = panels.find(p => p.id === selectedPanel) || panels[0];
+
+  return (
+    <div className="jl-arch-deps">
+      <div className="jl-arch-deps-panel-list">
+        <div className="jl-arch-deps-list-label">Panels ({panels.length})</div>
+        <div className="jl-arch-deps-list-items">
+          {panels.map(p => {
+            const reads = (p.reads || []).length;
+            const writes = (p.writes || []).length;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                className={`jl-arch-deps-panel-item ${(selected && selected.id === p.id) ? "is-active" : ""}`}
+                onClick={() => setSelectedPanel(p.id)}
+              >
+                <span className="jl-arch-deps-panel-name">{p.id}</span>
+                <span className="jl-arch-deps-panel-counts">
+                  {reads > 0 && <span className="jl-arch-deps-r">R{reads}</span>}
+                  {writes > 0 && <span className="jl-arch-deps-w">W{writes}</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {selected && (
+        <div className="jl-arch-deps-detail">
+          <div className="jl-arch-deps-head">
+            <div className="jl-arch-deps-title">{selected.id}</div>
+            <div className="jl-arch-deps-file"><code>{selected.file}</code></div>
+          </div>
+          {(selected.reads || []).length > 0 && (
+            <div className="jl-arch-deps-group">
+              <div className="jl-arch-deps-group-label">Lit ({selected.reads.length})</div>
+              <div className="jl-arch-deps-group-items">
+                {selected.reads.map(t => (
+                  <div key={t} className="jl-arch-deps-chip is-read">
+                    <span className="jl-arch-deps-chip-name">{t}</span>
+                    {tablesByName[t] && (
+                      <span className="jl-arch-deps-chip-rls">{tablesByName[t].rls}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(selected.writes || []).length > 0 && (
+            <div className="jl-arch-deps-group">
+              <div className="jl-arch-deps-group-label">Écrit ({selected.writes.length})</div>
+              <div className="jl-arch-deps-group-items">
+                {selected.writes.map(t => (
+                  <div key={t} className="jl-arch-deps-chip is-write">
+                    <span className="jl-arch-deps-chip-name">{t}</span>
+                    {tablesByName[t] && (
+                      <span className="jl-arch-deps-chip-rls">{tablesByName[t].rls}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(selected.rpcs || []).length > 0 && (
+            <div className="jl-arch-deps-group">
+              <div className="jl-arch-deps-group-label">RPCs</div>
+              <div className="jl-arch-deps-group-items">
+                {selected.rpcs.map(r => (
+                  <div key={r} className="jl-arch-deps-chip is-rpc">
+                    <span className="jl-arch-deps-chip-name">/rpc/{r}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(selected.external || []).length > 0 && (
+            <div className="jl-arch-deps-group">
+              <div className="jl-arch-deps-group-label">Appels externes</div>
+              <ul className="jl-arch-deps-external">
+                {selected.external.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+          {(selected.static_sources || []).length > 0 && (
+            <div className="jl-arch-deps-group">
+              <div className="jl-arch-deps-group-label">Sources statiques</div>
+              <ul className="jl-arch-deps-external">
+                {selected.static_sources.map((s, i) => <li key={i}><code>{s}</code></li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----- Viewer racine (4 onglets) -----
+
+function JLArchitectureViewer() {
+  const [tab, setTab] = useJLState("couches");
+  const [layersData, setLayersData] = useJLState(null);
+  const [layersErr, setLayersErr] = useJLState(null);
+
+  useJLEffect(() => {
+    if (tab !== "couches" || layersData) return;
+    let cancelled = false;
+    __fetchArchYaml("layers.yaml")
+      .then(d => { if (!cancelled) setLayersData(d); })
+      .catch(e => { if (!cancelled) setLayersErr(e); });
+    return () => { cancelled = true; };
+  }, [tab, layersData]);
+
+  const TABS = [
+    { id: "couches", label: "Couches" },
+    { id: "flux", label: "Flux par domaine" },
+    { id: "timeline", label: "Timeline crons" },
+    { id: "deps", label: "Dépendances" },
+  ];
+
+  return (
+    <section className="jl-arch-section" id="jarvis-lab-architecture">
+      <div className="jl-arch-section-head">
+        <div className="jl-arch-section-eyebrow">ARCHITECTURE</div>
+        <h2 className="jl-arch-section-title">Comment tout s'emboîte</h2>
+        <p className="jl-arch-section-sub">
+          Vue macro des couches, flux par domaine, timeline des crons et dépendances panel ↔ table.
+          Source&nbsp;: <code>docs/architecture/*.yaml</code> versionnés. Éditer un YAML recharge
+          automatiquement la vue correspondante au prochain reload.
+        </p>
+      </div>
+      <div className="jl-arch-tabs">
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            type="button"
+            className={`jl-arch-tab ${tab === t.id ? "is-active" : ""}`}
+            onClick={() => setTab(t.id)}
+          >{t.label}</button>
+        ))}
+      </div>
+      <div className="jl-arch-tab-body">
+        {tab === "couches" && (
+          <>
+            {layersErr && <div className="jl-arch-error">Erreur : {String(layersErr.message || layersErr)}</div>}
+            {!layersErr && !layersData && <div className="jl-arch-loading">Chargement de layers.yaml…</div>}
+            {layersData && <ArchCouchesView data={layersData} />}
+          </>
+        )}
+        {tab === "flux" && <ArchFlowsView />}
+        {tab === "timeline" && <ArchTimelineView />}
+        {tab === "deps" && <ArchDepsView />}
+      </div>
+    </section>
+  );
+}
+
 function PanelJarvisLab({ onNavigate }) {
   const [spec, setSpec] = useJLState(__jarvisLabSpecCache);
   const [err, setErr] = useJLState(null);
@@ -960,6 +1561,8 @@ function PanelJarvisLab({ onNavigate }) {
       </div>
 
       <JLCockpitSpecs spec={spec} onFocusSpec={focusSpec} onNavigate={onNavigate} />
+
+      <JLArchitectureViewer />
 
       <JLSpecsViewer
         onOpenTab={onNavigate}
