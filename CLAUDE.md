@@ -186,8 +186,7 @@ Tables existantes :
 | RTE Toolbox | rte_usecases | Hebdomadaire (enrichissement Claude) |
 | Jarvis | jarvis_conversations + server.py (localhost:8765) | Temps réel (chat local/cloud) |
 | Mon profil | user_profile | Manuel (depuis le front) |
-| Performance (Vue d'ensemble) | strava_activities (KPIs, graphe charge/forme, projections, journal) | Quotidien (Strava API) |
-| Performance (Historique) | strava_activities (heatmap annuelle, records personnels) | Quotidien (Strava API) |
+| Forme | strava_activities + withings_measurements (1 panel scrollable : KPIs 30j, charge hebdo 12 sem, composition + courbes long range, records auto-calculés, journal 20 dernières séances) | Quotidien (Strava 4h30 UTC + Withings 4h45 UTC) |
 | Musique | music_scrobbles, music_stats_daily, music_top_weekly, music_loved_tracks + Last.fm API frontend | Quotidien (Last.fm API) |
 | Gaming (Vue d'ensemble) | steam_games_snapshot, gaming_stats_daily, steam_achievements, steam_game_details | Quotidien (Steam API) |
 | TFT Matches | tft_matches + tft_match_units + tft_match_traits + tft_match_lobby | Toutes les 2h (Riot API) |
@@ -225,8 +224,63 @@ Table `usage_events` — append-only, pas de UPDATE/DELETE (enforcé par RLS). L
 | `link_clicked` | `{url, section}` | Event delegation globale `a[target="_blank"]` dans `app.jsx` |
 | `pipeline_triggered` | `{pipeline, mode}` | `cockpit/panel-jarvis.jsx` avant `jarvisSend()` |
 | `error_shown` | `{context, message}` | Wrapper `showError()` dans `cockpit/lib/` |
+| `profile_field_saved` | `{key}` | `cockpit/panel-profile.jsx` après PATCH |
+| `profile_payload_copied` | `{size}` | `cockpit/panel-profile.jsx` export |
+| `skill_radar_bumped` | `{axis, delta}` | `cockpit/panel-radar.jsx` après bump manuel |
+| `challenge_completed` | `{challenge_id, mode}` | `cockpit/panel-challenges.jsx` post-submit |
+| `idea_moved` | `{id, from_status, to_status}` | `cockpit/panel-ideas.jsx` drag&drop |
+| `wiki_shared` | `{slug}` | `cockpit/panel-wiki.jsx` partage |
+| `jobs_action` | `{action, job_id}` | `cockpit/panel-jobs-radar.jsx` toggle |
+| `history_pin_toggled` | `{iso, pinned}` | `cockpit/panel-history.jsx::handleTogglePin()` |
 
 **Règle** : ajouter un nouvel event_type nécessite de mettre à jour ce tableau AVANT le commit.
+
+## Maintenance des specs Jarvis Lab (`docs/specs/`)
+
+Chaque onglet du cockpit a un spec dédié dans `docs/specs/tab-<slug>.md`. L'index `docs/specs/index.json` liste les 25 onglets avec leur `last_updated` (date ISO). Le panel "Jarvis Lab" consomme ces deux sources en direct pour afficher la doc dans l'app, donc **toute dérive entre code et spec devient visible pour l'utilisateur**.
+
+### Règle cardinale
+
+Toute modification fonctionnelle ou technique d'un onglet (fichier code qui change une fonctionnalité, un comportement, un contrat de données, un élément UI notable) **doit** entraîner la mise à jour du `docs/specs/tab-<slug>.md` correspondant **dans le même commit**, jamais en lot différé.
+
+Couvre : `cockpit/home.jsx`, `cockpit/panel-*.jsx`, `cockpit/styles-*.css`, ainsi que les modifs de `index.html`, des pipelines (`main.py`, `weekly_analysis.py`, `pipelines/*.py`), ou des migrations Supabase qui changent la source de données d'un onglet.
+
+Exemptions (pas d'update doc nécessaire) : refacto interne strictement iso-fonctionnel, fix cosmétique sans changement d'UX, bump de version de dépendance. Dans le doute : mettre à jour.
+
+### Checklist par modification
+
+1. Ouvrir `docs/specs/tab-<slug>.md` correspondant et mettre à jour les sections concernées (Fonctionnalités, Parcours utilisateur, Front — structure UI, Back — sources de données, Limitations connues / TODO).
+2. Mettre à jour la section `## Dernière MAJ` en bas du fichier avec la date du jour + un court changelog (1 ligne par modif notable).
+3. Bumper `last_updated` dans `docs/specs/index.json` pour l'entrée du tab (format `YYYY-MM-DD`).
+4. **Nouvel onglet** : copier `docs/specs/_template.md` vers `tab-<slug>.md`, remplir toutes les sections, ajouter l'entrée dans `index.json` avec `status: "documented"` ou `"stub"`.
+5. **Onglet supprimé** : déplacer le `.md` dans `docs/specs/_archive/` (créer le dossier si absent) plutôt que de le supprimer, et passer l'entrée `index.json` à `status: "archived"` (ne pas retirer du tableau — garder la trace).
+
+### Mapping panel ↔ spec
+
+Les 5 onglets Veille partagent `panel-veille.jsx` : une modif de ce fichier peut impliquer plusieurs specs simultanément.
+
+| Spec | Source |
+|---|---|
+| tab-brief.md | home.jsx |
+| tab-top/week/search.md | panel-top/week/search.jsx |
+| tab-updates/sport/gaming-news/anime/news.md | panel-veille.jsx |
+| tab-radar/recos/challenges/wiki/signals.md | panel-radar/recos/challenges/wiki/signals.jsx |
+| tab-opps/ideas/jobs.md | panel-opportunities/ideas/jobs-radar.jsx |
+| tab-jarvis/jarvis-lab/profile.md | panel-jarvis/jarvis-lab/profile.jsx |
+| tab-perf/music/gaming.md | panel-forme/musique/gaming.jsx |
+| tab-stacks/history.md | panel-stacks/history.jsx |
+
+### Garde-fous automatiques
+
+- **CI `spec-drift-check`** ([.github/workflows/spec-drift-check.yml](.github/workflows/spec-drift-check.yml)) — sur chaque PR, compare les fichiers modifiés : si du code d'onglet a bougé sans qu'aucun `docs/specs/tab-*.md` ne soit touché, émet des annotations GitHub `::warning::` sur les fichiers concernés. **Non-bloquant** au départ (`continue-on-error: true`) — on durcira après avoir mesuré le bruit. Une PR avec le check rouge ne doit pas merger sans justification explicite (refacto cosmétique…).
+- **CI `validate-spec`** ([.github/workflows/validate-spec.yml](.github/workflows/validate-spec.yml)) — valide structurellement `jarvis/spec.json` ET la synchro entre `jarvis/spec.json::cockpit_tabs` et `docs/specs/index.json` (bloquant en `--strict`).
+- **Template de commit** ([.gitmessage](.gitmessage)) — pre-rempli avec une ligne `Specs mises à jour: tab-<slug> | aucune | N/A` à renseigner. Active-le localement une fois par clone :
+
+  ```bash
+  git config commit.template .gitmessage
+  ```
+
+  Ensuite, chaque `git commit` sans `-m` ouvre l'éditeur pré-rempli avec la checklist. Laisse la ligne `Specs mises à jour:` dans le commit final comme trace.
 
 ## Conventions
 
