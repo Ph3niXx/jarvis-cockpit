@@ -1,0 +1,32 @@
+name: Lint specs Fonctionnalités
+
+on:
+  push:
+    paths:
+      - 'docs/specs/**'
+      - 'scripts/lint_specs_fonctionnalites.py'
+      - '.github/workflows/lint-specs.yml'
+  pull_request:
+    paths:
+      - 'docs/specs/**'
+      - 'scripts/lint_specs_fonctionnalites.py'
+      - '.github/workflows/lint-specs.yml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Lint sections Fonctionnalités (bloquant)
+        # La règle éditoriale de la section ## Fonctionnalités doit rester
+        # dure : vocabulaire produit uniquement, zéro chemin code / composant
+        # JSX / colonne DB / endpoint. Voir CLAUDE.md § "Règle éditoriale
+        # section Fonctionnalités". Si cette étape fail, réécris la section
+        # concernée avant de merger.
+        run: python scripts/lint_specs_fonctionnalites.py
