@@ -1,7 +1,7 @@
 {
   "meta": {
-    "version": "1.1.0",
-    "updated_at": "2026-04-23",
+    "version": "1.2.0",
+    "updated_at": "2026-04-24",
     "description": "Source de vérité du projet Jarvis : phases de build + catalogue des onglets du cockpit. Tenu à jour par Claude Code à chaque modification."
   },
   "phases": [
@@ -323,11 +323,96 @@
           "updated_at": "2026-04-23"
         }
       ]
+    },
+    {
+      "id": "phase-7",
+      "name": "Méta-documentation & garde-fous",
+      "status": "done",
+      "order": 7,
+      "features": [
+        {
+          "id": "jarvis-lab-panel",
+          "name": "Panel Jarvis Lab (roadmap + catalogue)",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Panel méta du cockpit qui visualise les phases du projet (roadmap cliquable P1-P7 + grille de features avec filtres + drawer latéral de détail) et le catalogue des 25 onglets du cockpit. Bouton Rafraîchir pour vider le cache module-level et refetch jarvis/spec.json.",
+          "implementation": {
+            "files": ["cockpit/panel-jarvis-lab.jsx", "cockpit/styles-jarvis-lab.css", "jarvis/spec.json"],
+            "dependencies": ["React 18 via CDN", "Babel standalone"],
+            "key_decisions": [
+              "jarvis/spec.json comme unique source de vérité du projet Jarvis (édition manuelle)",
+              "Fetch lazy au premier mount, cache module-level (1 entrée par session)",
+              "Drawer navigation inter-features via depends_on cliquables (focus management clavier)"
+            ]
+          },
+          "depends_on": [],
+          "updated_at": "2026-04-24"
+        },
+        {
+          "id": "specs-viewer",
+          "name": "Lecteur Markdown des specs détaillées",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Section 'Specs détaillées' du panel Jarvis Lab : sidebar 25 onglets groupée par scope Pro/Perso/Mixte + rendu markdown (marked 11.2 + DOMPurify) + TOC H2 collante à droite + badges scope/statut/date. Clic sur une card du Catalogue du dessus → scroll + sélection auto. Bouton 'Ouvrir ↗' pour naviguer vers le vrai onglet. Mobile <880px : sidebar → select, TOC masquée.",
+          "implementation": {
+            "files": ["cockpit/panel-jarvis-lab.jsx", "cockpit/styles-jarvis-lab.css", "docs/specs/tab-*.md", "docs/specs/index.json"],
+            "dependencies": ["marked 11.2 via CDN", "DOMPurify via CDN", "jarvis-lab-panel"],
+            "key_decisions": [
+              "Markdown servi en fichiers statiques par GitHub Pages, pas de backend",
+              "Caches module-level par slug (__jlSpecsIndexCache + __jlSpecsMdCache[slug])",
+              "Mapping tab.id.replace('_', '-') pour résoudre gaming_news ↔ gaming-news",
+              "Style border-left warning orange auto sur H2 'Limitations'"
+            ]
+          },
+          "depends_on": ["phase-7.jarvis-lab-panel"],
+          "updated_at": "2026-04-24"
+        },
+        {
+          "id": "spec-drift-ci",
+          "name": "CI spec-drift-check (warning-only)",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Workflow GitHub Actions qui annote via ::warning file=... les PRs où du code d'onglet a été modifié sans bump de docs/specs/tab-*.md dans le même commit. Non-bloquant (continue-on-error: true) — durcissable après mesure de bruit. Regex watch : home.jsx, panel-*.jsx, styles-*.css, index.html, main.py, weekly_analysis.py, tft_pipeline.py, pipelines/*.py.",
+          "implementation": {
+            "files": [".github/workflows/spec-drift-check.yml"],
+            "dependencies": [],
+            "key_decisions": [
+              "Warning-only au lancement pour mesurer avant de durcir en blocage",
+              "Smoke-tests regex locaux (13 cas) avant push",
+              "Happy path + warning path + revert tous testés live sur PR #4"
+            ]
+          },
+          "depends_on": ["phase-7.specs-viewer"],
+          "updated_at": "2026-04-24"
+        },
+        {
+          "id": "commit-template",
+          "name": "Template commit + section maintenance CLAUDE.md",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Fichier .gitmessage pré-rempli avec une ligne 'Specs mises à jour: tab-<slug> | aucune | N/A' à cocher. Activation opt-in via git config commit.template .gitmessage. Section CLAUDE.md '§Maintenance des specs Jarvis Lab' formalise la règle cardinale + checklist 5 étapes (avec archivage docs/specs/_archive/ vs suppression).",
+          "implementation": {
+            "files": [".gitmessage", "CLAUDE.md"],
+            "dependencies": [],
+            "key_decisions": [
+              "Opt-in par clone (git config) plutôt qu'un hook imposé",
+              "Liste des scopes valides dans le template pour guider la rédaction",
+              "Mapping panel ↔ spec documenté en table pour les modifs iso-fichier"
+            ]
+          },
+          "depends_on": [],
+          "updated_at": "2026-04-24"
+        }
+      ]
     }
   ],
   "cockpit_tabs": {
     "summary": "Catalogue des 25 onglets du cockpit, leur rôle, leurs sources de données et leur cadence de mise à jour.",
-    "updated_at": "2026-04-23",
+    "updated_at": "2026-04-24",
     "groups": [
       {
         "id": "aujourdhui",
@@ -536,11 +621,11 @@
             "id": "jarvis-lab",
             "label": "Jarvis Lab",
             "icon": "chart",
-            "description": "Vue méta du projet Jarvis : roadmap des phases, grille de features avec filtres, drawer de détail, et catalogue des onglets du cockpit. Alimenté par jarvis/spec.json.",
+            "description": "Vue méta du cockpit en 3 sections : (1) roadmap P1-P7 + grille features filtrable + drawer, (2) catalogue des 25 onglets cliquable (corps → scroll vers spec, bouton 'Ouvrir ↗' → navigation), (3) specs détaillées rendu markdown (sidebar par scope + TOC H2 collante). Alimenté par jarvis/spec.json + docs/specs/*.md.",
             "panel_file": "cockpit/panel-jarvis-lab.jsx",
-            "data_sources": ["jarvis/spec.json"],
+            "data_sources": ["jarvis/spec.json", "docs/specs/index.json", "docs/specs/tab-*.md"],
             "frequency": "manual",
-            "update_details": "Mis à jour manuellement par Claude Code à chaque évolution"
+            "update_details": "Édité manuellement par Claude Code — garde-fou CI spec-drift-check warn en PR si code d'onglet bouge sans bump de spec"
           },
           {
             "id": "profile",
@@ -554,7 +639,7 @@
           },
           {
             "id": "perf",
-            "label": "Performance",
+            "label": "Forme",
             "icon": "activity",
             "description": "KPIs Strava (distance, allure, dénivelé, régularité), graphe charge/forme 12 semaines, composition Withings, records personnels, journal des 20 dernières séances.",
             "panel_file": "cockpit/panel-forme.jsx",
