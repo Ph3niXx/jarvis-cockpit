@@ -1,15 +1,15 @@
-name: Lint specs Fonctionnalités
+name: Lint specs produit
 
 on:
   push:
     paths:
       - 'docs/specs/**'
-      - 'scripts/lint_specs_fonctionnalites.py'
+      - 'scripts/lint_specs_produit.py'
       - '.github/workflows/lint-specs.yml'
   pull_request:
     paths:
       - 'docs/specs/**'
-      - 'scripts/lint_specs_fonctionnalites.py'
+      - 'scripts/lint_specs_produit.py'
       - '.github/workflows/lint-specs.yml'
 
 jobs:
@@ -23,10 +23,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Lint sections Fonctionnalités (bloquant)
-        # La règle éditoriale de la section ## Fonctionnalités doit rester
-        # dure : vocabulaire produit uniquement, zéro chemin code / composant
-        # JSX / colonne DB / endpoint. Voir CLAUDE.md § "Règle éditoriale
-        # section Fonctionnalités". Si cette étape fail, réécris la section
+      - name: Lint sections Fonctionnalités + Parcours utilisateur (bloquant)
+        # La règle éditoriale "vocabulaire produit" doit rester dure sur
+        # les deux sections : zéro chemin code, composant JSX, prop, colonne
+        # DB, endpoint, jargon infra (Tier 1/2, bootTier, loadPanel,
+        # localStorage technique, hooks React). Voir CLAUDE.md §§ "Règle
+        # éditoriale section Fonctionnalités" et "Règle éditoriale section
+        # Parcours utilisateur". Si cette étape fail, réécris la section
         # concernée avant de merger.
-        run: python scripts/lint_specs_fonctionnalites.py
+        run: python scripts/lint_specs_produit.py

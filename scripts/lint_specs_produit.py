@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 """
-Lint bloquant pour la section `## Fonctionnalités` des docs/specs/tab-*.md.
+Lint bloquant pour les sections produit des docs/specs/tab-*.md.
 
-Règle éditoriale : cette section décrit CE QUE L'UTILISATEUR VOIT ET FAIT, pas
-comment c'est implémenté. Les détails techniques (chemins fichier, composants
-JSX, props, colonnes DB, endpoints) vont dans les sections "Front — structure
-UI" et "Back — sources de données", pas ici.
+Sections scannees : `## Fonctionnalites` et `## Parcours utilisateur`.
 
-Ce script parcourt tous les `docs/specs/tab-*.md`, extrait la portion entre
-`## Fonctionnalités` et le prochain `##`, et échoue (exit 1) si une des regex
-de vocabulaire technique matche. Utilisé en CI par `.github/workflows/lint-
-specs.yml` (bloquant) et exécutable localement avant commit.
+Regle editoriale (identique pour les deux) : ces sections racontent CE QUE
+L'UTILISATEUR VOIT ET FAIT, pas le code qui tourne en dessous. Les details
+techniques (chemins fichier, composants JSX, props, colonnes DB, endpoints,
+jargon infra Tier 1 / bootTier / loadPanel / localStorage technique) vont
+dans "Front — structure UI" / "Front — fonctions JS" / "Back — sources de
+donnees", pas ici.
 
-Usage local : python scripts/lint_specs_fonctionnalites.py
+Le script parcourt tous les `docs/specs/tab-*.md`, extrait pour chaque spec
+la portion entre chaque en-tete surveille et le prochain `## `, et echoue
+(exit 1) des qu'une regle matche. Utilise en CI par `.github/workflows/
+lint-specs.yml` (bloquant) et executable localement avant commit.
+
+Usage local : python scripts/lint_specs_produit.py
 """
 
 from __future__ import annotations
@@ -23,6 +27,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 SPECS_DIR = Path(__file__).resolve().parent.parent / "docs" / "specs"
+
+# Sections surveillees. Ajouter ici une nouvelle section activera le meme
+# set de regles RULES (meme regle editoriale "vocabulaire produit").
+SECTIONS: tuple[str, ...] = (
+    "## Fonctionnalités",
+    "## Parcours utilisateur",
+)
 
 
 @dataclass(frozen=True)
@@ -91,10 +102,10 @@ RULES: tuple[Rule, ...] = (
             r"measure_date|scrobbled_at|stat_date|last_seen_date|"
             r"linkedin_job_id|source_articles|release_date|rubric_justif|"
             r"intel_depth|tokens_used|scrobble_count|unique_artists|"
-            r"signals_summary|jarvis_take|source_type|tokens_used|"
+            r"signals_summary|jarvis_take|source_type|"
             r"mass_kg|fat_pct|weight_kg|total_elevation_gain)\b"
         ),
-        "nom de colonne DB spécifique (brief_html, mention_count, etc.)",
+        "nom de colonne DB specifique (brief_html, mention_count, etc.)",
     ),
     Rule(
         "supabase_rest",
@@ -114,12 +125,38 @@ RULES: tuple[Rule, ...] = (
         ),
         "prop JSX/HTML (prop=true, key={value}, attr=\"x\")",
     ),
+    # Regles specifiques "Parcours utilisateur" (s'appliquent aussi a
+    # Fonctionnalites pour coherence). Ciblent le jargon d'architecture
+    # frontend qui n'a rien a faire dans un recit utilisateur.
+    Rule(
+        "infra_tier",
+        re.compile(r"\bTier\s*[12]\b"),
+        "jargon infra Tier 1 / Tier 2 (architecture data loading)",
+    ),
+    Rule(
+        "infra_boot",
+        re.compile(r"\b(?:bootTier[12]?|loadPanel|tryModes|transformJarvis"
+                   r"[A-Za-z]*|transformForme|buildRadar|buildOpportunitiesFromDB"
+                   r"|replaceShape|hydrateGlobalsFromTier1)\b"),
+        "nom de fonction interne (bootTier1, loadPanel, transformXxx, etc.)",
+    ),
+    Rule(
+        "infra_localstorage",
+        re.compile(r"\blocalStorage\.[\w.-]+"),
+        "cle localStorage technique (localStorage.jarvis-prefill-input, etc.)",
+    ),
+    Rule(
+        "infra_react_hooks",
+        re.compile(r"\buse(?:Effect|State|Memo|Ref|Callback)\b"),
+        "hook React (useEffect, useState, useMemo...)",
+    ),
 )
 
 
 @dataclass(frozen=True)
 class Violation:
     file: str
+    section: str
     line: int
     rule: str
     match: str
@@ -127,15 +164,16 @@ class Violation:
     description: str
 
 
-def extract_fonctionnalites(text: str) -> list[tuple[int, str]]:
-    """Retourne les (numéro de ligne 1-indexé, contenu) de la section
-    `## Fonctionnalités` jusqu'au prochain `## `.
+def extract_section(text: str, header: str) -> list[tuple[int, str]]:
+    """Retourne les (numero de ligne 1-indexe, contenu) de la section
+    identifiee par `header` (ex: `## Fonctionnalites`) jusqu'au prochain
+    `## `.
     """
     out: list[tuple[int, str]] = []
     inside = False
     for i, line in enumerate(text.splitlines(), start=1):
         stripped = line.lstrip()
-        if stripped.startswith("## Fonctionnalités"):
+        if stripped.startswith(header):
             inside = True
             continue
         if inside and stripped.startswith("## "):
@@ -146,39 +184,40 @@ def extract_fonctionnalites(text: str) -> list[tuple[int, str]]:
 
 
 def strip_html_comments(section: list[tuple[int, str]]) -> list[tuple[int, str]]:
-    """Retire le contenu des `<!-- ... -->` (multi-ligne supporté) tout en
-    préservant l'alignement des numéros de ligne.
+    """Retire le contenu des `<!-- ... -->` (multi-ligne supporte) tout en
+    preservant l'alignement des numeros de ligne.
     """
     if not section:
         return section
     full = "\n".join(line for _, line in section)
     stripped = re.sub(r"<!--.*?-->", "", full, flags=re.DOTALL)
     new_lines = stripped.split("\n")
-    # Longueur doit rester la même car DOTALL n'enlève pas les \n.
+    # Longueur doit rester la meme car DOTALL n'enleve pas les \n.
     return list(zip((n for n, _ in section), new_lines))
 
 
 def lint_file(path: Path, repo_root: Path) -> list[Violation]:
     text = path.read_text(encoding="utf-8")
-    section = strip_html_comments(extract_fonctionnalites(text))
-    if not section:
-        return []
-
     rel = path.relative_to(repo_root).as_posix()
     violations: list[Violation] = []
-    for lineno, line in section:
-        for rule in RULES:
-            for m in rule.pattern.finditer(line):
-                violations.append(
-                    Violation(
-                        file=rel,
-                        line=lineno,
-                        rule=rule.label,
-                        match=m.group(0),
-                        excerpt=line.strip()[:180],
-                        description=rule.description,
+    for header in SECTIONS:
+        section = strip_html_comments(extract_section(text, header))
+        if not section:
+            continue
+        for lineno, line in section:
+            for rule in RULES:
+                for m in rule.pattern.finditer(line):
+                    violations.append(
+                        Violation(
+                            file=rel,
+                            section=header,
+                            line=lineno,
+                            rule=rule.label,
+                            match=m.group(0),
+                            excerpt=line.strip()[:180],
+                            description=rule.description,
+                        )
                     )
-                )
     return violations
 
 
@@ -189,8 +228,13 @@ def main() -> int:
     for path in md_files:
         all_violations.extend(lint_file(path, repo_root))
 
+    sections_desc = " + ".join(s.replace("## ", "") for s in SECTIONS)
+
     if not all_violations:
-        print(f"ok — {len(md_files)} specs scannees, aucune violation.")
+        print(
+            f"ok -- {len(md_files)} specs scannees sur "
+            f"sections [{sections_desc}], aucune violation."
+        )
         return 0
 
     # Group by file for a lisible output.
@@ -201,12 +245,14 @@ def main() -> int:
     for file, viols in by_file.items():
         print(f"\n{file}")
         for v in viols:
+            section_short = v.section.replace("## ", "")
             # Format GitHub Actions annotation + ligne humaine.
             print(
                 f"  ::error file={v.file},line={v.line},title=lint-specs::"
-                f"[{v.rule}] {v.description} -- matched '{v.match}'"
+                f"[{section_short} / {v.rule}] {v.description} "
+                f"-- matched '{v.match}'"
             )
-            print(f"  L{v.line}  {v.excerpt}")
+            print(f"  L{v.line}  [{section_short}]  {v.excerpt}")
             print(f"         -> {v.rule}: '{v.match}' ({v.description})")
 
     print()
@@ -214,8 +260,9 @@ def main() -> int:
         f"fail -- {len(all_violations)} violations dans {len(by_file)} fichiers."
     )
     print(
-        "Reecris la section Fonctionnalites en vocabulaire produit "
-        "(voir CLAUDE.md section 'Regle editoriale section Fonctionnalites')."
+        "Reecris la section en vocabulaire produit "
+        "(voir CLAUDE.md sections 'Regle editoriale section Fonctionnalites' "
+        "et 'Regle editoriale section Parcours utilisateur')."
     )
     return 1
 
