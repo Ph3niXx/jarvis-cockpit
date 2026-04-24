@@ -1,0 +1,256 @@
+# Catalogue des pipelines GitHub Actions (crons) — source de vérité de la
+# timeline "Timeline crons" dans Jarvis Lab.
+#
+# Convention :
+#   cron          : syntaxe GitHub Actions (UTC)
+#   human_time    : formulation lisible ("quotidien 5h UTC", "toutes les 2h")
+#   workflow_file : chemin relatif au repo (doit exister, vérifié par validate-arch)
+#   script        : chemin du script Python lancé par le workflow
+#   input_api     : API externe consommée (ou "none" pour les pipelines analyse pure)
+#   output_tables : tables Supabase écrites (upsert ou insert) par le pipeline
+#   read_tables   : tables Supabase lues (pour analyses)
+#   avg_duration_s: durée moyenne d'un run en secondes (observationnel)
+#   budget_usd    : coût moyen par run en USD (0 pour tier gratuit)
+#   status        : active | draft | archived
+
+pipelines:
+  - id: daily_digest
+    name: "Veille IA quotidienne (Gemini)"
+    cron: "0 6 * * 1-5"
+    human_time: "Lun-Ven 06:00 UTC"
+    workflow_file: ".github/workflows/daily_digest.yml"
+    script: "main.py"
+    input_api: "RSS (flux veille IA) + Gemini 2.5 Flash-Lite"
+    output_tables:
+      - articles
+      - daily_briefs
+      - wiki_concepts
+      - signal_tracking
+      - gemini_api_calls
+    read_tables:
+      - user_profile
+    avg_duration_s: 120
+    budget_usd: 0
+    status: active
+    notes: "Ping Saturday 10:00 UTC via cron secondaire '0 10 * * 6' pour empêcher la mise en veille du free tier Supabase. Retry Gemini ×4 avec fallback HTML si 503."
+
+  - id: weekly_analysis
+    name: "Analyses hebdo (Claude Haiku)"
+    cron: "0 22 * * 0"
+    human_time: "Dimanche 22:00 UTC"
+    workflow_file: ".github/workflows/weekly_analysis.yml"
+    script: "weekly_analysis.py"
+    input_api: "Claude Haiku 4.5 (Anthropic API)"
+    output_tables:
+      - learning_recommendations
+      - weekly_challenges
+      - weekly_opportunities
+      - wiki_concepts
+      - signal_tracking
+      - weekly_analysis
+    read_tables:
+      - articles
+      - skill_radar
+      - user_profile
+    avg_duration_s: 420
+    budget_usd: 0.03
+    status: active
+    notes: "CostTracker hard-cap 1 $/run. Enrichit les wiki_concepts dont summary_* est NULL. Step 2b enrich_top_signals pour jarvis_take + alerts."
+
+  - id: tft_sync
+    name: "TFT matches (Riot API)"
+    cron: "0 */2 * * *"
+    human_time: "Toutes les 2 heures"
+    workflow_file: ".github/workflows/tft-sync.yml"
+    script: "tft_pipeline.py"
+    input_api: "Riot Games API (TFT)"
+    output_tables:
+      - tft_matches
+      - tft_match_units
+      - tft_match_traits
+      - tft_match_lobby
+      - tft_rank_history
+    read_tables: []
+    avg_duration_s: 45
+    budget_usd: 0
+    status: active
+
+  - id: strava_sync
+    name: "Strava activités"
+    cron: "30 4 * * *"
+    human_time: "Quotidien 04:30 UTC"
+    workflow_file: ".github/workflows/strava-sync.yml"
+    script: "pipelines/strava_sync.py"
+    input_api: "Strava API (OAuth2)"
+    output_tables:
+      - strava_activities
+      - strava_activities_raw
+      - user_profile
+    read_tables:
+      - user_profile
+    avg_duration_s: 90
+    budget_usd: 0
+    status: active
+    notes: "Input workflow_dispatch 'days' pour backfill manuel (défaut 365). Écrit user_profile.strava_refresh_token après rotation OAuth."
+
+  - id: withings_sync
+    name: "Withings composition corporelle"
+    cron: "45 4 * * *"
+    human_time: "Quotidien 04:45 UTC"
+    workflow_file: ".github/workflows/withings-sync.yml"
+    script: "pipelines/withings_sync.py"
+    input_api: "Withings API (OAuth2)"
+    output_tables:
+      - withings_measurements
+      - withings_measurements_raw
+      - user_profile
+    read_tables:
+      - user_profile
+    avg_duration_s: 30
+    budget_usd: 0
+    status: active
+    notes: "Mode --backfill via workflow_dispatch pour réimporter depuis l'epoch. Écrit user_profile.withings_refresh_token après rotation OAuth."
+
+  - id: lastfm_sync
+    name: "Last.fm scrobbles (+ enrichissement lundi)"
+    cron: "0 5 * * *"
+    human_time: "Quotidien 05:00 UTC"
+    workflow_file: ".github/workflows/lastfm-sync.yml"
+    script: "pipelines/lastfm_sync.py"
+    input_api: "Last.fm API + Gemini (enrich lundi)"
+    output_tables:
+      - music_scrobbles
+      - music_scrobbles_raw
+      - music_stats_daily
+      - music_top_weekly
+      - music_loved_tracks
+      - music_artist_tags
+      - music_genre_weekly
+      - music_insights_weekly
+    read_tables: []
+    avg_duration_s: 60
+    budget_usd: 0
+    status: active
+    notes: "Deuxième étape pipelines/lastfm_enrich.py déclenchée lundi ou via workflow_dispatch — tags artistes + répartition genres + insight Gemini."
+
+  - id: steam_sync
+    name: "Steam bibliothèque + stats"
+    cron: "30 5 * * *"
+    human_time: "Quotidien 05:30 UTC"
+    workflow_file: ".github/workflows/steam-sync.yml"
+    script: "pipelines/steam_sync.py"
+    input_api: "Steam Web API + Steam Store API"
+    output_tables:
+      - steam_games_snapshot
+      - gaming_stats_daily
+      - steam_game_details
+      - steam_achievements
+    read_tables: []
+    avg_duration_s: 180
+    budget_usd: 0
+    status: active
+    notes: "Tourne avec --force pour bypasser la gate lundi des achievements. MAX_ENRICH_PER_RUN=20 sur Store API (catch-up lent)."
+
+  - id: sport_sync
+    name: "Veille sport RSS"
+    cron: "30 6 * * *"
+    human_time: "Quotidien 06:30 UTC"
+    workflow_file: ".github/workflows/sport-sync.yml"
+    script: "pipelines/sport_sync.py"
+    input_api: "RSS (L'Équipe, RMC Sport, Millenium, Cyclism'Actu…)"
+    output_tables:
+      - sport_articles
+    read_tables: []
+    avg_duration_s: 30
+    budget_usd: 0
+    status: active
+
+  - id: gaming_sync
+    name: "Veille gaming RSS"
+    cron: "45 6 * * *"
+    human_time: "Quotidien 06:45 UTC"
+    workflow_file: ".github/workflows/gaming-sync.yml"
+    script: "pipelines/gaming_sync.py"
+    input_api: "RSS (JeuxVideo.com, Gamekult, IGN, Eurogamer, PC Gamer, Dexerto, GamesIndustry.biz…)"
+    output_tables:
+      - gaming_articles
+    read_tables: []
+    avg_duration_s: 30
+    budget_usd: 0
+    status: active
+
+  - id: anime_sync
+    name: "Veille anime / ciné / séries (+ Jikan)"
+    cron: "0 7 * * *"
+    human_time: "Quotidien 07:00 UTC"
+    workflow_file: ".github/workflows/anime-sync.yml"
+    script: "pipelines/anime_sync.py"
+    input_api: "RSS (AlloCiné, Première, ANN, Deadline, Variety…) + Jikan API v4 (MyAnimeList)"
+    output_tables:
+      - anime_articles
+    read_tables: []
+    avg_duration_s: 60
+    budget_usd: 0
+    status: active
+    notes: "Pipeline TMDB (pipelines/tmdb_sync.py) scaffoldé mais pas de workflow actif — nécessite TMDB_API_KEY."
+
+  - id: news_sync
+    name: "Actualités généralistes RSS"
+    cron: "15 7 * * *"
+    human_time: "Quotidien 07:15 UTC"
+    workflow_file: ".github/workflows/news-sync.yml"
+    script: "pipelines/news_sync.py"
+    input_api: "RSS (Le Monde, Le Figaro, FranceInfo, BFM Paris, BBC World, France 24, RFI…)"
+    output_tables:
+      - news_articles
+    read_tables: []
+    avg_duration_s: 30
+    budget_usd: 0
+    status: active
+
+# Pipelines locaux (pas GitHub Actions) — listés ici pour la vue d'ensemble,
+# mais non inclus dans la timeline 24h côté UI.
+local_pipelines:
+  - id: jarvis_nightly_learner
+    name: "Nightly learner (extraction faits + entités)"
+    trigger: "Scheduler asyncio minuit local + POST /nightly-learner + start_jarvis.bat"
+    script: "jarvis/nightly_learner.py"
+    input_api: "Qwen3 4B Instruct (LM Studio local) + sources locales"
+    read_sources:
+      - jarvis_conversations
+      - "jarvis_data/activity_*.jsonl"
+      - "jarvis_data/outlook_*.json"
+    output_tables:
+      - profile_facts
+      - entities
+    notes: "Idempotent via checkpoint dans jarvis_data/nightly_learner_state.json. Reindex memories_vectors après extraction."
+
+  - id: jarvis_indexer
+    name: "Indexer pgvector (embeddings)"
+    trigger: "check_index_freshness.py au boot + manuel"
+    script: "jarvis/indexer.py"
+    input_api: "Qwen3-Embedding-0.6B (LM Studio local)"
+    read_sources:
+      - articles
+      - wiki_concepts
+      - weekly_opportunities
+      - business_ideas
+      - rte_usecases
+      - user_profile
+      - profile_facts
+      - entities
+    output_tables:
+      - memories_vectors
+    notes: "Dimension 1024 figée. Changer de modèle d'embedding = réindexer tout."
+
+  - id: activity_brief_generator
+    name: "Brief quotidien d'activité (18h)"
+    trigger: "Scheduler asyncio 18h local + POST /generate-activity-brief"
+    script: "jarvis/observers/daily_brief_generator.py"
+    input_api: "Qwen3.5 9B (LM Studio local)"
+    read_sources:
+      - "jarvis_data/activity_<today>.jsonl"
+      - "jarvis_data/outlook_<today>.json"
+    output_tables:
+      - activity_briefs
+    notes: "Seul le résumé HTML monte dans Supabase (privacy-first). Les données brutes d'activité restent locales."

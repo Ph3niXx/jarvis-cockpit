@@ -1,0 +1,155 @@
+# Vue macro en trois couches Front / Middle / Back — source du diagramme
+# "Couches" dans Jarvis Lab.
+#
+# Convention :
+#   boxes[].accent=true  : composant "pivot" (bord orange dans le rendu).
+#   edges[].type         : cross_layer | adjacent | intra_layer
+#     - cross_layer  : saute une couche, emprunte OBLIGATOIREMENT le rail
+#                      vertical à droite (x ≈ 955, hors layer-bg), L-shape,
+#                      accent orange.
+#     - adjacent     : entre deux couches voisines, passe dans le gutter
+#                      vertical, segment droit + virages à 90°.
+#     - intra_layer  : dans la même couche, flèche horizontale courte.
+#
+# Le renderer calcule les positions (x,y) ; le YAML ne les spécifie pas.
+# L'ordre des `boxes` dans une couche définit leur ordre de colonnes.
+# Les composants qui se parlent directement (panels, jarvis_api, supabase)
+# sont placés en col 1 pour que leurs edges verticaux restent droits.
+
+layers:
+  - id: front
+    label: FRONT
+    sublabel: Navigateur
+    boxes:
+      - id: panels
+        title: "25 panels React"
+        subtitle: "Brief · Veille · Radar · Jarvis · Perf · Musique…"
+        meta:
+          - "Router hash + thèmes Dawn/Obsidian/Atlas"
+          - "Rendu client no-build (Babel standalone)"
+        accent: false
+      - id: data_layer
+        title: "Data layer"
+        subtitle: "Tier 1 (boot) + Tier 2 (lazy)"
+        meta:
+          - "bootstrap.js → bootTier1 avant mount"
+          - "loadPanel mémoïsé par once()"
+        accent: false
+      - id: auth
+        title: "Google OAuth"
+        subtitle: "Supabase Auth"
+        meta:
+          - "JWT injecté dans tous les REST"
+          - "Rotation sur TOKEN_REFRESHED"
+        accent: false
+
+  - id: middle
+    label: MIDDLE
+    sublabel: Machine locale
+    boxes:
+      - id: jarvis_api
+        title: "Jarvis FastAPI"
+        subtitle: "localhost:8765 (+ tunnel Cloudflare)"
+        meta:
+          - "Routeur local / cloud / rapide"
+          - "3 modes · override thinking"
+        accent: true
+      - id: lm_studio
+        title: "LM Studio"
+        subtitle: "Qwen3.5 9B + Qwen3-Embedding 0.6B"
+        meta:
+          - "API OpenAI-compatible port 1234"
+          - "Qwen3 4B pour extraction JSON"
+        accent: false
+      - id: observers
+        title: "Observers + Nightly learner"
+        subtitle: "Window · Outlook · Brief d'activité 18h"
+        meta:
+          - "JSONL locaux (jamais versionnés)"
+          - "Extraction faits / entités la nuit"
+        accent: false
+
+  - id: back
+    label: BACK
+    sublabel: Cloud
+    boxes:
+      - id: supabase
+        title: "Supabase"
+        subtitle: "Postgres + Auth + pgvector + Realtime"
+        meta:
+          - "~40 tables · RLS authenticated"
+          - "service_role pour les pipelines backend"
+        accent: true
+      - id: gh_actions
+        title: "GitHub Actions"
+        subtitle: "11 crons (daily + weekly + TFT 2h)"
+        meta:
+          - "main.py · weekly_analysis.py · pipelines/*"
+          - "Budget hard 3 €/mois"
+        accent: false
+      - id: llm_cloud
+        title: "LLMs cloud"
+        subtitle: "Gemini 2.5 Flash-Lite + Claude Haiku 4.5"
+        meta:
+          - "Daily : Gemini (free tier)"
+          - "Weekly + mode cloud Jarvis : Claude"
+        accent: false
+      - id: external_apis
+        title: "APIs externes"
+        subtitle: "Strava · Withings · Last.fm · Steam · Riot · RSS · Jikan"
+        meta:
+          - "OAuth2 ou clé API par source"
+          - "Alimentent les tables <source>_raw + mappées"
+        accent: false
+
+# Arêtes — 8 essentielles pour ne pas noyer le diagramme.
+# Les labels sont volontairement courts (≤ 35 chars) pour tenir dans
+# l'edge-label-bg sans tronquer au rendu.
+edges:
+  - id: panels_to_supabase
+    from: front.panels
+    to: back.supabase
+    label: "REST + JWT"
+    type: cross_layer
+
+  - id: panels_to_jarvis
+    from: front.panels
+    to: middle.jarvis_api
+    label: "POST /chat"
+    type: adjacent
+
+  - id: jarvis_to_supabase
+    from: middle.jarvis_api
+    to: back.supabase
+    label: "RAG + conversations"
+    type: adjacent
+
+  - id: jarvis_to_lm
+    from: middle.jarvis_api
+    to: middle.lm_studio
+    label: "LLM local + embeddings"
+    type: intra_layer
+
+  - id: jarvis_to_llm_cloud
+    from: middle.jarvis_api
+    to: back.llm_cloud
+    label: "Mode cloud (Claude)"
+    type: adjacent
+
+  - id: observers_to_supabase
+    from: middle.observers
+    to: back.supabase
+    label: "profile_facts + activity_briefs"
+    type: adjacent
+
+  - id: gh_actions_to_external
+    from: back.gh_actions
+    to: back.external_apis
+    label: "Fetch sources"
+    type: intra_layer
+
+  - id: gh_actions_to_supabase
+    from: back.gh_actions
+    to: back.supabase
+    label: "service_role (bypass RLS)"
+    type: intra_layer

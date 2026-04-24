@@ -1,0 +1,449 @@
+# Matrice panel ↔ table — source de vérité de la vue "Dépendances"
+# dans Jarvis Lab.
+#
+# panels[]  : chaque panel du cockpit avec fichier source + tables qu'il
+#             lit et/ou écrit via les API REST Supabase.
+# tables[]  : chaque table Supabase avec son owner_pipeline (qui y écrit
+#             en principal) et sa politique RLS effective.
+#
+# RLS values :
+#   authenticated : SELECT/INSERT/UPDATE/DELETE requiert JWT authenticated
+#   service_role  : écriture réservée au service_role (pipelines backend)
+#   public        : policy using(true) — lisible par tout apikey holder
+#
+# Conventions :
+#   - "reads" liste les tables effectivement GET côté front
+#   - "writes" liste les tables POST/PATCH/DELETE côté front
+#   - "rpcs" liste les fonctions RPC Supabase appelées (ex : match_memories)
+#   - "static_sources" pour les sources non-Supabase (fichiers docs, JSON statiques)
+
+panels:
+  - id: brief
+    file: cockpit/home.jsx
+    reads: [articles, daily_briefs, signal_tracking, skill_radar, user_profile, weekly_analysis]
+    writes: []
+
+  - id: top
+    file: cockpit/panel-top.jsx
+    reads: [articles]
+    writes: []
+
+  - id: week
+    file: cockpit/panel-week.jsx
+    reads: [articles]
+    writes: []
+
+  - id: search
+    file: cockpit/panel-search.jsx
+    reads: [articles, wiki_concepts, business_ideas, jarvis_conversations]
+    writes: []
+
+  - id: updates
+    file: cockpit/panel-veille.jsx
+    corpus: VEILLE_DATA
+    reads: [articles, signal_tracking]
+    writes: []
+
+  - id: sport
+    file: cockpit/panel-veille.jsx
+    corpus: SPORT_DATA
+    reads: [sport_articles]
+    writes: []
+
+  - id: gaming_news
+    file: cockpit/panel-veille.jsx
+    corpus: GAMING_DATA
+    reads: [gaming_articles]
+    writes: []
+
+  - id: anime
+    file: cockpit/panel-veille.jsx
+    corpus: ANIME_DATA
+    reads: [anime_articles]
+    writes: []
+
+  - id: news
+    file: cockpit/panel-veille.jsx
+    corpus: NEWS_DATA
+    reads: [news_articles]
+    writes: []
+
+  - id: radar
+    file: cockpit/panel-radar.jsx
+    reads: [skill_radar]
+    writes: [skill_radar]  # bumped depuis panel-challenges après pass ≥ 70%
+
+  - id: recos
+    file: cockpit/panel-recos.jsx
+    reads: [learning_recommendations, skill_radar]
+    writes: [learning_recommendations]  # completed, completed_at
+
+  - id: challenges
+    file: cockpit/panel-challenges.jsx
+    reads: [weekly_challenges, challenge_attempts, skill_radar]
+    writes: [challenge_attempts, skill_radar]  # bump radar si 1er pass ≥ 70%
+
+  - id: wiki
+    file: cockpit/panel-wiki.jsx
+    reads: [wiki_concepts]
+    writes: [wiki_concepts]  # flow "J'écris ma note" → source_type=perso
+
+  - id: signals
+    file: cockpit/panel-signals.jsx
+    reads: [signal_tracking, wiki_concepts, weekly_analysis]
+    writes: []
+
+  - id: opps
+    file: cockpit/panel-opportunities.jsx
+    reads: [weekly_opportunities, articles, signal_tracking]
+    writes: [weekly_opportunities, business_ideas]  # user_status + Send to Ideas
+
+  - id: ideas
+    file: cockpit/panel-ideas.jsx
+    reads: [business_ideas]
+    writes: [business_ideas]
+
+  - id: jobs
+    file: cockpit/panel-jobs-radar.jsx
+    reads: [jobs, job_scans]
+    writes: [jobs]  # status + user_notes (whitelist)
+    realtime:
+      channel: jobs_radar_sub
+      tables: [jobs, job_scans]
+
+  - id: jarvis
+    file: cockpit/panel-jarvis.jsx
+    reads: [jarvis_conversations, profile_facts, user_profile]
+    writes: [profile_facts]  # superseded_by (oublier) + pinned (épingler)
+    external:
+      - "POST /chat → localhost:8765 OR tunnel Cloudflare"
+
+  - id: jarvis-lab
+    file: cockpit/panel-jarvis-lab.jsx
+    reads: []
+    writes: []
+    static_sources:
+      - jarvis/spec.json
+      - docs/specs/index.json
+      - docs/specs/tab-*.md
+      - docs/architecture/layers.yaml
+      - docs/architecture/pipelines.yaml
+      - docs/architecture/dependencies.yaml
+      - docs/architecture/flows/*.yaml
+
+  - id: profile
+    file: cockpit/panel-profile.jsx
+    reads: [user_profile, profile_facts, entities, commitments, uncomfortable_questions, user_profile_history]
+    writes: [user_profile, profile_facts, commitments, uncomfortable_questions]
+
+  - id: perf
+    file: cockpit/panel-forme.jsx
+    reads: [strava_activities, withings_measurements, user_profile]
+    writes: []
+
+  - id: music
+    file: cockpit/panel-musique.jsx
+    reads:
+      - music_scrobbles
+      - music_stats_daily
+      - music_top_weekly
+      - music_loved_tracks
+      - music_genre_weekly
+      - music_insights_weekly
+      - user_profile  # lastfm_api_key + lastfm_username pour polling live
+    writes: []
+    rpcs: [music_discoveries]
+    external:
+      - "Last.fm API polling 30s (now playing)"
+
+  - id: gaming
+    file: cockpit/panel-gaming.jsx
+    reads:
+      - steam_games_snapshot
+      - steam_game_details
+      - steam_achievements
+      - gaming_stats_daily
+      - tft_rank_history
+      - tft_matches
+      - gaming_wishlist
+    writes: [gaming_wishlist]
+
+  - id: stacks
+    file: cockpit/panel-stacks.jsx
+    reads: [weekly_analysis, articles, user_profile]
+    writes: [user_profile]  # upsert stacks.anthropic_balance_usd, stacks.gemini_*, etc.
+    rpcs: [get_stack_stats, get_gemini_usage_stats]
+    external:
+      - "Frankfurter API (taux USD→EUR quotidien)"
+
+  - id: history
+    file: cockpit/panel-history.jsx
+    reads: [articles, daily_briefs, usage_events, signal_tracking, history_notes]
+    writes: [history_notes]  # upsert/delete par iso
+
+# Tables Supabase — ordre alphabétique
+tables:
+  - name: activity_briefs
+    owner_pipeline: activity_brief_generator
+    rls: authenticated
+    domain: jarvis
+
+  - name: anime_articles
+    owner_pipeline: anime_sync
+    rls: authenticated
+    domain: veille
+
+  - name: articles
+    owner_pipeline: daily_digest
+    rls: authenticated
+    domain: veille
+
+  - name: business_ideas
+    owner_pipeline: front
+    rls: authenticated
+    domain: business
+
+  - name: challenge_attempts
+    owner_pipeline: front
+    rls: authenticated
+    domain: apprentissage
+
+  - name: commitments
+    owner_pipeline: front
+    rls: authenticated
+    domain: personnel
+
+  - name: daily_briefs
+    owner_pipeline: daily_digest
+    rls: authenticated
+    domain: veille
+
+  - name: entities
+    owner_pipeline: jarvis_nightly_learner
+    rls: authenticated
+    domain: jarvis
+
+  - name: gaming_articles
+    owner_pipeline: gaming_sync
+    rls: authenticated
+    domain: veille
+
+  - name: gaming_stats_daily
+    owner_pipeline: steam_sync
+    rls: authenticated
+    domain: gaming
+
+  - name: gaming_wishlist
+    owner_pipeline: front
+    rls: authenticated
+    domain: gaming
+
+  - name: gemini_api_calls
+    owner_pipeline: daily_digest
+    rls: authenticated
+    domain: telemetry
+
+  - name: history_notes
+    owner_pipeline: front
+    rls: authenticated
+    domain: personnel
+
+  - name: jarvis_conversations
+    owner_pipeline: jarvis_api
+    rls: authenticated
+    domain: jarvis
+
+  - name: jarvis_status_snapshot
+    owner_pipeline: jarvis_status_generator
+    rls: authenticated
+    domain: jarvis
+
+  - name: job_scans
+    owner_pipeline: cowork_external
+    rls: public  # using(true) — pas aligné sur 006_rls_authenticated
+    domain: business
+
+  - name: jobs
+    owner_pipeline: cowork_external
+    rls: public  # using(true), update whitelist status + user_notes
+    domain: business
+
+  - name: learning_recommendations
+    owner_pipeline: weekly_analysis
+    rls: authenticated
+    domain: apprentissage
+
+  - name: memories_vectors
+    owner_pipeline: jarvis_indexer
+    rls: authenticated
+    domain: jarvis
+
+  - name: music_artist_tags
+    owner_pipeline: lastfm_sync
+    rls: authenticated
+    domain: musique
+
+  - name: music_genre_weekly
+    owner_pipeline: lastfm_sync
+    rls: authenticated
+    domain: musique
+
+  - name: music_insights_weekly
+    owner_pipeline: lastfm_sync
+    rls: authenticated
+    domain: musique
+
+  - name: music_loved_tracks
+    owner_pipeline: lastfm_sync
+    rls: authenticated
+    domain: musique
+
+  - name: music_scrobbles
+    owner_pipeline: lastfm_sync
+    rls: authenticated
+    domain: musique
+
+  - name: music_scrobbles_raw
+    owner_pipeline: lastfm_sync
+    rls: service_role
+    domain: musique
+
+  - name: music_stats_daily
+    owner_pipeline: lastfm_sync
+    rls: authenticated
+    domain: musique
+
+  - name: music_top_weekly
+    owner_pipeline: lastfm_sync
+    rls: authenticated
+    domain: musique
+
+  - name: news_articles
+    owner_pipeline: news_sync
+    rls: authenticated
+    domain: veille
+
+  - name: profile_facts
+    owner_pipeline: jarvis_nightly_learner
+    rls: authenticated
+    domain: jarvis
+
+  - name: rte_usecases
+    owner_pipeline: weekly_analysis
+    rls: authenticated
+    domain: business
+
+  - name: signal_tracking
+    owner_pipeline: daily_digest
+    rls: authenticated
+    domain: apprentissage
+
+  - name: skill_radar
+    owner_pipeline: manual
+    rls: authenticated
+    domain: apprentissage
+
+  - name: sport_articles
+    owner_pipeline: sport_sync
+    rls: authenticated
+    domain: veille
+
+  - name: steam_achievements
+    owner_pipeline: steam_sync
+    rls: authenticated
+    domain: gaming
+
+  - name: steam_game_details
+    owner_pipeline: steam_sync
+    rls: authenticated
+    domain: gaming
+
+  - name: steam_games_snapshot
+    owner_pipeline: steam_sync
+    rls: authenticated
+    domain: gaming
+
+  - name: strava_activities
+    owner_pipeline: strava_sync
+    rls: authenticated
+    domain: perf
+
+  - name: strava_activities_raw
+    owner_pipeline: strava_sync
+    rls: service_role
+    domain: perf
+
+  - name: tft_match_lobby
+    owner_pipeline: tft_sync
+    rls: authenticated
+    domain: gaming
+
+  - name: tft_match_traits
+    owner_pipeline: tft_sync
+    rls: authenticated
+    domain: gaming
+
+  - name: tft_match_units
+    owner_pipeline: tft_sync
+    rls: authenticated
+    domain: gaming
+
+  - name: tft_matches
+    owner_pipeline: tft_sync
+    rls: authenticated
+    domain: gaming
+
+  - name: tft_rank_history
+    owner_pipeline: tft_sync
+    rls: authenticated
+    domain: gaming
+
+  - name: uncomfortable_questions
+    owner_pipeline: manual
+    rls: authenticated
+    domain: personnel
+
+  - name: usage_events
+    owner_pipeline: front
+    rls: authenticated  # INSERT only (append-only via RLS)
+    domain: telemetry
+
+  - name: user_profile
+    owner_pipeline: front
+    rls: authenticated
+    domain: personnel
+
+  - name: user_profile_history
+    owner_pipeline: db_trigger
+    rls: authenticated
+    domain: personnel
+
+  - name: weekly_analysis
+    owner_pipeline: weekly_analysis
+    rls: authenticated
+    domain: telemetry
+
+  - name: weekly_challenges
+    owner_pipeline: weekly_analysis
+    rls: authenticated
+    domain: apprentissage
+
+  - name: weekly_opportunities
+    owner_pipeline: weekly_analysis
+    rls: authenticated
+    domain: business
+
+  - name: wiki_concepts
+    owner_pipeline: daily_digest
+    rls: authenticated
+    domain: apprentissage
+
+  - name: withings_measurements
+    owner_pipeline: withings_sync
+    rls: authenticated
+    domain: perf
+
+  - name: withings_measurements_raw
+    owner_pipeline: withings_sync
+    rls: service_role
+    domain: perf
