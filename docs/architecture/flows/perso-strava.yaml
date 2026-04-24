@@ -1,0 +1,47 @@
+# Flow : Activités sportives Strava
+# Schéma linéaire gauche→droite à 4 colonnes
+
+id: perso-strava
+label: "Activités sportives (Strava)"
+domain: perso
+status: active
+
+source_api:
+  - name: "Strava API (OAuth2)"
+    detail: "Endpoints /athlete/activities (list 30/page) + /activities/{id} (detail complet)"
+  - name: "Rate limit"
+    detail: "100 req / 15 min · 1000 / jour"
+
+pipeline:
+  id: strava_sync
+  workflow: ".github/workflows/strava-sync.yml"
+  script: "pipelines/strava_sync.py"
+  cron: "30 4 * * * (quotidien 04:30 UTC)"
+  dispatch_input: "days (défaut 365, backfill manuel)"
+  steps:
+    - "Lit strava_refresh_token depuis user_profile (fallback env secret)"
+    - "Refresh access_token via OAuth, persiste nouveau refresh_token si rotation"
+    - "GET /athlete/activities?after={epoch-LOOKBACK_DAYS}"
+    - "Pour chaque activité : GET /activities/{id} (detail complet)"
+    - "time.sleep(1s) entre chaque appel pour rester sous rate limit"
+    - "Upsert strava_activities_raw (payload JSONB complet) + strava_activities (colonnes mappées)"
+
+tables:
+  - name: strava_activities
+    write: true
+    detail: "id (Strava) PK · name · sport_type · distance_m · moving_time_s · avg/max_heartrate · avg_watts · calories · kilojoules · suffer_score"
+  - name: strava_activities_raw
+    write: true
+    detail: "Archive JSONB complète des payloads Strava (service_role only, pour re-mapping futur)"
+  - name: user_profile
+    write: true
+    detail: "Upsert strava_refresh_token quand Strava fait une rotation OAuth"
+
+panels:
+  - id: perf
+    detail: "Panel Forme — hero dynamique (km + sorties) · §1 KPIs 30j · §2 charge hebdo 12 sem · §4 records auto (5k/10k/semi/marathon) · §5 journal 20 séances. Courbes et deltas calculés côté front."
+
+notes:
+  - "LOOKBACK_DAYS=365 hard-codé dans strava_sync.py — override via --days=N en CLI."
+  - "Activités sans distance (gym) sont incluses dans le journal mais exclues du calcul allure moyenne."
+  - "Panel Forme croise ces activités avec withings_measurements pour la vue composition corporelle."

@@ -1,0 +1,79 @@
+# Flow : Jarvis RAG (conversation avec mémoire vectorielle)
+# Schéma linéaire gauche→droite à 4 colonnes
+
+id: jarvis-rag
+label: "Jarvis RAG (conversation + mémoire)"
+domain: jarvis
+status: active
+
+source_api:
+  - name: "Qwen3.5 9B Q4_K_M (local)"
+    detail: "LM Studio port 1234 — mode rapide / deep"
+  - name: "Qwen3-Embedding-0.6B Q8_0"
+    detail: "LM Studio — dim 1024 pour pgvector"
+  - name: "Qwen3 4B Instruct (local)"
+    detail: "Extraction JSON pour nightly_learner"
+  - name: "Claude Haiku 4.5 (Anthropic API)"
+    detail: "Mode cloud uniquement, ~0,01 $/requête"
+
+pipeline:
+  id: jarvis_runtime
+  components:
+    - id: jarvis_api
+      script: "jarvis/server.py"
+      detail: "FastAPI uvicorn :8765 (+ tunnel Cloudflare). POST /chat {question, mode, session_id, history, thinking}."
+      steps:
+        - "Si mode=deep/cloud : _build_context() → RPC match_memories (k=5, threshold=0.3)"
+        - "Injection profile_facts actifs + activity_context du jour"
+        - "Routeur : local LM Studio OR Claude Haiku"
+        - "_persist_exchange → sb_post jarvis_conversations (user + assistant)"
+    - id: nightly_learner
+      script: "jarvis/nightly_learner.py"
+      trigger: "Scheduler asyncio minuit + manuel via POST /nightly-learner"
+      detail: "Extraction faits + entités depuis conversations + activity JSONL + outlook JSON. Idempotent via checkpoint."
+    - id: indexer
+      script: "jarvis/indexer.py"
+      trigger: "check_index_freshness au boot de start_jarvis.bat + manuel"
+      detail: "Indexe articles + wiki_concepts + weekly_opportunities + business_ideas + rte_usecases + user_profile + profile_facts + entities → memories_vectors"
+
+tables:
+  - name: jarvis_conversations
+    write: true
+    detail: "Service_role write (backend), authenticated read (front). Session_id UUID stable localStorage front."
+  - name: profile_facts
+    write: true
+    detail: "Nightly_learner upsert. Front PATCH superseded_by=id (soft-delete) + pinned boolean."
+  - name: entities
+    write: true
+    detail: "Nightly_learner upsert avec mentions_count incrémenté."
+  - name: memories_vectors
+    write: true
+    detail: "Indexer upsert (source_table, source_id, chunk_text, embedding vector(1024))."
+  - name: user_profile
+    write: false
+    detail: "Lu pour récupérer le contexte injecté dans le system prompt + tunnel URL."
+  - name: articles
+    write: false
+    detail: "Lu par l'indexer pour alimenter le RAG."
+  - name: wiki_concepts
+    write: false
+    detail: "Lu par l'indexer."
+  - name: weekly_opportunities
+    write: false
+    detail: "Lu par l'indexer."
+  - name: business_ideas
+    write: false
+    detail: "Lu par l'indexer."
+
+panels:
+  - id: jarvis
+    detail: "Chat temps réel avec citations RAG cliquables + colonne mémoire structurée éditable (Épingler / Oublier)"
+  - id: search
+    detail: "Cherche aussi dans jarvis_conversations pour retrouver des échanges passés"
+  - id: profile
+    detail: "Zone 02 Faits appris (profile_facts groupés par type) + Zone 03 Entités + Zone 05 Triangulation"
+
+notes:
+  - "Cockpit sert sur HTTPS GitHub Pages → mixed-content interdit localhost → fallback obligatoire sur tunnel Cloudflare."
+  - "URL du tunnel publiée dans user_profile.jarvis_tunnel_url par start_tunnel.py."
+  - "Mode cloud Claude nécessite ANTHROPIC_API_KEY en env serveur, sinon fallback silencieux sur mode deep."

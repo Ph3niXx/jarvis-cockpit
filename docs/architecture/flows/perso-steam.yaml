@@ -1,0 +1,33 @@
+# Flow : Bibliothèque + stats Steam
+# STUB — voir pipelines.yaml::steam_sync.
+
+id: perso-steam
+label: "Gaming Steam (bibliothèque + achievements)"
+domain: perso
+status: todo
+
+source_api:
+  - name: "Steam Web API"
+    detail: "GetOwnedGames + GetRecentlyPlayedGames + GetUserStatsForGame + GetPlayerAchievements"
+  - name: "Steam Store API"
+    detail: "/api/appdetails?appids=X — genres, description, header, release date (cap 20/run)"
+
+pipeline:
+  id: steam_sync
+  workflow: ".github/workflows/steam-sync.yml"
+  script: "pipelines/steam_sync.py"
+  cron: "30 5 * * *"
+
+tables:
+  - name: steam_games_snapshot
+    write: true
+  - name: gaming_stats_daily
+    write: true
+  - name: steam_game_details
+    write: true
+  - name: steam_achievements
+    write: true
+
+panels:
+  - id: gaming
+    detail: "Panel Gaming — §1 En cours, §2 Backlog, §2bis Abandonnés, §3 Activité 90j, §4 Genres 14j, §5 Wishlist CRUD, §6 Top all-time, §7 Achievements, §8 Milestones YTD"

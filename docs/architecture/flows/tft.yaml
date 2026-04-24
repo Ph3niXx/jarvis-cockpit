@@ -1,0 +1,37 @@
+# Flow : TFT matches (Riot API toutes les 2h)
+# STUB — voir pipelines.yaml::tft_sync.
+
+id: tft
+label: "TFT matches (Riot API)"
+domain: gaming
+status: todo
+
+source_api:
+  - name: "Riot Games API"
+    detail: "TFT — matchlist + match details + summoner rank"
+
+pipeline:
+  id: tft_sync
+  workflow: ".github/workflows/tft-sync.yml"
+  script: "tft_pipeline.py"
+  cron: "0 */2 * * *"
+
+tables:
+  - name: tft_matches
+    write: true
+    detail: "raw_payload = participant uniquement (pas le lobby complet)"
+  - name: tft_match_units
+    write: true
+    detail: "champions compo finale (champion_name strippé + character_id brut)"
+  - name: tft_match_traits
+    write: true
+  - name: tft_match_lobby
+    write: true
+    detail: "7 adversaires dénormalisés par match (main_traits + main_carry pré-calculés)"
+  - name: tft_rank_history
+    write: true
+    detail: "Snapshot quotidien rank ranked (tier, rank, LP, wins, losses)"
+
+panels:
+  - id: gaming
+    detail: "Profil Riot TFT live + card TFT ongoing dans §1 En cours + compteur TFT dans §8 Milestones"

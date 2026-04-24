@@ -1,0 +1,63 @@
+# Flow : Veille IA quotidienne
+# Schéma linéaire gauche→droite à 4 colonnes :
+#   source_api → pipeline → tables → panels
+
+id: veille-ia
+label: "Veille IA quotidienne"
+domain: veille
+status: active
+
+source_api:
+  - name: "RSS veille IA"
+    detail: "~15 flux (OpenAI blog, Anthropic, Google AI, HuggingFace, arXiv, Simon Willison, Latent Space, The Rundown, etc.)"
+  - name: "Gemini 2.5 Flash-Lite"
+    detail: "Google AI Studio — enrichissement + classification + brief"
+
+pipeline:
+  id: daily_digest
+  workflow: ".github/workflows/daily_digest.yml"
+  script: "main.py"
+  cron: "0 6 * * 1-5 (+ 0 10 * * 6 ping samedi)"
+  steps:
+    - "Fetch RSS → dedup par URL"
+    - "Gemini enrichit : tags, section, date_published, score"
+    - "Extraction concepts IA (CONCEPT_KEYWORDS ~120 termes) → wiki_concepts"
+    - "Comptage mentions par terme × semaine ISO → signal_tracking"
+    - "generate_brief() → HTML ~420 chars + macro du jour"
+    - "Retry ×4 avec fallback _fallback_brief_html() si 503"
+    - "Log chaque appel Gemini dans gemini_api_calls"
+
+tables:
+  - name: articles
+    write: true
+    detail: "Upsert par url, batch de 50"
+  - name: daily_briefs
+    write: true
+    detail: "1 ligne/jour, brief_html Gemini"
+  - name: wiki_concepts
+    write: true
+    detail: "Upsert slug, bump mention_count"
+  - name: signal_tracking
+    write: true
+    detail: "Upsert (term, week_start) + update trend (rising/declining/new/stable)"
+  - name: gemini_api_calls
+    write: true
+    detail: "Log fire-and-forget pour panel Stacks"
+
+panels:
+  - id: brief
+    detail: "Hero synthèse + stats macro + top 3 + signaux + bilan semaine"
+  - id: top
+    detail: "Top 3 incontournables layout magazine"
+  - id: week
+    detail: "Ma semaine — agrégat 30 jours d'articles"
+  - id: updates
+    detail: "Veille IA — feed 30j filtrable par acteur / type / période"
+  - id: search
+    detail: "Recherche live dans articles + wiki_concepts"
+  - id: wiki
+    detail: "Wiki IA — glossaire auto-alimenté, enrichi le dimanche par Claude"
+  - id: signals
+    detail: "Signaux faibles — 3 vues (éditorial, hype cycle, co-occurrences)"
+  - id: history
+    detail: "Historique — 60 jours d'articles + briefs"

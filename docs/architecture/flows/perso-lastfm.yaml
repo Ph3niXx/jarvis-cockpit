@@ -1,0 +1,41 @@
+# Flow : Scrobbles musique Last.fm (+ enrichissement hebdo)
+# STUB — voir pipelines.yaml::lastfm_sync.
+
+id: perso-lastfm
+label: "Musique (Last.fm scrobbles + enrich)"
+domain: perso
+status: todo
+
+source_api:
+  - name: "Last.fm API (publique)"
+    detail: "user.getRecentTracks + user.getWeeklyArtistChart / TrackChart / AlbumChart + user.getLovedTracks"
+  - name: "Gemini 2.5 Flash-Lite"
+    detail: "Enrichissement lundi : summary + mood_keywords + top_genre hebdo"
+
+pipeline:
+  id: lastfm_sync
+  workflow: ".github/workflows/lastfm-sync.yml"
+  script: "pipelines/lastfm_sync.py (+ pipelines/lastfm_enrich.py le lundi)"
+  cron: "0 5 * * *"
+
+tables:
+  - name: music_scrobbles
+    write: true
+  - name: music_scrobbles_raw
+    write: true
+  - name: music_stats_daily
+    write: true
+  - name: music_top_weekly
+    write: true
+  - name: music_loved_tracks
+    write: true
+  - name: music_artist_tags
+    write: true
+  - name: music_genre_weekly
+    write: true
+  - name: music_insights_weekly
+    write: true
+
+panels:
+  - id: music
+    detail: "Panel Musique — hero now-playing live (polling 30s direct Last.fm), 4 KPIs, tops 7d/30d/6m/all, heatmap jour×heure, genres, découvertes, milestones YTD"

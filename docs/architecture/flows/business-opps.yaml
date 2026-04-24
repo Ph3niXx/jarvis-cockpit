@@ -1,0 +1,36 @@
+# Flow : Opportunités hebdo (Claude Haiku) + Carnet d'idées
+# STUB — voir pipelines.yaml::weekly_analysis.
+
+id: business-opps
+label: "Opportunités hebdo + Carnet d'idées"
+domain: business
+status: todo
+
+source_api:
+  - name: "Claude Haiku 4.5 (Anthropic API)"
+    detail: "Step 6/6 du pipeline hebdo — generate opportunities"
+
+pipeline:
+  id: weekly_analysis
+  workflow: ".github/workflows/weekly_analysis.yml"
+  script: "weekly_analysis.py"
+  cron: "0 22 * * 0"
+  steps:
+    - "Purge weekly_opportunities WHERE week_start=eq.{current_week}"
+    - "Lit 40 articles récents + user_profile + skill_radar → prompt"
+    - "Claude génère 5-8 opportunités typées (timing, effort, concurrence, scope)"
+    - "Loop sb_post weekly_opportunities (pas d'upsert, historique préservé)"
+
+tables:
+  - name: weekly_opportunities
+    write: true
+    detail: "Écrit par pipeline. Front PATCH user_status (taken/passed/null) + user_status_at via migration 011."
+  - name: business_ideas
+    write: true
+    detail: "Écrit UNIQUEMENT par front (capture utilisateur + bouton Envoyer au Carnet depuis opps)"
+
+panels:
+  - id: opps
+    detail: "Hero flagship + 3 vues (Éditorial / Kanban timing / Timeline 9 mois) + ledger arbitrages"
+  - id: ideas
+    detail: "Capture éclair #tags + pipeline kanban 5 colonnes + suggestions automatiques depuis signaux/opps"

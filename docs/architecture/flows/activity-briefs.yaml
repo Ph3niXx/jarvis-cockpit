@@ -1,0 +1,39 @@
+# Flow : Brief quotidien d'activité (observers → résumé local 18h)
+# STUB — voir pipelines.yaml::activity_brief_generator.
+
+id: activity-briefs
+label: "Brief d'activité quotidien (observers)"
+domain: jarvis
+status: todo
+
+source_api:
+  - name: "ctypes.windll (Windows API)"
+    detail: "Capteur de fenêtre active toutes les 30s, déduplication par titre"
+  - name: "Outlook COM (pywin32)"
+    detail: "Instance Outlook desktop — réunions du jour + emails reçus/envoyés/non lus, poll 5 min"
+  - name: "Qwen3.5 9B (LM Studio local)"
+    detail: "Génère un résumé HTML à 18h à partir des données fusionnées"
+
+pipeline:
+  id: activity_brief_generator
+  components:
+    - id: window_observer
+      script: "jarvis/observers/window_observer.py"
+      output: "jarvis_data/activity_YYYY-MM-DD.jsonl (local, jamais versionné)"
+    - id: outlook_observer
+      script: "jarvis/observers/outlook_observer.py"
+      output: "jarvis_data/outlook_YYYY-MM-DD.json (local)"
+    - id: brief_generator
+      script: "jarvis/observers/daily_brief_generator.py"
+      trigger: "Scheduler asyncio 18h + POST /generate-activity-brief"
+
+tables:
+  - name: activity_briefs
+    write: true
+    detail: "Seul le résumé HTML monte dans Supabase (privacy-first). Les données brutes restent locales sur la machine."
+
+panels:
+  - id: brief
+    detail: "Non branché pour l'instant — TODO du panel Brief de référencer activity_briefs pour compléter la home"
+  - id: jarvis
+    detail: "Contexte d'activité du jour injecté dans _get_activity_context(question) pour les modes deep/cloud"

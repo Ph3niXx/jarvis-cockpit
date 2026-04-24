@@ -1,0 +1,28 @@
+# Flow : Composition corporelle Withings
+# STUB — à rédiger en détail. Voir pipelines.yaml::withings_sync pour les faits
+# de base en attendant.
+
+id: perso-withings
+label: "Composition corporelle (Withings)"
+domain: perso
+status: todo
+
+source_api:
+  - name: "Withings API (OAuth2)"
+    detail: "Endpoint /measure?action=getmeas avec 6 measure types (poids, masse grasse, muscle, eau, os, hydration)"
+
+pipeline:
+  id: withings_sync
+  workflow: ".github/workflows/withings-sync.yml"
+  script: "pipelines/withings_sync.py"
+  cron: "45 4 * * *"
+
+tables:
+  - name: withings_measurements
+    write: true
+  - name: withings_measurements_raw
+    write: true
+
+panels:
+  - id: perf
+    detail: "§3 Composition (sparklines + deltas 7j/30j/90j) + §3b Courbes long range 180j"
