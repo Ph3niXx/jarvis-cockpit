@@ -406,6 +406,63 @@
           },
           "depends_on": [],
           "updated_at": "2026-04-24"
+        },
+        {
+          "id": "architecture-docs",
+          "name": "Source de vérité docs/architecture/ (YAML + decisions)",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Dossier docs/architecture/ versionné, consommé en lecture par la section Architecture du panel Jarvis Lab et par la CI. Contient layers.yaml (vue macro 3 couches + arêtes typées), pipelines.yaml (11 crons + 3 pipelines locaux), dependencies.yaml (25 panels × 52 tables avec RLS), flows/*.yaml (9 domaines dont 3 actifs + 6 stubs), README.md (règle cardinale + grammaire de routage), decisions.md (15 ADR format Contexte→Décision→Conséquences).",
+          "implementation": {
+            "files": ["docs/architecture/README.md", "docs/architecture/decisions.md", "docs/architecture/layers.yaml", "docs/architecture/pipelines.yaml", "docs/architecture/dependencies.yaml", "docs/architecture/flows/*.yaml"],
+            "dependencies": [],
+            "key_decisions": [
+              "YAML déclaratif + rendu SVG custom (pas Mermaid) pour contrôle total du routage et support natif des 3 thèmes via CSS vars",
+              "Positions calculées par le renderer depuis l'ordre des boxes YAML (ajouter une 5e boîte redistribue les colonnes automatiquement)",
+              "3 types d'arêtes → 3 couloirs dédiés (cross_layer=rail droit orange, adjacent=gutter vertical, intra_layer=horizontal), zéro diagonale"
+            ]
+          },
+          "depends_on": [],
+          "updated_at": "2026-04-24"
+        },
+        {
+          "id": "architecture-viewer",
+          "name": "Section Architecture dans Jarvis Lab (4 vues)",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Section ARCHITECTURE ajoutée dans le panel Jarvis Lab, entre le catalogue cockpit et le lecteur de specs. 4 onglets : Couches (SVG layered Front/Middle/Back avec rail droit orange pour cross_layer + gutters pour adjacent + horizontal pour intra_layer), Flux par domaine (diagramme linéaire 4 colonnes par domaine sélectionnable via 9 pills), Timeline crons (bande 24h UTC avec 9 crons quotidiens staggerés sur 3 lanes + cron toutes les 2h + cron hebdo), Dépendances (sidebar 25 panels avec compteurs R/W + détail panel avec chips par table + pastille RLS).",
+          "implementation": {
+            "files": ["cockpit/panel-jarvis-lab.jsx", "cockpit/styles-jarvis-lab.css", "index.html"],
+            "dependencies": ["js-yaml 4.1.0 via CDN (SRI pinned)", "architecture-docs"],
+            "key_decisions": [
+              "Lazy loading par onglet avec cache mémoire module-level (un fetch par session)",
+              "Thème-aware via CSS vars globales --brand/--tx/--tx2/--tx3/--bd/--surface — s'adapte à Dawn/Obsidian/Atlas",
+              "Timeline _weekly detector traite 1-5 comme quotidien (mon-fri) et 0/6 comme hebdo"
+            ]
+          },
+          "depends_on": ["phase-7.architecture-docs"],
+          "updated_at": "2026-04-24"
+        },
+        {
+          "id": "arch-ci",
+          "name": "CI validate-arch (bloquant) + arch-drift-check (warning)",
+          "status": "done",
+          "scope": "perso",
+          "progress": 100,
+          "description": "Deux workflows GitHub Actions pour garder docs/architecture/ en phase avec le code. validate-arch : bloquant, run scripts/validate_architecture.py qui valide les schémas des 4 YAML + vérifie que chaque workflow_file/panel.file/pipeline.script existe + que les edges pointent vers des boxes déclarées. arch-drift-check : warning-only, annote ::warning:: par fichier avec hint contextuel (nouveau panel→dependencies.yaml, nouveau pipeline→pipelines.yaml + flows/…) quand un chemin à impact archi bouge sans que docs/architecture/ ne soit touché.",
+          "implementation": {
+            "files": [".github/workflows/validate-arch.yml", ".github/workflows/arch-drift-check.yml", "scripts/validate_architecture.py"],
+            "dependencies": ["PyYAML", "architecture-docs"],
+            "key_decisions": [
+              "validate-arch bloquant dès le départ (schéma déterministe, faux positifs improbables)",
+              "arch-drift-check warning-only au départ, durcir après 2 semaines d'observation du bruit",
+              "Hints contextuels par type de fichier modifié (git diff --name-status pour détecter ajout/suppression de panel)"
+            ]
+          },
+          "depends_on": ["phase-7.architecture-docs"],
+          "updated_at": "2026-04-24"
         }
       ]
     }
