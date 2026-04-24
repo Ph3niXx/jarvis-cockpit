@@ -13,13 +13,13 @@ Panel qui transforme l'apprentissage passif (lectures = recos) en validation act
 Chaque tentative est persistée dans `challenge_attempts` (append-only). **Effet de bord important** : à la première tentative réussie ≥ 70 % d'un challenge, `skill_radar.score` est bumpé sur l'axe ciblé (+0.5 par défaut, cap 5). C'est le seul flux d'écriture qui fait bouger les scores radar côté utilisateur.
 
 ## Parcours utilisateur
-1. Clic sidebar "Challenges" ou CTA radar "Défi cet axe" (axe pré-filtré via `localStorage.challenges-prefill-axis`).
-2. **Hub** (état par défaut) : stats barre (total passés / avg score / XP cumulés / streak), 2 gros boutons mode, banner "Recommandé cette semaine" (2 cards), toolbar filtres (ouverts/recommandés/réussis/tout), grille de cards.
-3. Clic sur un challenge → état **flow** :
-   - Théorie : `<TheoryQuiz>` — topbar + progress dots + question + options + validation + feedback + suivant.
-   - Pratique : `<PracticeExercise>` — split brief (left) + textarea + submit (right) → états "evaluating" avec étapes → affichage scores 4-axes → CTA "Voir feedback complet".
-4. **Résultat** (état `completed`) : `<ResultScreen>` — hero score (Excellent ≥ 85 / Validé ≥ 70 / En cours < 70), feedback Jarvis (strengths/improvements pour pratique uniquement), 3 cards (Impact radar / XP gagnés / Prochaines étapes), CTA "Retenter" ou "Retour".
-5. En fond : `recordAttempt()` POST `challenge_attempts`, rebuild local via `applyAttemptsToChallenges`, bump radar si 1er pass ≥ 70 %.
+1. Clic sidebar "Challenges" (ou raccourci "Défi cet axe" depuis le Radar, qui pré-filtre la liste sur l'axe concerné).
+2. État **Hub** (par défaut) : barre de stats (total passés / score moyen / XP cumulés / streak), deux gros boutons de mode (Théorie / Pratique), bannière "Recommandé cette semaine" (deux cartes), barre de filtres (Ouverts / Recommandés / Réussis / Tout), grille de cartes de challenges.
+3. Clic sur un challenge pour démarrer le **flow** :
+   - En Théorie : progression en points, question par question avec options, validation, feedback + explication, suivant.
+   - En Pratique : brief et contraintes à gauche, zone de rédaction à droite, soumission qui déclenche l'évaluation Jarvis, affichage des scores sur quatre axes (clarté / spécificité / rigueur / complétude).
+4. **Écran résultat** : verdict en hero (Excellent ≥ 85 / Validé ≥ 70 / En cours < 70), feedback Jarvis avec forces et axes d'amélioration, trois cartes récapitulatives (Impact radar / XP gagnés / Prochaines étapes), bouton "Retenter" ou "Retour".
+5. En arrière-plan, la tentative est enregistrée et le score de l'axe ciblé sur le radar est bumpé automatiquement si c'est la première fois que le challenge est passé à 70%+.
 
 ## Fonctionnalités
 - **Deux modes de challenge** : Théorie (QCM de 3 à 10 questions) et Pratique (brief libre noté par Jarvis sur clarté, spécificité, rigueur, complétude), sélectionnables depuis deux gros boutons pédagogiques en haut de page.
@@ -135,5 +135,6 @@ Le `content` JSONB de `weekly_challenges` contient :
 - [ ] **Impossible de sauter un challenge en cours** sans perdre les réponses : `onBack` en cours de quiz annule tout. Devrait proposer de sauvegarder comme "abandonné".
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — 7 fixes : weakest axis dynamique + threshold 70% aligné + empty state + ResultScreen navigate + heuristic warn (local, non pushé)

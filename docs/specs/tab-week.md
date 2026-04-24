@@ -9,18 +9,13 @@ mixte
 Donner un point hebdo unique qui croise **veille IA** (articles lus, streak, signaux) et **vie perso** (sport, musique, gaming, sommeil, notes). Deux modes d'affichage : "Factuel" (dashboard multi-blocs) et "Éditorial" (article en prose adaptatif selon le volume de lecture). Panel Tier 1 — aucun fetch propre, consomme `data.week` construit au boot.
 
 ## Parcours utilisateur
-1. Clic sidebar "Ma semaine" (ou CTA "Ouvrir ma semaine" depuis la Home).
-2. Rendu immédiat (Tier 1, data en cache).
-3. Eyebrow dynamique : "Ma semaine · S<isoWeek> · <Lun 14 → Dim 20 avril>" calculé localement.
-4. Toggle en toolbar : **Factuel** (défaut) ou **Éditorial**.
-5. Mode **Factuel** — scroll vertical :
-   - 6 `StatBig` : articles lus, temps lecture, streak, signaux détectés, séances sport, notes.
-   - "Synthèse auto · Jarvis · Ta semaine en 3 points" (3 cartes narratives).
-   - `<DayStrip>` : 7 day-cards avec 4 barres (Veille / Sport / Musique / Gaming) par jour.
-   - Split : `<ReadingChart>` (barres 7 jours) + `<ThemeCloud>` (thèmes dominants avec %).
-   - Split : Top 4 lectures + Liste challenges (avec navigation vers panel `challenges`).
-   - Bloc "Côté perso" : 4 cartes (sport / musique / gaming / sommeil moyen).
-6. Mode **Éditorial** : un seul article `<article class="week-edito">` avec titre adaptatif ("Semaine bien dense" / "rythme régulier" / "plus légère" / "calme"), lede quantitative, pull-quote si streak ≥ 7, liste des temps forts, grille 6 chiffres.
+1. Clic sidebar "Ma semaine" (ou raccourci "Ouvrir ma semaine" depuis le Brief).
+2. La vue apparaît immédiatement avec les données de la semaine en cours déjà chargées.
+3. Lecture du titre daté en tête de page : "Ma semaine · semaine S… · Lundi → Dimanche en toutes lettres".
+4. Clic en toolbar pour choisir entre le mode **Factuel** (dashboard multi-blocs, par défaut) ou **Éditorial** (article en prose).
+5. En mode **Factuel**, l'utilisateur scrolle verticalement à travers : six indicateurs clés en tête (articles lus, temps de lecture, streak, signaux détectés, séances sport, notes), synthèse Jarvis en trois points, ruban 7 jours avec barres d'activité (veille / sport / musique / gaming), histogramme des lectures + nuage de thèmes, top quatre lectures + bloc challenges, puis quatre cartes perso (sport / musique / gaming / sommeil moyen).
+6. En mode **Éditorial**, l'utilisateur lit un seul article au ton adaptatif (dense / régulier / léger / calme) selon le volume de veille, avec lede chiffré, pull-quote si la streak dépasse sept jours, liste des temps forts et grille de six chiffres en pied.
+7. Clic sur "Voir tous" dans le bloc challenges pour basculer vers le panel dédié.
 
 ## Fonctionnalités
 - **Toggle Factuel / Éditorial** : deux modes d'affichage sélectionnables en tête de page — dashboard multi-blocs ou article en prose racontée, selon l'humeur du matin.
@@ -118,5 +113,6 @@ Pas d'event listener global, que du React state local.
 - [ ] **Pas de détection "aujourd'hui"** : `fmtDay(monday)` → `fmtDay(sunday)` affiche la plage mais aucun marqueur visuel "tu es ici" sur `DayStrip`.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — d752b79

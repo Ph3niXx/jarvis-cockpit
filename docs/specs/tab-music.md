@@ -9,19 +9,19 @@ perso
 Pont Apple Music → Last.fm → Supabase → cockpit. Le scrobbler (AMWin-RP / QuietScrob / Web Scrobbler côté client Apple Music) envoie chaque écoute à Last.fm ; `pipelines/lastfm_sync.py` tourne à 5h UTC pour fetch `user.getRecentTracks` paginé puis calcule les stats quotidiennes (scrobble_count, unique_tracks/artists, top_artist, top_track, listening_minutes estimées à 3.5 min/track) ; `pipelines/lastfm_enrich.py` tourne le lundi (ou `--force`) pour enrichir les artistes avec leurs tags (`artist.getTopTags`, cache 90j), calculer la répartition genre hebdo, et générer un insight Gemini. Le panel consomme 7 tables + 1 RPC en parallèle au Tier 2 (`music_scrobbles/_stats_daily/_top_weekly/_loved_tracks/_genre_weekly/_insights_weekly` + RPC `music_discoveries`). Le hero intègre un polling live à l'API Last.fm en HTTP direct (toutes les 30s) avec une clé publique stockée dans `user_profile` — flag `is_live=true` quand Last.fm signale un scrobble actif.
 
 ## Parcours utilisateur
-1. Clic sidebar "Musique" → `loadPanel("music")` lance 7 fetches Supabase en parallèle + 1 RPC. `transformMusic()` produit une shape complète (hero + KPIs + 3 tops + daily_series + heatmap + genres + discoveries + milestones) même si toutes les sources sont vides.
-2. **Hero** : eyebrow `last.fm · 525 scrobbles 180j` + badge `live` (conditionnel), titre dynamique "`X` scrobbles sur 30 jours — dominé par le `top_genre`", sous-titre streak quotidien + record. Carte now-playing (album art + track + artist + album + stats track/artist).
-3. Le polling live démarre en arrière-plan (useEffect, 30s cadence). Lit `PROFILE_DATA._values.lastfm_api_key` + `lastfm_username`. Merge le résultat dans le state local `np`, flip `is_live` si Last.fm signale un scrobble actif.
-4. **4 KPIs** : scrobbles 7j (avec hardcodé "+8% vs 7j préc." — cf. limitations), 30j + taux/jour, streak + record, heures aujourd'hui + semaine.
-5. **§1 Top artists** : toggle 7d/30d/6m/all → `aggregateTop(byCat.artist, N weeks)`. 2 colonnes × 5 artistes, art avec initiales + couleur `tintFor(name)` stable hash-based. Badge `new` sur artiste ajouté récemment (pas implémenté côté loader → toujours absent).
-6. **§2 Top tracks** : liste dense 30j (weekly rollup → fallback raw scrobble tally).
-7. **§3 Top albums** : cards avec album art (image_url depuis weekly OU scrobble), rank, play count.
-8. **§4 Rythme + heatmap** :
-   - Chart SVG 90j avec barres (valeurs brutes) + ligne (moyenne mobile 7j). Toggle 30j/90j/180j.
-   - Heatmap 7×24 réordonnée lundi-first, 5 paliers d'alpha, tooltip `L 14h — 3.2`.
-9. **§5 Genres 30j** : barre empilée horizontale + table avec dot/label/share/change. `change` toujours = 0 (hardcoded dans loader — cf. limitations). Prose "lecture" hardcoded à droite (cf. limitations).
-10. **§6 Découvertes** : liste d'artistes dont le 1er scrobble date de < 90 jours (RPC `music_discoveries`). Verdict auto : `accroché` ≥50 plays, `à creuser` ≥15, `abandonné` <15. Preview 5, bouton "Voir les N autres" / "Replier".
-11. **§7 Milestones YTD** : 6 cards (scrobbles vs objectif 35k, artistes uniques, découvertes, albums ≥5×, heures estimées, genre dominant).
+1. Clic sidebar "Musique" — le panel charge en parallèle scrobbles, stats quotidiennes, tops hebdomadaires, loved tracks, genres et découvertes.
+2. Lecture du hero en tête de page : eyebrow (nombre total de scrobbles sur 180 jours) + badge "live" conditionnel, titre adaptatif "X scrobbles sur 30 jours — dominé par {genre}", sous-titre streak + record. Carte now-playing à droite (pochette + piste + artiste + album + stats).
+3. En arrière-plan, le now-playing se rafraîchit automatiquement toutes les 30 secondes tant que l'onglet est au premier plan — le badge "live" s'allume quand Last.fm signale une écoute active.
+4. Lecture des quatre KPIs : scrobbles 7 jours avec variation vs période précédente, scrobbles 30 jours + taux quotidien, streak + record, heures aujourd'hui + semaine.
+5. Lecture de la §1 Top artistes avec toggle 7d / 30d / 6m / all — deux colonnes × cinq artistes avec pochette (ou avatar coloré + initiales si image absente).
+6. Lecture de la §2 Top titres sur 30 jours en liste dense.
+7. Lecture de la §3 Top albums en cartes avec pochette, rang et nombre d'écoutes.
+8. Lecture de la §4 Rythme d'écoute :
+   - Graphique avec toggle 30j / 90j / 180j : barres par jour + moyenne mobile 7 jours.
+   - Heatmap jour × heure réordonnée Lundi→Dimanche, cinq paliers d'intensité, tooltip au survol pour chaque case.
+9. Lecture de la §5 Genres 30 derniers jours : barre empilée horizontale + table détaillée avec part, variation et récap hebdomadaire textuel.
+10. Lecture de la §6 Découvertes : artistes dont la première écoute date de moins de 90 jours, avec verdict automatique (accroché / à creuser / abandonné). Preview cinq + bouton "Voir les N autres".
+11. Lecture de la §7 Milestones YTD : six cartes d'objectifs annuels (scrobbles vs cible, artistes uniques, découvertes, albums écoutés 5+ fois, heures estimées, genre dominant).
 
 ## Fonctionnalités
 - **Now-playing live** : carte à droite du hero avec pochette d'album, piste, artiste, album et badge « live » qui s'allume quand Last.fm signale une écoute active (polling toutes les 30 secondes, stoppé quand l'onglet passe en arrière-plan).
@@ -164,5 +164,6 @@ Route id = `"music"`. **Panel Tier 2**.
 - [ ] **Tops 6m / all-time approximatifs** : `aggregateTop(byCat.artist, 999 weeks)` lit tout `music_top_weekly` — mais l'all-time réel dépasse largement la fenêtre de scrobbles (limit 200) pour le fallback.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 5 fixes (last7 change % réel, top_artists/genres delta vs période précédente, insight_weekly branché, polling visibilitychange, heatmap sans limite via loader dédié)

@@ -9,16 +9,16 @@ pro
 Panel de **priorisation court-termiste** — chaque dimanche 22h UTC, `weekly_analysis.py` purge les lignes de la semaine en cours dans `weekly_opportunities` et regénère 5-8 nouvelles entrées via Claude Haiku 4.5 à partir des 40 derniers articles. Chaque opportunité est taguée (timing, effort, compétition, marché, secteur) et scorée par pertinence relative au profil. Le front transforme ces lignes DB en "cartes fenêtres de tir" avec deadline estimée depuis le `timing`, et force l'utilisateur à trancher : **Je saisis** / **Je passe**. Depuis la migration 011, les statuts sont persistés en DB (`weekly_opportunities.user_status` + `user_status_at`) via PATCH authenticated — plus de localStorage. Les historiques des semaines passées sont conservés (purge `week_start=eq.X` seulement). Une opportunité peut aussi être **envoyée au Carnet d'idées** (panel `ideas`) — qui lui, écrit dans `business_ideas`.
 
 ## Parcours utilisateur
-1. Clic sidebar "Opportunités" (ou raccourci `Ctrl/Cmd+5`, cf. `QUICK_PANELS` [app.jsx:319](cockpit/app.jsx:319)) → Tier 2 `loadPanel("opps")` → résout les IDs d'articles source en batch contre `articles`, croise avec `SIGNALS_DATA`, remplit `window.OPPORTUNITIES_DATA`.
-2. **Si la table est vide** : empty state dédié — "Aucune fenêtre ouverte pour l'instant" + 2 CTAs (Carnet d'idées, Signaux faibles). Plus de fake data.
-3. Sinon : hero `N ouvertes · urgentes · Xj avant prochaine deadline · saisies · passées` (stats live calculées sur `enrichedOpps`, qui lit `user_status` DB + overrides optimistes).
-4. **Flagship card** = la meilleure opp ouverte, triée par urgence puis `match` desc — CTAs "Je saisis" (PATCH `user_status=taken`), "Je passe" (`passed`), "Plan d'action" (pré-remplit Jarvis).
-5. View switcher "Éditorial / Par timing / Fenêtres" — vue + scope persistés en localStorage (clés `opp.view`, `opp.scope`). **Les statuts ne sont plus en localStorage** depuis la migration 011.
-6. Mode **Éditorial** : 5 pills scopes (Tous/Business/Side/Life/Jarvisception), cards groupées par scope, `MatchRing` SVG coloré 0-100%, `EffortGauge` (4 dots), `CompetitionBars` (3 barres), barre de progression fenêtre de tir.
-7. Clic sur card → expand `.opp-detail` avec analyse, **bloc `.opp-detail-biz`** (Qui paye / Marché / Confiance avec classe couleur `--conf-{low,medium,high}`), why_you, sources, next_step, CTAs.
-8. Mode **Kanban** : 4 colonnes ordonnées par urgence — "Trop tôt / Bon moment / Se rétrécit / Se dépêcher". Clic sur une carte → back en éditorial + scrollIntoView.
-9. Mode **Timeline** : 9 mois à partir du **mois courant** (`new Date()` depuis le fix), barres horizontales de "aujourd'hui" à la date de fermeture, ligne verticale = aujourd'hui. Barre perpétuelle si `closes_iso=null`.
-10. **Ledger bas de page** : deux colonnes "Je saisis / Je passe" avec bouton "Restaurer" (PATCH `user_status=null`).
+1. Clic sidebar "Opportunités" (ou raccourci Ctrl/Cmd+5).
+2. Si aucune opportunité n'est disponible : empty state dédié — "Aucune fenêtre ouverte pour l'instant" avec deux raccourcis (Carnet d'idées, Signaux faibles).
+3. Sinon : lecture du hero — cinq stats (ouvertes / urgentes / jours avant prochaine deadline / saisies / passées).
+4. L'opportunité phare (meilleure non encore arbitrée, triée par urgence puis fit) s'affiche en grande carte en tête de page avec trois actions : "Je saisis", "Je passe", "Plan d'action" (qui ouvre Jarvis avec un prompt pré-rempli).
+5. Choix de la vue via les trois boutons (préférence mémorisée) : Éditorial (défaut) / Par timing / Timeline.
+6. En vue **Éditorial**, cinq pills de scope (Tous / Business / Side / Life / Jarvisception) filtrent les cartes groupées par scope. Chaque carte montre le match ring, la jauge d'effort, les barres de concurrence et la progression de la fenêtre de tir.
+7. Clic sur une carte pour déplier le détail : analyse, bloc business (qui paye, taille de marché, niveau de confiance coloré), pourquoi c'est pour toi, sources d'articles, prochaine étape, signaux liés cliquables.
+8. En vue **Kanban**, les opportunités sont réparties en quatre colonnes par urgence (Trop tôt / Bon moment / Se rétrécit / Se dépêcher). Clic sur une carte pour revenir en éditorial déjà scrollé dessus.
+9. En vue **Timeline**, neuf mois à partir du mois courant, avec une barre horizontale par opportunité du jour d'aujourd'hui jusqu'à la date de fermeture (barre perpétuelle quand pas de deadline). Ligne verticale verte = aujourd'hui.
+10. En bas de page, le ledger affiche deux colonnes "Je saisis" / "Je passe" avec bouton "Restaurer" pour revenir sur un arbitrage donné par erreur.
 
 ## Fonctionnalités
 - **Hero 5 stats** : cinq indicateurs en tête de page — opportunités ouvertes, urgentes, jours avant la prochaine deadline, déjà saisies et déjà passées.
@@ -153,5 +153,6 @@ Route id = `"opps"`. **Panel Tier 2** ([data-loader.js:4465](cockpit/lib/data-lo
 - [ ] **Pas de filtre par statut visible** : impossible de voir uniquement "mes saisies" ou "mes refus" dans la vue principale — on a juste le ledger en bas.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 6 correctifs appliqués (today dynamique, fake data purgée, empty state, purge backend incrémentale, statuts en DB via migration 011, `.opp-detail-biz`, telemetry error) — commit `c456ac9` (base) + migration 011 appliquée.

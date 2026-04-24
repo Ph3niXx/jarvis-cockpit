@@ -9,15 +9,15 @@ pro
 Panel de **tri d'offres LinkedIn** — un agent Cowork externe (hors repo) scanne LinkedIn chaque jour, enrichit 15-40 offres pertinentes avec un score `seniority + sector + impact + bonus` (rubric 0-10), un intel parfois deep (signaux boîte, lead identifié, réseau warm, angle d'approche, maturité SAFe), et une reco CV (PDF vs DOCX). Les résultats atterrissent dans la table `jobs` (174 lignes actuellement) + un récap quotidien dans `job_scans` (4 scans). Le panel hydratate depuis ces deux tables, affiche les offres ≥7 en "Hot leads" avec intel déplié, et le reste en liste dense filtrable. L'utilisateur édite **uniquement** le statut (postuler / snoozer / archiver) et les notes perso — toutes les autres colonnes sont propriété du scan Cowork. Subscribe Supabase Realtime : un nouveau scan pendant que le panel est ouvert recharge le feed transparently.
 
 ## Parcours utilisateur
-1. Clic sidebar "Jobs Radar" (dans groupe Business) → Tier 2 `loadPanel("jobs")` → hydrate `window.JOBS_DATA.offers` + `.scan` depuis `jobs` + `job_scans` de la semaine.
-2. **Header** : kicker "Jobs Radar · {date FR}" + stats inline ("N nouvelles · M hot leads · T au total dans le radar") + H1 descriptif.
-3. **Scan banner** (4 blocs) : volumes 7j en sparkbars L→D, répartition catégorie (Produit/RTE/PgM/PjM/CoS) en barres horizontales, signal CV (split PDF/DOCX 30j avec insight textuel), actions du jour (relances auto + prep entretiens).
-4. **Hot leads hero** : grid de cards larges pour les offres avec `score_total ≥ 7`. Chaque card affiche rank, score big avec tooltip décomposition, titre/boîte/meta, pitch, rubric (3 axes : Séniorité/Secteur/Impact), intel (signaux boîte + lead + réseau warm + angle d'approche), CV badge, boutons "Ouvrir le lead" (LinkedIn du contact) + "Postuler" (url offre).
-5. **Filtres** : recherche texte + 3 filter groups (score hot/mid/low, rôle, statut) + tri (score / récence). Statut par défaut = "Actives" (masque archived + snoozed).
-6. **Liste dense** : une offre = une ligne — score compact, titre/boîte, tags catégorie/stage/statut, pitch, rubric condensée, CV badge, kebab actions, bouton flèche pour postuler.
-7. Clic sur bouton "Postuler" → `window.open(url, "_blank")` + PATCH `status=applied` + toast "Postulé · statut mis à jour". L'offre reste affichée, retagguée.
-8. Menu kebab : "Snoozer 7 jours" → `status=snoozed` ; "Archiver" → `status=archived` ; "Éditer les notes" → textarea inline + bouton Enregistrer → PATCH `user_notes`.
-9. **Temps réel** : si Cowork écrit un nouveau scan ou une nouvelle offre pendant que le panel est ouvert, le channel Supabase `jobs_radar_sub` déclenche un `loadPanel("jobs")` transparent + `setOffers(fresh)`.
+1. Clic sidebar "Jobs Radar" (groupe Business) — le panel charge les offres et le scan de la semaine.
+2. Lecture du header : eyebrow "Jobs Radar · date du jour" + stats inline ("N nouvelles · M hot leads · T au total dans le radar") + titre descriptif.
+3. Scan du banner en quatre blocs : volumes sur 7 jours en barres Lun→Dim, répartition par catégorie de rôle (Produit / RTE / PgM / PjM / CoS), signal CV (quelle version envoyer en ce moment avec insight textuel), actions du jour (relances + entretiens à préparer).
+4. Lecture des hot leads en hero : cartes larges pour les offres notées 7+ avec score survolable, rubric par axe (Séniorité / Secteur / Impact), intel (signaux boîte + lead identifié + réseau warm + angle d'approche), badge CV recommandé, boutons "Ouvrir le lead" (profil LinkedIn du contact) et "Postuler" (annonce).
+5. Utilisation des filtres : recherche texte + trois groupes de filtres (score hot/mid/low / rôle / statut) + tri (score ou récence). Filtre statut "Actives" par défaut, qui masque les snoozées et archivées.
+6. Liste dense en dessous : une ligne par offre avec score compact, titre / boîte, tags (catégorie / stage / statut), pitch, rubric condensée, badge CV, menu kebab d'actions et bouton pour postuler.
+7. Clic sur "Postuler" ouvre l'annonce LinkedIn, passe l'offre en "appliquée" et affiche un toast de confirmation.
+8. Menu kebab par offre : "Snoozer 7 jours", "Archiver", "Éditer les notes" (zone de texte inline avec bouton Enregistrer).
+9. Rafraîchissement temps réel : quand le scan Cowork pousse de nouvelles offres pendant que le panel est ouvert, le feed se met à jour automatiquement sans recharger la page.
 
 ## Fonctionnalités
 - **Score sur 10 décomposé** : chaque offre reçoit un score synthèse, survolable pour voir le détail par axe (Séniorité / Secteur / Impact / Bonus).
@@ -157,5 +157,6 @@ Route id = `"jobs"`. **Panel Tier 2** ([data-loader.js:4528](cockpit/lib/data-lo
 - [ ] **`window.JOBS_DATA.offers[idx] = { ...old, ...patch }` en mute direct** : potentiellement problématique si un re-render React lit la ref tout en la mutant. Ici l'effet est secondaire mais pas idiomatique.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc depuis code réel — commit `c456ac9` (feature shippée le `1bd0fb0`)

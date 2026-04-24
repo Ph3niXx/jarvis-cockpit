@@ -11,24 +11,23 @@ Revivre n'importe quel jour des 60 derniers : volume d'articles, brief Gemini sa
 ⚠️ L'onglet affiche 60 jours fixes alors que la DB n'a que ~20 jours d'articles et 13 jours d'usage_events au 2026-04-24. La majorité des jours affichés sont donc vides — voir Limitations.
 
 ## Parcours utilisateur
-1. Clic sidebar "Historique" (group **Système**, icon `clock`) — [data-loader.js:1221](cockpit/lib/data-loader.js:1221) + mount [app.jsx:413](cockpit/app.jsx:413).
-2. **Panel Tier 2** — loader Tier 2 générique pendant fetch 4 tables parallèles (`articles` 60j limit 2000, `daily_briefs` 60j limit 60, `usage_events` 60j limit 5000, `signal_tracking` 60j limit 500).
-3. Hero : 4 KPIs (`Articles vus 60j`, `Requêtes Jarvis totales + streak en cours`, `Jour le plus chargé`, `Actions consignées`).
-4. Top sources 60j : 5 top sources par nb de fois en `top[]` dans les jours, barre horizontale.
-5. **Heatmap 60j** : `.hi-sparkline` SVG 720×60 au-dessus, puis grid semaine × jour (Lun-Dim, `(getDay()+6)%7`). Couleur par `intensity` (`pic / normal / calme`), dot épinglé, marqueur today/active. Cliquer une cellule ouvre le drawer.
-6. Filtres : pills `Tous/Pics/Normal/Calme` + toggle `● Épinglés seulement` + input `Recherche dans les briefs…` + bouton `↓ CSV (N)` + counter `N/60 jours`.
-7. **Timeline** groupée par semaine : `S17 · sam 19 → lun 14 · 87 articles`. Chaque jour est une row cliquable avec date (num + dow + AUJ tag), tag macro (section du top article), pin dot, titre + body du brief, 5 premiers signaux, stats à droite (articles / signaux / req Jarvis / reading time).
-8. Clic row → **Drawer** fixed right :
-   - Header : eyebrow "il y a Nj", date longue, `S17 · N articles · N signaux · N req Jarvis`, bouton pin + bouton fermer.
-   - Section "Macro · synthèse du jour" : titre + body (extraits de `daily_briefs.brief_html`).
-   - `<details>` "Voir le brief complet" → HTML sanitisé via DOMPurify.
-   - Section "Top N incontournables" : 3 premiers articles cliquables (ouvrent dans nouvel onglet).
-   - `<details>` "+ N autres articles ce jour-là" si plus de 3.
-   - Section "Signaux ce jour-là" (5 max, avec delta coloré).
-   - Section "Actions prises ce jour" (liste déduite de `usage_events`).
-   - Textarea "Ma note perso" (auto-saved localStorage, debounce 400ms).
-   - Footer : boutons "Fermer" + "Imprimer / Exporter le brief →" (ouvre une fenêtre print-friendly avec CSS inline).
-9. **Navigation clavier** : `j/k` ou `↑/↓` pour déplacer la sélection, `p` pour toggle pin, `Escape` pour fermer le drawer. Ignoré dans input/textarea.
+1. Clic sidebar "Historique" (groupe Système) — le panel charge en parallèle articles, briefs quotidiens, télémétrie et signaux de la fenêtre historique.
+2. Lecture du hero : quatre KPIs (articles vus sur la fenêtre, requêtes Jarvis totales + streak, jour le plus chargé, actions consignées).
+3. Lecture du top 5 sources de la fenêtre : barre horizontale par source avec nombre de passages en top.
+4. Lecture de la sparkline du volume d'articles au-dessus de la heatmap semaine × jour (Lun→Dim) colorée par intensité (pic / normal / calme) avec dot pour les jours épinglés et marqueur "aujourd'hui". Clic sur une cellule pour ouvrir le drawer du jour correspondant.
+5. Utilisation des filtres combinables : pills d'intensité (Tous / Pics / Normal / Calme), toggle "● Épinglés seulement", recherche plein-texte dans les briefs, bouton d'export CSV, compteur "N / M jours affichés".
+6. Lecture de la timeline groupée par semaine : une section par semaine ISO avec chaque jour cliquable — date, tag macro, pin dot, titre + body du brief, cinq premiers signaux, stats à droite (articles / signaux / Jarvis / temps de lecture).
+7. Clic sur un jour pour ouvrir le drawer latéral :
+   - Header : eyebrow "il y a Nj", date longue, stats de la semaine, bouton pin + bouton fermer.
+   - Section "Macro · synthèse du jour" avec extraits du brief.
+   - Dépliable "Voir le brief complet" avec le contenu intégral sanitisé.
+   - Section "Top N incontournables" avec trois premiers articles cliquables.
+   - Dépliable "+ N autres articles ce jour-là" si plus de trois.
+   - Section "Signaux ce jour-là" (cinq max, delta coloré).
+   - Section "Actions prises ce jour" (articles consultés avec domaine, pipelines déclenchés, recherches).
+   - Zone "Ma note perso" auto-sauvegardée en tapant.
+   - Footer : boutons "Fermer" et "Imprimer / Exporter le brief →" qui ouvre une fenêtre print-friendly.
+8. Navigation clavier : `j/k` ou `↑/↓` pour changer de jour sélectionné, `p` pour épingler, `Entrée` pour ouvrir, `Échap` pour fermer le drawer.
 
 ## Fonctionnalités
 - **Hero 4 KPIs** : articles vus sur la fenêtre, requêtes Jarvis totales + streak en cours, jour le plus chargé, actions consignées.
@@ -170,6 +169,7 @@ challenge_completed 1  (non mappé)
 - [ ] **Drawer fixed-right** pas responsive sur mobile.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — retrodoc initial basé sur HEAD `c456ac9`. Correctifs appliqués le même jour :
 - [sql/012_history_notes.sql](sql/012_history_notes.sql) — nouvelle table `history_notes` (iso PK, text, updated_at) avec RLS authenticated complète (select/insert/update/delete).

@@ -9,15 +9,15 @@ mixte
 Centraliser en un panel la santé des 4 services tech qui font tourner le cockpit (Claude pour le weekly pipeline, Gemini pour le daily pipeline, Supabase pour la DB, GitHub pour les Actions). Pour chacun : statut safe/warn/critical, quotas avec projected fin-de-mois, breakdown d'usage, rate limits, série 30j, et console_url direct. Les chiffres "officiels" qu'aucune API publique n'expose (solde Anthropic console, pic RPM Gemini constaté à chaud) sont saisis à la main via deux boutons "Mettre à jour" qui POST dans `user_profile.stacks.*` — le loader relit ces clés et en dérive le statut en priorité. Objectif principal : "ne jamais tomber en panne silencieuse parce qu'un quota a claqué la nuit" — d'où les alertes consolidées en haut de page et le flag critical piloté par le tracker Python `gemini_api_calls` qui logue chaque appel + chaque rate limit côté pipeline.
 
 ## Parcours utilisateur
-1. Clic sidebar "Stacks & Limits" → `loadPanel("stacks")` lance 5 fetches en parallèle (T2 `weekly_analysis` + `articles_30d` + RPC `get_stack_stats` + `articles_today` + RPC `get_gemini_usage_stats(30)`) puis lit `profileRows` depuis le Tier 1 `__COCKPIT_RAW` pour les saisies manuelles.
-2. **Hero** : eyebrow "Stacks & Limits · 4 services suivis" + bouton "↻ refresh" (invalidate cache stacks_/weekly_analysis/articles_today puis reload). Titre rouge/warn/vert selon `critical_count`/`warn_count`. Sous-titre `hero_sub` généré par `buildStacksHeroSub()` (non affiché ci-dessous, voir loader).
-3. **4 KPIs** hero : coût MTD avec jour/days_in_month, projeté fin de mois (rouge si > budget), alertes actives, répartition paid/free × safe/warn/critical.
-4. **Alertes consolidées** : bar en haut listant toutes les alertes critical/warn de tous les services (filtrage des "info").
-5. **2 filtres** : Type (all/paid/free), Statut (all/critical/warn/safe). Aucun filtre persisté en localStorage.
-6. Pour chaque service : bloc avec header (logo 1-letter coloré, nom, provider, plan, dot statut, last_used relatif, console_url + bouton "Mettre à jour" pour Claude/Gemini).
-7. **Claude "Mettre à jour le solde"** → 3 prompts natifs (balance USD, crédit initial, date d'expiration) → 2-4 upserts `user_profile` → invalidate cache → reload panel.
-8. **Gemini "Mettre à jour le rate limit"** → 1 confirm (rate limit atteint oui/non) + 3 prompts (modèle, pic RPM observé, limite RPM) → 5 upserts → reload.
-9. Body du bloc : alertes propres + quotas (barres de progression avec level safe/warn/critical/exceeded) + breakdown (table) + rate limits instantanés + chart 30j.
+1. Clic sidebar "Stacks & Limits" — le panel charge en parallèle coûts hebdo, articles des 30 derniers jours, stats Supabase et usage Gemini détaillé.
+2. Lecture du hero : eyebrow "Stacks & Limits · 4 services suivis" + bouton "↻ Rafraîchir" qui vide le cache et recharge la situation. Titre coloré selon le nombre d'alertes (rouge / warn / vert). Sous-titre avec contexte dynamique (coût du mois, service critique…).
+3. Lecture des quatre KPIs hero : coût du mois en cours avec avancement jour/jour, projection fin de mois (rouge si au-dessus du budget), nombre d'alertes actives, répartition paid/free × safe/warn/critical.
+4. Scan des alertes consolidées : bandeau en haut listant toutes les alertes critical et warn de tous les services, les critical en premier.
+5. Utilisation des deux filtres : Type (Tous / Paid / Free) et Statut (Tous / Critical / Warn / Safe) combinables.
+6. Pour chaque service (Claude, Gemini, Supabase, GitHub) : lecture du header — logo coloré, nom, plan, point de statut, date de dernière utilisation, lien direct vers la console externe, bouton "Mettre à jour" pour Claude et Gemini.
+7. Clic sur "Mettre à jour le solde Claude" ouvre une modal avec quatre champs (solde USD, crédit initial, date d'expiration, budget mensuel) sauvegardés au clic sur Enregistrer.
+8. Clic sur "Mettre à jour le rate limit Gemini" ouvre une modal avec toggle rate limit atteint + champs modèle, pic RPM observé, limite RPM.
+9. Lecture du corps de chaque bloc service : alertes propres, quotas avec barres de progression colorées, breakdown détaillé (table), rate limits instantanés, graphique 30 jours.
 
 ## Fonctionnalités
 - **Hero 4 KPIs** : coût du mois en cours avec avancement jour/jour, projection fin de mois (rouge si dépasse le budget), nombre d'alertes actives, répartition paid/free × safe/warn/critical.
@@ -149,5 +149,6 @@ Route id = `"stacks"`. **Panel Tier 2**.
 - [ ] **`stacks.*` namespace user_profile** : conventions nommage non documentée en dehors du code. Si quelqu'un modifie les clés, le loader tombe en silence sur ses defaults.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 6 fixes (modal React StEditModal, FX dynamique Frankfurter, budget configurable, coût Jarvis cloud additionné, projection stable 7j-avg, MAU réel via migration 014)

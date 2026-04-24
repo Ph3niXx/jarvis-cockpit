@@ -9,10 +9,10 @@ mixte
 Dernier des 5 panels Veille. Agrège les actus non-spécialisées (Le Monde, Le Figaro, FranceInfo, Libération, 20 Minutes, Le Parisien, BFM Paris, BBC World, France 24, RFI) pour avoir un pouls de l'info générale à côté de la veille IA / sport / gaming / anime. Catégorisation **par source** (pas par regex) : chaque feed RSS a une `default_category` figée dans le pipeline. Partage `PanelVeille` avec les 4 autres routes Veille — mécanique dans [tab-updates.md](tab-updates.md), pattern zone/type dans [tab-sport.md](tab-sport.md).
 
 ## Parcours utilisateur
-Identique aux autres panels Veille sans acteurs, avec :
-- **Filtre Zone** (`categoryLabel="Zone"`) : Paris / France / International — auto-détectés depuis `v.categories` (populé par le loader).
-- **Filtre Rubrique** (`typeLabel="Rubrique"`) : Actu / Live / Analyse / Interview / Tribune / Annonce — inféré du titre par `guessNewsType` ([data-loader.js:2786-2793](cockpit/lib/data-loader.js:2786)).
-- **Pas d'"Acteurs suivis"** (`showActors={false}`), **pas de "Cas prod"** (`prodSection={null}`).
+Identique aux autres panels Veille sans acteurs suivis, avec :
+- Filtre principal par **Zone** : Paris / France / International, détectées automatiquement depuis les articles.
+- Filtre secondaire par **Rubrique** : Actu / Live / Analyse / Interview / Tribune / Annonce, détectée automatiquement depuis le titre.
+- Pas de section "Acteurs suivis" ni "Cas prod".
 
 ## Fonctionnalités
 Identiques aux autres panels Veille (hero + tendances + feed), plus les spécificités actualités :
@@ -95,5 +95,6 @@ Table dédiée, schéma aligné sur `sport_articles` / `gaming_articles` / `anim
 - [ ] **Pas de filtre "Scope" (perso/pro)** : le panel est taggé `mixte` dans index.json mais toutes les actus sont mélangées. Si un jour on veut séparer "actu perso" de "actu pro", il faudrait structurer par tags.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — migration news hash-colors + catégories dynamiques (local, non pushé)

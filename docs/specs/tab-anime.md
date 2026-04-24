@@ -10,9 +10,9 @@ Veille loisirs vidéo : actualités RSS (AlloCiné, Première, Écran Large, Ani
 
 ## Parcours utilisateur
 Identique à Sport / Gaming pour le feed, plus :
-- **Filtre Statut** (`categoryLabel="Statut"`) : Sorties récentes / À venir prochainement / Industrie ([app.jsx:407-411](cockpit/app.jsx:407)).
-- **Filtre Format** : Critique / Trailer / Interview / Audience / Deal / Diffusion / Annonce / Sortie / Actu — inféré du titre par `guessAnimeType` ([data-loader.js:2735-2746](cockpit/lib/data-loader.js:2735)).
-- **Section "Prochaines sorties anime"** en bas : table sortable par date avec filtres année + mois ([panel-veille.jsx:36-173](cockpit/panel-veille.jsx:36)). Source = articles `MyAnimeList` `category=upcoming` triés par `date_published` ascendant. Affiche titre nettoyé (sans le préfixe `[TV]/[Movie]/[OVA]/[Special]/[ONA]`), studio extrait du summary via regex `Studio\s*:\s*(...)`, lien direct MAL.
+- Filtre principal par **Statut** : Sorties récentes / À venir prochainement / Industrie.
+- Filtre secondaire par **Format** : Critique / Trailer / Interview / Audience / Deal / Diffusion / Annonce / Sortie / Actu, détecté automatiquement depuis le titre.
+- Section "Prochaines sorties anime" en bas de page : table triée par date avec pills de filtres Année et Mois. Chaque ligne affiche le titre nettoyé de son préfixe de format, le studio (ou producteur) et un lien direct vers la fiche MyAnimeList ou TMDB.
 
 ## Fonctionnalités
 Identiques à Veille IA (hero actu + tendances + feed filtrable), plus les spécificités anime/ciné/séries :
@@ -123,5 +123,6 @@ Pas de table dédiée pour les sorties futures : elles cohabitent dans `anime_ar
 - [ ] **Pas de table dédiée `tv_releases`** : Jikan + TMDB cohabitent dans `anime_articles`. OK pour l'instant, mais si le volume TMDB devient gros (100+ rows/jour), penser à séparer.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — migration anime hash-colors + catégories dynamiques + filtre Type + TMDB scaffold (local, non pushé)

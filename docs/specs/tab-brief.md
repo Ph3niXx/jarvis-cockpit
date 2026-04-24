@@ -9,14 +9,14 @@ mixte
 C'est le premier écran à l'ouverture du cockpit (route `"brief"`, panel par défaut dans [app.jsx:154](cockpit/app.jsx:154)). Il rassemble quatre vues synthétiques pour décider quoi lire en priorité ce matin sans scroller 20 onglets : **hero** (paragraphe de synthèse + stats macro), **top 3 incontournables**, **4 signaux faibles** (new/rising en priorité), **radar compétences** avec le prochain gap à combler, et **bilan de la semaine** en heatmap barres.
 
 ## Parcours utilisateur
-1. À l'ouverture du cockpit, la page charge en Tier 1 (bloquant avant le mount React) — `bootTier1()` dans [data-loader.js:1136](cockpit/lib/data-loader.js:1136).
-2. L'utilisateur lit le paragraphe hero (synthèse générée par Gemini à 06:00 UTC).
-3. Option : clic sur **Lecture audio** ([home.jsx:7-42](cockpit/home.jsx:7)) pour une version TTS via `window.speechSynthesis` (voix française).
-4. Clic sur "Lire les 3 incontournables" → navigation `top`, ou clic sur une carte du top 3 pour ouvrir l'article en onglet externe et marquer lu en localStorage.
-5. Scan des signaux faibles (carte par tendance : NEW / EN HAUSSE / STABLE / EN BAISSE).
-6. Vérification du radar : "Ton prochain gap à combler" suggère un axe + action (clic → panel `challenges`).
-7. Coup d'œil final sur la heatmap semaine (articles lus par jour avec moyenne).
-8. Bouton "Tout marqué lu" ([home.jsx:176-188](cockpit/home.jsx:176)) → écrit tous les top ids dans `localStorage.read-articles`.
+1. À l'ouverture du cockpit, la page Brief du jour s'affiche par défaut — les données du matin sont déjà chargées avant que l'interface apparaisse.
+2. L'utilisateur lit le paragraphe de synthèse en tête de page pour se situer sur l'actualité IA du jour.
+3. Option : clic sur **Lecture audio** pour faire lire la synthèse à voix haute en français, mains-libres en début de journée.
+4. Clic sur "Lire les 3 incontournables" pour basculer vers le Top du jour, ou clic direct sur une carte du top pour ouvrir l'article en onglet externe (marqué lu automatiquement).
+5. Scan des quatre signaux faibles (nouveau / en hausse / stable / en baisse) pour voir ce qui bouge dans la veille.
+6. Coup d'œil au radar compétences et à l'encart "Ton prochain gap à combler" qui propose un challenge associé en un clic.
+7. Lecture finale du bilan de la semaine : heatmap 7 jours des articles lus par jour et compteurs (articles lus, gardés, streak).
+8. Bouton "Tout marquer lu" pour valider les trois incontournables comme lus d'un coup avant de passer à la suite.
 
 ## Fonctionnalités
 - **Synthèse du jour** : un paragraphe éditorial en tête de page qui résume l'actualité IA du jour, avec deux raccourcis vers le Top du jour et la Veille complète.
@@ -130,6 +130,7 @@ Table **non lue malgré mention dans spec.json** : `activity_briefs` — écrite
 - [ ] **`<inconnu>` : seuils de score Top** — les scores 94/88/82 sont dérivés de `94 - i*6` ([data-loader.js:174](cockpit/lib/data-loader.js:174)), donc toujours les mêmes 3 valeurs selon le rang, **pas** un vrai score d'impact côté backend. À confirmer : est-ce intentionnel ou est-ce qu'un vrai score existe ailleurs ?
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit (retrait Tier 1, bootTier1, paths code, localStorage technique).
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit (retrait chemins code, props, formules, colonnes DB).
 2026-04-24 — retry Gemini 4× + fallback HTML construit depuis les articles si toutes les tentatives échouent (plus de brief affichant l'erreur 503 brute dans le hero).
 2026-04-23 — d752b79

@@ -14,19 +14,19 @@ Panel "back-office" du profil utilisateur utilisé par **tous les pipelines LLM*
 Le panel sert à : (1) **voir** ce que Claude voit de toi (payload exact + tokens estimés), (2) **éditer** les 15 champs user_profile avec sauvegarde directe en base + historique append-only, (3) **vérifier** la cohérence entre déclaré (`user_profile`) et observé (`profile_facts`) via triangulation, (4) **gérer** une table actionnable `commitments` (objectifs + deadlines + dernier mouvement), (5) **répondre** aux "questions inconfortables" générées quand un drift est détecté, (6) **explorer** les 35 entités (gens/outils/projets) extraites automatiquement. Export JSON intégral + copie payload Claude en un clic.
 
 ## Parcours utilisateur
-1. Clic sidebar "Mon profil" → Tier 2 `loadPanel("profile")` → 6 requêtes Supabase en parallèle. Hydratation partielle déjà faite en Tier 1 (`_raw` + `_values` pré-remplis via `hydrateGlobalsFromTier1`).
-2. **Header** : `{name} · {role}` + 5 counters inline (dernière màj, faits, entités, commits, UQ) + barre `.pf2-head-energy` = score complétude `{filled}/10 = N%`.
-3. **Toolbar** : input recherche globale (filtre faits/entités/commits) + 3 CTA (`Éditer mon profil`, `Copier payload Claude`, `Exporter JSON`).
-4. Si champs manquants parmi les 10 du score : pastille `.pf2-score-hint` liste les 5 premiers manquants cliquables (ouvre le drawer à ce champ).
-5. Si question inconfortable non résolue : `UqBlock` en haut — textarea + input résolution, bouton "Répondre & résoudre" → PATCH `{answer, resolution, resolved, answered_at}`.
-6. Si champ `identity` présent : card cliquable `.pf2-last-uq` "Identité déclarée" → startEditField.
-7. **Zone 01 — Contexte Claude** : terminal-style listant tous les `user_profile` actifs avec `key: "valeur..." ~Nt {FRESH|STABLE|STALE}`. Toggle `general_context` / `mission · weekly_reflection` — en mode mission, 3 clés exclues (`current_role`, `company_context`, `current_projects`) et comptées en "excluded -Nt". Clic sur une ligne = startEditField.
-8. **Zone 02 — Faits appris** : `profile_facts` groupés par `fact_type` (context/preference/goal/skill/opinion/constraint/interest), 15 max par groupe. Chaque item : texte + `conf N%` + relTime + source + bouton **Faux** → PATCH `superseded_by=id` (auto-référentiel pour "exclu des prompts").
-9. **Zone 03 — Entités** : pills filtre par `entity_type` + grid `.pf2-ent-grid` avec `type · mentions×`, nom, description, dernière mention.
-10. **Zone 04 — Commitments** : table actionnable (6 colonnes : objectif/deadline/next_action/last_movement/status/actions). Tri `stale first` (par `movement_days` desc) ou `deadline` (asc). CRUD via `CommitmentRow` ; "Archiver" = PATCH `archived_at=now()` (soft delete).
-11. **Zone 05 — Triangulation** : pour chaque champ `user_profile` actif, matching mots-clés avec `profile_facts`. Level : `aligned` (≥1 fact relié) / `drift` (0 fact + >60j) / `stale-critical` (0 fact + >150j). Affiche top-3 facts reliés, compteur facts_count, badge level couleur.
-12. **Zone 06 — Uncomfortable Questions** : liste triée par `asked_at desc`. Questions non résolues → textarea réponse + input résolution. Résolues → affichage en card compactée `.is-resolved`.
-13. **Zone 07 — Éditeur + Historique** : drawer expansible `.pf2-drawer` avec tous les 15 champs (hors 4 hidden) en textarea inline + save/cancel + `NewFieldForm` pour créer des clés custom. À droite : `.pf2-history` liste les 20 dernières entrées `user_profile_history` avec diff before/after au clic.
+1. Clic sidebar "Mon profil" — le panel charge les six sources en parallèle (profil, faits appris, entités, commitments, questions inconfortables, historique).
+2. Lecture du header : nom et rôle + cinq compteurs inline (dernière MAJ, faits, entités, commitments, questions) + jauge de complétude du profil.
+3. Utilisation de la toolbar : recherche globale (filtre simultanément faits, entités et commitments) + trois boutons (Éditer mon profil, Copier payload Claude, Exporter JSON).
+4. Si des champs utiles du profil sont manquants, une pastille liste les cinq premiers manquants cliquables pour ouvrir le drawer directement sur le champ concerné.
+5. Si une question inconfortable n'est pas résolue, un bloc dédié apparaît en haut avec zone de réponse et champ de résolution à remplir.
+6. Parcours vertical des sept zones numérotées :
+   - **Zone 01 · Contexte Claude** : terminal listant tous les champs du profil injectés dans les prompts, avec toggle "Général / Mission". Clic sur une ligne pour éditer le champ.
+   - **Zone 02 · Faits appris** : faits groupés par type (contexte / préférence / objectif / compétence / opinion / contrainte / intérêt) avec bouton "Faux" pour retirer un fait des prompts futurs.
+   - **Zone 03 · Entités** : pills de filtre par type + grille des personnes, outils, projets et entreprises mentionnés, avec compteur de mentions.
+   - **Zone 04 · Commitments** : table d'objectifs avec deadline, prochaine action, dernier mouvement, statut, tri stale-first ou deadline. Ajout / édition inline + bouton Archiver.
+   - **Zone 05 · Triangulation** : pour chaque champ du profil, affichage des faits qui le confirment (aligné), l'infirment (drift) ou alerte de régression critique, avec top trois faits reliés.
+   - **Zone 06 · Questions inconfortables** : liste triée par date, questions ouvertes avec zone de réponse, questions résolues en cartes compactées.
+   - **Zone 07 · Éditeur + Historique** : drawer avec tous les champs du profil en édition inline + formulaire pour ajouter un champ custom, et à droite les vingt derniers changements avec diff before/après au clic.
 
 ## Fonctionnalités
 - **Score de complétude** : pour 10 champs utiles du profil (identité, rôle, contexte entreprise, ambitions, intérêts, projets en cours, motivations, frustrations, secteurs, style d'apprentissage), une jauge en tête affiche le nombre rempli sur dix avec pourcentage et liste des premiers champs manquants cliquables pour ouvrir le drawer directement sur le champ.
@@ -184,5 +184,6 @@ Route id = `"profile"`. **Panel Tier 2** ([data-loader.js:4528](cockpit/lib/data
 - [ ] **UQ auto-gen pipeline (scope backend)** : si on veut vraiment livrer la promesse retirée, ajouter un step dans `weekly_analysis.py` qui recalcule la triangulation côté Python et insère dans `uncomfortable_questions` quand `level === "stale-critical"`. Alignement avec la logique front dans `triangulation` useMemo.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 7 correctifs appliqués (migration 012 versionnée, télémétrie `error_shown` partout, `profile_fact_superseded` tracé, recherche accent-insensitive, `notes` éditable dans commitments, copy UQ corrigée, dead code `pfDeleteCommitment` supprimé) — commit `c456ac9` (base).

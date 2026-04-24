@@ -9,13 +9,12 @@ pro
 Affiche un radar spider à N axes (par défaut 8) représentant le niveau de compétence IA de l'utilisateur sur différents sous-domaines. Chaque axe porte : un **score actuel** (0-100), une **cible 12 mois**, un **delta 30j** calculé depuis l'historique, un **niveau** (Débutant / Intermédiaire / Avancé), et une **note** pédagogique. Le panel est **consommateur** de `skill_radar` — il ne modifie pas les scores directement. Les scores bougent via : (1) challenges complétés ≥70% (voir [tab-challenges.md](tab-challenges.md)) qui bump +0.5/+1 sur l'axe ciblé, (2) édition manuelle en base (pas d'interface front).
 
 ## Parcours utilisateur
-1. Clic sidebar "Radar compétences" → Tier 2 `loadPanel("radar")` (partage le case avec "recos").
-2. Rendu quasi-immédiat : les axes étaient déjà dans `__COCKPIT_RAW.radarRows` depuis Tier 1, le Tier 2 ne fait que recharger les recos + re-build.
-3. Lecture du hero : moyenne générale + niveau global (ex: "72/100 — Niveau intermédiaire").
-4. Scan de la toolbar 3-stats : Moyenne / Plus forte progression 30j / Axe le plus faible.
-5. Lecture du spider chart central : polygone vert accent = niveau actuel, polygone pointillé = cible 12 mois.
-6. Clic sur un point / un axe de la liste de droite → bascule en vue `<AxisDetail>` : score + progress bar vs cible + delta 30j + note Jarvis + 2 CTAs (Voir recos / Défi cet axe).
-7. Colonne gauche lit automatiquement les **4 narratifs calculés** : point fort / angle mort / vague qui monte / cap atteint ou attention.
+1. Clic sidebar "Radar compétences" — la vue s'affiche quasi-immédiatement car les axes sont déjà en mémoire.
+2. Lecture du hero : moyenne générale + niveau global (exemple : "72/100 — Niveau intermédiaire").
+3. Scan de la toolbar en haut : moyenne générale, axe en plus forte progression 30 jours, axe le plus faible.
+4. Lecture du spider chart central : polygone coloré = niveau actuel, polygone pointillé = cible 12 mois.
+5. Clic sur un point du radar ou sur un axe dans la liste de droite pour basculer en vue détail — score géant, jauge vs cible, variation 30 jours, note pédagogique, mini-courbe 12 semaines et deux raccourcis ("Voir recos" / "Défi cet axe").
+6. Lecture de la colonne "Ce que dit ton radar" (à gauche) : quatre pavés calculés — point fort, angle mort, vague qui monte, cap atteint ou alerte régression.
 
 ## Fonctionnalités
 - **Spider chart central** : un radar circulaire à quatre anneaux de graduation, une branche par axe IA, et deux polygones superposés — niveau actuel rempli et cible 12 mois en pointillé — pour visualiser l'écart au but en un coup d'œil.
@@ -108,5 +107,6 @@ Pas d'id stable. Route id = `"radar"`. **Panel Tier 2** ; les données principal
 - [ ] **Panel monté sans gate d'auth explicite** : si RLS rejette le fetch, `APPRENTISSAGE_DATA.radar.axes` reste vide et le rendu se dégrade silencieusement. Pas de message d'erreur UI.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — reformuler copy + sparkline 12w + prefill axe + fix conversion (local, non pushé)

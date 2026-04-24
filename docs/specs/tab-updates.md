@@ -11,16 +11,15 @@ Panel le plus dense du cockpit. Centralise tout ce qui tombe des flux RSS veille
 ⚠️ Ce panel **partage le composant** `PanelVeille` avec 4 autres routes (`sport`, `gaming_news`, `anime`, `news`) via un système de props/corpus. Le corpus "updates" pointe sur `window.VEILLE_DATA`.
 
 ## Parcours utilisateur
-1. Clic sidebar "Veille IA" → navigation vers route `updates` → Tier 2 `loadPanel("updates")` déclenche `T2.veille()` pendant 2-3 s.
-2. React mount bloqué sur `<PanelLoader>` jusqu'à hydratation (cf. [app.jsx:361](cockpit/app.jsx:361)).
-3. Page rendue avec hero (dernière release), ticker d'acteurs suivis, grille de tendances, feed chronologique, grille de cas prod.
-4. Options : filtrer le feed par acteur (cartes ou pills), par type (Release / Framework / Cas prod / Papier / Deal / Régulation / Analyse), par période (24h / 7j / 30j).
-5. Clic sur une **carte tendance** → filtre supplémentaire par keyword matching sur title/summary/tags.
-6. Par défaut : feed groupé par type (collapsible `<details>`), preview 5 items par groupe avec bouton "Voir les N autres" pour expand.
-7. Clic sur un item → `window.open(url, "_blank")` + écrit `localStorage.read-articles[id] = { ts, kept }` + marque lu dans l'état local.
-8. Actions par item : marquer lu/non-lu (icon), archiver (filtre out), ouvrir (→ tab).
-9. Bouton "Tout marquer lu" en header du feed quand `unreadCount > 0`.
-10. Toggle tone "Éditorial" / "Dense" flottant en bas à droite (change le thème visuel, `.vl-dense` / `.vl-dawn`).
+1. Clic sidebar "Veille IA" — un loader s'affiche pendant deux à trois secondes le temps de charger les 30 derniers jours d'articles.
+2. La page apparaît avec le hero (dernière release mise en avant), la grille d'acteurs suivis, les tendances transverses, le feed chronologique et la grille de cas prod.
+3. L'utilisateur combine les filtres : par acteur (clic sur une carte d'acteur ou une pill), par type (Release / Framework / Cas prod / Papier / Deal / Régulation / Analyse), par période (24h / 7j / 30j).
+4. Clic sur une carte de tendance pour filtrer en plus le feed sur les mots-clés de la tendance.
+5. Par défaut, le feed est groupé par type (sections dépliables) avec prévisualisation de cinq items et bouton "Voir les N autres" pour déplier.
+6. Clic sur un item pour l'ouvrir en onglet externe — l'article est marqué lu automatiquement.
+7. Actions par item : marquer lu/non-lu, archiver (masque l'item du feed), ouvrir en onglet externe.
+8. Bouton "Tout marquer lu" en header du feed tant qu'il reste des non-lus dans la sélection en cours.
+9. Toggle flottant en bas à droite pour basculer entre un affichage éditorial aéré et un affichage dense.
 
 ## Fonctionnalités
 - **Hero release** : en tête de page, la dernière release majeure mise en avant (acteur, version, tagline, résumé et quatre benchmarks clés) pour repérer d'un coup d'œil ce qui vient de sortir.
@@ -146,5 +145,6 @@ Pas de pipeline qui alimente `actors`, `trends`, `prod_cases` — tout est du co
 - [ ] **Couleurs acteurs dérivées d'un hash** : conflits de couleurs possibles avec beaucoup de sources similaires. Palette de 10 couleurs.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — acteurs/tendances dynamiques + fix feed fake + CTAs wirés + persistance readState (local, non pushé)

@@ -9,16 +9,16 @@ mixte
 Point d'entrée rapide "retrouve-moi ça" accessible partout avec `Cmd/Ctrl+K`. Le modal fait une recherche **ilike** en parallèle sur 4 tables (`articles`, `wiki_concepts`, `business_ideas`, `jarvis_conversations`), affiche les résultats unifiés en liste navigable au clavier, et expose un bouton "Demander à Jarvis" qui bascule vers le panel `jarvis` avec la requête pré-remplie. Le panel stocke l'historique des recherches (récentes auto, sauvegardées manuellement) en localStorage.
 
 ## Parcours utilisateur
-1. **Entrée 1** — clic sidebar "Recherche" : vue pleine page avec hero + bouton trigger + 3 aperçus des états.
-2. **Entrée 2** — `Cmd/Ctrl+K` depuis n'importe où → [app.jsx:256-266](cockpit/app.jsx:256) pose `window.__openSearchOnMount = true` puis navigue vers `search` → le panel consomme le flag au mount et ouvre immédiatement le modal (une seule frappe suffit).
-3. **Entrée 3** — depuis le panel Signaux, clic sur un signal stashé dans `localStorage.veille-prefill-query` ([panel-signals.jsx:89](cockpit/panel-signals.jsx:89)) → le panel Search détecte la stash, la consomme et ouvre le modal pré-rempli.
-4. Dans le modal : input focusé auto, saisie.
-5. Moins de 2 caractères : pas de requête réseau, affichage "Recherches récentes" (5) + "Recherches sauvegardées" (5) + "Raccourcis" (desktop only).
-6. ≥ 2 caractères : débounce 220 ms → **4 fetches `Promise.all`** en parallèle : `articles` (limit 10), `wiki_concepts` (limit 5), `business_ideas` (limit 5), `jarvis_conversations` (limit 5). Snippets stripped-html (180 chars), chaque résultat tagué par `scope` (section article / WIKI / IDÉE / USER|ASSISTANT).
-7. Navigation ↑ / ↓ + `Enter` → `openResult(r)` : si `url` présent → `window.open`, sinon `navTo` → close + `onNavigate(panelId)` (wiki / ideas / jarvis).
-8. Bouton "Demander à Jarvis" visible dès que l'input est rempli → stashe la query dans `localStorage.jarvis-prefill-input` + ferme + navigue vers `jarvis`.
-9. Bouton "⭐ Sauvegarder" dans le header des résultats (desktop + mobile) → `prompt()` pour le nom → écrit dans `localStorage.search.saved`.
-10. `Esc` ou clic overlay → close, reset (`query=""`, `selectedIdx=0`).
+1. **Entrée 1** — clic sidebar "Recherche" : vue pleine page avec hero, bouton d'ouverture du modal et trois aperçus des états possibles.
+2. **Entrée 2** — Cmd/Ctrl+K depuis n'importe quel panel du cockpit : le modal s'ouvre instantanément (une seule frappe suffit).
+3. **Entrée 3** — clic sur un signal faible depuis le panel Signaux : la recherche s'ouvre déjà pré-remplie avec le terme du signal.
+4. Dans le modal, le champ de saisie est focalisé automatiquement, l'utilisateur tape sa requête.
+5. En dessous de deux caractères, le modal affiche les cinq dernières recherches récentes + cinq recherches sauvegardées + quelques raccourcis clavier (desktop uniquement).
+6. Dès deux caractères, les résultats remontent en parallèle depuis articles, fiches wiki, idées business et messages Jarvis, avec un léger délai pour éviter les requêtes à chaque frappe. Chaque résultat est tagué par type (section article / WIKI / IDÉE / USER / ASSISTANT) avec un extrait court.
+7. Navigation au clavier (↑ / ↓ pour parcourir, Entrée pour ouvrir) — un article ouvre en onglet externe, un résultat wiki/idée/Jarvis bascule sur le panel correspondant.
+8. Clic sur "Demander à Jarvis" dès qu'un terme est saisi : le modal se ferme et Jarvis s'ouvre avec la question déjà pré-remplie.
+9. Clic sur "⭐ Sauvegarder" dans le header des résultats pour donner un nom à la requête en cours et la garder sous la main.
+10. Échap ou clic sur l'arrière-plan ferme le modal et remet la recherche à zéro.
 
 ## Fonctionnalités
 - **Raccourci universel Cmd/Ctrl+K** : ouverture du modal de recherche depuis n'importe où dans le cockpit, le raccourci affiché s'adapte à l'OS (⌘ sur Mac, Ctrl ailleurs).
@@ -135,5 +135,6 @@ Les 4 requêtes partent en parallèle via `Promise.all`, chacune protégée par 
 - [ ] **CSS `.cmdk-ai-toggle`** réutilisé pour le bouton "Demander à Jarvis" — nom de classe périmé. À renommer `.cmdk-jarvis-action` si on remanie le CSS.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — refonte 4-tables + Demander à Jarvis + save + fix Cmd+K (local, non pushé)

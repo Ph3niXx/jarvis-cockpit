@@ -9,11 +9,11 @@ perso
 Consolider la veille sport du matin : actualités RSS par discipline, transferts, matchs, blessures, interviews. Partage entièrement le composant `PanelVeille` ([cockpit/panel-veille.jsx](cockpit/panel-veille.jsx)) avec le panel Veille IA (→ voir [tab-updates.md](tab-updates.md) pour la mécanique de base). Ce doc ne couvre que ce qui est spécifique au corpus `SPORT_DATA`.
 
 ## Parcours utilisateur
-Identique à Veille IA, avec quelques différences visibles :
-- **Pas de section "Acteurs suivis"** (`showActors={false}` dans [app.jsx:388](cockpit/app.jsx:388)) — les sources sont fondues dans l'avatar de chaque item du feed.
-- **Filtre principal = Discipline** (catégories explicites : Football / E-sport / Rugby / Cyclisme / Tennis / Natation) avec couleur définie côté route ([app.jsx:388-395](cockpit/app.jsx:388)).
-- **Filtre secondaire = Format** : Transfert / Interview / Match / Blessure / Analyse / Actu — inféré du titre par `guessSportType` ([data-loader.js:2631-2639](cockpit/lib/data-loader.js:2631)).
-- **Pas de section "Agents en production"** (`prodSection={null}`).
+Identique à Veille IA (loader, hero, feed filtrable, actions par article) avec quelques spécificités sport :
+- Pas de section "Acteurs suivis" — les sources apparaissent fondues dans la pastille de chaque item du feed.
+- Filtre principal par **Discipline** : Football / E-sport / Rugby / Cyclisme / Tennis / Natation, chacune avec sa couleur propre.
+- Filtre secondaire par **Format** : Transfert / Interview / Match / Blessure / Analyse / Actu, détecté automatiquement depuis le titre.
+- Pas de section "Agents en production" — l'onglet sport n'a pas de grille de cas prod.
 
 ## Fonctionnalités
 Identiques à Veille IA (hero actu + tendances + feed filtrable par période), plus les spécificités sport :
@@ -107,5 +107,6 @@ Table dédiée (séparée de `articles`), schéma proche mais avec une colonne `
 - [ ] **Gaming/anime/news gardent encore la palette manuelle + catégories hardcoded** : pourra être migré sur le même pattern `v.categories` + hash fallback quand on y passera.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — fix feed-fake sur 4 panels + hash-colors sport + catégories dynamiques (local, non pushé)

@@ -9,20 +9,20 @@ pro
 Tracker les termes IA qui **montent ou disparaissent** dans les sources de veille avant que le mainstream ne les reprenne. `main.py` extrait chaque matin les mentions de ~120 concepts (CONCEPT_KEYWORDS) dans les titres + summaries d'articles RSS, upsert dans `signal_tracking` agrégé à la semaine ISO, puis recalcule la tendance (`new` / `rising` / `declining` / `stable`) en comparant au lundi précédent. Le panel transforme ce compteur brut en grille éditoriale priorisée + vue Gartner-ish (maturité × momentum) + graphe de co-occurrences. Objectif : capter les termes entre *émergence* et *pic de hype* pour arbitrer mission RTE, idées business et veille personnelle.
 
 ## Parcours utilisateur
-1. Clic sidebar "Signaux faibles" (ou **Ctrl/Cmd+4** via `QUICK_PANELS[3]` à [app.jsx:319](cockpit/app.jsx:319)) → Tier 2 `loadPanel("signals")`.
-2. *Possiblement* arrivée cross-nav depuis Opportunités : `localStorage.signals-focus-name` consommé au mount, force `trendFilter="all"`, `view="editorial"`, ouvre le row matching (case-insensitive) et scroll center ([panel-signals.jsx:750-764](cockpit/panel-signals.jsx:750)).
-3. Lecture hero : 4 stats synthétiques (`rising` / `new` / `declining` / `watchlist`) calculées à la volée depuis `SIGNALS_DATA.signals`.
-4. Watchlist (si `watched.length > 0`) : 2 colonnes — cards des signaux suivis (sparkline mini) + liste des 6 dernières alertes triées par semaine desc.
-5. Priority grid : 4 PriorityCell calculés `sort(new first, then rising by delta)`. Clic → `openSignal(id)` = bascule en éditorial + ouvre le row + scroll.
-6. View switcher (3 boutons persistés `sig.view`) :
-   - **Éditorial** : toolbar (`Tendance: all/rising/new/declining`, `Fenêtre: 4/8/12 sem`, Export CSV) + groupes par `category`, rows cliquables avec `SignalDetail` (big graph 12 sem + jarvis_take + liste sources + 2 CTAs : "Voir la veille filtrée" / "Demander à Jarvis").
-   - **Cycle de hype** : SVG Gartner-ish 1000×540 avec courbe fixe (`hypeCurveY`), signaux positionnés par `maturity` (x = bucket + jitter par delta) et hauteur ajustée au momentum. Halos, labels staggerés 4 slots, légende trend.
-   - **Co-occurrences** : SVG 1000×620 radial, angle = catégorie, distance = inverse de `count`, edges depuis `related[]`. Hover isole le cluster.
-7. Clic bookmark sur un row/cell → toggle `watched` (persisté `sig.watch`).
-8. Export CSV : bouton `.btn--ghost` en bout de toolbar éditoriale, télécharge `signals-YYYY-MM-DD.csv` (8 colonnes, BOM UTF-8 pour Excel FR).
-9. Depuis `SignalDetail` :
-   - "Voir la veille filtrée" → stash `veille-prefill-query` = `signal.name`, nav `search`.
-   - "Demander à Jarvis" → stash `jarvis-prefill-input` = prompt multi-ligne prérempli (catégorie, tendance, sources top 5), nav `jarvis`.
+1. Clic sidebar "Signaux faibles" (ou raccourci Ctrl/Cmd+4).
+2. Arrivée possible depuis le panel Opportunités en cliquant sur un signal lié — le panel s'ouvre automatiquement sur ce signal, row déjà déplié et scrollé au centre.
+3. Lecture du hero : quatre stats synthétiques (En hausse / Nouveaux / En baisse / Watchlist).
+4. Si la watchlist personnelle est non vide, elle apparaît en deux colonnes en tête de page — cartes des signaux suivis avec mini-courbe + liste des six dernières alertes triées par semaine décroissante.
+5. Grille de priorité : quatre cartes mises en avant (nouveaux en premier, puis plus fortes hausses). Clic sur une carte pour basculer en vue éditoriale et ouvrir le détail du signal.
+6. Choix de la vue via les trois boutons en haut (préférence mémorisée) :
+   - **Éditorial** : toolbar (tendance / fenêtre d'analyse / export CSV), signaux groupés par catégorie, row cliquable qui déroule le détail — grand graphique 12 semaines, analyse courte, liste de sources, raccourcis "Voir la veille filtrée" et "Demander à Jarvis".
+   - **Cycle de hype** : chaque signal placé sur une courbe Gartner selon sa maturité, avec taille modulée par le momentum, halo autour des signaux suivis, légende par tendance.
+   - **Co-occurrences** : graphe radial où l'angle traduit la catégorie et la distance au centre le volume, avec liens entre signaux qui apparaissent ensemble. Hover isole un cluster.
+7. Clic sur l'icône bookmark d'un signal pour l'ajouter ou le retirer de la watchlist (persistée entre sessions).
+8. Clic sur "Export CSV" en toolbar éditoriale pour télécharger la liste filtrée, encodée pour Excel français.
+9. Depuis le détail d'un signal, deux raccourcis sortants :
+   - "Voir la veille filtrée" ouvre la Recherche pré-remplie avec le nom du signal.
+   - "Demander à Jarvis" ouvre l'assistant avec un prompt déjà pré-rempli (catégorie, tendance, top sources).
 
 ## Fonctionnalités
 - **Trois vues switchables** : Éditorial (liste groupée par catégorie), Cycle de hype (positionnement sur courbe Gartner) et Co-occurrences (graphe radial de termes qui apparaissent ensemble). La préférence de vue est mémorisée.
@@ -172,6 +172,7 @@ created_at timestamptz NULL
 - [ ] **`SIGNALS_DATA.maturity_positions` écrasé** à l'hydratation avec une valeur différente de la fake (`declining: 0.78` vs `0.92`, `plateau: 0.92` vs `0.80`). Cohérence à vérifier.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — retrodoc initial basé sur HEAD `c456ac9`. Correctifs appliqués le même jour :
 - migration `sql/011_signal_tracking_enrichment.sql` (jarvis_take + alerts)

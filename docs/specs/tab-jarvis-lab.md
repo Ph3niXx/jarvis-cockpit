@@ -13,30 +13,16 @@ Panel **méta** : visualiser l'avancement du projet Jarvis et l'architecture du 
 Le panel fetch le JSON une fois (cache mémoire module-level), affiche une roadmap cliquable sur les 6 phases, une grille filtrable des features de la phase sélectionnée (par `status` × `scope`), un drawer latéral avec tous les détails (Impl / Deps / Decisions / Metrics / Next steps), et le catalogue complet des onglets groupé. La validation structurelle du spec tourne en CI à chaque push sur le fichier (`.github/workflows/validate-spec.yml`).
 
 ## Parcours utilisateur
-1. Clic sidebar "Jarvis Lab" (groupe **Personnel**, juste après "Jarvis") — `activePanel === "jarvis-lab"` à [app.jsx:407](cockpit/app.jsx:407).
-2. **Pas un panel Tier 2** : pas de `loadPanel` case, pas de loader générique. Fetch interne `./jarvis/spec.json` au premier mount, cache dans `__jarvisLabSpecCache` (module-scope).
-3. Header : "JARVIS LAB · Source : jarvis/spec.json · Dernière MAJ : {meta.updated_at}".
-4. Roadmap horizontale de 6 chips P1..P6 — clic sur une phase → `setSelectedPhaseId(id)`. La phase par défaut est : `in_progress` si existe, sinon dernier `done`, sinon premier du tableau.
-5. Résumé phase : `{done}/{total} features done · {wip} in progress · {backlog} backlog · {blocked} blocked`.
-6. Barre de filtres 2 groupes (Statut × Scope) : `all/done/in_progress/backlog/blocked` × `all/perso/pro`. Filtres in-memory (pas de persistance).
-7. Grille de cards features : chaque card affiche le badge status avec point coloré, scope + progress, nom, description, barre de progression (rouge si `blocked`), nb `files · deps · decisions`, `Updated {date}`. Clic sur une card → ouvre le drawer.
-8. **Drawer latéral** (aria-modal, body-scroll-lock, Escape pour fermer, focus sur close button) :
-   - Breadcrumb "PHASE N · NOM"
-   - Nom + badges status/scope/progress + barre progression
-   - Description
-   - Section **Implementation** : sous-sections Files (mono), Dependencies, Key decisions
-   - Section **Depends on** : liste cliquable — chaque `phase.feature` est un bouton `JLDependencyLink` qui navigue vers la feature cible (re-open drawer avec nouveau data)
-   - Section **Metrics** (optionnelle) : grille clé/valeur
-   - Section **Next steps** (optionnelle) : liste
-   - Footer "Updated {date}"
-9. Section **Catalogue cockpit** (au milieu) — groupes d'onglets rendus en cards. **Clic sur le corps de la card** → `focusSpec(tab.id)` : scroll vers la section "Specs détaillées" plus bas + sélection automatique du spec correspondant (mapping `tab.id.replace("_", "-")` pour gérer `gaming_news` ↔ `gaming-news`). **Bouton "Ouvrir ↗"** dans le pied de card → `onNavigate(tab.id)` (navigation vers le vrai onglet, quitte Jarvis Lab). Le clic sur la card et celui sur le bouton sont distincts grâce à `e.stopPropagation()` sur le bouton.
-10. Section **Specs détaillées** (tout en bas) — lecteur Markdown 3 colonnes :
-    - **Sidebar gauche** : liste des onglets groupés par `scope` (Pro / Perso / Mixte), ordre `order` croissant, stubs en fin de groupe avec badge `todo`. Sélection = bouton `<button class="jl-specs-nav-item is-active">`, border-left vert accent (warning orange si stub sélectionné).
-    - **Document central** : header (badge scope + badge status "documentée"/"à documenter" + date MAJ + bouton "Ouvrir l'onglet →"), corps = `docs/specs/tab-<slug>.md` rendu via `marked` 11.2 + DOMPurify. Les H2 reçoivent un `id` slugifié (même algo que [panel-wiki.jsx](cockpit/panel-wiki.jsx)). Les H2 commençant par "Limitations" reçoivent un style border-left warning orange automatique.
-    - **TOC droite collante** : liste des H2 du document, clic → `scrollIntoView({ behavior: "smooth" })`. Masquée sous 1100px de largeur.
-    - **Empty state** si rien sélectionné : "Choisis un onglet dans la colonne de gauche pour lire sa spec détaillée."
-    - **Stub state** : bloc warning orange "Cette spec est un stub. Le fichier `docs/specs/tab-<slug>.md` n'a pas encore été rédigé". Pas de fetch de .md.
-    - **Mobile** (<880px) : sidebar remplacée par `<select>`, TOC masquée, doc padding réduit.
+1. Clic sidebar "Jarvis Lab" (groupe Personnel, juste après "Jarvis") — le panel charge la roadmap du projet.
+2. Lecture du header : source de la spec + date de dernière mise à jour.
+3. Clic sur un des six chips P1..P6 de la roadmap horizontale pour sélectionner une phase. La phase en cours est pré-sélectionnée par défaut (sinon la dernière terminée, sinon la première).
+4. Lecture du résumé de phase : compteurs done / in progress / backlog / blocked pour la phase active.
+5. Utilisation de la barre de filtres à deux groupes (Statut × Scope) pour réduire la grille de features aux cartes pertinentes.
+6. Lecture de la grille de features : chaque carte affiche le badge statut, le scope, la progression, le nom, la description, les compteurs de fichiers/dépendances/décisions et la date de mise à jour.
+7. Clic sur une carte pour ouvrir le drawer latéral détaillé : breadcrumb phase, description complète, section Implementation (fichiers, dépendances, décisions clés), section Dépendances cliquables vers d'autres features, section Metrics optionnelle, section Next steps optionnelle. Échap ferme le drawer.
+8. Lecture du catalogue cockpit au milieu de page : onglets groupés (Aujourd'hui / Veille / Apprentissage / Business / Personnel / Système) avec sources de données et fréquences. Clic sur le corps d'une carte amène au lecteur de spec tout en bas ; clic sur "Ouvrir ↗" quitte Jarvis Lab pour basculer sur le vrai onglet.
+9. Lecture des specs détaillées en pied de page : sidebar gauche avec les onglets groupés par scope (Pro / Perso / Mixte), document central en rendu Markdown riche, table des matières à droite avec scroll fluide vers chaque section au clic.
+10. Clic sur "Rafraîchir" dans le header pour vider le cache local et recharger la spec sans recharger la page.
 
 ## Fonctionnalités
 - **Roadmap 6 phases** : six chips en tête de page (Inférence locale, RAG, Mémoire, Orchestrateur, Boucle nocturne, Observation) avec leur statut coloré. Clic sur une phase ouvre la grille de ses features.
@@ -190,6 +176,7 @@ Format spec.json (haut niveau) :
 - [ ] **`scope` binaire perso/pro** : le CLAUDE.md note que beaucoup d'onglets sont "mixte" — le spec.json (validé par `VALID_SCOPE = {"perso", "pro"}`) force à choisir. Les features mixtes sont rangées en "perso" par défaut.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — retrodoc initial basé sur HEAD `c456ac9`. Correctifs appliqués le même jour :
 - [scripts/sync_specs.py](scripts/sync_specs.py) — sync auto `docs/specs/index.json` ← `jarvis/spec.json::cockpit_tabs` (dry-run / --write / --strict).

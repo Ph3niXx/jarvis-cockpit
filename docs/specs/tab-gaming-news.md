@@ -9,11 +9,11 @@ perso
 Prolongement gaming du système de feed unifié. Actualités jeux vidéo fetchées via RSS sur des sources spécialisées (JeuxVideo.com, Gamekult, IGN, Eurogamer, PC Gamer, Dexerto, GamesIndustry.biz, etc.). Partage `PanelVeille` avec toutes les routes Veille — voir [tab-updates.md](tab-updates.md) pour la mécanique, [tab-sport.md](tab-sport.md) pour le pattern "panel sans acteurs suivis + catégories".
 
 ## Parcours utilisateur
-Identique à Sport, avec :
-- **Filtre Rubrique** (`categoryLabel="Rubrique"`) : Sorties récentes / À venir / E-sport / Industrie (hardcoded dans [app.jsx:398-403](cockpit/app.jsx:398)).
-- **Filtre Format** : Critique / Patch / Trailer / Interview / Rumeur / Deal / Sortie / Annonce / Actu — inféré du titre par `guessGamingType` ([data-loader.js:2678-2689](cockpit/lib/data-loader.js:2678)).
-- **Pas de section "Acteurs suivis"** (`showActors={false}`).
-- **Pas de section "Cas prod"** (`prodSection={null}`).
+Identique à Sport (loader, hero, feed filtrable, actions par article) avec :
+- Filtre principal par **Rubrique** : Sorties récentes / À venir / E-sport / Industrie.
+- Filtre secondaire par **Format** : Critique / Patch / Trailer / Interview / Rumeur / Deal / Sortie / Annonce / Actu, détecté automatiquement depuis le titre.
+- Pas de section "Acteurs suivis" — les sources sont fondues dans la pastille de chaque item.
+- Pas de section "Cas prod" — l'onglet gaming n'a pas de grille de cas prod.
 
 ## Fonctionnalités
 Identiques à Sport (hero + tendances + feed filtrable), plus les spécificités gaming :
@@ -95,5 +95,6 @@ Table dédiée, schéma aligné sur `sport_articles`.
 - [ ] **`GAMING_CATEGORY_COLORS` hardcoded** : nouvelle catégorie du pipeline (ex: "retro") tombe sur gris `#888`. Ajouter une entrée au map = 1 ligne.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — migration gaming_news vers hash-colors + catégories dynamiques + vérif pipeline classification (local, non pushé)

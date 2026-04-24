@@ -11,25 +11,18 @@ Regrouper en un seul onglet l'état physique mesurable : activité sportive (Str
 ⚠️ **CLAUDE.md prétend 2 onglets séparés ("Performance Vue d'ensemble" + "Performance Historique") — c'est obsolète.** Le panel actuel est un seul scroll de 5 sections, nommé "Forme" dans la sidebar. Voir Limitations pour la liste des écarts doc/code.
 
 ## Parcours utilisateur
-1. Clic sidebar "Forme" (group **Personnel**, icon `activity`) — [data-loader.js:1215](cockpit/lib/data-loader.js:1215) + mount [app.jsx:409](cockpit/app.jsx:409).
-2. **Panel Tier 2** ([data-loader.js:4547](cockpit/lib/data-loader.js:4547)) — loader générique pendant fetch parallèle `T2.strava()` + `T2.withings()`, puis `transformForme()` construit le shape.
-3. **Hero** : 2 branches selon `_has_weight` :
-   - Avec Withings : `{today.weight} kg · {week.km} km cette semaine`
-   - Sans : `{week.km} km · {week.runs} sorties cette semaine`
-   - Sous-titre dynamique : `{year.km} km parcourus en {année} · {year.runs} sorties. Dernière sortie : {name} ({distance} km). Streak actuel : {streak}j.`
-   - Card KPI à droite : volume semaine + % objectif (40 km hard-coded).
-4. **§1 Entraînement · 30 derniers jours** : 4 cards (Distance vs 30j précédents, Allure moyenne, Dénivelé + kcal, Régularité = streak + jours actifs cette semaine) + **weekbars 7j** avec barres verticales rouges (course) ou `.fm-weekbar-rest` (jour off).
-5. **§2 Charge hebdo · 12 semaines** : `<WeekLoadChart>` SVG 1000×220 — bar chart km/semaine avec axe Y 3 ticks (0 / maxKm/2 / maxKm), label x en `{jour} {mois}`. Calcul on-the-fly à partir de `FD._raw` (les 300 rows `strava_activities` stockées dans le global).
-6. **§3 Composition (Withings)** — affiché seulement si `_has_weight` :
-   - 3 cards conditionnelles (Poids / Masse grasse / Masse musculaire) avec sparkline 30j + deltas 7j/30j/90j (couleur up/down/flat).
-   - Eyebrow "dernière pesée · {date}" depuis `today.weighed_at`.
-7. **§3b Courbes · tendance longue** : `<LineChart>` 1000×280 avec 2 toggles :
-   - Vue : Poids / Composition (masse grasse + eau %) / Muscle
-   - Range : 30j / 90j / 180j
-   - Auto-padding 10% + empty state "Pas assez de mesures sur {range} pour tracer une courbe." si < 2 points.
-8. **§3 fallback (no Withings)** : section simple pointant sur `docs/withings-setup.md` + workflow `withings-sync.yml` à lancer manuellement en backfill.
-9. **§4 Records · auto-calculés** : affiché seulement si `records.length > 0`. 6 items possibles (5k, 10k, semi, marathon, plus longue, volume hebdo max). Temps = distance × pace, format `{m}'{ss}"`, allure `{m}:{ss}/km`, "il y a {ago}".
-10. **§5 Séances · journal** : 20 dernières avec date / type / nom + effort (`easy`/`tempo`/`long` déduit par seuils) / distance + pace / FC moyenne + D+ / durée. Empty state si `sessions = []`.
+1. Clic sidebar "Forme" (groupe Personnel) — le panel charge en parallèle les activités Strava et les pesées Withings.
+2. Lecture du hero en tête de page :
+   - Avec Withings branché : poids du jour + kilomètres de la semaine.
+   - Sans Withings : kilomètres + sorties de la semaine.
+   - Sous-titre avec kilomètres cumulés de l'année, dernière sortie et streak active courante. Carte KPI à droite : volume semaine + pourcentage de l'objectif hebdomadaire configurable.
+3. Lecture de la §1 Entraînement 30 derniers jours : quatre cartes (distance vs 30 jours précédents, allure moyenne, dénivelé + calories, régularité) + ruban 7 jours avec barres verticales par famille de sport (rest si jour off).
+4. Lecture de la §2 Charge hebdo 12 semaines : histogramme barres des kilomètres par semaine avec graduation.
+5. Lecture de la §3 Composition corporelle (si Withings est branché) : trois cartes (Poids / Masse grasse / Masse musculaire) avec sparkline 30 jours et deltas sur 7j / 30j / 90j colorés selon la direction.
+6. Utilisation de la §3b Courbes tendance longue : deux toggles (Vue Poids / Composition / Muscle et Range 30j / 90j / 180j) pour explorer l'évolution sur la durée.
+7. Si Withings n'est pas branché : onboarding dédié pointant vers la procédure de setup + le workflow à lancer manuellement en backfill.
+8. Lecture de la §4 Records auto-calculés (si disponibles) : jusqu'à six records (5k, 10k, semi, marathon, plus longue sortie, volume hebdo max) avec temps, allure et ancienneté.
+9. Lecture de la §5 Journal des 20 dernières séances : tableau dense avec date / type / nom + effort déduit (easy/tempo/long) / distance + pace / FC moyenne + D+ / durée.
 
 ## Fonctionnalités
 - **Hero dynamique** : en tête de page, soit poids du jour + km de la semaine (quand Withings est branché), soit km + sorties seulement. Sous-titre avec km cumulés de l'année, dernière sortie et streak active courante. Carte volume semaine avec pourcentage de l'objectif hebdomadaire configurable.
@@ -156,6 +149,7 @@ Pipeline Strava fait **2 requêtes par activité** : 1 list (30 par page) + 1 de
 - [ ] **Pas de graphe de FC** : `average_heartrate` stocké mais affiché seulement en colonne journal.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — retrodoc initial basé sur HEAD `c456ac9`. Correctifs appliqués le même jour :
 - [CLAUDE.md](CLAUDE.md) — ligne "Forme" actualisée (1 panel scrollable au lieu de 2 vues fictives).

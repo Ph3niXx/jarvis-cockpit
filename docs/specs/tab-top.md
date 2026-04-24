@@ -9,13 +9,13 @@ mixte
 Prolongement du Brief pour qui veut plus que les 3 incontournables de la home et souhaite : (1) les relire dans une vue typo magazine, (2) filtrer par section (LLMs, Agents, Régulation…), (3) exporter la sélection en markdown (copie presse-papier) pour Slack / notes. Le panel est Tier 1 (data pré-chargée au boot, aucun fetch propre).
 
 ## Parcours utilisateur
-1. Clic sidebar "Top du jour" (ou CTA "Lire les 3 incontournables" depuis la Home).
-2. La vue rend immédiatement (data déjà en mémoire depuis `bootTier1()`).
-3. Lecture du titre hero : `"Les N lectures incontournables, triées par impact métier"` avec la sous-ligne explicative.
-4. Toolbar : clic sur une pill de section pour filtrer — le count est affiché à droite de chaque pill.
-5. Layout magazine : **01** en grande feature à gauche, **02** et **03** en side-cards à droite. Clic sur une carte → article ouvert en onglet externe, id écrit dans `localStorage.read-articles`.
-6. Si `rest.length > 0` (jamais en pratique, cf. Limitations), affichage "La suite du classement" en liste dense cliquable.
-7. Bouton "Exporter" ([panel-top.jsx:91-99](cockpit/panel-top.jsx:91)) → markdown formatté dans le clipboard via `navigator.clipboard.writeText` (fallback `document.execCommand('copy')`). Confirmation "Copié !" 1,8 s.
+1. Clic sidebar "Top du jour" (ou raccourci "Lire les 3 incontournables" depuis le Brief).
+2. La vue apparaît immédiatement — les articles du jour sont déjà en mémoire.
+3. Lecture du titre éditorial "Les N lectures incontournables, triées par impact métier" et de sa sous-ligne explicative.
+4. Clic sur une pill de section pour filtrer le top (LLMs / Agents / Régulation…) — chaque pill affiche son compteur d'articles.
+5. Layout magazine : carte 01 en hero à gauche, cartes 02 et 03 en secondaires à droite. Clic sur une carte pour ouvrir l'article en onglet externe (marqué lu automatiquement).
+6. Parcours de la suite du classement en liste dense quand il y a plus de trois articles disponibles.
+7. Clic sur "Exporter" pour copier la sélection formatée en markdown dans le presse-papiers — feedback "Copié !" pendant environ deux secondes, prêt à coller dans Slack ou un carnet de notes.
 
 ## Fonctionnalités
 - **Titre daté** : en tête de page, la mention "Top du jour · semaine S… · date du jour en toutes lettres" pour situer la sélection en un coup d'œil.
@@ -99,5 +99,6 @@ Aucun autre table. Pas de fetch propre au panel (Tier 1 only).
 - [ ] **`isoWeekTop` dupliqué** : même logique d'ISO week que dans [data-loader.js:40-50](cockpit/lib/data-loader.js:40) environ — à mutualiser dans `cockpit/lib/`.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — d752b79

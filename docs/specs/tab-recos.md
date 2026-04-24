@@ -9,14 +9,14 @@ pro
 Panel de "lectures obligatoires de la semaine". Chaque dimanche 22h UTC, `weekly_analysis.py` génère via Claude Haiku 4.5 une liste de micro-tâches d'apprentissage ciblant les **3 axes les plus faibles** du radar (score DB < 3 / 5 = < 60/100). Le front affiche 3 priorités visuelles (**Must / Should / Nice**), toggle "fait" persistant en base, filtres niveau/durée/axe. Les recommandations cochées "fait" nourrissent un sentiment de progression mais **ne bumpent pas** `skill_radar` (seuls les challenges réussis le font — cf. [tab-radar.md](tab-radar.md)).
 
 ## Parcours utilisateur
-1. Clic sidebar "Recommandations" ou CTA radar "Voir recos" → Tier 2 `loadPanel("recos")` (case partagé avec "radar").
-2. Si arrivée via le CTA radar : l'axe est pré-filtré via `localStorage.recos-prefill-axis` (consommé au mount).
+1. Clic sidebar "Recommandations" (ou raccourci "Voir recos" depuis le Radar).
+2. Si l'utilisateur arrive depuis le Radar via "Défi cet axe", la liste est déjà pré-filtrée sur l'axe concerné.
 3. Lecture du hero : "Jarvis sélectionne N lectures, M/N déjà faites" (dynamique).
-4. Toolbar : 4 filtres (Niveau / Durée / Masquer les faits) + **budget temps calculé** `NhNN · XP · N à faire` (somme des items non complétés).
-5. Sidebar gauche : liste des 8 axes avec barre de progression + score, cliquable pour filtrer.
-6. Zone centrale : 3 sections empilées — "Priorité 1 · Ne passe pas à côté" (big cards), "Priorité 2 · Tu devrais creuser ça" (med cards), "Priorité 3 · Si tu as du temps" (rows compactes).
-7. Clic sur une card → `window.open(url)` en onglet externe.
-8. Bouton "Marquer fait" → optimistic update (`completedOverrides[id]`) + `PATCH learning_recommendations?id=eq.X` avec `completed=true, completed_at=now()`. Rollback + alert si le patch échoue.
+4. Utilisation de la toolbar : quatre filtres combinables (Niveau / Durée / Axe / Masquer les faits) et budget temps calculé à droite (heures restantes · XP · nombre à faire).
+5. Sidebar gauche : liste des huit axes IA avec barre de progression et score, cliquable pour filtrer la zone centrale.
+6. Lecture verticale des trois sections priorisées : "Priorité 1 · Ne passe pas à côté" en grandes cartes, "Priorité 2 · Tu devrais creuser ça" en cartes moyennes, "Priorité 3 · Si tu as du temps" en lignes denses.
+7. Clic sur une carte pour ouvrir la ressource en onglet externe — marquée faite automatiquement.
+8. Clic sur "Marquer fait" pour basculer manuellement une reco en faite (mise à jour instantanée, rollback si la sauvegarde échoue).
 
 ## Fonctionnalités
 - **Trois sections de priorité** : « Ne passe pas à côté » (Must), « Tu devrais creuser ça » (Should), « Si tu as du temps » (Nice), pour savoir quoi lire en premier.
@@ -125,5 +125,6 @@ Route id = `"recos"`. **Panel Tier 2** (listé dans `TIER2_PANELS` à [data-load
 - [ ] **Clic auto-mark-done** : si l'utilisateur clique pour "juste vérifier" sans lire, le fait est marqué. Il peut revert via le bouton "Marquer fait" mais c'est 2 clics pour corriger une action non voulue.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — 3 branches empty-state + clic card = open + mark done (local, non pushé)

@@ -9,18 +9,18 @@ pro
 Stocker les idées de produits/side-projects/contenu/vie-perso captées au fil de l'eau, les laisser mûrir sans pression de date, et les faire grader par stade de maturité (5 colonnes : seed → incubating → maturing → ready_to_promote → parked). C'est le seul onglet frontend qui fait du CRUD complet sur Supabase (INSERT + UPDATE depuis le navigateur). Distinction claire avec `opps` : **Opportunités** = fenêtres datées urgentes, **Idées** = backlog sans deadline. Les idées promues remontent ensuite dans `opps` via un tag `status='promoted'`.
 
 ## Parcours utilisateur
-1. Clic sidebar "Carnet d'idées" → Tier 2 `loadPanel("ideas")` fetch les 100 lignes de `business_ideas` les plus récentes, `buildIdeasFromDB` les mappe vers la shape panel, injecte dans `window.IDEAS_DATA.ideas`.
-2. **Hero** avec 4 KPIs (total, captées cette semaine, en maturation, prêtes à promouvoir).
-3. **Capture bar** en haut : `Titre #tag1 #tag2` + Entrée → POST immédiat. Ou clic "Détails" → ouvre la `TicketModal` préremplie.
-4. **Suggestions Jarvis** (section conditionnelle) : 4 signaux rising/new + 3 top opportunités non déjà liés aux idées existantes, avec boutons "Ajouter au carnet" / "Ignorer".
-5. **Flagship card** : la ready_to_promote la plus touchée (fallback : la maturing la plus touchée) avec scores impact/effort/alignment, signaux source, actions Promouvoir/Modifier/Parquer.
-6. **View switcher** (Pipeline | Galerie) + filtres catégorie (5 pills) + filtres libellés dynamiques (top 20 labels).
-7. **Pipeline view** : 5 colonnes drag-and-drop natives (HTML5). Drop d'une carte dans une autre colonne → `handleMoveStatus` PATCH + mutation in-memory.
-8. **Galerie view** : mur de post-its, ready_to_promote en premier.
-9. Clic sur une carte → ouvre **TicketModal** en mode edit (titre, description, libellés, métadonnées read-only, menu "Déplacer →" vers chaque autre stade, boutons Promouvoir/Demander à Jarvis/Parquer).
-10. "Promouvoir" → PATCH `status='promoted'`. L'idée disparaît des 5 colonnes et doit être relue depuis le panel `opps` (pas de nav auto). "Parquer" → PATCH `status='parked'`.
-11. "Demander à Jarvis" → `onNavigate("jarvis")` direct (pas de prompt prefill, contrairement à d'autres onglets).
-12. Raccourcis clavier : `Ctrl+N` (focus capture depuis n'importe où), `Ctrl+Shift+N` (ouvre modal create), `P/G` (switch view), `Escape` (ferme detail inline).
+1. Clic sidebar "Carnet d'idées" — le panel charge les 100 idées les plus récentes.
+2. Lecture du hero avec quatre KPIs : total des idées, captées cette semaine, en maturation, prêtes à promouvoir.
+3. Capture éclair dans la barre du haut : tape un titre suivi de `#tags`, appuie sur Entrée — l'idée est créée instantanément. Clic sur "Détails" pour ouvrir le modal prérempli avec plus de champs.
+4. Si des suggestions sont disponibles, une section dédiée propose d'ajouter automatiquement quatre signaux rising/new et trois top opportunités non encore matérialisés en idée, avec boutons "Ajouter au carnet" / "Ignorer".
+5. L'idée phare (la plus mature non encore promue) apparaît en carte XL avec scores impact / effort / alignement, signaux source, et actions Promouvoir / Modifier / Parquer.
+6. Choix entre la vue **Pipeline** (défaut) et la vue **Galerie**, avec filtres par catégorie et par libellés combinables.
+7. En vue **Pipeline**, cinq colonnes (Seed → Incubating → Maturing → Ready to promote → Parked) avec drag-and-drop pour faire maturer une idée d'une colonne à l'autre.
+8. En vue **Galerie**, toutes les idées apparaissent en post-its colorés, les prêtes à promouvoir en premier.
+9. Clic sur une carte pour ouvrir le modal d'édition : titre, description, libellés avec autocomplete, métadonnées en lecture seule, menu "Déplacer vers" chaque autre stade, boutons Promouvoir / Demander à Jarvis / Parquer.
+10. Clic sur "Promouvoir" bascule l'idée en statut "promue" — elle disparaît du kanban et peut être retrouvée via le panel Opportunités. "Parquer" la passe en statut "parkée".
+11. Clic sur "Demander à Jarvis" ouvre l'assistant dans l'onglet voisin.
+12. Raccourcis clavier : Ctrl+N focalise la capture depuis n'importe quel panel, Ctrl+Shift+N ouvre le modal de création complète, P / G bascule entre Pipeline et Galerie, Échap ferme le détail.
 
 ## Fonctionnalités
 - **Capture éclair avec hashtags** : barre de saisie en tête de page — tape un titre suivi de `#labels`, appuie sur Entrée, l'idée est créée instantanément. Les hashtags deviennent des libellés réutilisables (normalisés, slugifiés, max 32 caractères).
@@ -177,5 +177,6 @@ Volumétrie actuelle (2026-04-24) : **1 seule ligne en DB**. Le panel montre don
 - [x] ~~**`IDEAS_DATA.updated` hardcodé**~~ → **fixé** : `buildIdeasFromDB` calcule `max(updated_at)` sur les rows DB et `formatIdeasUpdated()` le formate en "Sam 24 avr · 14h30". Loader case "ideas" écrit `window.IDEAS_DATA.updated` après fetch. Tant que la DB est vide, la valeur fake reste affichée (comportement cohérent avec le fallback fake-data du reste du panel).
 
 ## Dernière MAJ
+2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 4 fixes (promoted_to_opp, detail inline supprimé, teaser→notes, updated date branchée)
