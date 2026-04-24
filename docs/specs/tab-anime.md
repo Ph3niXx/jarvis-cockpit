@@ -15,13 +15,13 @@ Identique à Sport / Gaming pour le feed, plus :
 - **Section "Prochaines sorties anime"** en bas : table sortable par date avec filtres année + mois ([panel-veille.jsx:36-173](cockpit/panel-veille.jsx:36)). Source = articles `MyAnimeList` `category=upcoming` triés par `date_published` ascendant. Affiche titre nettoyé (sans le préfixe `[TV]/[Movie]/[OVA]/[Special]/[ONA]`), studio extrait du summary via regex `Studio\s*:\s*(...)`, lien direct MAL.
 
 ## Fonctionnalités
-Identiques à Veille IA, plus les spécificités anime/ciné :
-- **Normalisation source** : `AlloCiné` regroupe les sous-titres "AlloCiné Cinéma", "AlloCiné Séries", etc.
-- **Auto-typage titre** : 9 types via regex FR+EN incluant `bande-annonce`, `box-office`, `audiences`, `episode N` / `épisode N`, `greenlit`, `renewed`.
-- **Hero metrics dynamiques** : Articles 24h / 7j / Top statut (7j) / Sources distinctes.
-- **Acteurs (avatars feed)** : 10 sources avec couleur brand curée (AlloCiné `#fec300`, Première `#000`, Écran Large `#c62828`, ANN `#265a8f`, MAL `#2e51a2`, **TMDB `#0d253f`**, Deadline `#d50000`, Variety `#003c71`, Hollywood Reporter `#bf1a1a`, IndieWire `#2e6a4f`). Reste via `nameHashColor` (palette déterministe partagée avec les autres panels Veille).
-- **Trends = statuts** pondérées par volume 7j. Status `rising ≥15`, `stable ≥8`, sinon `new` ([data-loader.js:3974](cockpit/lib/data-loader.js:3974)).
-- **Mode `ProdTable`** : table dédiée pour les sorties futures (cf. plus bas).
+Identiques à Veille IA (hero actu + tendances + feed filtrable), plus les spécificités anime/ciné/séries :
+- **Filtre Statut** : un bandeau de pills (Sorties récentes / À venir prochainement / Industrie) pour cibler le type de contenu.
+- **Filtre Format** : un deuxième bandeau (Critique / Trailer / Interview / Audience / Deal / Diffusion / Annonce / Sortie / Actu) déduit automatiquement du titre.
+- **Regroupement AlloCiné** : les sous-marques éditoriales (« AlloCiné Cinéma », « AlloCiné Séries »…) sont fusionnées sous un seul acteur pour éviter les doublons.
+- **Tableau de bord statut** : quatre indicateurs en tête de page — articles sur 24h, articles sur 7j, statut le plus actif cette semaine, nombre de sources distinctes.
+- **Couleurs de marque curées** : AlloCiné, Première, Écran Large, Anime News Network, MyAnimeList, TMDB, Deadline, Variety, Hollywood Reporter et IndieWire gardent leur couleur brand dans les pastilles ; les autres sources sont coloriées automatiquement.
+- **Calendrier « Prochaines sorties »** : en bas de page, une table dédiée aux animes/films/séries à venir, triée par date, avec trois filtres Année / Mois / Type (TV / Movie / OVA / Special / ONA / Anime). Studio ou producteur affichés à côté du titre, lien direct vers la fiche MyAnimeList ou TMDB. Message explicite quand aucune sortie ne tombe sur la période.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-veille.jsx](cockpit/panel-veille.jsx) (partagé). Props distinctives :
@@ -123,4 +123,5 @@ Pas de table dédiée pour les sorties futures : elles cohabitent dans `anime_ar
 - [ ] **Pas de table dédiée `tv_releases`** : Jikan + TMDB cohabitent dans `anime_articles`. OK pour l'instant, mais si le volume TMDB devient gros (100+ rows/jour), penser à séparer.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — migration anime hash-colors + catégories dynamiques + filtre Type + TMDB scaffold (local, non pushé)

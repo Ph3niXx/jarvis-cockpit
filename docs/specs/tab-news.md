@@ -15,12 +15,13 @@ Identique aux autres panels Veille sans acteurs, avec :
 - **Pas d'"Acteurs suivis"** (`showActors={false}`), **pas de "Cas prod"** (`prodSection={null}`).
 
 ## Fonctionnalités
-Identiques aux autres panels Veille, plus :
-- **Normalisation source** : préfixes variants compactés — `Le Parisien` absorbe `"Le Parisien · Paris"`, idem pour `20 Minutes`, `Le Monde`, `FranceInfo`, `RFI` ([data-loader.js:2777-2784](cockpit/lib/data-loader.js:2777)).
-- **Auto-typage** via regex FR : `interview/confie/témoignage → Interview`, `tribune/édito/opinion → Tribune`, `analyse/enquête/reportage → Analyse`, `direct/en direct → Live`, `annonce/confirme → Annonce`, fallback `Actu`.
-- **Hero metrics dynamiques** : Articles 24h / 7j / Top zone (7j) / Sources distinctes.
-- **Acteurs (avatars feed)** : 10 sources avec couleur brand curée (Le Parisien `#003594`, 20 Minutes `#00ad97`, BFM Paris `#0066cc`, Le Monde `#000`, Le Figaro `#1e3a8a`, FranceInfo `#e20613`, Libération `#d2142f`, BBC World `#bb1919`, France 24 `#d9b15e`, RFI `#cc0000`). Fallback `nameHashColor` pour les sources inconnues.
-- **Trends = zones** pondérées par volume 7j. Status `rising ≥20`, `stable ≥10`, sinon `new` ([data-loader.js:4163](cockpit/lib/data-loader.js:4163)).
+Identiques aux autres panels Veille (hero + tendances + feed), plus les spécificités actualités :
+- **Filtre Zone** : un bandeau de pills (Paris / France / International) pour cibler une zone géographique.
+- **Filtre Rubrique** : un deuxième bandeau (Actu / Live / Analyse / Interview / Tribune / Annonce) déduit automatiquement du titre.
+- **Regroupement des éditions** : les variantes éditoriales (« Le Parisien · Paris », « 20 Minutes · Lille »…) sont regroupées sous une seule marque pour éviter les doublons.
+- **Tableau de bord zone** : quatre indicateurs en tête de page — articles sur 24h, articles sur 7j, zone la plus active cette semaine, nombre de sources distinctes.
+- **Couleurs de marque curées** : Le Parisien, 20 Minutes, BFM Paris, Le Monde, Le Figaro, FranceInfo, Libération, BBC World, France 24 et RFI gardent leur couleur brand dans les pastilles ; les autres sources sont coloriées automatiquement.
+- **Tendances par zone** : chaque zone est remontée en carte de tendance selon son volume de la semaine, pour voir si l'international supplante la France.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-veille.jsx](cockpit/panel-veille.jsx) (partagé). Props distinctives :
@@ -94,4 +95,5 @@ Table dédiée, schéma aligné sur `sport_articles` / `gaming_articles` / `anim
 - [ ] **Pas de filtre "Scope" (perso/pro)** : le panel est taggé `mixte` dans index.json mais toutes les actus sont mélangées. Si un jour on veut séparer "actu perso" de "actu pro", il faudrait structurer par tags.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — migration news hash-colors + catégories dynamiques (local, non pushé)

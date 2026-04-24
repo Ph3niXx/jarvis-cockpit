@@ -23,17 +23,17 @@ Stocker les idées de produits/side-projects/contenu/vie-perso captées au fil d
 12. Raccourcis clavier : `Ctrl+N` (focus capture depuis n'importe où), `Ctrl+Shift+N` (ouvre modal create), `P/G` (switch view), `Escape` (ferme detail inline).
 
 ## Fonctionnalités
-- **Capture-as-you-go avec hashtags** : `parseHashtags("Lance un LoRA #jarvis #ml")` → `{title: "Lance un LoRA", labels: ["jarvis","ml"]}`. Normalisation : lowercase, strip diacritiques, slug ≤ 32 chars.
-- **TicketModal réutilisable** ([components-ticket.jsx](cockpit/components-ticket.jsx)) : shape `{title, description, labels}`, suggestions d'autocomplete sur les labels existants, `Ctrl+Entrée` save / `Échap` cancel. Le modal affiche une section `metadata` (stade, âge, scores, signaux, Jarvis) read-only et des `extraActions` (status menu + Promouvoir/Jarvis/Parquer) en mode edit.
-- **Pipeline 5 colonnes** : `seed` → `incubating` → `maturing` → `ready_to_promote` → `parked`. Drag natif HTML5 avec feedback `drophover` sur la colonne survolée, pending state visuel pendant le PATCH.
-- **Galerie "post-its"** : cards colorées par catégorie (5 catégories : business, side, content, jarvis, life), sortées ready-first puis par `last_touched` desc.
-- **Flagship** : l'idée "qui attend d'être promue" — la plus mature non-promue. Carte XL avec scores visuels, oneliner, body, prompt Jarvis, signaux source, CTA.
-- **Détail inline** (`IdeaDetail`) : legacy path, atteignable uniquement via `openId` qui n'est plus défini par `handleOpen` (qui bascule sur le modal). **Dead code sur le chemin nominal**, mais composant toujours présent.
-- **Suggestions Jarvis dérivées** : union (signaux rising/new non couverts par une idée existante) ∪ (top 3 opportunités non déjà promues depuis une idée). Dismiss persisté dans `localStorage.idea.suggestDismissed`. Accept → crée l'idée en `seed`.
-- **Filtres combinables** : catégorie (via mapping heuristique `sector → category` dans le loader) + multi-labels en union (`some(l => labelFilter.includes(l))`).
-- **Scores impact/effort/alignment** : **heuristiques**. `impact` dérivé de `market_size_estimate` (large=5, med=4, small=3, niche=2, default=3). `effort` dérivé de `competition_level` (low=2, med=3, high=4, default=3). `alignment` toujours = 3 (pas de colonne DB).
-- **Télémétrie** : 6 events (voir section Appels externes).
-- **Cross-panel write-in** : le panel `opps` peut créer une ligne `business_ideas` via le bouton "Envoyer au Carnet" ([panel-opportunities.jsx:537](cockpit/panel-opportunities.jsx:537)).
+- **Capture éclair avec hashtags** : barre de saisie en tête de page — tape un titre suivi de `#labels`, appuie sur Entrée, l'idée est créée instantanément. Les hashtags deviennent des libellés réutilisables (normalisés, slugifiés, max 32 caractères).
+- **Hero 4 KPIs** : total des idées, captées cette semaine, en maturation, prêtes à promouvoir.
+- **Idée phare** : la plus mature non encore promue mise en avant en carte XL, avec scores (impact / effort / alignement), pitch, description, signaux source et actions rapides (Promouvoir / Modifier / Parquer).
+- **Pipeline kanban 5 colonnes** : Seed → Incubating → Maturing → Ready to promote → Parked, avec drag-and-drop pour faire maturer une idée d'une colonne à l'autre.
+- **Vue galerie** : alternative « mur de post-its » colorés par catégorie, avec les prêtes à promouvoir en premier.
+- **Filtres combinables** : cinq catégories (Business / Side / Content / Jarvis / Life) + multi-sélection par libellés, pour isoler un sous-ensemble rapidement.
+- **Modal ticket en édition** : clic sur une carte ouvre un formulaire complet (titre, description, libellés avec autocomplete, métadonnées en lecture seule, menu « Déplacer vers » chaque stade) avec raccourcis Ctrl+Entrée pour enregistrer.
+- **Suggestions Jarvis** : section conditionnelle proposant d'ajouter automatiquement les signaux faibles rising/new et les top opportunités non encore matérialisés en idée — accepter crée l'idée, dismiss la masque définitivement.
+- **Actions d'arbitrage** : boutons Promouvoir (passe l'idée en statut « promue » — disparaît du kanban), Parquer (passe en « parkée »), Demander à Jarvis (ouvre l'assistant dans l'onglet voisin).
+- **Réception depuis Opportunités** : le bouton « Envoyer au Carnet » du panel Opportunités crée une ligne préremplie avec contexte complet (marché, concurrence, sources, prochaine étape).
+- **Raccourcis clavier** : Ctrl+N focalise la capture, Ctrl+Shift+N ouvre le modal de création complète, P / G bascule entre Pipeline et Galerie.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-ideas.jsx](cockpit/panel-ideas.jsx) — 1091 lignes, monté par [app.jsx:403](cockpit/app.jsx:403).
@@ -177,4 +177,5 @@ Volumétrie actuelle (2026-04-24) : **1 seule ligne en DB**. Le panel montre don
 - [x] ~~**`IDEAS_DATA.updated` hardcodé**~~ → **fixé** : `buildIdeasFromDB` calcule `max(updated_at)` sur les rows DB et `formatIdeasUpdated()` le formate en "Sam 24 avr · 14h30". Loader case "ideas" écrit `window.IDEAS_DATA.updated` après fetch. Tant que la DB est vide, la valeur fake reste affichée (comportement cohérent avec le fallback fake-data du reste du panel).
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 4 fixes (promoted_to_opp, detail inline supprimé, teaser→notes, updated date branchée)

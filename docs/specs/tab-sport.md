@@ -16,12 +16,13 @@ Identique à Veille IA, avec quelques différences visibles :
 - **Pas de section "Agents en production"** (`prodSection={null}`).
 
 ## Fonctionnalités
-Identiques à Veille IA, plus :
-- **Normalisation des sources** : "L'Equipe" / "L'Équipe" / "L'Équipe XX" → "L'Équipe" ; "RMC …" → "RMC Sport" ([data-loader.js:2625-2630](cockpit/lib/data-loader.js:2625)).
-- **Auto-typage** depuis les mots du titre via regex : transfert/mercato/signé → Transfert ; victoire/remporte → Match ; bless/forfait → Blessure ; etc.
-- **Hero metrics dynamiques** : Articles 24h / Articles 7j / Top discipline (7j) / Sources distinctes ([data-loader.js:3691-3697](cockpit/lib/data-loader.js:3691)).
-- **Acteurs (latéraux du feed)** : construits depuis les sources normalisées avec palette manuelle (`L'Équipe #e4002b`, `RMC Sport #004080`, …). Acteurs non-mappés reçoivent `#555`.
-- **Trends = disciplines** : une pseudo-tendance par `category` pondérée par volume. Status = `rising` si ≥20 articles, `stable` ≥10, `new` sinon ([data-loader.js:3744](cockpit/lib/data-loader.js:3744)).
+Identiques à Veille IA (hero actu + tendances + feed filtrable par période), plus les spécificités sport :
+- **Filtre Discipline** : un bandeau de pills par sport (Football / E-sport / Rugby / Cyclisme / Tennis / Natation) pour cibler une discipline d'un clic.
+- **Filtre Format** : un deuxième bandeau (Transfert / Match / Interview / Blessure / Analyse / Actu) déduit automatiquement du titre de chaque article.
+- **Fusion des doublons de sources** : les variantes éditoriales ("L'Equipe", "L'Équipe Football"…) sont regroupées sous un seul acteur pour éviter les doublons dans le feed.
+- **Tableau de bord discipline** : quatre indicateurs en tête de page — articles sur 24h, articles sur 7j, discipline la plus active cette semaine, nombre de sources distinctes.
+- **Acteurs colorés par marque** : chaque source garde sa couleur éditoriale (L'Équipe en rouge, RMC Sport en bleu…) dans les pastilles du feed, pour identifier la provenance au premier regard.
+- **Tendances par discipline** : chaque sport est remonté en carte de tendance avec son volume d'articles, pour voir d'un coup d'œil si le football dépasse le rugby cette semaine.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-veille.jsx](cockpit/panel-veille.jsx) (partagé). Props distinctives :
@@ -106,4 +107,5 @@ Table dédiée (séparée de `articles`), schéma proche mais avec une colonne `
 - [ ] **Gaming/anime/news gardent encore la palette manuelle + catégories hardcoded** : pourra être migré sur le même pattern `v.categories` + hash fallback quand on y passera.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — fix feed-fake sur 4 panels + hash-colors sport + catégories dynamiques (local, non pushé)

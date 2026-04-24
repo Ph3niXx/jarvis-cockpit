@@ -9,7 +9,7 @@
       "dom_id": "brief",
       "scope": "mixte",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "top",
@@ -19,7 +19,7 @@
       "dom_id": "top",
       "scope": "mixte",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "week",
@@ -29,7 +29,7 @@
       "dom_id": "week",
       "scope": "mixte",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "search",
@@ -39,7 +39,7 @@
       "dom_id": "search",
       "scope": "mixte",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "updates",
@@ -49,7 +49,7 @@
       "dom_id": "updates",
       "scope": "pro",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "sport",
@@ -59,7 +59,7 @@
       "dom_id": "sport",
       "scope": "perso",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "gaming-news",
@@ -69,7 +69,7 @@
       "dom_id": "gaming_news",
       "scope": "perso",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "anime",
@@ -79,7 +79,7 @@
       "dom_id": "anime",
       "scope": "perso",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "news",
@@ -89,7 +89,7 @@
       "dom_id": "news",
       "scope": "mixte",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "radar",
@@ -99,7 +99,7 @@
       "dom_id": "radar",
       "scope": "pro",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "recos",
@@ -109,7 +109,7 @@
       "dom_id": "recos",
       "scope": "pro",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "challenges",
@@ -119,7 +119,7 @@
       "dom_id": "challenges",
       "scope": "pro",
       "status": "documented",
-      "last_updated": "2026-04-23"
+      "last_updated": "2026-04-24"
     },
     {
       "slug": "wiki",

@@ -23,17 +23,14 @@ Panel le plus dense du cockpit. Centralise tout ce qui tombe des flux RSS veille
 10. Toggle tone "Éditorial" / "Dense" flottant en bas à droite (change le thème visuel, `.vl-dense` / `.vl-dawn`).
 
 ## Fonctionnalités
-- **Hero release** : carte de la dernière release (actor + version + tagline + body + benchmarks 4 colonnes).
-- **Acteurs suivis** : grid de cartes par acteur (mark + nom + momentum + dernier contenu + sparkline pulse 8 semaines). Clic → filtre le feed. Acteurs non-`followed` grisés.
-- **Tendances transverses** : 4-6 cartes (label + kicker + résumé + status new/rising/stable/debated + pulse bars + acteurs impliqués). Clic → active le `trendFilter`.
-- **Feed chronologique** : groupé par type ou flat si un type spécifique est sélectionné.
-  - Groupement avec tri : unread DESC, puis count DESC
-  - Preview 5 items par groupe, expansion par `setExpandedGroups`
-  - Premier groupe ouvert par défaut (`open={idx === 0}`)
-- **Filtres** : 3 groupes de pills (catégorie / type / période). Réinitialisables via bouton dans l'empty state.
-- **Read state** : `readState[id]` = `"read"` | `"archived"` | `undefined`. Archivé = filtré out du feed. Lu écrit aussi dans `localStorage.read-articles` quand l'URL est ouverte.
-- **Cas prod** : grid de cartes (company + logo_mark + domain + scale + headline + model + impact) OU `<ProdTable>` (mode `prodTableMode=true`, utilisé uniquement par `anime`) avec filtres année + mois.
-- **Tone toggle** : "Éditorial" vs "Dense" (state local, pas de persistance).
+- **Hero release** : en tête de page, la dernière release majeure mise en avant (acteur, version, tagline, résumé et quatre benchmarks clés) pour repérer d'un coup d'œil ce qui vient de sortir.
+- **Acteurs suivis** : une grille de cartes par labo/éditeur, chacune avec son momentum, son dernier contenu et une micro-courbe d'activité sur huit semaines. Un clic filtre le feed sur l'acteur.
+- **Tendances transverses** : quatre à six cartes de tendances (nouvelle / en hausse / stable / débattue) avec un mini-histogramme d'activité. Un clic filtre le feed par mots-clés de la tendance.
+- **Feed chronologique** : tous les articles des 30 derniers jours groupés par type (Release / Framework / Cas prod / Papier / Deal / Régulation / Analyse), triés non-lus en premier, avec prévisualisation de cinq items et bouton « Voir les N autres » pour déplier.
+- **Triple filtre** : trois groupes de pills (acteur / type / période 24h-7j-30j) combinables, avec bouton de réinitialisation quand le filtre vide la vue.
+- **Actions par article** : marquer lu/non-lu, archiver pour masquer définitivement, ouvrir dans un nouvel onglet. Un bouton « Tout marquer lu » vide la pile d'un coup.
+- **Cas prod / Agents en production** : grille de cartes d'entreprises (domaine, échelle, modèle, impact) pour voir qui a déployé quoi le mois en cours.
+- **Toggle de densité** : un flottant en bas à droite pour basculer entre un affichage éditorial aéré et un affichage dense.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-veille.jsx](cockpit/panel-veille.jsx) — 620 lignes, monté par [app.jsx:384-385](cockpit/app.jsx:384) avec props `corpus="VEILLE_DATA"`, `title="Veille IA"`, `actorsLabel="labos + éditeurs"`, `prodSection={ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }`.
@@ -149,4 +146,5 @@ Pas de pipeline qui alimente `actors`, `trends`, `prod_cases` — tout est du co
 - [ ] **Couleurs acteurs dérivées d'un hash** : conflits de couleurs possibles avec beaucoup de sources similaires. Palette de 10 couleurs.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — acteurs/tendances dynamiques + fix feed fake + CTAs wirés + persistance readState (local, non pushé)

@@ -39,16 +39,16 @@ Le panel fetch le JSON une fois (cache mémoire module-level), affiche une roadm
     - **Mobile** (<880px) : sidebar remplacée par `<select>`, TOC masquée, doc padding réduit.
 
 ## Fonctionnalités
-- **Fetch + cache module-level** : `__fetchJarvisSpec()` fait `fetch("./jarvis/spec.json", { cache: "no-store" })` puis stocke dans `__jarvisLabSpecCache`. Un seul fetch par session ; `cache: no-store` contourne le cache HTTP mais pas le cache JS.
-- **Auto-sélection intelligente** : premier mount sélectionne la phase `in_progress` (priorité 1), puis la dernière `done` (priorité 2), puis la première (fallback).
-- **Filtrage client** : 2 axes (status × scope) = 5 × 3 = 15 combinaisons possibles. Filtrage pure-function via `array.filter`.
-- **Drawer navigation inter-features** : `JLDependencyLink` permet de suivre une dépendance (ex. `phase-2.pgvector-setup`) → clic ouvre le drawer de la feature cible **sans recharger la page** ni fermer le drawer. Focus management : `closeRef.focus()` sur chaque changement de data.
-- **Body scroll lock + Escape** : drawer accessibilité-friendly (aria-modal, aria-label dynamique).
-- **Restore focus on close** : la `lastOpenerRef` capture l'élément cliqué à l'ouverture ; `closeDrawer` restaure le focus dessus pour rester clavier-navigable.
-- **Catalogue cockpit auto-affiché** : tous les onglets listés dans `spec.cockpit_tabs.groups[]` sont rendus en bas — utile pour parcourir "ce que fait l'app" sans naviguer onglet par onglet.
-- **Validation CI** : `scripts/validate_spec.py` vérifie la cohérence structurelle (ids uniques, `status` dans l'enum, `progress` cohérent avec `status` — done→100, backlog→0 —, `depends_on` pointent vers des features existantes, `updated_at` ISO valide). Le workflow tourne sur tout push ou PR modifiant `jarvis/spec.json`, `scripts/validate_spec.py` ou son `.yml`.
-- **Lecteur Markdown** : `__parseSpecMd(src)` lexe via `window.marked.lexer`, extrait les H2 pour la TOC, réinjecte des `id` stables dans tous les headings post-parsing, sanitize via `window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } })`. Deux caches module-level : `__jlSpecsIndexCache` (1 entrée pour `index.json`), `__jlSpecsMdCache` (1 entrée par slug visité — chaque spec est fetch une fois par session).
-- **Tri intelligent de la sidebar** : les onglets `stub` sont relégués en fin de leur groupe de scope, les `documented` triés par `order` croissant. Scope order forcé : Pro → Perso → Mixte.
+- **Roadmap 6 phases** : six chips en tête de page (Inférence locale, RAG, Mémoire, Orchestrateur, Boucle nocturne, Observation) avec leur statut coloré. Clic sur une phase ouvre la grille de ses features.
+- **Auto-sélection intelligente** : au chargement, la phase en cours est sélectionnée par défaut (ou la dernière terminée, ou la première).
+- **Résumé de phase** : compteurs par statut — done, in progress, backlog, blocked — pour la phase active.
+- **Grille de features filtrable** : cartes avec badge statut, scope, progression, description et compteurs de fichiers/dépendances/décisions. Deux groupes de filtres combinables (Statut × Scope).
+- **Drawer latéral de feature** : clic sur une carte ouvre un panneau latéral avec description complète, Implementation (fichiers, dépendances, décisions clés), Dépendances cliquables vers les autres features, Metrics et Next steps.
+- **Catalogue des onglets du cockpit** : section dédiée qui liste les 25 onglets groupés (Aujourd'hui / Veille / Apprentissage / Business / Personnel / Système), chaque carte indiquant les sources de données et la fréquence de mise à jour. Clic sur le corps amène au lecteur de spec ; bouton « Ouvrir ↗ » navigue vers le vrai onglet.
+- **Lecteur Markdown des specs** : en bas de page, un lecteur trois colonnes — sidebar gauche (liste par scope Pro / Perso / Mixte, stubs relégués en fin de groupe), document central (rendu Markdown sécurisé), table des matières collante à droite avec scroll fluide vers chaque section.
+- **Badge de statut des specs** : indique clairement si l'onglet est « documenté » ou si le spec est encore un stub (un message explicite remplace le contenu dans ce dernier cas).
+- **Bouton « Rafraîchir »** : en header, vide le cache local et recharge la spec pour voir immédiatement les modifications récentes sans recharger la page.
+- **Accessibilité clavier** : drawer navigable au clavier avec Escape pour fermer et restauration automatique du focus sur l'élément déclencheur.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-jarvis-lab.jsx](cockpit/panel-jarvis-lab.jsx) — 620 lignes, monté à [app.jsx:407](cockpit/app.jsx:407). Stylesheet : [cockpit/styles-jarvis-lab.css](cockpit/styles-jarvis-lab.css) — 796 lignes, préfixe `.jl-*`.
@@ -190,6 +190,7 @@ Format spec.json (haut niveau) :
 - [ ] **`scope` binaire perso/pro** : le CLAUDE.md note que beaucoup d'onglets sont "mixte" — le spec.json (validé par `VALID_SCOPE = {"perso", "pro"}`) force à choisir. Les features mixtes sont rangées en "perso" par défaut.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — retrodoc initial basé sur HEAD `c456ac9`. Correctifs appliqués le même jour :
 - [scripts/sync_specs.py](scripts/sync_specs.py) — sync auto `docs/specs/index.json` ← `jarvis/spec.json::cockpit_tabs` (dry-run / --write / --strict).
 - [scripts/spec_drift_check.py](scripts/spec_drift_check.py) — détection dérives (files manquants, features stalled, spec obsolète).

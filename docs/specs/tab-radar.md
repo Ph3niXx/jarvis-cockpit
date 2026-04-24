@@ -18,17 +18,13 @@ Affiche un radar spider à N axes (par défaut 8) représentant le niveau de com
 7. Colonne gauche lit automatiquement les **4 narratifs calculés** : point fort / angle mort / vague qui monte / cap atteint ou attention.
 
 ## Fonctionnalités
-- **Spider chart SVG custom** : 4 anneaux (25/50/75/100), 1 spoke par axe, 2 polygones superposés (cible pointillée gris + actuel rempli `--brand`). Point par axe avec radius accru si sélectionné.
-- **Narratif 4-blocs** alimenté par du calcul réel :
-  - `strongest` = axe avec le plus haut score
-  - `weakest` = axe avec le plus bas score
-  - `topGainer` = axe avec le plus haut `delta_30d`
-  - `biggestLoss` = axe avec le plus bas `delta_30d` (si négatif → "Attention")
-  - `atTargetCount` = nb d'axes avec `score ≥ target`
-  - `gapToTarget` = écart entre `weakest.target` et `weakest.score`
-- **Vue liste des axes** : bar de progression + marker cible (trait vertical), level chip (couleur par niveau), delta 30j avec flèche.
-- **Vue détail axe** : score géant + unité, progress track + marker cible + fill, stats (delta 30j / à la cible), note Jarvis en blockquote, CTAs vers recos/challenges.
-- **Split label** : si le label contient " / " ou " & ", la card SVG coupe en 2 lignes pour éviter le chevauchement.
+- **Spider chart central** : un radar circulaire à quatre anneaux de graduation, une branche par axe IA, et deux polygones superposés — niveau actuel rempli et cible 12 mois en pointillé — pour visualiser l'écart au but en un coup d'œil.
+- **Narratif « Ce que dit ton radar »** : quatre pavés calculés depuis les vraies données (point fort, angle mort, vague qui monte, cap atteint ou alerte régression) pour raconter le radar sans avoir à comparer les chiffres.
+- **Toolbar 3 indicateurs** : moyenne générale, axe qui a le plus progressé sur 30 jours, axe le plus faible, pour situer le radar d'entrée de page.
+- **Vue liste des axes** : huit cartes compactes à droite, chacune avec sa barre de progression, un marqueur de cible et la variation 30 jours avec flèche.
+- **Vue détail axe** : au clic sur un axe, le panneau droit bascule en vue détail avec score géant, jauge vs cible, delta 30j, note pédagogique, mini-courbe d'historique sur 12 semaines et deux raccourcis vers les recos ou challenges ciblés.
+- **Titres longs sur deux lignes** : les labels « Prompting & RAG » ou « Agents / Orchestration » sont coupés automatiquement pour éviter le chevauchement sur le radar.
+- **Message vide** : quand le radar n'est pas encore initialisé, un message explique que les scores montent quand on complète des challenges à 70%+.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-radar.jsx](cockpit/panel-radar.jsx) — 351 lignes, monté par [app.jsx:368](cockpit/app.jsx:368).
@@ -112,4 +108,5 @@ Pas d'id stable. Route id = `"radar"`. **Panel Tier 2** ; les données principal
 - [ ] **Panel monté sans gate d'auth explicite** : si RLS rejette le fetch, `APPRENTISSAGE_DATA.radar.axes` reste vide et le rendu se dégrade silencieusement. Pas de message d'erreur UI.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — reformuler copy + sparkline 12w + prefill axe + fix conversion (local, non pushé)

@@ -31,18 +31,17 @@ Revivre n'importe quel jour des 60 derniers : volume d'articles, brief Gemini sa
 9. **Navigation clavier** : `j/k` ou `↑/↓` pour déplacer la sélection, `p` pour toggle pin, `Escape` pour fermer le drawer. Ignoré dans input/textarea.
 
 ## Fonctionnalités
-- **Reconstruction 60 jours** en 1 boucle : pour chaque jour offset 0..59 depuis today, groupement articles + brief + signaux (per-week broadcast) + actions (usage_events) + jarvis_calls.
-- **Intensité dynamique** : calcule p25/p75 des counts > 0 sur les 60 jours, seuil `pic ≥ max(p75, 6)`, `calme ≤ max(p25, 1)`, sinon `normal`. Évite d'avoir "tout pic" ou "tout calme" même sur corpus pauvre.
-- **Signals per-week broadcast** : `signal_tracking` est stocké par semaine, donc tous les jours d'une même semaine affichent les mêmes top 5 signaux (décision cohérente mais un peu trompeuse — voir TODO).
-- **Actions déduites télémétrie** : mapping `link_clicked → "Article consulté"`, `pipeline_triggered → "Pipeline déclenché"`, `search_performed → "Recherche effectuée"`. `section_opened` et `error_shown` ignorés ("too noisy").
-- **Jarvis calls counter** : `pipeline_triggered` avec `payload.pipeline === "jarvis"` uniquement.
-- **Peak day** : premier jour parcouru qui maximise `count` (en cas d'égalité, le plus récent gagne car offset 0 traité en premier).
-- **Streak** : jours consécutifs depuis today avec `count > 0`, casse au premier gap (après offset 0).
-- **Pin system** : `localStorage.cockpit:history:pinned` (array d'ISO). API globale `window.cockpitHistoryPins.{read, toggle}`. Le pin mute `day.pinned` en place pour éviter un refetch — `setPinTick()` force re-render.
-- **Note perso par jour** : `localStorage.cockpit:history:notes` (dict iso → text). Debounce 400ms, toast "Enregistré" temporaire. Jamais synchronisée en DB.
-- **Recherche plein-texte** : sur `macro.title + macro.body + signals.map(name)` — bas niveau, insensible à la casse.
-- **Export CSV** 12 colonnes (iso, long, week, intensity, articles, signals_rising, jarvis_calls, pinned, macro.title, top[0..2].title) avec BOM UTF-8 pour Excel FR.
-- **Print-friendly brief** : ouvre une fenêtre HTML minimale avec CSS Georgia serif, cadre 720px, couleur brand `#8b4513`. Sanitisée via DOMPurify.
+- **Hero 4 KPIs** : articles vus sur la fenêtre, requêtes Jarvis totales + streak en cours, jour le plus chargé, actions consignées.
+- **Top 5 sources** : les cinq sources qui reviennent le plus souvent en Top du jour sur la fenêtre, affichées en barres horizontales.
+- **Sparkline + heatmap** : mini-courbe du volume d'articles en haut, puis grille semaine × jour colorée par intensité (pic / normal / calme). Dot pour les jours épinglés, marqueur « aujourd'hui » et « actif ». Clic sur une cellule ouvre le drawer du jour.
+- **Quatre filtres combinables** : intensité (Tous / Pics / Normal / Calme), toggle « ● Épinglés seulement », recherche plein-texte dans les briefs, et bouton d'export CSV. Compteur « N / M jours affichés ».
+- **Timeline groupée par semaine** : une section par semaine ISO avec chaque jour cliquable — date, tag macro, pin dot, titre + body du brief, cinq premiers signaux, stats à droite (articles / signaux / Jarvis / temps de lecture estimé).
+- **Drawer détaillé au clic** : panneau latéral avec date longue, récap macro du jour, brief complet dépliable, top 3 articles cliquables, extras dépliables si plus de trois, signaux de la semaine avec delta, actions prises consignées (articles consultés avec domaine, pipelines déclenchés, recherches), zone « Ma note perso » auto-sauvegardée, bouton « Imprimer / Exporter » qui ouvre une fenêtre print-friendly.
+- **Épingler un jour** : bouton dans le drawer ou touche `p` — les jours épinglés apparaissent avec un dot et peuvent être filtrés en un clic. Persisté et téléchargé aussi dans l'export CSV.
+- **Note perso par jour** : zone de texte libre auto-sauvegardée en local + en base, utile pour noter ce qui s'est passé ce jour-là sans impacter le corpus d'articles.
+- **Navigation clavier** : `j/k` ou `↑/↓` pour changer de jour sélectionné, `Entrée` pour ouvrir, `p` pour épingler, `Échap` pour fermer le drawer.
+- **Export CSV** : télécharge tous les jours filtrés (date, semaine, intensité, articles, signaux, Jarvis, épinglé, titre macro, top 3) avec encodage compatible Excel français.
+- **Fenêtre dynamique** : la vue s'adapte à l'historique disponible (jusqu'à 60 jours max) pour éviter d'afficher des rangs vides quand le corpus est encore jeune.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-history.jsx](cockpit/panel-history.jsx) — 596 lignes, monté à [app.jsx:413](cockpit/app.jsx:413). Data ref : [cockpit/data-history.js](cockpit/data-history.js) — 207 lignes, shape + fake totals, **écrasé** à la visite par `transformHistory()` qui régénère `days` + `totals`. Stylesheet : [cockpit/styles-history.css](cockpit/styles-history.css) — 901 lignes, préfixe `.hi-*`.
@@ -171,6 +170,7 @@ challenge_completed 1  (non mappé)
 - [ ] **Drawer fixed-right** pas responsive sur mobile.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — retrodoc initial basé sur HEAD `c456ac9`. Correctifs appliqués le même jour :
 - [sql/012_history_notes.sql](sql/012_history_notes.sql) — nouvelle table `history_notes` (iso PK, text, updated_at) avec RLS authenticated complète (select/insert/update/delete).
 - `DELETE FROM daily_briefs WHERE date='1999-01-01'` — seed anomalie purgé (22 → 21 rows).

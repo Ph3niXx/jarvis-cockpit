@@ -21,18 +21,16 @@ Point d'entrée rapide "retrouve-moi ça" accessible partout avec `Cmd/Ctrl+K`. 
 10. `Esc` ou clic overlay → close, reset (`query=""`, `selectedIdx=0`).
 
 ## Fonctionnalités
-- **Détection OS** : constante `OS_INFO` — détecte Mac / Windows / Linux / iOS / Android + touch via `window.matchMedia("(hover: none)")`. Affiche `⌘` ou `Ctrl` dans les kbd hints.
-- **Cmd/Ctrl+K cross-panel** : [app.jsx:256-266](cockpit/app.jsx:256) pose `window.__openSearchOnMount` avant de naviguer ; le panel le consomme au mount pour ouvrir le modal d'un seul coup. Un listener local au panel gère aussi le cas "déjà sur search".
-- **Live search debounced** : 220 ms, abort par token (`Math.random()`) pour éviter les race conditions entre frappes.
-- **Recherche sur 4 tables** en parallèle via `Promise.all`, chaque fetch protégé par `.catch(() => [])` — si une table 401/500 les autres remontent quand même.
-- **Navigation interne vs externe** : résultats `article` ont une `url` HTTP → `window.open`. Résultats `wiki / idea / jarvis` n'ont pas d'URL → navigation interne via `window.__cockpitNavigate` (exposé par le panel).
-- **Snippet HTML stripped** : helper `stripSnippet(html)` extrait `textContent` via `<div>` temporaire.
-- **Recent queries** : localStorage `search.recent`, max 10 conservées, 5 affichées. Écrit après chaque recherche aboutie.
-- **Saved searches** : localStorage `search.saved`. Bouton "⭐ Sauvegarder" dans le header des résultats → `prompt()` pour nommer → upsert (dédup par nom, limit 20).
-- **Demander à Jarvis** : bouton `.cmdk-ai-toggle` (renommé) → stashe la query dans `localStorage.jarvis-prefill-input` (clé déjà consommée par [panel-jarvis.jsx:331-333](cockpit/panel-jarvis.jsx:331)) + close + `onNavigate("jarvis")`.
-- **Prefill from signals** : stash `localStorage.veille-prefill-query` consommé+supprimé au mount.
-- **Telemetry** : `window.track("search_performed", { query_length, results_count })` et `window.track("search_saved", { query_length })`.
-- **Empty state** : "Aucun résultat dans ton corpus. Clic sur « Demander à Jarvis » pour une réponse en langage naturel."
+- **Raccourci universel Cmd/Ctrl+K** : ouverture du modal de recherche depuis n'importe où dans le cockpit, le raccourci affiché s'adapte à l'OS (⌘ sur Mac, Ctrl ailleurs).
+- **Recherche live multi-sources** : dès deux caractères, la recherche croise en parallèle articles, fiches wiki, idées business et messages Jarvis, avec un léger délai pour éviter les requêtes à chaque frappe.
+- **Navigation clavier** : flèches ↑ ↓ pour parcourir les résultats, Entrée pour ouvrir, Échap pour fermer.
+- **Ouverture contextuelle** : un article s'ouvre dans un nouvel onglet, un résultat wiki/idée/Jarvis bascule sur le panel correspondant en un clic.
+- **Recherches récentes** : les cinq dernières requêtes abouties sont rappelées en tête quand la barre est vide, pour rejouer une recherche en un clic.
+- **Recherches sauvegardées** : un bouton « ⭐ Sauvegarder » qui donne un nom à la requête en cours et la garde sous la main pour plus tard.
+- **Demander à Jarvis** : bouton qui envoie la requête en cours vers l'assistant Jarvis pour obtenir une réponse en langage naturel quand le corpus ne remonte rien.
+- **Pré-remplissage depuis Signaux** : un clic sur un signal faible ouvre la recherche déjà pré-remplie avec le terme.
+- **Astuces clavier** : en bas du modal, rappel des raccourcis disponibles (↵ ouvrir, ↑↓ naviguer, Esc fermer) sur desktop.
+- **Message vide** : quand aucun résultat ne sort, un texte explicite invite à basculer sur Jarvis.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-search.jsx](cockpit/panel-search.jsx) — 406 lignes, monté par [app.jsx:383](cockpit/app.jsx:383).
@@ -137,4 +135,5 @@ Les 4 requêtes partent en parallèle via `Promise.all`, chacune protégée par 
 - [ ] **CSS `.cmdk-ai-toggle`** réutilisé pour le bouton "Demander à Jarvis" — nom de classe périmé. À renommer `.cmdk-jarvis-action` si on remanie le CSS.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — refonte 4-tables + Demander à Jarvis + save + fix Cmd+K (local, non pushé)

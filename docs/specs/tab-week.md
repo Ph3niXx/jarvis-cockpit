@@ -23,14 +23,15 @@ Donner un point hebdo unique qui croise **veille IA** (articles lus, streak, sig
 6. Mode **Éditorial** : un seul article `<article class="week-edito">` avec titre adaptatif ("Semaine bien dense" / "rythme régulier" / "plus légère" / "calme"), lede quantitative, pull-quote si streak ≥ 7, liste des temps forts, grille 6 chiffres.
 
 ## Fonctionnalités
-- **Toggle Factuel / Éditorial** : état local `useState("factuel")`, pas de persistance ([panel-week.jsx:114](cockpit/panel-week.jsx:114)).
-- **Semaine ISO dynamique** : `isoWeekNum()` calcule la semaine en local, `monday`/`sunday` dérivés ([panel-week.jsx:120-133](cockpit/panel-week.jsx:120)).
-- **6 StatBig** avec delta vs semaine précédente (flèche ↑/↓ + "vs sem. dern.").
-- **DayStrip** : 7 day-cards avec 4 barres de progression par jour, normalisées via `max(days[*].read/music/gaming)`.
-- **ReadingChart** : SVG barres 7 jours avec grille 3 lignes (max / max/2 / 0).
-- **ThemeCloud** : chips colorées par `theme.color` (brand / neutral / alert) avec barre de remplissage selon `weight` %.
-- **Lecture adaptative** en mode éditorial : 4 seuils sur `total_read` (40 / 20 / 5 / 0) pilotent le titre.
-- **Navigation out** : bouton "Voir tous" sur Challenges → `onNavigate("challenges")` ([panel-week.jsx:248](cockpit/panel-week.jsx:248)).
+- **Toggle Factuel / Éditorial** : deux modes d'affichage sélectionnables en tête de page — dashboard multi-blocs ou article en prose racontée, selon l'humeur du matin.
+- **Titre daté** : "Ma semaine · semaine S… · Lundi → Dimanche en toutes lettres" pour situer le récap.
+- **Six indicateurs clés** : articles lus, temps de lecture, streak, signaux détectés, séances sport, notes, chacun avec sa variation vs la semaine précédente.
+- **Ruban 7 jours** : une carte par jour Lundi→Dimanche avec quatre barres de progression (veille / sport / musique / gaming) normalisées sur la semaine.
+- **Histogramme lectures** : un graphique barres 7 jours des articles lus, avec graduation pour repérer les pics et les creux.
+- **Nuage de thèmes** : chips colorées des sujets dominants de la semaine, avec une jauge de poids relatif sur chaque.
+- **Article éditorial adaptatif** : en mode Éditorial, le titre et le ton changent selon le volume de veille (semaine dense / rythme régulier / plus légère / calme), avec un pull-quote si la streak dépasse sept jours.
+- **Raccourci Challenges** : un bouton "Voir tous" sur le bloc challenges qui bascule vers le panel dédié.
+- **Bloc perso** : quatre cartes synthèse côté vie perso (sport / musique / gaming / sommeil moyen) pour un coup d'œil transverse.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-week.jsx](cockpit/panel-week.jsx) — 360 lignes, monté par [app.jsx:375](cockpit/app.jsx:375).
@@ -117,4 +118,5 @@ Pas d'event listener global, que du React state local.
 - [ ] **Pas de détection "aujourd'hui"** : `fmtDay(monday)` → `fmtDay(sunday)` affiche la plage mais aucun marqueur visuel "tu es ici" sur `DayStrip`.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — d752b79

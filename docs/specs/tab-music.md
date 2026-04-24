@@ -24,14 +24,16 @@ Pont Apple Music → Last.fm → Supabase → cockpit. Le scrobbler (AMWin-RP / 
 11. **§7 Milestones YTD** : 6 cards (scrobbles vs objectif 35k, artistes uniques, découvertes, albums ≥5×, heures estimées, genre dominant).
 
 ## Fonctionnalités
-- **Polling live now-playing** : hook `useLiveNowPlaying(initial)`. Appel direct `GET https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&limit=1` toutes les 30s. Lit image la plus grande de la réponse, filtre le placeholder star générique Last.fm (hash `2a96cbd8b46e...`). Cleanup intervalle au unmount.
-- **Fallback cascade sur tops** : `pickArtists(weeks)` essaie d'abord `music_top_weekly` (rollup), fallback raw scrobble tally si vide. Idem tracks + albums. Important : la table `music_top_weekly` est actuellement vide (0 lignes) → le panel tourne 100% sur le fallback raw.
-- **Image lookup multi-source** : tracks → `image_url` du weekly rollup OR lookup dans `scrobbleImages` (indexé par `track\u0001artist`). Albums → weekly rollup OR lookup par `album\u0001album_name\u0001artist_name`.
-- **Streak calcul live** : itère les 400 derniers jours, count les jours consécutifs avec `scrobble_count > 0` terminant aujourd'hui. Longest streak sur tout l'historique `music_stats_daily`.
-- **Heatmap compute côté front** : grid[dow][hour] alimenté par `new Date(sc.scrobbled_at).getDay()/getHours()` sur les 200 derniers scrobbles (limit du T2). Réordonné lundi-first dans le composant `MzHeatmap`.
-- **Discoveries via RPC pgvector-free** : `music_discoveries(p_window_days=90, p_recent_days=30)` agrège `music_scrobbles` côté DB pour trouver les artistes dont le premier scrobble tombe dans les 90 derniers jours. Fallback sur `music_loved_tracks` si RPC vide.
-- **Deterministic tints** : `tintFor(str)` → `hsl(hash(str) % 360, 38%, 22%)`. Même artiste/album → même teinte stable, utile quand l'image est absente.
-- **Aucun écrit front** : panel lecture seule. Les toggles `artistRange` et `chartRange` restent en state React, **non persistés** en localStorage (contrairement à ideas/jarvis).
+- **Now-playing live** : carte à droite du hero avec pochette d'album, piste, artiste, album et badge « live » qui s'allume quand Last.fm signale une écoute active (polling toutes les 30 secondes, stoppé quand l'onglet passe en arrière-plan).
+- **Hero narratif** : titre adaptatif « X scrobbles sur 30 jours — dominé par {genre dominant} », sous-titre streak d'écoute quotidienne + record, eyebrow avec total scrobbles sur 180 jours.
+- **Quatre KPIs** : scrobbles 7j avec variation vs 7 jours précédents, scrobbles 30j avec taux quotidien, streak courante + record, heures aujourd'hui + semaine.
+- **§1 Top artistes** : toggle 7d / 30d / 6m / all, grille 2 colonnes × 5 artistes avec pochette (ou avatar coloré + initiales si image absente), nombre d'écoutes, delta vs période précédente.
+- **§2 Top titres** : liste dense des titres les plus écoutés sur 30 jours avec pochettes.
+- **§3 Top albums** : cartes avec pochette d'album, rang et nombre d'écoutes.
+- **§4 Rythme d'écoute** : graphique 30j / 90j / 180j avec barres par jour + moyenne mobile 7 jours. Heatmap jour × heure (Lun→Dim × 0h→23h) avec cinq paliers d'intensité pour repérer les moments d'écoute dominants.
+- **§5 Genres 30 derniers jours** : barre empilée horizontale des principaux genres + table détaillée avec part en %, variation vs période précédente, et récap hebdomadaire généré automatiquement avec mood keywords.
+- **§6 Découvertes 90 jours** : liste des artistes dont la première écoute date de moins de trois mois, verdict automatique (accroché ≥50 écoutes / à creuser ≥15 / abandonné <15), preview 5 + bouton « Voir les N autres ».
+- **§7 Milestones YTD** : six cartes d'objectifs annuels (scrobbles, artistes uniques, découvertes, albums ≥5 écoutes, heures estimées, genre dominant) avec progression vers cible.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-musique.jsx](cockpit/panel-musique.jsx) — 628 lignes, monté par [app.jsx:410](cockpit/app.jsx:410).
@@ -162,4 +164,5 @@ Route id = `"music"`. **Panel Tier 2**.
 - [ ] **Tops 6m / all-time approximatifs** : `aggregateTop(byCat.artist, 999 weeks)` lit tout `music_top_weekly` — mais l'all-time réel dépasse largement la fenêtre de scrobbles (limit 200) pour le fallback.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 5 fixes (last7 change % réel, top_artists/genres delta vs période précédente, insight_weekly branché, polling visibilitychange, heatmap sans limite via loader dédié)

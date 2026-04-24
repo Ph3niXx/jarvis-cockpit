@@ -29,20 +29,17 @@ Le panel sert à : (1) **voir** ce que Claude voit de toi (payload exact + token
 13. **Zone 07 — Éditeur + Historique** : drawer expansible `.pf2-drawer` avec tous les 15 champs (hors 4 hidden) en textarea inline + save/cancel + `NewFieldForm` pour créer des clés custom. À droite : `.pf2-history` liste les 20 dernières entrées `user_profile_history` avec diff before/after au clic.
 
 ## Fonctionnalités
-- **Score de complétude** : 10 clés "utiles" (`PF_SCORE_FIELDS` : identity, current_role, company_context, ambitions, interests, current_projects, what_excites_me, what_frustrates_me, sectors_of_interest, learning_style). `{filled}/{total} = N%` + barre `.pf2-head-energy-bar` ([panel-profile.jsx:24-28](cockpit/panel-profile.jsx:24)).
-- **4 clés cachées** (`PROFILE_HIDDEN_KEYS`) : `__audit_test_deleteme__`, `jarvis_tunnel_url`, `lastfm_api_key`, `lastfm_username` — filtrées partout (zone 01, zone 07, payload Claude).
-- **3 clés exclues en mode mission** (`PROFILE_MISSION_EXCLUDED`) : `current_role`, `company_context`, `current_projects`. Alignées sur `mission_keys` dans `get_user_context()` de [weekly_analysis.py:197](weekly_analysis.py:197).
-- **Estimation tokens** : `pfEstTokens(v) = max(1, round(words * 1.3))`. Somme affichée en bas de zone 01, avec variante mission (`excluded -Nt` + `final ~Nt`).
-- **Fraîcheur** : `pfFreshness(updated_at)` → `fresh` (<14j) / `stable` (14-90j) / `stale` (>90j). Affiché en badge à droite de chaque ligne Claude.
-- **Triangulation naïve** : `pfNormalize(s)` → lowercase + strip accents + split mots >3 chars. Match = intersection de sets. Suffisant pour détecter "PwC" dans un fact si `company_context` contient "PwC", mais sensible aux synonymes.
-- **Upsert user_profile** : POST avec `Prefer: resolution=merge-duplicates` + `on_conflict=key` + `Prefer: return=representation`. Un seul endpoint sert save/create ([panel-profile.jsx:83](cockpit/panel-profile.jsx:83)).
-- **Historique automatique via trigger DB** : `trg_user_profile_history` (SECURITY DEFINER) insère dans `user_profile_history` à chaque INSERT/UPDATE de `user_profile`. `source='self'`, `trigger_type='create' | 'manual_edit'` selon TG_OP. Aucun code Python/front pour ça.
-- **Supersede facts** : `superseded_by = id` (auto-référentiel) comme marqueur "désactivé". Les requêtes filtrent `superseded_by=is.null`. Pas de hard delete.
-- **Archivage commitments** : PATCH `archived_at=now()`. Le front requête `archived_at=is.null&order=last_movement_at.asc`.
-- **Payload Claude copié** : concat `${key}: ${value}\n` pour chaque ligne active (hors hidden, hors exclu si mission) → `navigator.clipboard.writeText` ([panel-profile.jsx:141](cockpit/panel-profile.jsx:141)). Flash "✓ Copié" 1.5s.
-- **Export JSON intégral** : blob download avec payload `{exported_at, user_profile, profile_facts, entities, commitments, uncomfortable_questions, history}`, nom `profile_export_YYYY-MM-DD.json`.
-- **Sort commitments "stale first"** : `movement_days` desc (items sans `last_movement_at` ont une valeur `9999` pour les pousser en haut). Sort "deadline" : `days_to_deadline` asc (null = 9999).
-- **Recherche globale accent-insensitive** : single input qui filtre simultanément facts, entités, commitments. `pfStripAccents(text).includes(pfStripAccents(query))` — "prefere" matche "préfère" (symétrique avec la triangulation depuis le fix).
+- **Score de complétude** : pour 10 champs utiles du profil (identité, rôle, contexte entreprise, ambitions, intérêts, projets en cours, motivations, frustrations, secteurs, style d'apprentissage), une jauge en tête affiche le nombre rempli sur dix avec pourcentage et liste des premiers champs manquants cliquables pour ouvrir le drawer directement sur le champ.
+- **Zone Contexte Claude** : terminal qui liste tout ce que Jarvis/Claude voit de toi quand il répond, avec un toggle « Contexte général » / « Mission · weekly » pour voir les deux payloads séparément, comptage des tokens estimés et badge fraîcheur (FRESH / STABLE / STALE) par ligne. Clic sur une ligne ouvre l'édition du champ.
+- **Zone Faits appris** : tous les faits que Jarvis a extraits la nuit depuis les conversations + activité, groupés par type (contexte / préférence / objectif / compétence / opinion / contrainte / intérêt). Bouton « Faux » sur chaque fait pour le retirer des prompts futurs.
+- **Zone Entités** : personnes, outils, projets et entreprises mentionnés dans les conversations, filtrables par type, avec compteur de mentions et dernière trace.
+- **Zone Commitments** : table d'objectifs actionnables avec deadline, prochaine action, dernier mouvement, statut, triable par ancienneté ou deadline. Ajout / édition inline / archivage.
+- **Zone Triangulation déclaré vs observé** : pour chaque champ du profil, affiche les faits extraits qui le confirment (aligné) ou l'infirment (drift / régression critique), avec top trois faits reliés.
+- **Zone Questions inconfortables** : quand un drift majeur est détecté, une question challenge est posée (« ton rôle déclaré ne matche plus ce qu'on observe — qu'est-ce qui a changé ? »). Textarea de réponse + résolution qui se clôt en un clic.
+- **Zone Éditeur + Historique** : drawer avec tous les champs du profil en édition inline, formulaire pour ajouter un champ custom, et à droite les vingt derniers changements du profil (avec diff before/after au clic) pour tracer l'évolution.
+- **Recherche globale accent-insensitive** : un seul champ recherche qui filtre simultanément faits, entités et commitments (« prefere » matche « préfère »).
+- **Copier le payload Claude** : bouton qui copie l'exact contexte envoyé aux LLM dans le presse-papiers, pour debug ou partage, avec feedback « ✓ Copié » temporaire.
+- **Export JSON intégral** : bouton qui télécharge tout le profil (champs + faits + entités + commitments + questions + historique) au format JSON daté.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-profile.jsx](cockpit/panel-profile.jsx) — 1022 lignes, monté par [app.jsx:408](cockpit/app.jsx:408). CSS dédié : [cockpit/styles-profile.css](cockpit/styles-profile.css) — 1028 lignes, scope `pf2-*`. Ressources dans [index.html:26, 67, 92](index.html:26).
@@ -187,4 +184,5 @@ Route id = `"profile"`. **Panel Tier 2** ([data-loader.js:4528](cockpit/lib/data
 - [ ] **UQ auto-gen pipeline (scope backend)** : si on veut vraiment livrer la promesse retirée, ajouter un step dans `weekly_analysis.py` qui recalcule la triangulation côté Python et insère dans `uncomfortable_questions` quand `level === "stale-critical"`. Alignement avec la logique front dans `triangulation` useMemo.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 7 correctifs appliqués (migration 012 versionnée, télémétrie `error_shown` partout, `profile_fact_superseded` tracé, recherche accent-insensitive, `notes` éditable dans commitments, copy UQ corrigée, dead code `pfDeleteCommitment` supprimé) — commit `c456ac9` (base).

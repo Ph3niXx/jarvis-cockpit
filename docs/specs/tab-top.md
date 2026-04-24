@@ -18,13 +18,12 @@ Prolongement du Brief pour qui veut plus que les 3 incontournables de la home et
 7. Bouton "Exporter" ([panel-top.jsx:91-99](cockpit/panel-top.jsx:91)) → markdown formatté dans le clipboard via `navigator.clipboard.writeText` (fallback `document.execCommand('copy')`). Confirmation "Copié !" 1,8 s.
 
 ## Fonctionnalités
-- **Hero eyebrow** : "Top du jour · S<weekNum> · <Mardi 21 avril>" — numéro de semaine ISO calculé localement ([panel-top.jsx:4-9](cockpit/panel-top.jsx:4)).
-- **Filtre par section** : pills générées dynamiquement à partir des `section` uniques du top (`["all", ...new Set(allTop.map(t => t.section))]`).
-- **Compteurs par section** : chaque pill affiche le nombre d'articles correspondants.
-- **Feat layout 1-2-3** : article #1 en grande card avec score `N/100 · impact`, #2 et #3 en side-cards plus compactes.
-- **Rest list** : dense, 5 colonnes (rank, source, titre, section, date) — inactif en pratique (cf. Limitations).
-- **Export markdown** : copie clipboard avec date formatée FR + liens. Utilise l'API clipboard moderne ou fallback `document.execCommand`.
-- **Empty state** : "Pas encore d'articles pour ce filtre." quand `filtered.length === 0`.
+- **Titre daté** : en tête de page, la mention "Top du jour · semaine S… · date du jour en toutes lettres" pour situer la sélection en un coup d'œil.
+- **Filtre par section** : une barre de pills (Tous / LLMs / Agents / Régulation…) générée automatiquement à partir des sections présentes, avec le nombre d'articles inscrit sur chaque pill.
+- **Layout magazine 1-2-3** : le premier article en grande carte hero avec son score sur 100, les deuxième et troisième en cartes secondaires plus compactes à droite.
+- **Suite du classement** : liste dense (rang, source, titre, section, date) en dessous pour parcourir les articles suivants quand il y en a plus de trois.
+- **Export markdown** : un bouton qui copie la sélection du jour au format markdown dans le presse-papiers (titre daté + liste de liens), prêt à coller dans Slack ou un carnet de notes, avec un feedback "Copié !" visuel.
+- **Message vide** : quand un filtre ne retourne aucun article, un message explicite invite à élargir la sélection.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-top.jsx](cockpit/panel-top.jsx) — 183 lignes, monté par [app.jsx:366](cockpit/app.jsx:366).
@@ -100,4 +99,5 @@ Aucun autre table. Pas de fetch propre au panel (Tier 1 only).
 - [ ] **`isoWeekTop` dupliqué** : même logique d'ISO week que dans [data-loader.js:40-50](cockpit/lib/data-loader.js:40) environ — à mutualiser dans `cockpit/lib/`.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — d752b79

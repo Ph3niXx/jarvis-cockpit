@@ -20,17 +20,18 @@ Centraliser en un panel la santé des 4 services tech qui font tourner le cockpi
 9. Body du bloc : alertes propres + quotas (barres de progression avec level safe/warn/critical/exceeded) + breakdown (table) + rate limits instantanés + chart 30j.
 
 ## Fonctionnalités
-- **Hydration 100% réelle pour 3 services** : Claude (`weekly_analysis.tokens_used` agrégé par mois en cours vs mois précédent + série 30j, projection `month_cost / monthProgress`), Gemini (RPC `get_gemini_usage_stats(30)` donne séries + today_calls + today_rate_limits + total_rate_limits), Supabase (RPC `get_stack_stats()` retourne db_size_bytes + top_tables + row_counts).
-- **GitHub indicatif** : pas d'API publique free → quotas affichés à 0, alerte info "À vérifier dans github.com/settings/billing", série 30j flat à 0. Quota Actions free tier 2000 min/mois en dur.
-- **Saisie manuelle 2-voies** : `stEditClaudeBalance` et `stEditGeminiRateLimit` — `window.prompt`/`confirm` natifs, puis upsert vers `user_profile` avec `on_conflict=key` + header `Prefer: resolution=merge-duplicates`.
-- **Priorité manual > real > proxy** : pour Claude, si `stacks.anthropic_balance_usd` renseigné → status dérivé du solde (critical <1$ / warn <3$). Pour Gemini, ordre : rate_limits tracés aujourd'hui > flag manuel > pic RPM manuel > proxy articles × 2.
-- **Série 30j uniforme** : tableau `seriesDays` pré-rempli à 0, rempli avec les runs Claude par date ISO. Chart SVG 900×90px avec barres + ligne moving-avg 7j.
-- **Projection fin de mois** : `monthCost / (dayOfMonth / daysInMonth)`. Alerte critical si > budget, warn si > 75%.
-- **Delta vs mois précédent** : `cost_delta_pct = (projected - prevMonthEur) / prevMonthEur × 100`. Null si prev = 0.
-- **Conversion USD→EUR** : `USD_TO_EUR = 0.92` hardcoded.
-- **Filtrage combinable** : type × statut, compteur "X / N services" en bas de la barre de filtres.
-- **Aucune télémétrie** : le panel n'émet pas de `track()` events.
-- **Aucune persistance côté front** : pas de localStorage (vs ideas/jarvis qui en ont).
+- **Hero 4 KPIs** : coût du mois en cours avec avancement jour/jour, projection fin de mois (rouge si dépasse le budget), nombre d'alertes actives, répartition paid/free × safe/warn/critical.
+- **Bouton « ↻ refresh »** : en header, vide le cache et relance les fetchs pour avoir la dernière situation sans recharger la page.
+- **Alertes consolidées** : bandeau en haut listant toutes les alertes critical et warn de tous les services, triées avec les critical en premier, pour ne rien rater.
+- **Deux filtres** : Type (Tous / Paid / Free) et Statut (Tous / Critical / Warn / Safe) combinables, avec compteur « N / M services affichés ».
+- **Bloc par service** : Claude, Gemini, Supabase, GitHub, chacun avec logo coloré, nom, plan, point de statut coloré, date de dernière utilisation, lien direct vers la console externe.
+- **Mise à jour manuelle du solde Claude** : bouton qui ouvre une modal (solde USD, crédit initial, date d'expiration, budget mensuel) avec raccourci Ctrl+Entrée pour sauvegarder — priorise la saisie manuelle sur les calculs automatiques quand elle est renseignée.
+- **Mise à jour manuelle des rate limits Gemini** : bouton qui ouvre une modal (rate limit atteint oui/non, modèle, pic RPM observé, limite RPM) pour prendre la main quand l'API Gemini a bloqué.
+- **Quotas avec projection** : chaque quota affiche usage / limite + barre de progression colorée selon palier (safe / warn / critical / exceeded) + projection fin de mois basée sur la moyenne des 7 derniers jours.
+- **Breakdown détaillé** : table des six dernières semaines avec tokens input/output/coût par run pour Claude, nombre d'appels et rate limits par jour pour Gemini.
+- **Série 30 jours par service** : mini-graphique avec barres + ligne de moyenne mobile 7j pour voir la tendance d'usage.
+- **Coûts Jarvis cloud additionnés** : les appels Claude faits depuis l'assistant Jarvis sont comptés dans le coût mensuel et affichés séparément pour la transparence.
+- **Taux de change USD→EUR dynamique** : récupéré quotidiennement depuis la BCE pour convertir correctement les coûts Anthropic facturés en dollars.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-stacks.jsx](cockpit/panel-stacks.jsx) — 503 lignes, monté par [app.jsx:412](cockpit/app.jsx:412).
@@ -148,4 +149,5 @@ Route id = `"stacks"`. **Panel Tier 2**.
 - [ ] **`stacks.*` namespace user_profile** : conventions nommage non documentée en dehors du code. Si quelqu'un modifie les clés, le loader tombe en silence sur ses defaults.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 6 fixes (modal React StEditModal, FX dynamique Frankfurter, budget configurable, coût Jarvis cloud additionné, projection stable 7j-avg, MAU réel via migration 014)

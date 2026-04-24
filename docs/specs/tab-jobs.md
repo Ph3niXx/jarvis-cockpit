@@ -20,20 +20,15 @@ Panel de **tri d'offres LinkedIn** — un agent Cowork externe (hors repo) scann
 9. **Temps réel** : si Cowork écrit un nouveau scan ou une nouvelle offre pendant que le panel est ouvert, le channel Supabase `jobs_radar_sub` déclenche un `loadPanel("jobs")` transparent + `setOffers(fresh)`.
 
 ## Fonctionnalités
-- **Score 10 points décomposé** : `score_total = score_seniority (max 3) + score_sector (max 3) + score_impact (max 4) + score_bonus (0 ou 1)`. Tooltip `.jr-score-tip` sur le score hover, affiche les 4 composantes ([panel-jobs-radar.jsx:152](cockpit/panel-jobs-radar.jsx:152)).
-- **Bandes de score** : `scoreBand(s) → hot (≥7) | mid (5-7) | low (<5)` piloteles couleurs (`.jr-score--hot/mid/low`) et la variante de ligne (`.jr-row--hot/mid/low`) ([panel-jobs-radar.jsx:54](cockpit/panel-jobs-radar.jsx:54)).
-- **Intel à 3 niveaux de profondeur** : `intel_depth = none | light | deep`. Seul `deep` affiche la section intel complète (signaux boîte, lead, warm network, SAFe, angle). `light` affiche un bouton "Enrichir l'Intel →" disabled dans le kebab (feature V2 jamais implémentée).
-- **Transform intel multi-format** : `transformJobIntel` accepte à la fois les clés Supabase (`signaux_boite`, `lead_identifie`, `reseau_warm`, `angle_approche`, `maturite_safe`) et les clés panel (`company_signals`, `lead`, `warm_network`, `angle`, `safe_maturity`) — permet d'utiliser le mock sans re-mapper ([data-loader.js:1555-1583](cockpit/lib/data-loader.js:1555)).
-- **Rubric justif flexible** : `rubric_justif` peut être un array `[{axis, text}]` direct, OU un objet `{seniority, sector, impact}` (transformé en array) ([data-loader.js:1545-1553](cockpit/lib/data-loader.js:1545)).
-- **Garde-fou sur patch** : `patchJobSupabase` filtre côté client pour n'envoyer QUE `status` et `user_notes`, même si le caller passe autre chose. Garde-fou front — la RLS DB `jobs_user_update` est plus permissive (`using(true) with check(true)`) ([panel-jobs-radar.jsx:15-24](cockpit/panel-jobs-radar.jsx:15)).
-- **Optimistic update** : `updateJob(id, patch)` → mute `offers[]` + mute `window.JOBS_DATA.offers[idx]` + `track("jobs_action")` + PATCH async. En cas d'échec : toast "Erreur de sync — changement local uniquement" (l'override local reste, pas de rollback).
-- **Realtime via Supabase channels** : `client.channel("jobs_radar_sub").on("postgres_changes", { event: "*", schema: "public", table: "jobs"/"job_scans" }, refresh)` — unique parmi les panels du cockpit. Nécessite `sb.client.channel`, no-op sinon.
-- **Volumes 7j ISO-week** : `transformJobScan` calcule lundi → dimanche de la semaine courante à partir de `today`, indexe les 7 scans par `scan_date` ISO, produit le sparkbar. Si un jour manque → 0 ([data-loader.js:1617-1628](cockpit/lib/data-loader.js:1617)).
-- **Actions du jour auto-calculées si scan vide** : si `todayScan.actions` est absent ou vide, le loader génère jusqu'à 2 actions "Relancer" pour les offres `applied` dont `last_seen_date >= 10j` ([data-loader.js:1658-1668](cockpit/lib/data-loader.js:1658)).
-- **Ratios catégorie depuis offres actives** (pas depuis `tendances.ratios_category` du jsonb scan) — si le scan a un jsonb plus fin, il est ignoré. Décision délibérée ([data-loader.js:1630-1643](cockpit/lib/data-loader.js:1630)).
-- **Signal CV bi-source** : `todayScan.signal_cv` (objet JSONB) override les calculs PDF/DOCX du loader. Sinon : ratio des 30 derniers jours d'offres par `cv_recommended` + insight textuel calculé.
-- **Toast discret** : `JrToast` (role="status", aria-live="polite"), 2.4s timeout, tone ok/error ([panel-jobs-radar.jsx:71-79](cockpit/panel-jobs-radar.jsx:71)).
-- **Kebab popover dismiss** : click outside + Escape fermeture via `useEffect` sur `document` mousedown/keydown ([panel-jobs-radar.jsx:84-91](cockpit/panel-jobs-radar.jsx:84)).
+- **Score sur 10 décomposé** : chaque offre reçoit un score synthèse, survolable pour voir le détail par axe (Séniorité / Secteur / Impact / Bonus).
+- **Trois bandes de score** : Hot (≥ 7) / Moyen (5-7) / Faible (< 5) colorées différemment pour repérer les opportunités en un clin d'œil.
+- **Hot leads en hero** : les offres Hot mises en avant en grandes cartes avec rubric par axe, intel (signaux boîte, lead identifié, réseau warm, angle d'approche), badge CV recommandé (PDF vs DOCX) et boutons « Ouvrir le lead » + « Postuler ».
+- **Scan banner** : quatre blocs de synthèse en haut de page — volumes sur 7 jours en barres Lun→Dim, répartition par catégorie de rôle, signal CV (quelle version envoyer en ce moment avec insight textuel), actions du jour (relances + entretiens à préparer).
+- **Liste dense filtrable** : une ligne par offre avec recherche texte + trois groupes de filtres (score / rôle / statut) + tri (score ou récence). Filtre statut « Actives » par défaut qui masque les snoozées et archivées.
+- **Actions rapides par offre** : bouton Postuler (ouvre LinkedIn + marque appliquée + toast de confirmation), menu kebab (Snoozer 7 jours / Archiver / Éditer les notes) et zone de notes perso inline.
+- **Statuts + notes persistés** : passage en appliquée/snoozée/archivée et notes perso sauvegardés en base, avec mise à jour instantanée et toast de confirmation (ou toast d'erreur en cas de souci de synchro).
+- **Rafraîchissement temps réel** : quand le scan Cowork pousse de nouvelles offres pendant que le panel est ouvert, le feed se met à jour automatiquement sans reload.
+- **Message vide après filtres** : quand aucune offre ne correspond aux filtres, un message explicite suggère de relâcher un critère ou de revenir le lendemain matin.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-jobs-radar.jsx](cockpit/panel-jobs-radar.jsx) — 782 lignes, monté par [app.jsx:404](cockpit/app.jsx:404). CSS dédié : [cockpit/styles-jobs-radar.css](cockpit/styles-jobs-radar.css) — 1156 lignes, scope `jr-*`. Ressources incluses dans [index.html:32, 73, 98](index.html:32).
@@ -162,4 +157,5 @@ Route id = `"jobs"`. **Panel Tier 2** ([data-loader.js:4528](cockpit/lib/data-lo
 - [ ] **`window.JOBS_DATA.offers[idx] = { ...old, ...patch }` en mute direct** : potentiellement problématique si un re-render React lit la ref tout en la mutant. Ici l'effet est secondaire mais pas idiomatique.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc depuis code réel — commit `c456ac9` (feature shippée le `1bd0fb0`)

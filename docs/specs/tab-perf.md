@@ -32,16 +32,14 @@ Regrouper en un seul onglet l'état physique mesurable : activité sportive (Str
 10. **§5 Séances · journal** : 20 dernières avec date / type / nom + effort (`easy`/`tempo`/`long` déduit par seuils) / distance + pace / FC moyenne + D+ / durée. Empty state si `sessions = []`.
 
 ## Fonctionnalités
-- **Auto-derive de tout** côté front : aucun pré-calcul en DB. `transformForme(activities, withings)` produit `today / week / month / year / weight_series / sessions / records / _has_weight / _has_muscu` en O(n) sur les 300 activités récentes.
-- **Streak active-day** : boucle sur 365 derniers jours, compte les jours consécutifs avec ≥1 activité, tolère "aujourd'hui vide" (streak ne casse qu'au premier gap après hier) — [data-loader.js:2127-2132](cockpit/lib/data-loader.js:2127).
-- **Records auto-calculés par fenêtre de distance** : 5k = pool entre 4.8-5.5 km, 10k = 9.5-11 km, semi = 20-22 km, marathon = 40-45 km. Pour chacun, prend l'activité la plus rapide au sens `paceOf`.
-- **Volume hebdo max** : bucket lundi-dimanche sur tous les runs, garde le max.
-- **Composition deltas** : `pickOffsetAgo(days)` cherche la mesure ≤ target, avec tolérance ±3 jours si rien d'antérieur. Gère les trous de sync.
-- **Sparklines** : SVG inline 64×24 calé sur le min/max de la série 30j (ou `range` explicite).
-- **Rotation du refresh_token Strava** : persistée dans `user_profile.strava_refresh_token` — le pipeline lit d'abord Supabase, fallback env. Résilient aux rotations opportunistes de Strava.
-- **Rotation du refresh_token Withings** : **NON persistée** — le pipeline trace `rotated=true` mais ne l'écrit pas (TODO flaggé en bas).
-- **Mode `--backfill`** Withings (via workflow_dispatch input) : ignore la fenêtre `INCREMENTAL_DAYS=7`, fetch tout depuis epoch.
-- **Idempotence** : upsert `on_conflict=id` pour Strava (PK = id bigint), `on_conflict=measure_date` pour Withings (PK = date, latest-per-column wins après `merge_daily_rows`).
+- **Hero dynamique** : en tête de page, soit poids du jour + km de la semaine (quand Withings est branché), soit km + sorties seulement. Sous-titre avec km cumulés de l'année, dernière sortie et streak active courante. Carte volume semaine avec pourcentage de l'objectif hebdomadaire configurable.
+- **§1 Entraînement 30 derniers jours** : quatre cartes — distance vs 30 jours précédents, allure moyenne, dénivelé + calories, régularité (streak + jours actifs cette semaine) — et un ruban 7 jours avec des barres par jour (sport actif vs jour off), coloré par famille de sport (course / vélo / natation / marche / muscu / autre).
+- **§2 Charge hebdo 12 semaines** : histogramme barres des kilomètres par semaine sur trois mois, avec graduations, pour repérer les pics et les creux de charge.
+- **§3 Composition corporelle** : trois cartes Poids / Masse grasse / Masse musculaire (quand Withings est disponible) avec mini-courbe 30 jours et deltas sur 7j / 30j / 90j colorés selon la direction. Fallback en onboarding pointant vers la procédure de setup quand Withings n'est pas branché.
+- **§3b Courbes tendance longue** : grand graphique multi-séries avec deux toggles — vue (Poids / Composition / Muscle) et range (30j / 90j / 180j), avec message explicite quand pas assez de mesures sur la période.
+- **§4 Records auto-calculés** : six records max (5k, 10k, semi-marathon, marathon, plus longue sortie, volume hebdo max) détectés automatiquement depuis les activités, avec temps formaté, allure et ancienneté.
+- **§5 Journal des 20 dernières séances** : tableau dense (date / type / nom / effort déduit easy/tempo/long / distance + pace / FC + D+ / durée) pour parcourir l'historique récent.
+- **Empty state pipeline** : quand aucune activité n'est synchronisée, messages explicites pointant vers le workflow Strava à vérifier ou relancer.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-forme.jsx](cockpit/panel-forme.jsx) — 596 lignes, monté à [app.jsx:409](cockpit/app.jsx:409). Data ref (fake) : [cockpit/data-forme.js](cockpit/data-forme.js) — 274 lignes, shape canonique, **entièrement écrasé** à la visite par `replaceShape(FORME_DATA, shape)`. Stylesheet : [cockpit/styles-forme.css](cockpit/styles-forme.css) — 595 lignes, préfixe `.fm-*`.
@@ -158,6 +156,7 @@ Pipeline Strava fait **2 requêtes par activité** : 1 list (30 par page) + 1 de
 - [ ] **Pas de graphe de FC** : `average_heartrate` stocké mais affiché seulement en colonne journal.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — retrodoc initial basé sur HEAD `c456ac9`. Correctifs appliqués le même jour :
 - [CLAUDE.md](CLAUDE.md) — ligne "Forme" actualisée (1 panel scrollable au lieu de 2 vues fictives).
 - [cockpit/lib/data-loader.js](cockpit/lib/data-loader.js) — `classifySport()` + `weeklyGoalKm` lu depuis user_profile + champs muscu retirés du shape.

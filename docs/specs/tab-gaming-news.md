@@ -16,12 +16,13 @@ Identique à Sport, avec :
 - **Pas de section "Cas prod"** (`prodSection={null}`).
 
 ## Fonctionnalités
-Identiques à Sport, plus les spécificités gaming :
-- **Normalisation source** : `L'Equipe` / `L'Équipe` préfixes → `L'Équipe E-sport` ([data-loader.js:2673-2677](cockpit/lib/data-loader.js:2673)).
-- **Auto-typage titre** : regex FR/EN — `review/critique/test → Critique`, `patch/update → Patch`, `trailer/showcase → Trailer`, `leak/fuite → Rumeur`, `acquires/layoff → Deal`, `sortie/launch → Sortie`, `annonce/reveal → Annonce`, fallback `Actu`.
-- **Hero metrics dynamiques** : Articles 24h / 7j / Top rubrique / Sources distinctes.
-- **Acteurs (avatars feed)** : 9 sources avec couleur brand curée (JeuxVideo.com `#e60000`, Gamekult `#f26522`, ActuGaming `#2d9cdb`, IGN `#bf1e2d`, Eurogamer `#7700bb`, PC Gamer `#af1e23`, GamesIndustry.biz `#222`, Dexerto `#ff6600`, L'Équipe E-sport `#e4002b`). Tout le reste coloré via `nameHashColor` (palette déterministe partagée avec Veille IA + Sport).
-- **Trends = rubriques** pondérées par volume 7j. Status `rising ≥15`, `stable ≥8`, sinon `new` ([data-loader.js:3854](cockpit/lib/data-loader.js:3854)).
+Identiques à Sport (hero + tendances + feed filtrable), plus les spécificités gaming :
+- **Filtre Rubrique** : un bandeau de pills (Sorties récentes / À venir / E-sport / Industrie) pour cibler un type de contenu d'un clic.
+- **Filtre Format** : un deuxième bandeau (Critique / Patch / Trailer / Rumeur / Deal / Sortie / Annonce / Actu) déduit automatiquement du titre.
+- **Regroupement E-sport L'Équipe** : les sous-marques L'Équipe orientées gaming sont fusionnées sous un seul acteur « L'Équipe E-sport ».
+- **Tableau de bord rubrique** : quatre indicateurs en tête de page — articles sur 24h, articles sur 7j, rubrique la plus active cette semaine, nombre de sources distinctes.
+- **Couleurs de marque curées** : JeuxVideo.com, Gamekult, ActuGaming, IGN, Eurogamer, PC Gamer, GamesIndustry.biz, Dexerto et L'Équipe E-sport gardent leur couleur brand dans les pastilles ; les autres sources sont coloriées automatiquement.
+- **Tendances par rubrique** : chaque rubrique est remontée en carte de tendance selon son volume de la semaine, pour voir si l'industrie supplante les sorties.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-veille.jsx](cockpit/panel-veille.jsx) (partagé). Props distinctives :
@@ -94,4 +95,5 @@ Table dédiée, schéma aligné sur `sport_articles`.
 - [ ] **`GAMING_CATEGORY_COLORS` hardcoded** : nouvelle catégorie du pipeline (ex: "retro") tombe sur gris `#888`. Ajouter une entrée au map = 1 ligne.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — migration gaming_news vers hash-colors + catégories dynamiques + vérif pipeline classification (local, non pushé)

@@ -20,22 +20,22 @@ L'onglet Jarvis est **la gateway front du module Jarvis backend** (assistant IA 
 9. Si un autre panel a stashé un prompt dans `localStorage.jarvis-prefill-input` (via "Demander à Jarvis" depuis opps/search/signals/wiki), le composer s'initialise avec ce texte et la clé est supprimée.
 
 ## Fonctionnalités
-- **Chat conversation continue** : un seul flow, pas de threads. Tous les messages d'une même session (UUID client) sont stockés chronologiquement dans `jarvis_conversations`. Le chat reprend là où il s'est arrêté au reload (persisté en base + rechargé au mount).
-- **3 modes LLM** configurables à chaud via header-badge OU composer-pills OU settings :
-  - `quick` : LLM local (`http://localhost:1234/v1`), pas de RAG, `max_tokens` ~512 (configurable côté serveur), system prompt minimal.
-  - `deep` : LLM local + RAG (`memories_vectors` via `match_memories` RPC, k=5 threshold=0.3) + contexte profile_facts + activity_context (fenêtres actives/Outlook du jour).
-  - `cloud` : Claude Haiku (API Anthropic) + RAG. Fallback auto vers `deep` si `ANTHROPIC_API_KEY` absent.
-- **Override thinking** : `auto` (dépend du mode, `/no_think` injecté côté serveur), `on`, `off`. Persisté dans `localStorage.jarvis-thinking-override`, transmis comme param `thinking` au `/chat`.
-- **Gateway auto-discovery** : `jarvisGatewayCandidates()` construit la liste [localhost:8765, tunnel_url] en fonction du protocole (HTTPS interdit le mixed-content pour localhost → tunnel prioritaire). Le tunnel est lu dans `window.PROFILE_DATA._values.jarvis_tunnel_url` (rempli par `start_tunnel.py::upsert sb_post user_profile`).
-- **Citations cliquables** : chaque élément RAG renvoyé dans `data.sources` est projeté en chip typée avec mapping `source_table → panel id` : `articles→updates`, `wiki_concepts→wiki`, `weekly_opportunities→opps`, `business_ideas→ideas`, `rte_usecases→updates (fallback)`, `user_profile→brief (via "profile" fallback, cf. limitations)`.
-- **Mémoire structurée éditable** : 87 faits actifs. Catégorisés par `fact_type` (context/profile/skill→profil, preference→préférences, opinion/position→positions, goal/project→projets, constraint→contraintes, interest→intérêts). Force visuelle 3 dots (weak < 0.6 ≤ medium < 0.85 ≤ strong).
-- **Épinglage persisté** : `PATCH profile_facts?id=eq.{id}` avec `{pinned: bool}`. Optimistic update avec rollback si la requête échoue. Partagé entre devices (colonne DB depuis migration 012).
-- **Soft-delete** : "Oublier" fait `PATCH profile_facts?id=eq.{id}` avec `superseded_by: {id}` (le fait pointe sur lui-même) → le nightly_learner ignore + le fact disparait du `loadPanel("jarvis")` suivant (filtre `superseded_by=is.null`).
-- **Export JSON** : snapshot local téléchargé sous `jarvis-memory-YYYY-MM-DD.json` avec category/label/value/source/learned/pinned.
-- **Recherche client** : filtre in-memory sur `messages[].text.toLowerCase().includes(q)`, conserve les "stamps" pour l'aide à la lecture.
-- **Régénérer** : bouton "Régénérer" sur la dernière réponse jarvis — remet le dernier message user dans l'input et fait un setTimeout 0 → `handleSend()`.
-- **Session UUID stable** : `localStorage.jarvis-session-id` regex-validé `[0-9a-f-]{36}`, sinon régénéré via `crypto.randomUUID()` (polyfill fallback Math.random). Évite l'erreur Postgres 22P02 sur `session_id` column uuid.
-- **Telemetry** : `pipeline_triggered` (pipeline=jarvis, mode=quick/deep/cloud), `error_shown` (context="jarvis:gateway"), `jarvis_fact_pinned` (id, pinned), `jarvis_fact_forgotten` (id).
+- **Conversation continue** : un seul fil chronologique avec Jarvis, persisté en base et rechargé au mount pour reprendre là où on s'est arrêté. Séparateurs visuels par jour (Aujourd'hui / Hier / Il y a Nj / date complète).
+- **Trois modes de chat** : Rapide (LLM local, pas de RAG, réponses courtes), Deep (LLM local + corpus personnel en RAG), Cloud (Claude Haiku + RAG, environ un centime par requête). Bascule depuis le header, le composer ou les settings.
+- **Override thinking** : auto / on / off, pour forcer ou désactiver le mode raisonnement du modèle selon le besoin.
+- **Citations cliquables** : chaque réponse Jarvis affiche les sources utilisées sous forme de chips typées (article / wiki / opportunité / idée / signal / brief / profil) qui renvoient au panel correspondant en un clic.
+- **Mémoire structurée éditable** : colonne de droite « Ce que je sais de toi », regroupant les faits que Jarvis a appris la nuit (profil, préférences, intérêts, positions, projets, contraintes). Chaque fait montre sa force (trois points).
+- **Épingler / Oublier un fait** : clic sur un fait révèle deux boutons — « Épingler » (persisté en base, partagé entre appareils) et « Oublier » (soft-delete, retire le fait de la liste et du prochain apprentissage nocturne).
+- **Filtres mémoire** : deux filtres fixes (Tout / ★ Épinglés) + un par catégorie (Profil / Préférences / Intérêts / Positions / Projets / Contraintes).
+- **Export mémoire** : bouton en pied de colonne qui télécharge tous les faits actifs au format JSON daté.
+- **Recherche dans la conversation** : filtre client instantané sur le contenu des messages, garde les séparateurs de jour pour l'orientation.
+- **Quick prompts** : cinq raccourcis au-dessus du composer pour démarrer vite sur les questions fréquentes.
+- **Régénérer la dernière réponse** : bouton sous la dernière réponse Jarvis pour remettre la question dans le composer et relancer.
+- **Copier une réponse** : bouton sous chaque réponse Jarvis pour copier le texte dans le presse-papiers.
+- **Pré-remplissage depuis un autre panel** : arriver depuis Opportunités / Recherche / Signaux / Wiki ouvre le composer déjà rempli avec un prompt contextualisé.
+- **Compteurs de session** : header affiche total de messages, heures cumulées, date de la première conversation et coût du jour rapporté au budget.
+- **Nouvelle session** : bouton dans les settings qui démarre une session propre sans vider la conversation affichée.
+- **Mode dégradé serveur offline** : message d'erreur explicite avec la liste des passerelles tentées (localhost et tunnel Cloudflare) et un hint sur la commande à lancer pour relancer Jarvis.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-jarvis.jsx](cockpit/panel-jarvis.jsx) — 843 lignes, monté par [app.jsx:406](cockpit/app.jsx:406).
@@ -185,4 +185,5 @@ Volumétrie (2026-04-24) : 94 conversations, 87 facts actifs (88 au total, 1 sof
 - [ ] **`citations` trop verbeuses en mode deep** : k=5 retourne jusqu'à 5 chips par réponse, pas de dédup si plusieurs chunks pointent vers le même `source_id`.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 5 fixes (pin DB migration 012, paperclip/mic supprimés, multi-turn history, profile citation target, total_hours actif réel)

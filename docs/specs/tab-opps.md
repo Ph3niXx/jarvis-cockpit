@@ -21,20 +21,16 @@ Panel de **priorisation court-termiste** — chaque dimanche 22h UTC, `weekly_an
 10. **Ledger bas de page** : deux colonnes "Je saisis / Je passe" avec bouton "Restaurer" (PATCH `user_status=null`).
 
 ## Fonctionnalités
-- **Statuts take/pass persistés en DB** (migration 011) — colonnes `user_status` (`taken`|`passed`|NULL) + `user_status_at` (timestamptz). PATCH via `persistStatus(id, nextStatus)` avec optimistic update + rollback sur échec + `track("opp_status_changed")` + `track("error_shown")` sur erreur. Policy `auth_update_user_status` (`using(true) with check(true)` pour `authenticated`).
-- **Purge backend incrémentale** — `weekly_analysis.py::analyze_opportunities` utilise désormais `sb_delete("weekly_opportunities", "week_start=eq.{current_week}")`. Les semaines passées sont conservées pour l'audit trail et nourrissent la dédup cross-semaines côté front.
-- **Dédup côté front** : si Claude régénère la même opportunité titre à plusieurs semaines, `buildOpportunitiesFromDB` garde la plus récente via `titleKey = title.lowercase().trim()` ([data-loader.js:742-753](cockpit/lib/data-loader.js:742)). Effective maintenant que l'historique est préservé.
-- **Estimation de deadline** : la DB ne stocke pas de date de fermeture. `oppWindowFromRow` calcule `closes_iso = week_start + OPP_URGENCY_WEEKS[timing] * 7` avec mapping `closing=3sem / getting_late=10sem / right_time=26sem / too_early=52sem` ([data-loader.js:659-664](cockpit/lib/data-loader.js:659)).
-- **Scope mapping** : `category + sector` → scope UI via `OPP_CATEGORY_TO_SCOPE` (money/business/saas → `business`, life/family/perso → `life`, side → `side`, tooling/cockpit/jarvis → `jarvis`). Fallback `business`.
-- **Résolution des articles source en batch** : `loadPanel("opps")` collecte tous les UUID depuis `source_articles[]`, les résout en un seul `GET articles?id=in.(...)&limit=200`, puis `oppSourcesFromRow` remplace chaque ID par `{who, what, when, url}`.
-- **Auto-détection des signaux liés** : scan `body` contre les noms de `SIGNALS_DATA.signals` (ilike naïf, 4 max). Affichés comme chips cliquables qui stashent `signals-focus-name` et naviguent vers le panel signaux.
-- **Cross-nav Jarvis** : bouton "Plan d'action" stash un prompt dans `localStorage.jarvis-prefill-input` puis `onNavigate("jarvis")`.
-- **Envoi au Carnet d'idées** : `handleSendToIdeas` compile un payload riche (description multi-bloc, notes avec marché/concurrence/who_pays/sources/next_step), `POST /rest/v1/business_ideas` avec `status=maturing`, telemetry `opp_sent_to_ideas` + `track("error_shown")` si échec.
-- **`.opp-detail-biz` dans l'expand** : affiche `who_pays`, `market_size` (traduit "Large/Moyen/Niche"), `confidence` (Haute/Moyenne/Faible avec classe couleur). Stylé via `.opp-detail-biz-val--conf-{low,medium,high}`.
-- **Empty state dédié** : si `OPPORTUNITIES_DATA.opportunities.length === 0`, le panel affiche un hero explicite ("Aucune fenêtre ouverte pour l'instant" + explication pipeline + 2 CTAs) au lieu du shell vide.
-- **`data-opportunities.js` vidé** : le fichier expose uniquement `{week:null, updated:null, opportunities:[]}` depuis le fix. Plus aucune donnée de démo.
-- **Timeline `today` dynamique** — `new Date()` (fix du hardcode `"2026-04-21"`). Les 9 mois affichés partent désormais du mois courant.
-- **MatchRing** — 4 paliers de couleur : `<50 none` / `50-69 low` / `70-84 mid` / `85+ high`.
+- **Hero 5 stats** : cinq indicateurs en tête de page — opportunités ouvertes, urgentes, jours avant la prochaine deadline, déjà saisies et déjà passées.
+- **Opportunité phare** : en haut de page, la meilleure opportunité ouverte (triée par urgence puis fit), avec trois actions — « Je saisis », « Je passe », « Plan d'action » (qui ouvre Jarvis avec un prompt prérempli).
+- **Trois vues switchables** : Éditorial (cartes groupées par scope avec match ring, jauge d'effort, barres de concurrence et fenêtre de tir), Par timing (kanban quatre colonnes Trop tôt / Bon moment / Se rétrécit / Se dépêcher), Timeline (neuf mois à partir du mois courant avec barres horizontales de fenêtre).
+- **Cinq filtres de scope** : Tous / Business / Side / Life / Jarvisception, pour ne voir qu'un type d'opportunités.
+- **Détail enrichi au clic** : chaque carte dépliable expose analyse, bloc business (qui paye, taille de marché, niveau de confiance avec coloration), pourquoi c'est pour toi, sources d'articles, prochaine étape, signaux liés cliquables.
+- **Statuts persistés en base** : « Je saisis » et « Je passe » sont sauvegardés en base de données avec horodatage — partagé entre appareils, avec mise à jour instantanée et restauration en cas d'erreur.
+- **Envoyer au Carnet d'idées** : bouton qui crée une entrée riche dans le Carnet d'idées (titre + description + secteur + notes contextuelles) pour matérialiser l'opportunité en projet.
+- **Ledger des arbitrages** : en bas de page, deux colonnes « Je saisis » / « Je passe » avec bouton « Restaurer » pour retirer un verdict donné par erreur.
+- **Signaux faibles liés** : chaque opportunité affiche jusqu'à quatre chips de signaux détectés automatiquement dans son analyse, cliquables pour basculer vers le panel Signaux centré sur le terme.
+- **Empty state pipeline** : quand aucune opportunité n'est disponible, un message explicite indique que le pipeline hebdomadaire tourne chaque dimanche soir, avec deux raccourcis (Carnet d'idées, Signaux).
 
 ## Front — structure UI
 Fichier : [cockpit/panel-opportunities.jsx](cockpit/panel-opportunities.jsx) — 823 lignes, monté par [app.jsx:402](cockpit/app.jsx:402). CSS dédié : [cockpit/styles-opportunities.css](cockpit/styles-opportunities.css) — 861 lignes. Ressources incluses dans [index.html:23, 64, 87](index.html:23) (versions `css?v=3`, `data?v=2`, `jsx?v=4`).
@@ -157,4 +153,5 @@ Route id = `"opps"`. **Panel Tier 2** ([data-loader.js:4465](cockpit/lib/data-lo
 - [ ] **Pas de filtre par statut visible** : impossible de voir uniquement "mes saisies" ou "mes refus" dans la vue principale — on a juste le ledger en bas.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 6 correctifs appliqués (today dynamique, fake data purgée, empty state, purge backend incrémentale, statuts en DB via migration 011, `.opp-detail-biz`, telemetry error) — commit `c456ac9` (base) + migration 011 appliquée.

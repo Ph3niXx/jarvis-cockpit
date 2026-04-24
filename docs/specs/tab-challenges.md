@@ -22,17 +22,17 @@ Chaque tentative est persistée dans `challenge_attempts` (append-only). **Effet
 5. En fond : `recordAttempt()` POST `challenge_attempts`, rebuild local via `applyAttemptsToChallenges`, bump radar si 1er pass ≥ 70 %.
 
 ## Fonctionnalités
-
-- **2 modes sélectionnables** avec gros boutons pédagogiques (description + compte de challenges par mode).
-- **Banner "Recommandé cette semaine"** : affiche les 2 premiers challenges `status === "recommended"` avec axis + impact.
-- **Filtres statut** : Ouverts / Recommandés / Réussis / Tout — compteurs dynamiques.
-- **Filtre axe prefill** : consommé depuis `localStorage.challenges-prefill-axis` stashé par le CTA radar.
-- **Stats barre** : `total_taken` / `avg_score` / `total_xp` / `streak.current` + `streak.best` — **calculés** depuis `challenge_attempts` (cf. `applyAttemptsToChallenges`).
-- **Scoring théorie** : `correct = (chosen === q.correct)` (index 0-based), score final = `Math.round(correctCount / total * 100)`.
-- **Scoring pratique** : POST `/evaluate-challenge` au serveur Jarvis local (localhost:8765). Si injoignable, fallback tunnel Cloudflare (via `user_profile.jarvis_tunnel_url`), puis fallback heuristique local (score basé sur longueur + structure du texte).
-- **Difficulty dots** : 3 points (Facile = 0, Moyen = 1, Expert = 2 remplis). Calculé depuis `ch.difficulty`.
-- **Impact radar affiché** : `+{impactPts} pts si ≥80%` — `impactPts = Math.round(score_reward × 6)` (décoratif, le vrai bump est +0.5 points).
-- **Revoir** : bouton sur challenges `done` relance le même flow en `active`.
+- **Deux modes de challenge** : Théorie (QCM de 3 à 10 questions) et Pratique (brief libre noté par Jarvis sur clarté, spécificité, rigueur, complétude), sélectionnables depuis deux gros boutons pédagogiques en haut de page.
+- **Bannière « Recommandé cette semaine »** : deux challenges mis en avant par le pipeline hebdomadaire, avec l'axe radar ciblé et l'impact attendu.
+- **Filtres statut** : Ouverts / Recommandés / Réussis / Tout, avec compteurs dynamiques sur chaque pill.
+- **Filtre axe depuis le Radar** : arrivée par le CTA « Défi cet axe » pré-filtre automatiquement la liste sur l'axe concerné.
+- **Barre de stats** : total passés, score moyen, XP cumulés, streak courante et record, calculés depuis l'historique complet des tentatives.
+- **Flow Théorie** : progression en points, validation question par question avec feedback et explication, score final sur 100.
+- **Flow Pratique** : brief + contraintes à gauche, zone de rédaction à droite (minimum quelques lignes), soumission à Jarvis qui évalue en quelques secondes et renvoie un commentaire détaillé avec forces et axes d'amélioration.
+- **Écran résultat** : verdict (Excellent ≥ 85 / Validé ≥ 70 / En cours < 70), feedback Jarvis, trois cartes récapitulatives (Impact radar / XP gagnés / Prochaines étapes avec raccourci vers les recos de l'axe) et bouton « Retenter ».
+- **Bump automatique du radar** : à la première tentative passée à 70%+, le score de l'axe ciblé monte sur le radar — seul flux utilisateur qui fait bouger les scores.
+- **Mode dégradé Jarvis hors ligne** : une note heuristique locale est attribuée si le serveur Jarvis est injoignable, avec un message explicite invitant à lancer Jarvis et retenter.
+- **Revoir un challenge réussi** : un bouton sur les challenges terminés relance le même flow pour rejouer.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-challenges.jsx](cockpit/panel-challenges.jsx) — 778 lignes, monté par [app.jsx:370](cockpit/app.jsx:370).
@@ -135,4 +135,5 @@ Le `content` JSONB de `weekly_challenges` contient :
 - [ ] **Impossible de sauter un challenge en cours** sans perdre les réponses : `onBack` en cours de quiz annule tout. Devrait proposer de sauvegarder comme "abandonné".
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — 7 fixes : weakest axis dynamique + threshold 70% aligné + empty state + ResultScreen navigate + heuristic warn (local, non pushé)

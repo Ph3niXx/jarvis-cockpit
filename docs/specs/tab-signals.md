@@ -25,20 +25,18 @@ Tracker les termes IA qui **montent ou disparaissent** dans les sources de veill
    - "Demander à Jarvis" → stash `jarvis-prefill-input` = prompt multi-ligne prérempli (catégorie, tendance, sources top 5), nav `jarvis`.
 
 ## Fonctionnalités
-- **Détection quotidienne** : `main.py::extract_concepts` scanne title+summary des articles RSS, incrémente `concept_mentions[slug]` et empile l'URL dans `sources[]` ([main.py:584-603](main.py:584)).
-- **Tendances recalculées chaque run** : `update_signal_trends` compare `mention_count` cette semaine vs lundi précédent et écrit `trend` (seuils : ×1.5 → rising, ×0.5 → declining, `prev_count == 0` → new, sinon stable) ([main.py:732-772](main.py:732)).
-- **Agrégation par terme** (front) : `buildSignalsFromDB` regroupe toutes les semaines d'un `term`, reconstruit `history[]` (padding zéros jusqu'à 12), calcule `delta_4w = last4Sum − prev4Sum` (`null` si trend=new), déduit `maturity` via une heuristique trend+count, parse `sources[]` best-effort en `{who, what, when, kind}` ([data-loader.js:506-625](cockpit/lib/data-loader.js:506)).
-- **Résolution de catégorie** : slug `term` normalisé via `slugifySignal` puis matché contre `wiki_concepts.slug` (exact, puis `startsWith` / `begins-by` fuzzy). Fallback `"Autres"` si aucune correspondance ([data-loader.js:499-504](cockpit/lib/data-loader.js:499), [:536-542](cockpit/lib/data-loader.js:536)).
-- **Co-occurrences** : nested loop O(n²) sur tous les signaux, edge créée si overlap ≥ 2 sources strictement égales ([data-loader.js:594-605](cockpit/lib/data-loader.js:594)).
-- **3 vues switchables** : éditorial (par défaut), hype cycle SVG, graphe de co-occurrences SVG. Préférence persistée.
-- **Watchlist persistante** : `localStorage.sig.watch` = array d'IDs. Affiche cards + "alertes récentes" (toujours vide en prod — cf. Limitations).
-- **Fenêtre d'analyse** 4/8/12 sem (persistée `sig.window`) : tronque `signal.history.slice(-windowWeeks)` pour `MiniSpark` et `SignalGraph`.
-- **Filtre tendance** : 4 pills (`all / rising / new / declining`) avec compteurs live.
-- **Priority picks** : 4 premiers signaux triés `new first, puis rising by delta desc`.
-- **Density comfortable/dense** : toggle via TweaksPanel iframe (active classe `sig-dense` sur le wrapper).
-- **Export CSV** : `exportSignalsCSV(filtered)` → 8 colonnes `id, name, category, trend, mention_count, delta_4w, first_seen, last_seen`, préfixe BOM pour Excel FR.
-- **Cross-nav sortant** : prefill search (`veille-prefill-query`) et Jarvis (`jarvis-prefill-input`) via localStorage.
-- **Cross-nav entrant** : `signals-focus-name` depuis Opportunités, ouvre et centre le row.
+- **Trois vues switchables** : Éditorial (liste groupée par catégorie), Cycle de hype (positionnement sur courbe Gartner) et Co-occurrences (graphe radial de termes qui apparaissent ensemble). La préférence de vue est mémorisée.
+- **Hero 4 stats** : nombre de signaux en hausse, nouveaux, en baisse, et taille de la watchlist personnelle, pour situer l'actualité des signaux en un coup d'œil.
+- **Priority picks** : quatre cartes mises en avant, priorisant les nouveaux puis les plus fortes hausses, pour savoir quoi regarder en premier.
+- **Détail par signal** : clic sur un signal révèle un grand graphique 12 semaines, une courte analyse Jarvis, la liste des sources citées et deux raccourcis — « Voir la veille filtrée » (ouvre la Recherche pré-remplie sur le terme) et « Demander à Jarvis » (ouvre l'assistant avec un prompt contextualisé).
+- **Watchlist persistante** : bouton bookmark sur chaque signal, les signaux suivis apparaissent dans un bloc dédié en tête de page avec leurs alertes récentes.
+- **Fenêtre d'analyse 4 / 8 / 12 semaines** : toggle pour changer l'horizon des courbes et des sparklines. La préférence est mémorisée.
+- **Filtres tendance** : quatre pills (Tous / En hausse / Nouveaux / En baisse) avec compteurs live.
+- **Cycle de hype** : chaque signal est placé sur une courbe Gartner (innovation → pic → trough → recovery) selon sa maturité, avec la taille du point modulée par son momentum.
+- **Graphe de co-occurrences** : les signaux qui apparaissent ensemble dans plusieurs articles sont reliés, hover isole le cluster.
+- **Synthèse hebdo** : un pavé collapsible en haut du panel résume en prose ce qu'il faut retenir des signaux de la semaine, généré automatiquement chaque dimanche.
+- **Export CSV** : bouton en toolbar éditoriale qui télécharge la liste filtrée au format CSV (encodée pour Excel français), pour partager une sélection avec une autre équipe.
+- **Navigation entrante depuis Opportunités** : arriver via une opportunité filtre automatiquement sur le signal lié et ouvre son détail.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-signals.jsx](cockpit/panel-signals.jsx) — 1045 lignes, monté à [app.jsx:397](cockpit/app.jsx:397). Données de référence (fake) : [cockpit/data-signals.js](cockpit/data-signals.js) — 369 lignes, shape canonique + `maturity_positions` (overridé à l'hydratation par `buildSignalsFromDB`).
@@ -174,6 +172,7 @@ created_at timestamptz NULL
 - [ ] **`SIGNALS_DATA.maturity_positions` écrasé** à l'hydratation avec une valeur différente de la fake (`declining: 0.78` vs `0.92`, `plateau: 0.92` vs `0.80`). Cohérence à vérifier.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — retrodoc initial basé sur HEAD `c456ac9`. Correctifs appliqués le même jour :
 - migration `sql/011_signal_tracking_enrichment.sql` (jarvis_take + alerts)
 - `main.py` enrichissement sources `{domain} — {title}`

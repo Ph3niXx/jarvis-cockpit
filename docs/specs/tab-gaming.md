@@ -23,20 +23,18 @@ Agrégateur multi-plateforme centré sur Steam (source principale) avec TFT live
 12. **§8 Milestones** : 6 indicateurs figés — Heures YTD (progress vers 500h), bibliothèque total, heures cumulées, achievements count, TFT rang, sessions 30j.
 
 ## Fonctionnalités
-- **4 profils plateformes** dont 2 réels (Steam + TFT) et 2 placeholders (PSN + Xbox avec `_placeholder: true` → opacity 45% + "pipeline non branché"). Pas d'option masquage.
-- **Last session = `in_progress[0]`** : pas de tracking séparé des "sessions", juste le jeu avec le plus de `playtime_2weeks_minutes`.
-- **Cover Steam via CDN direct** : `steamHeaderUrl(appid)` → `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg`. Pas d'API call, pas de cache — fonctionne pour tous les jeux Steam publics.
-- **In progress = top 4 par playtime 14j + TFT ongoing** : slice hardcoded ([data-loader.js:2466](cockpit/lib/data-loader.js:2466)). Pas de "Load more".
-- **Backlog = 8 jeux avec playtime=0, tri par ordre d'apparition snapshot** : pas de tri "hype", "acquired", "shame_years" — ces champs sont null ou inconnus.
-- **Abandonnés = seuil 60min cumulé + 0min 14j** : signal honnête "commencé puis lâché", distinct du backlog "jamais ouvert".
-- **Daily sessions 90j remplies zéro-fill** : la boucle [data-loader.js:2533](cockpit/lib/data-loader.js:2533) crée 90 entrées date→hours, un jour sans stats donne `hours: 0`. Le pipeline Steam `--force` est mode dev/manual ; sinon tourne quotidien 5h30 UTC.
-- **Genres 14j via `playtime_2weeks_minutes × genres[0]`** : palette 7 couleurs (#3a1e2e, #2a1e38, …) cyclique. "Autre" = catch-all pour jeux non enrichis.
-- **Chart interactive** : `GmActivityChart` SVG avec zoom 30j/90j, bars + ligne moyenne mobile 7j. Grid 4 ticks Y, 6 ticks X date FR. Guard `data.length > 1` pour éviter NaN quand un seul point.
-- **Wishlist CRUD** : POST / PATCH / DELETE via REST Supabase, avec `track("gaming_wishlist_added|updated|deleted")` + `track("error_shown")` si échec. Optimistic override local `wlLocal` qui short-circuit `D.wishlist` une fois muté.
-- **Wishlist calcule `days_out`** depuis `release_date` ISO (tolérant `YYYY-MM-DD` ou `YYYY-MM-??`), marque `already_released` si ≤0. Recalcul côté front à chaque POST.
-- **TFT ongoing card** ajoutée en fin de `in_progress` si `tft_match_count > 0` — pin "Pipeline Riot live · W N / L M".
-- **Empty state dédié** : si `profiles`, `in_progress` et `top_alltime` sont tous vides, le panel affiche un hero "Aucun snapshot Steam disponible" avec l'instruction pipeline + CTA "Veille gaming". Bloque le rendu des 8 sections.
-- **Telemetry** : `gaming_wishlist_added|updated|deleted|veille_link_clicked` + `error_shown` partout (4 handlers instrumentés).
+- **Hero multi-plateforme** : titre avec heures de jeu 30 jours + jeux lancés sur owned + backlog. Carte dernière session (pochette + nom + temps récent) et sous-titre avec genre dominant et rang TFT live.
+- **Grid 4 profils plateformes** : cartes Steam (réelle, heures cumulées), Riot/TFT (live avec rang + LP + W/L), PlayStation + Xbox en placeholders grisés (« pipeline non branché »).
+- **§1 En cours** : jeux les plus joués sur les 14 derniers jours sur Steam, plus une carte TFT si des matchs sont trackés. Pochette via le CDN Steam direct.
+- **§2 Backlog** : huit jeux possédés jamais lancés, avec tag « shame » pour les candidats à finir ou désinstaller.
+- **§2bis Abandonnés** : jeux avec au moins 1h cumulée mais 0 minute sur les 14 derniers jours — signal honnête « commencé sérieusement puis lâché », distinct du backlog.
+- **§3 Activité** : courbe de temps de jeu sur 30 ou 90 jours avec moyenne mobile 7 jours pour lisser les variations.
+- **§4 Genres 14 jours** : barre horizontale empilée + table détaillée des principaux genres joués, calculée à partir des jeux enrichis (les autres tombent en « Autre »).
+- **§5 Wishlist éditable** : cartes avec pochette, titre, date de sortie (badge « sort bientôt » si <90j), hype, plateforme, prix cible et note. Boutons « + Ajouter », « Éditer » et « Retirer » avec sauvegarde en base et mise à jour instantanée. Raccourci « Veille gaming ↗ » vers l'onglet news gaming.
+- **§6 Top all-time** : dix jeux les plus joués par heures cumulées, avec barre de progression relative au maximum.
+- **§7 Achievements récents** : jusqu'à six derniers achievements Steam débloqués (platine / or / argent / bronze / spécial / commun) avec rareté en pourcentage des joueurs.
+- **§8 Milestones YTD** : six indicateurs annuels (heures vs objectif 500h, taille de bibliothèque, heures cumulées, achievements, rang TFT, sessions 30j).
+- **Empty state pipeline** : quand aucun snapshot Steam n'est disponible, message explicite avec raccourci « Veille gaming ↗ » et instruction de vérifier le workflow steam-sync.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-gaming.jsx](cockpit/panel-gaming.jsx) — ~700 lignes post-fix, monté par [app.jsx:411](cockpit/app.jsx:411). CSS dédié : [cockpit/styles-gaming.css](cockpit/styles-gaming.css) — ~1020 lignes, scope `gm-*` (`mz-*` plus utilisé depuis suppression heatmap). Ressources dans [index.html:29, 70, 95](index.html:29) (versions `css?v=5`, `data?v=2`, `jsx?v=5`).
@@ -168,4 +166,5 @@ Route id = `"gaming"`. **Panel Tier 2** ([data-loader.js:4565](cockpit/lib/data-
 - [ ] **`data-gaming.js` ≠ `data-gaming-perso.js`** : deux fichiers similaires dans index.html. Le premier alimente `GAMING_DATA` (veille gaming/gaming_news), le second `GAMING_PERSO_DATA` (ce panel). Confusion potentielle.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 7 correctifs appliqués (empty state dédié, fake data purgée, section heatmap supprimée, wishlist CRUD UI, migration 013 versionnée, télémétrie, NaN fix GmActivityChart) — commit `c456ac9` (base).

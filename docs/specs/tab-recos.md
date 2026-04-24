@@ -19,14 +19,15 @@ Panel de "lectures obligatoires de la semaine". Chaque dimanche 22h UTC, `weekly
 8. Bouton "Marquer fait" → optimistic update (`completedOverrides[id]`) + `PATCH learning_recommendations?id=eq.X` avec `completed=true, completed_at=now()`. Rollback + alert si le patch échoue.
 
 ## Fonctionnalités
-- **Priorité calculée** : si absente côté pipeline, `transformRecos` la déduit du score de l'axe ciblé — `< 50 → must`, `50-70 → should`, `≥ 70 → nice` ([data-loader.js:1374](cockpit/lib/data-loader.js:1374)).
-- **3 layouts de card** : Big (priorité 1, avec "Pourquoi" en blockquote + progression axe + CTAs), Med (priorité 2, why_short + XP), Row (priorité 3, liste dense).
-- **4 filtres combinables** : Niveau (`Tous/Débutant/Intermédiaire/Avancé`), Durée (`all / <20min / 20-60min / >1h` — bucket `timeBuckets`), Axe (sidebar ou prefill), `hideDone` (toggle bouton).
-- **Optimistic toggle `isCompleted`** : check local `completedOverrides[id]` avant `!r.unread`. Retourne instantané, rollback si PATCH échoue.
-- **Budget dynamique** : `remaining.reduce((s,r) => s + r.duration_min, 0)` formaté `Nh00`, plus `totalXP`. Ne compte que les items non complétés.
-- **Types visuels** : `TYPE_ICON` + `TYPE_LABEL` maps gardent 9 types (paper/article/video/course/guide/book/doc/tutorial/podcast) avec icône + label FR.
-- **Durée par défaut** : si le pipeline n'en fournit pas, fallback `course → 240min`, `video → 45min`, `paper → 30min`, autre → `15min`.
-- **XP calculé** : `Math.max(40, Math.min(200, duration_min * 3))` — heuristique 3 XP/min, cap 40-200.
+- **Trois sections de priorité** : « Ne passe pas à côté » (Must), « Tu devrais creuser ça » (Should), « Si tu as du temps » (Nice), pour savoir quoi lire en premier.
+- **Cartes à trois formats** : grandes cartes Must avec le « Pourquoi » en bloc de citation et progression de l'axe, cartes moyennes Should avec le pitch court, lignes denses Nice pour un balayage rapide.
+- **Quatre filtres combinables** : niveau (Débutant / Intermédiaire / Avancé), durée (< 20 min / 20-60 min / > 1h), axe (via la sidebar ou pré-remplissage depuis le Radar), et bouton « Masquer les faits ».
+- **Sidebar axes** : une ligne par axe IA avec barre de progression + score, cliquable pour filtrer la liste sur cet axe.
+- **Toggle « Marquer fait »** : un clic passe la reco en faite (mise à jour instantanée + persistance en base, rollback si échec). Le bouton reste accessible pour basculer en arrière.
+- **Clic ouvre + marque fait** : cliquer sur une carte ouvre la ressource dans un nouvel onglet et la marque faite automatiquement — utile pour ne pas avoir à cocher manuellement après lecture.
+- **Budget temps dynamique** : en haut de page, total d'heures restantes + XP à gagner, recalculé au fil des faits pour voir ce qu'il reste à avaler.
+- **Icônes par type** : chaque reco affiche son type (papier, vidéo, cours, guide, livre, doc, tutoriel, podcast, article) avec une icône reconnaissable.
+- **Messages vides contextuels** : trois messages distincts selon la situation (corpus vide / filtres trop stricts / tout déjà fait) pour savoir pourquoi la page est vide.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-recos.jsx](cockpit/panel-recos.jsx) — 424 lignes, monté par [app.jsx:369](cockpit/app.jsx:369).
@@ -124,4 +125,5 @@ Route id = `"recos"`. **Panel Tier 2** (listé dans `TIER2_PANELS` à [data-load
 - [ ] **Clic auto-mark-done** : si l'utilisateur clique pour "juste vérifier" sans lire, le fait est marqué. Il peut revert via le bouton "Marquer fait" mais c'est 2 clics pour corriger une action non voulue.
 
 ## Dernière MAJ
+2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — 3 branches empty-state + clic card = open + mark done (local, non pushé)
