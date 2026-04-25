@@ -133,6 +133,7 @@ Tables existantes :
 - `user_profile` — profil personnel key/value (identité, ambitions, intérêts, notes)
 - `usage_events` — télémétrie UX cockpit append-only (event_type, payload JSONB, ts). Migration: `jarvis/migrations/005_usage_events.sql`
 - `claude_veille` — synthèse hebdo Claude alimentée par une scheduled task Cowork (category, title, source_url, summary, applicability, how_to_apply, effort, priority, trend_context, status, notes). 4 buckets : `jarvis_applicable`, `claude_general`, `complementary_tools`, `other_news` + ligne `_summary` exécutive. INSERT service_role, UPDATE authenticated. Migration : `sql/011_claude_veille.sql`
+- `claude_ecosystem` — catalogue stable des outils inbound (qui se pluggent à Claude — MCP, skills, plugins) ou outbound (où Claude est utilisé — SDK, IDE, frameworks). Slug unique pour dédup, status workflow (active/dismissed/archived), priorité user, pin, notes. Alimenté par une 2e routine Cowork mensuelle ([docs/cowork-routines/catalogue-ecosystem.md](docs/cowork-routines/catalogue-ecosystem.md)) + ajouts manuels depuis le front. SELECT/INSERT/UPDATE authenticated. Migration : `sql/012_claude_ecosystem.sql` (seed initial : 13 entrées de référence).
 
 **Tables TFT :**
 - `tft_matches` — une ligne par match joué (placement, level, gold, durée, raw_payload JSONB, champs user_* éditables)
@@ -177,7 +178,7 @@ Tables existantes :
 | Ma semaine | articles + localStorage (read, actions, visits) | Temps réel (front-only) |
 | Nouveautés IA | articles (section=updates) | Quotidien |
 | Claude | articles (section=claude) — Anthropic + Claude Code + SDK Python/TS + Agent SDK + skills | Quotidien |
-| Veille outils | claude_veille (synthèse hebdo classée en 4 buckets, applicabilité Jarvis, comment l'appliquer) | Hebdomadaire (routine Cowork samedi) |
+| Veille outils | claude_veille (veille hebdo, 4 buckets) + claude_ecosystem (catalogue stable inbound/outbound) | Hebdo (routine veille) + Mensuel (routine catalogue) + Ajouts manuels |
 | LLMs / Agents / Énergie / FinServ / Outils / Business / Régulation / Arxiv | articles (par section) | Quotidien |
 | Wiki IA | wiki_concepts | Quotidien (détection) + Hebdo (enrichissement Claude) |
 | Signaux faibles | signal_tracking + weekly_analysis.signals_summary | Quotidien (comptage) + Hebdo (analyse Claude) |

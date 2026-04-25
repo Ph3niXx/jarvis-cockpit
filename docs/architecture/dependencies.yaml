@@ -105,8 +105,10 @@ panels:
 
   - id: veille-outils
     file: cockpit/panel-veille-outils.jsx
-    reads: [claude_veille]
-    writes: [claude_veille]  # status + notes via authenticated UPDATE (INSERT réservé routine Cowork via service_role)
+    reads: [claude_veille, claude_ecosystem]
+    writes:
+      - claude_veille      # status + notes via authenticated UPDATE (INSERT réservé routine Cowork via service_role)
+      - claude_ecosystem   # status + user_priority + is_pinned + user_notes via UPDATE, ajout manuel via INSERT (authenticated)
 
   - id: jobs
     file: cockpit/panel-jobs-radar.jsx
@@ -211,6 +213,11 @@ tables:
   - name: claude_veille
     owner_pipeline: cowork_external  # routine Cowork hebdo (skill schedule) — INSERT en service_role via MCP Supabase
     rls: authenticated  # SELECT + UPDATE pour authenticated, INSERT/DELETE réservés service_role
+    domain: veille
+
+  - name: claude_ecosystem
+    owner_pipeline: cowork_external  # routine Cowork mensuelle "Catalogue écosystème" + ajouts manuels front
+    rls: authenticated  # SELECT + INSERT + UPDATE pour authenticated (le user peut ajouter une intégration manuellement)
     domain: veille
 
   - name: challenge_attempts

@@ -1306,6 +1306,7 @@
     async anime(){ return once("anime_articles", () => q("anime_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async news(){ return once("news_articles", () => q("news_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async veille_outils(){ return once("veille_outils", () => q("claude_veille", "order=created_at.desc&limit=200")); },
+    async claude_ecosystem(){ return once("claude_ecosystem", () => q("claude_ecosystem", "order=is_pinned.desc.nullslast,name.asc&limit=500")); },
     async jarvis_messages(){ return once("jarvis_messages", () => q("jarvis_conversations", "order=created_at.desc&limit=200")); },
     async jarvis_facts(){ return once("jarvis_facts", () => q("profile_facts", "superseded_by=is.null&order=created_at.desc&limit=200")); },
     async jobs_scan_today(){
@@ -4436,7 +4437,10 @@
         return { ideas };
       }
       case "veille-outils": {
-        const rows = await T2.veille_outils();
+        const [rows, ecoRows] = await Promise.all([
+          T2.veille_outils(),
+          T2.claude_ecosystem().catch(() => []),
+        ]);
         if (!window.VEILLE_OUTILS_DATA) window.VEILLE_OUTILS_DATA = {};
         const all = Array.isArray(rows) ? rows : [];
         const summaryRow = all.find(r => r.category === "_summary") || null;
@@ -4455,7 +4459,8 @@
         window.VEILLE_OUTILS_DATA.last_run = lastRun || null;
         window.VEILLE_OUTILS_DATA.total = items.length;
         window.VEILLE_OUTILS_DATA.by_category = byCategory;
-        return { items: rows };
+        window.VEILLE_OUTILS_DATA.ecosystem = Array.isArray(ecoRows) ? ecoRows : [];
+        return { items: rows, ecosystem: ecoRows };
       }
       case "profile": {
         const [rows, facts, entitiesRows, history, commitments, uqs] = await Promise.all([
