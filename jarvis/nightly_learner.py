@@ -184,6 +184,12 @@ def _llm_extract(prompt: str, text: str) -> dict:
         log.warning("No JSON found in LLM response (%d chars): %.100s...", len(raw), raw)
         return {"facts": [], "entities": []}
 
+    except RuntimeError as e:
+        if "unloaded model" in str(e):
+            log.error("LM Studio unloaded mid-run: %s", e)
+            raise
+        log.warning("LLM extraction failed: %s", e)
+        return {"facts": [], "entities": []}
     except Exception as e:
         log.warning("LLM extraction failed: %s", e)
         return {"facts": [], "entities": []}
@@ -422,33 +428,42 @@ def run(days: int | None = None) -> dict:
 
     consecutive_failures = 0
     session_ids = list(sessions.keys())
-    for idx, sid in enumerate(session_ids):
-        msgs = sessions[sid]
-        log.info("  Session %s... (%d msgs)", sid[:8], len(msgs))
-        result = extract_from_session(msgs)
+    try:
+        for idx, sid in enumerate(session_ids):
+            msgs = sessions[sid]
+            log.info("  Session %s... (%d msgs)", sid[:8], len(msgs))
+            result = extract_from_session(msgs)
 
-        facts_count = save_facts(result["facts"], sid, source="conversation")
-        entities_count = save_entities(result["entities"])
+            facts_count = save_facts(result["facts"], sid, source="conversation")
+            entities_count = save_entities(result["entities"])
 
-        if facts_count == 0 and entities_count == 0:
-            consecutive_failures += 1
-            if consecutive_failures >= 3:
-                remaining = len(session_ids) - idx - 1
-                log.error("Circuit breaker: %d echecs consecutifs, skip %d sessions restantes", consecutive_failures, remaining)
-                break
-        else:
-            log.debug("consecutive_failures reset apres extraction OK sur session %s", sid[:8])
-            consecutive_failures = 0
+            if facts_count == 0 and entities_count == 0:
+                consecutive_failures += 1
+                if consecutive_failures >= 3:
+                    remaining = len(session_ids) - idx - 1
+                    log.error("Circuit breaker: %d echecs consecutifs, skip %d sessions restantes", consecutive_failures, remaining)
+                    break
+            else:
+                log.debug("consecutive_failures reset apres extraction OK sur session %s", sid[:8])
+                consecutive_failures = 0
 
-        total_facts += facts_count
-        total_entities += entities_count
-        total_sessions += 1
-        log.info("    -> %d faits, %d entites", facts_count, entities_count)
+            total_facts += facts_count
+            total_entities += entities_count
+            total_sessions += 1
+            log.info("    -> %d faits, %d entites", facts_count, entities_count)
 
-        for m in msgs:
-            ca = m.get("created_at", "")
-            if ca > latest_created_at:
-                latest_created_at = ca
+            for m in msgs:
+                ca = m.get("created_at", "")
+                if ca > latest_created_at:
+                    latest_created_at = ca
+    except RuntimeError as e:
+        if "unloaded model" in str(e):
+            log.error("Abort nightly run: LM Studio decharge en cours de boucle conversations (%s)", e)
+            state["last_result"] = "lm_studio_unloaded_midrun"
+            state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
+            _save_state(state)
+            return {"status": "error", "reason": "lm_studio_unloaded_midrun"}
+        raise
 
     # 4. Source 2 & 3: Activity + Outlook
     log.info("[4/5] Source: Activite + Outlook...")
@@ -466,17 +481,26 @@ def run(days: int | None = None) -> dict:
             d = item["date"]
             by_date.setdefault(d, []).append(item["text"])
 
-        for d, texts in by_date.items():
-            combined = "\n\n".join(texts)
-            log.info("  %s (%d sources, %d chars)...", d.isoformat(), len(texts), len(combined))
-            result = _llm_extract(ACTIVITY_EXTRACTION_PROMPT, combined)
+        try:
+            for d, texts in by_date.items():
+                combined = "\n\n".join(texts)
+                log.info("  %s (%d sources, %d chars)...", d.isoformat(), len(texts), len(combined))
+                result = _llm_extract(ACTIVITY_EXTRACTION_PROMPT, combined)
 
-            facts_count = save_facts(result["facts"], None, source="activity")
-            entities_count = save_entities(result["entities"])
+                facts_count = save_facts(result["facts"], None, source="activity")
+                entities_count = save_entities(result["entities"])
 
-            total_facts += facts_count
-            total_entities += entities_count
-            log.info("    -> %d faits, %d entites", facts_count, entities_count)
+                total_facts += facts_count
+                total_entities += entities_count
+                log.info("    -> %d faits, %d entites", facts_count, entities_count)
+        except RuntimeError as e:
+            if "unloaded model" in str(e):
+                log.error("Abort nightly run: LM Studio decharge en cours de boucle activite (%s)", e)
+                state["last_result"] = "lm_studio_unloaded_midrun"
+                state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
+                _save_state(state)
+                return {"status": "error", "reason": "lm_studio_unloaded_midrun"}
+            raise
     else:
         log.info("  Aucune donnee d'activite a traiter.")
 

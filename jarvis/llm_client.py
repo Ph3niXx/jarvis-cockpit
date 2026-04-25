@@ -90,6 +90,22 @@ def _sync_call(messages: list, max_tokens: int, temperature: float, response_for
             return answer, tokens
         except (APITimeoutError, APIConnectionError) as e:
             last_exc = e
+            # Mid-run model unload detection — check before retry on timeout
+            if isinstance(e, APITimeoutError):
+                lm_state = check_lm_studio(timeout=2.0)
+                if lm_state == "no_model_loaded":
+                    _write_trace({
+                        "ts": datetime.now(timezone.utc).isoformat(),
+                        "model": model_used,
+                        "chars_in": chars_in,
+                        "latency_ms": round((time.time() - start_time) * 1000),
+                        "attempts": attempt + 1,
+                        "status": "error",
+                        "error_type": "model_unloaded_midrun",
+                    })
+                    raise RuntimeError(
+                        f"LM Studio unloaded model {model_used} mid-run (after attempt {attempt + 1})"
+                    ) from e
             if attempt < MAX_RETRIES:
                 backoff = 2 ** (attempt + 1)  # 2s, 4s
                 log.warning("LLM retry %d/%d after %s (backoff %ds)", attempt + 1, MAX_RETRIES, type(e).__name__, backoff)
