@@ -1133,6 +1133,7 @@
     ]},
     { group: "Veille", items: [
       { id: "updates", label: "Veille IA", icon: "sparkles" },
+      { id: "veille-outils", label: "Veille outils", icon: "toolbox" },
       { id: "sport", label: "Sport", icon: "flag" },
       { id: "gaming_news", label: "Gaming", icon: "wrench" },
       { id: "anime", label: "Anime / Ciné / Séries", icon: "star" },
