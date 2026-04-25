@@ -7,15 +7,13 @@ LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
 LM_STUDIO_API_KEY = os.getenv("LM_STUDIO_API_KEY", "lm-studio")
 
 # Models
-# Qwen3 4B Thinking 2507 fits in 8 GB VRAM with headroom for KV cache,
-# and switches thinking on/off via /no_think in the system prompt (see
-# server.py::system_prompt_for). Exact slug depends on LM Studio's
-# naming — override via LLM_MODEL env var if different.
-LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3-4b-thinking-2507")
-# Dedicated non-thinking model for structured JSON extraction (nightly_learner).
-# Qwen3 4B Thinking 2507 emits all content inside <think>…</think>, so after
-# _strip_thinking() the response is empty — unusable for JSON extraction.
-EXTRACTION_MODEL = os.getenv("EXTRACTION_MODEL", "qwen/qwen3-4b-2507")
+# Qwen3.5 9B Q4_K_M (~5.5 Go VRAM) is the single instruct model used for
+# both /chat (Rapide + Deep) and the JSON extraction in nightly_learner.
+# Pure instruct (no <think>…</think> blocks), so _strip_thinking() is a no-op
+# and the JSON pipeline works without a second dedicated model.
+# Override via LLM_MODEL / EXTRACTION_MODEL env vars if needed.
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.5-9b")
+EXTRACTION_MODEL = os.getenv("EXTRACTION_MODEL", "qwen/qwen3.5-9b")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen/qwen3-embedding-0.6b")
 
 # Generation parameters

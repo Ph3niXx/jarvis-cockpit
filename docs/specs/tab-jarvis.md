@@ -104,7 +104,7 @@ Volumétrie (2026-04-24) : 94 conversations, 87 facts actifs (88 au total, 1 sof
 - **Weekly pipeline** ([weekly_analysis.py](weekly_analysis.py)) : aucun write direct. `weekly_analysis` est utilisé par `data-loader.js::bootTier1` pour calculer le `cost_today_eur` côté cockpit (mais pour l'onglet Jarvis, c'est recalculé à partir des tokens cloud).
 - **Jarvis backend** — **pipeline principal** :
   - [jarvis/server.py:473-476](jarvis/server.py:473) `_persist_exchange` → `sb_post jarvis_conversations` (x2 : user + assistant) à chaque tour via service_role.
-  - [jarvis/nightly_learner.py](jarvis/nightly_learner.py) lu les nouvelles conversations depuis un checkpoint, passe chaque bloc à Qwen3 4B Instruct pour extraction JSON (faits + entités), `sb_post profile_facts` + `sb_post entities` (upsert), puis reindex via `indexer.py`. Déclenché à minuit par le scheduler asyncio dans `server.py:575`, au démarrage via `start_jarvis.bat`, ou manuel via `POST /nightly-learner`.
+  - [jarvis/nightly_learner.py](jarvis/nightly_learner.py) lu les nouvelles conversations depuis un checkpoint, passe chaque bloc à Qwen3.5 9B Instruct (modèle unique partagé avec le chat) pour extraction JSON (faits + entités), `sb_post profile_facts` + `sb_post entities` (upsert), puis reindex via `indexer.py`. Déclenché à minuit par le scheduler asyncio dans `server.py:575`, au démarrage via `start_jarvis.bat`, ou manuel via `POST /nightly-learner`.
   - [jarvis/indexer.py](jarvis/indexer.py) indexe périodiquement `articles`, `wiki_concepts`, `weekly_opportunities`, `business_ideas`, `rte_usecases`, `user_profile`, `profile_facts`, `entities` dans `memories_vectors`. Check freshness via `check_index_freshness.py` au boot.
 - **Observers** (voir CLAUDE.md phase 6) :
   - `window_observer.py` — fenêtre active Windows, 30s, JSONL local.
@@ -184,6 +184,7 @@ Volumétrie (2026-04-24) : 94 conversations, 87 facts actifs (88 au total, 1 sof
 - [ ] **`citations` trop verbeuses en mode deep** : k=5 retourne jusqu'à 5 chips par réponse, pas de dédup si plusieurs chunks pointent vers le même `source_id`.
 
 ## Dernière MAJ
+2026-04-25 — switch backend LM Studio sur modèle unique Qwen3.5 9B Instruct (chat Rapide/Deep + extraction nightly_learner). Suppression de la dual-stack 4B Thinking + 4B Instruct pour éliminer la slot contention LM Studio et les timeouts cockpit 120s sur les chats Deep.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 5 fixes (pin DB migration 012, paperclip/mic supprimés, multi-turn history, profile citation target, total_hours actif réel)

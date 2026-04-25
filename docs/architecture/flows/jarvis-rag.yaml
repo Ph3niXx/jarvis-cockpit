@@ -8,11 +8,9 @@ status: active
 
 source_api:
   - name: "Qwen3.5 9B Q4_K_M (local)"
-    detail: "LM Studio port 1234 — mode rapide / deep"
+    detail: "LM Studio port 1234 — modèle unique chat (rapide/deep) + extraction JSON nightly"
   - name: "Qwen3-Embedding-0.6B Q8_0"
     detail: "LM Studio — dim 1024 pour pgvector"
-  - name: "Qwen3 4B Instruct (local)"
-    detail: "Extraction JSON pour nightly_learner"
   - name: "Claude Haiku 4.5 (Anthropic API)"
     detail: "Mode cloud uniquement, ~0,01 $/requête"
 

@@ -215,7 +215,7 @@ local_pipelines:
     name: "Nightly learner (extraction faits + entités)"
     trigger: "Scheduler asyncio minuit local + POST /nightly-learner + start_jarvis.bat"
     script: "jarvis/nightly_learner.py"
-    input_api: "Qwen3 4B Instruct (LM Studio local) + sources locales"
+    input_api: "Qwen3.5 9B Instruct (LM Studio local) + sources locales"
     read_sources:
       - jarvis_conversations
       - "jarvis_data/activity_*.jsonl"

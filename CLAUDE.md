@@ -453,12 +453,11 @@ Assistant IA personnel local ("Jarvis") qui :
 ### Stack technique Jarvis
 
 - **LM Studio** en serveur local sur `http://localhost:1234/v1` (compatible OpenAI API)
-- **LLM principal (chat)** : Qwen3 4B Thinking 2507 Q4_K_M (~2.5 Go VRAM, slug `qwen/qwen3-4b-thinking-2507`) — utilisé par `/chat` (modes Rapide/Deep), `_compact_history`, `daily_brief_generator`, `status_generator`. Thinking on/off via `/no_think` dans le system prompt.
-- **Extraction JSON** : Qwen3 4B Instruct 2507 Q4_K_M (~2.5 Go VRAM, slug `qwen/qwen3-4b-2507`) — non-thinking, dédié `nightly_learner` car le modèle Thinking émet tout dans `<think>…</think>` (inutilisable après `_strip_thinking`)
+- **LLM unique (chat + extraction JSON)** : Qwen3.5 9B Q4_K_M (~5.5 Go VRAM, slug `qwen/qwen3.5-9b`) — instruct pur, **pas de thinking**. Utilisé par `/chat` (modes Rapide/Deep), `_compact_history`, `daily_brief_generator`, `status_generator`, et `nightly_learner` (extraction faits + entités). Un seul modèle chargé évite les conflits de slot LM Studio entre chat utilisateur et tâches de fond.
 - **Embeddings** : Qwen3-Embedding-0.6B Q8_0 (~640 Mo, slug `qwen/qwen3-embedding-0.6b`) — vecteurs 1024-dim pour `memories_vectors` (RAG, indexation, recherche sémantique)
 - **Vector store** : Supabase pgvector (1024-dim, table `memories_vectors`)
-- **Hardware** : RTX 5070 Laptop **8 Go VRAM dédiée** (+ 15.9 Go Shared via PCIe), 32 Go RAM, Windows. Les 3 modèles chargés en parallèle pèsent ~5.7 Go — il reste ~2.3 Go pour le KV cache, OK tant que le contexte chat reste sous ~8k tokens. Si le throughput chute sous 5 tok/s c'est que la VRAM déborde en Shared (inférence 10-50× plus lente) — décharger un modèle non-utilisé ou réduire le context.
-- **Mode thinking** désactivé par défaut sur `qwen3-4b-thinking-2507` (utiliser `/no_think`)
+- **Hardware** : RTX 5070 Laptop **8 Go VRAM dédiée** (+ 15.9 Go Shared via PCIe), 32 Go RAM, Windows. 2 modèles chargés (LLM 9B + embedding 0.6B) pèsent ~6.1 Go — il reste ~1.9 Go pour le KV cache, OK tant que le contexte chat reste sous ~4k tokens. Throughput cible 30-40 tok/s sur le 9B. Si le throughput chute sous 10 tok/s c'est que la VRAM déborde en Shared (inférence 10-50× plus lente) — réduire le context ou décharger temporairement l'embedding model.
+- **Note historique** : avant 2026-04-25, la stack utilisait Qwen3 4B Thinking 2507 + Qwen3 4B Instruct 2507 + embedding (3 modèles). La VRAM était saturée et les chats Deep dépassaient régulièrement le timeout cockpit 120s. Switch vers un seul modèle 9B instruct = plus d'overhead thinking, plus de slot contention nightly_learner ↔ chat. `/no_think` dans les system prompts est devenu un no-op inoffensif (le modèle ignore l'instruction).
 
 ### Structure du module
 

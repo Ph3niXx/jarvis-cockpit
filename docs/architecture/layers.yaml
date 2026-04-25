@@ -59,7 +59,7 @@ layers:
         subtitle: "Qwen3.5 9B + Qwen3-Embedding 0.6B"
         meta:
           - "API OpenAI-compatible port 1234"
-          - "Qwen3 4B pour extraction JSON"
+          - "Modèle unique chat + extraction JSON"
         accent: false
       - id: observers
         title: "Observers + Nightly learner"
