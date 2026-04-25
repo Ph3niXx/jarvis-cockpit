@@ -16,8 +16,8 @@
 pipelines:
   - id: daily_digest
     name: "Veille IA quotidienne (Gemini)"
-    cron: "0 6 * * 1-5"
-    human_time: "Lun-Ven 06:00 UTC"
+    cron: "0 6 * * *"
+    human_time: "Tous les jours 06:00 UTC"
     workflow_file: ".github/workflows/daily_digest.yml"
     script: "main.py"
     input_api: "RSS (flux veille IA) + Gemini 2.5 Flash-Lite"

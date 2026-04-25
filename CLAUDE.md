@@ -22,7 +22,7 @@ Cockpit IA personnel pour un manager en transformation digitale qui veut :
 ### Stack
 - **Site** : GitHub Pages — React 18 + `@babel/standalone` via unpkg (SRI pinnés), no build step. Coquille `index.html` + dossier `cockpit/` (React handoff Dawn/Obsidian/Atlas)
 - **Base de données** : Supabase PostgreSQL (free tier, projet `mrmgptqpflzyavdfqwwv`)
-- **Pipeline quotidien** : `main.py` via GitHub Actions (cron lun-ven 6h UTC)
+- **Pipeline quotidien** : `main.py` via GitHub Actions (cron quotidien 6h UTC)
   - Gemini 2.5 Flash-Lite (gratuit) pour RSS + web search + brief
 - **Pipeline hebdomadaire** : `weekly_analysis.py` via GitHub Actions (dimanche 22h UTC)
   - Claude Haiku 4.5 (~0.03$/run) pour wiki, signaux, recommandations, challenges, opportunités, RTE

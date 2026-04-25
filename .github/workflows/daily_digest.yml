@@ -2,16 +2,13 @@ name: AI Cockpit Pipeline
 
 on:
   schedule:
-    # Quotidien lun-ven à 6h UTC (8h Paris)
-    - cron: '0 6 * * 1-5'
-    # Ping anti-pause le week-end (samedi 10h UTC)
-    - cron: '0 10 * * 6'
+    # Quotidien tous les jours à 6h UTC (8h Paris)
+    - cron: '0 6 * * *'
   workflow_dispatch:  # Lancement manuel
 
 jobs:
   daily-digest:
     runs-on: ubuntu-latest
-    # Ne pas tourner le samedi sauf pour le ping
     steps:
       - uses: actions/checkout@v4
 
