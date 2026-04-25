@@ -84,19 +84,29 @@ Historique de toutes les propositions de Jarvis Upgrade Scout.
 | 2026-04-20 | S2 | Préflight LM Studio (re-promu v10-S1) | SHIP | XS | deferred | Intégré partiellement dans S1-v12 via préflight EXTRACTION_MODEL |
 | 2026-04-20 | K1 | Hygiène workflow (orphelins racine + stale pending + INDEX MàJ) | KILL | XS | shipped | Exécuté via K1-v12 |
 | 2026-04-20 | P25 | Audit post-migration React panel-by-panel | PARK | M | deferred | Après smoke test S1 vert ET incident repéré sur un panel précis |
-| 2026-04-23 | S1 | Extraction nightly : modèle non-thinking dédié | SHIP | S | shipped | Commit 1e26898. Résout empty_extraction bug (Qwen3 4B Thinking 2507 produit tout dans `<think>`) |
-| 2026-04-23 | K1 | Hygiène workflow (orphans + pending + INDEX) | KILL | XS | shipped | Ce commit |
+| 2026-04-23 | S1 | Extraction nightly : modèle non-thinking dédié | SHIP | S | shipped | Commit 1e26898. Résout empty_extraction bug (Qwen3 4B Thinking 2507 produit tout dans `<think>`). Nightly du 25/04 : extraction_rate 3.8 (vs 0.0 pendant 6 jours) |
+| 2026-04-23 | K1 | Hygiène workflow (orphans + pending + INDEX) | KILL | XS | shipped | Commit 36113b6 |
 | 2026-04-23 | P26 | Accès télémétrie Supabase depuis sandbox audit | PARK | S | deferred | Quand un 2e audit consécutif manque `usage_events` pour raison env vars |
+| 2026-04-14 | S1 | Préflight `check_lm_studio_ready` + état `llm_unavailable` | SHIP | XS | parked | (downgraded from ship after rechallenging — absorbé par 2026-04-25-S2 mid-run detection) → P31 |
+| 2026-04-25 | S1 | Resync `KNOWN_SECTIONS` sur le vrai cockpit React | SHIP | XS | proposed | Diagnostic hebdo pollué par 15 "Section inconnue" et 4 fausses sections mortes depuis migration React |
+| 2026-04-25 | S2 | Détection LM Studio model unloaded mid-run (abort fast) | SHIP | S | proposed | 24/04 : 3 timeouts × 1108s = 55 min en silence. Préflight v12-S1 ne couvre pas le mid-run unload |
+| 2026-04-25 | S3 | Bump `project_status.yaml` avec Phase 7 méta-doc | SHIP | XS | parked | (downgraded from ship after rechallenging — pure cosmétique, valeur faible vs S1+S2) → P27 |
+| 2026-04-25 | K1 | Kill `nightly_learner.log` legacy + close stale preflight pending | KILL | XS | proposed | 50 lignes de WARNING périmés (12-14/04) polluent `extract_signals.py` à chaque audit |
+| 2026-04-25 | P27 | Bump `project_status.yaml` avec Phase 7 méta-doc | PARK | XS | deferred | Quand les 4 lints CI Phase 7 tournent 7j sans warning ni intervention manuelle |
+| 2026-04-25 | P28 | Hybrid search BM25 + tsvector + RRF (réveil P2 enrichi par veille 25/04) | PARK | M | deferred | Maintenant que vectors=752 ≥ 500 ET capacité M libre une semaine sans incident urgent |
+| 2026-04-25 | P29 | Mem0g graph extension (relations + conflict detector + hybrid retrieval) | PARK | M | deferred | Quand P28 shippé ET ≥ 3 cas de contradiction de faits observés dans `profile_facts` en 1 semaine |
+| 2026-04-25 | P30 | Investiguer pourquoi `signals.md` du 25/04 manquant | PARK | XS | deferred | Quand un 2e jour consécutif manque le fichier (un seul = bruit) |
+| 2026-04-25 | P31 | Préflight LM Studio général (ex v10-S1, absorbé par v13-S2) | PARK | XS | deferred | Si v13-S2 mid-run insuffisant pour 2e cas en 2 semaines OR LM Studio ne démarre pas chargé |
 
 ## Stats
 
-- Propositions totales : 77
-- SHIP shippés : 26 (v1: 5, v2: 2, v3: 3, v4: 3, v5: 2, v6: 3, v7: 3, v8: 2, v9: 2, v10: 0, v11: 0, v12: 1)
-- SHIP proposés (en attente) : 1 (v10-S1 préflight, conservé comme filet mid-run)
-- SHIP rétrogradés : 2 (v7-S3 → P17, v10-S3 → P20)
+- Propositions totales : 84
+- SHIP shippés : 26 (v1: 5, v2: 2, v3: 3, v4: 3, v5: 2, v6: 3, v7: 3, v8: 2, v9: 2, v10: 0, v11: 0, v12: 1, v13: 0)
+- SHIP proposés (en attente) : 2 (v13-S1 KNOWN_SECTIONS resync + v13-S2 LM Studio mid-run)
+- SHIP rétrogradés : 4 (v7-S3 → P17, v10-S3 → P20, v10-S1 → P31, v13-S3 → P27)
 - KILL shippés : 13 (v1: 2, v2: 1, v3: 2, v4: 2, v5: 1, v6: 1, v7: 1, v8: 1, v9: 1, v12: 1)
-- KILL proposés : 0
-- PARK (différé) : 26
+- KILL proposés : 1 (v13-K1 stale log + close preflight)
+- PARK (différé) : 30
 - Taux d'exécution v1→v9 : 96% (25/26 shippés)
-- Taux d'exécution v10-v11 : 3/6 via K1-v12 (hygiène fusionnée) — v10-S1 reste proposed ; v11-S1/S2 deferred
-- Taux de rechallenging (rétrogradations) : 7.1% (2/28) — stable, toujours sous cible ~20%
+- Taux d'exécution v10-v11 : 3/6 via K1-v12 (hygiène fusionnée) — v10-S1 absorbé en P31 par v13-S2 ; v11-S1/S2 deferred
+- Taux de rechallenging (rétrogradations) : 13.3% (4/30) — en hausse, encore sous cible ~20% (1 rétrogradation cette semaine = sain)
