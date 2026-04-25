@@ -175,6 +175,7 @@ Tables existantes :
 | Brief du jour | daily_briefs + activity_briefs | Quotidien (Gemini + Jarvis observer) |
 | Ma semaine | articles + localStorage (read, actions, visits) | Temps réel (front-only) |
 | Nouveautés IA | articles (section=updates) | Quotidien |
+| Claude | articles (section=claude) — Anthropic + Claude Code + SDK Python/TS + Agent SDK + skills | Quotidien |
 | LLMs / Agents / Énergie / FinServ / Outils / Business / Régulation / Arxiv | articles (par section) | Quotidien |
 | Wiki IA | wiki_concepts | Quotidien (détection) + Hebdo (enrichissement Claude) |
 | Signaux faibles | signal_tracking + weekly_analysis.signals_summary | Quotidien (comptage) + Hebdo (analyse Claude) |
@@ -232,6 +233,7 @@ Table `usage_events` — append-only, pas de UPDATE/DELETE (enforcé par RLS). L
 | `wiki_shared` | `{slug}` | `cockpit/panel-wiki.jsx` partage |
 | `jobs_action` | `{action, job_id}` | `cockpit/panel-jobs-radar.jsx` toggle |
 | `history_pin_toggled` | `{iso, pinned}` | `cockpit/panel-history.jsx::handleTogglePin()` |
+| `review_action` | `{action, id}` | `cockpit/panel-review.jsx::markReadAndAdvance()` |
 
 **Règle** : ajouter un nouvel event_type nécessite de mettre à jour ce tableau AVANT le commit.
 

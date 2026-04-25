@@ -468,8 +468,8 @@
     }
   ],
   "cockpit_tabs": {
-    "summary": "Catalogue des 25 onglets du cockpit, leur rôle, leurs sources de données et leur cadence de mise à jour.",
-    "updated_at": "2026-04-24",
+    "summary": "Catalogue des 26 onglets du cockpit, leur rôle, leurs sources de données et leur cadence de mise à jour.",
+    "updated_at": "2026-04-25",
     "groups": [
       {
         "id": "aujourdhui",
@@ -484,6 +484,16 @@
             "data_sources": ["daily_briefs", "articles", "signal_tracking", "skill_radar", "activity_briefs"],
             "frequency": "daily",
             "update_details": "Généré chaque matin à 06:00 UTC (Gemini Flash-Lite)"
+          },
+          {
+            "id": "review",
+            "label": "Revue du jour",
+            "icon": "play",
+            "description": "Flow séquentiel unread-first : un seul article à la fois, 3 actions (passer/garder/idée), raccourcis clavier K/S/I, écran de clôture. Vide la pile en quelques minutes.",
+            "panel_file": "cockpit/panel-review.jsx",
+            "data_sources": ["articles (via data.top + data.week)", "localStorage (read-articles)"],
+            "frequency": "daily",
+            "update_details": "Aucun pipeline dédié — consomme les Tier 1 déjà chargés"
           },
           {
             "id": "top",
@@ -528,6 +538,15 @@
             "description": "Feed éditorial des actualités IA : articles regroupés par section (LLMs, Agents, Régulation, FinServ, Outils...) et période. Pulse sparklines par thème.",
             "panel_file": "cockpit/panel-veille.jsx",
             "data_sources": ["articles (section=updates)"],
+            "frequency": "daily"
+          },
+          {
+            "id": "claude",
+            "label": "Claude",
+            "icon": "bot",
+            "description": "Section dédiée Anthropic : modèles, Claude Code, SDK Python/TypeScript, Agent SDK, skills officiels. 6 flux RSS Anthropic (anthropic.com + 5 repos GitHub).",
+            "panel_file": "cockpit/panel-veille.jsx",
+            "data_sources": ["articles (section=claude)"],
             "frequency": "daily"
           },
           {

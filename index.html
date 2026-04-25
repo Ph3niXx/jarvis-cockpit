@@ -49,11 +49,12 @@
 <script src="cockpit/lib/supabase.js?v=1"></script>
 <script src="cockpit/lib/telemetry.js?v=1"></script>
 <script src="cockpit/lib/auth.js?v=1"></script>
-<script src="cockpit/lib/data-loader.js?v=27"></script>
+<script src="cockpit/lib/data-loader.js?v=28"></script>
 
 <!-- Fallback fake data (remains in place as shape reference; tier 1 overrides these) -->
 <script src="cockpit/data.js"></script>
 <script src="cockpit/data-veille.js?v=2"></script>
+<script src="cockpit/data-claude.js?v=1"></script>
 <script src="cockpit/data-sport.js?v=2"></script>
 <script src="cockpit/data-gaming.js?v=2"></script>
 <script src="cockpit/data-anime.js?v=2"></script>
@@ -77,6 +78,7 @@
 <script type="text/babel" src="cockpit/sidebar.jsx?v=6"></script>
 <script type="text/babel" src="cockpit/home.jsx?v=4"></script>
 <script type="text/babel" src="cockpit/panel-top.jsx"></script>
+<script type="text/babel" src="cockpit/panel-review.jsx?v=1"></script>
 <script type="text/babel" src="cockpit/panel-signals.jsx?v=8"></script>
 <script type="text/babel" src="cockpit/panel-radar.jsx?v=5"></script>
 <script type="text/babel" src="cockpit/panel-week.jsx"></script>
@@ -99,6 +101,7 @@
 <script type="text/babel" src="cockpit/panel-jobs-radar.jsx?v=3"></script>
 <!-- Bootstrap: sets __cockpitBootstrapPending so app.jsx defers mount until we say go -->
 <script src="cockpit/lib/bootstrap.js?v=2"></script>
+<script type="text/babel" src="cockpit/command-palette.jsx?v=1"></script>
 <script type="text/babel" src="cockpit/app.jsx?v=29"></script>
 
 <!-- PWA service worker (best-effort: no-op if unsupported or file:// protocol) -->

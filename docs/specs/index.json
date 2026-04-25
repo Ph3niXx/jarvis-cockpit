@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-24T14:00:00Z",
+  "generated_at": "2026-04-25T14:00:00Z",
   "tabs": [
     {
       "slug": "brief",
@@ -12,9 +12,19 @@
       "last_updated": "2026-04-25"
     },
     {
+      "slug": "review",
+      "title": "Revue du jour",
+      "order": 2,
+      "group": "Grille matinale",
+      "dom_id": "review",
+      "scope": "mixte",
+      "status": "documented",
+      "last_updated": "2026-04-25"
+    },
+    {
       "slug": "top",
       "title": "Top du jour",
-      "order": 2,
+      "order": 3,
       "group": "Aujourd'hui",
       "dom_id": "top",
       "scope": "mixte",
@@ -49,12 +59,22 @@
       "dom_id": "updates",
       "scope": "pro",
       "status": "documented",
-      "last_updated": "2026-04-24"
+      "last_updated": "2026-04-25"
+    },
+    {
+      "slug": "claude",
+      "title": "Claude",
+      "order": 6,
+      "group": "Veille",
+      "dom_id": "claude",
+      "scope": "pro",
+      "status": "documented",
+      "last_updated": "2026-04-25"
     },
     {
       "slug": "sport",
       "title": "Sport",
-      "order": 6,
+      "order": 7,
       "group": "Veille",
       "dom_id": "sport",
       "scope": "perso",
@@ -64,7 +84,7 @@
     {
       "slug": "gaming-news",
       "title": "Gaming (news)",
-      "order": 7,
+      "order": 8,
       "group": "Veille",
       "dom_id": "gaming_news",
       "scope": "perso",
@@ -74,7 +94,7 @@
     {
       "slug": "anime",
       "title": "Anime / Ciné / Séries",
-      "order": 8,
+      "order": 9,
       "group": "Veille",
       "dom_id": "anime",
       "scope": "perso",
@@ -84,7 +104,7 @@
     {
       "slug": "news",
       "title": "Actualités",
-      "order": 9,
+      "order": 10,
       "group": "Veille",
       "dom_id": "news",
       "scope": "mixte",
@@ -94,7 +114,7 @@
     {
       "slug": "radar",
       "title": "Radar compétences",
-      "order": 10,
+      "order": 11,
       "group": "Apprentissage",
       "dom_id": "radar",
       "scope": "pro",
@@ -104,7 +124,7 @@
     {
       "slug": "recos",
       "title": "Recommandations",
-      "order": 11,
+      "order": 12,
       "group": "Apprentissage",
       "dom_id": "recos",
       "scope": "pro",
@@ -114,7 +134,7 @@
     {
       "slug": "challenges",
       "title": "Challenges",
-      "order": 12,
+      "order": 13,
       "group": "Apprentissage",
       "dom_id": "challenges",
       "scope": "pro",
@@ -124,7 +144,7 @@
     {
       "slug": "wiki",
       "title": "Wiki IA",
-      "order": 13,
+      "order": 14,
       "group": "Apprentissage",
       "dom_id": "wiki",
       "scope": "pro",
@@ -134,7 +154,7 @@
     {
       "slug": "signals",
       "title": "Signaux faibles",
-      "order": 14,
+      "order": 15,
       "group": "Apprentissage",
       "dom_id": "signals",
       "scope": "pro",
@@ -144,7 +164,7 @@
     {
       "slug": "opps",
       "title": "Opportunités",
-      "order": 15,
+      "order": 16,
       "group": "Business",
       "dom_id": "opps",
       "scope": "pro",
@@ -154,7 +174,7 @@
     {
       "slug": "ideas",
       "title": "Carnet d'idées",
-      "order": 16,
+      "order": 17,
       "group": "Business",
       "dom_id": "ideas",
       "scope": "pro",
@@ -164,7 +184,7 @@
     {
       "slug": "jobs",
       "title": "Jobs Radar",
-      "order": 17,
+      "order": 18,
       "group": "Business",
       "dom_id": "jobs",
       "scope": "pro",
@@ -174,7 +194,7 @@
     {
       "slug": "jarvis",
       "title": "Jarvis",
-      "order": 18,
+      "order": 19,
       "group": "Personnel",
       "dom_id": "jarvis",
       "scope": "mixte",
@@ -184,7 +204,7 @@
     {
       "slug": "jarvis-lab",
       "title": "Jarvis Lab",
-      "order": 19,
+      "order": 20,
       "group": "Personnel",
       "dom_id": "jarvis-lab",
       "scope": "perso",
@@ -194,7 +214,7 @@
     {
       "slug": "profile",
       "title": "Mon profil",
-      "order": 20,
+      "order": 21,
       "group": "Personnel",
       "dom_id": "profile",
       "scope": "mixte",
@@ -204,7 +224,7 @@
     {
       "slug": "perf",
       "title": "Forme",
-      "order": 21,
+      "order": 22,
       "group": "Personnel",
       "dom_id": "perf",
       "scope": "perso",
@@ -214,7 +234,7 @@
     {
       "slug": "music",
       "title": "Musique",
-      "order": 22,
+      "order": 23,
       "group": "Personnel",
       "dom_id": "music",
       "scope": "perso",
@@ -224,7 +244,7 @@
     {
       "slug": "gaming",
       "title": "Gaming",
-      "order": 23,
+      "order": 24,
       "group": "Personnel",
       "dom_id": "gaming",
       "scope": "perso",
@@ -234,7 +254,7 @@
     {
       "slug": "stacks",
       "title": "Stacks & Limits",
-      "order": 24,
+      "order": 25,
       "group": "Système",
       "dom_id": "stacks",
       "scope": "mixte",
@@ -244,7 +264,7 @@
     {
       "slug": "history",
       "title": "Historique",
-      "order": 25,
+      "order": 26,
       "group": "Système",
       "dom_id": "history",
       "scope": "mixte",

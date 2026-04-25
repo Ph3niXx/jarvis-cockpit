@@ -124,7 +124,7 @@ function Sparkline({ values, trend }) {
   );
 }
 
-function SignalCard({ signal, rank }) {
+function SignalCard({ signal, rank, onNavigate }) {
   const trendLabel = { rising: "EN HAUSSE", new: "NOUVEAU", declining: "EN BAISSE", stable: "STABLE" }[signal.trend];
   return (
     <article className={`sig-card sig-card--${signal.trend}`}>
@@ -150,6 +150,18 @@ function SignalCard({ signal, rank }) {
             <span className="sig-card-delta-window">8 sem.</span>
           </div>
         </div>
+        <button
+          className="card-action card-action--ask sig-card-ask"
+          aria-label="Demander à Jarvis à propos de ce signal"
+          onClick={(e) => {
+            e.stopPropagation();
+            const prompt = `À propos du signal "${signal.name}" (${signal.category}, ${trendLabel}) : ${signal.context || signal.count + " mentions cette semaine"}\nMa question : `;
+            try { localStorage.setItem("jarvis-prefill", prompt); } catch {}
+            if (typeof onNavigate === "function") onNavigate("jarvis");
+          }}
+        >
+          <Icon name="message_circle" size={12} stroke={2} />
+        </button>
       </div>
     </article>
   );
@@ -352,6 +364,18 @@ function Home({ theme, data, onNavigate }) {
                     <button className="card-action card-action--bookmark" aria-label="Garder cet article">
                       <Icon name="bookmark" size={12} stroke={2} />
                     </button>
+                    <button
+                      className="card-action card-action--ask"
+                      aria-label="Demander à Jarvis à propos de cet article"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const prompt = `À propos de "${t.title}" (${t.source}) : ${t.summary}\nMa question : `;
+                        try { localStorage.setItem("jarvis-prefill", prompt); } catch {}
+                        if (typeof onNavigate === "function") onNavigate("jarvis");
+                      }}
+                    >
+                      <Icon name="message_circle" size={12} stroke={2} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -374,7 +398,7 @@ function Home({ theme, data, onNavigate }) {
             </button>
           </div>
           <div className="sig-grid">
-            {signals.slice(0, 4).map((s, i) => <SignalCard key={s.name} signal={s} rank={i} />)}
+            {signals.slice(0, 4).map((s, i) => <SignalCard key={s.name} signal={s} rank={i} onNavigate={onNavigate} />)}
           </div>
         </div>
 

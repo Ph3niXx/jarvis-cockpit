@@ -328,6 +328,12 @@ function PanelJarvis({ data, onNavigate }) {
   useEffectJv(() => { try { localStorage.setItem("jarvis-thinking-override", thinkingOverride); } catch {} }, [thinkingOverride]);
   const [input, setInput] = useStateJv(() => {
     try {
+      // "jarvis-prefill" : déposé par la Command Palette et les boutons ?Jarvis des cards (Top + Signal).
+      const ext = localStorage.getItem("jarvis-prefill");
+      if (ext) {
+        localStorage.removeItem("jarvis-prefill");
+        return ext;
+      }
       const stash = localStorage.getItem("jarvis-prefill-input");
       if (stash) {
         localStorage.removeItem("jarvis-prefill-input");

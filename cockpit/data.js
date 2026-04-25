@@ -82,6 +82,7 @@ window.COCKPIT_DATA = {
   nav: [
     { group: "Grille matinale", items: [
       { id: "brief", label: "Brief du jour", icon: "sun", count: 47, active: true },
+      { id: "review", label: "Revue du jour", icon: "play" },
       { id: "top", label: "Top du jour", icon: "star", count: 8 },
       { id: "signals", label: "Signaux faibles", icon: "wave", count: 6 },
       { id: "jarvis", label: "Jarvis", icon: "assistant" },
@@ -90,6 +91,7 @@ window.COCKPIT_DATA = {
     ]},
     { group: "Veille", items: [
       { id: "updates", label: "Veille IA", icon: "sparkles", count: 12 },
+      { id: "claude", label: "Claude", icon: "bot", count: 6 },
       { id: "sport", label: "Sport", icon: "flag", count: 12 },
       { id: "gaming_news", label: "Gaming", icon: "wrench", count: 12 },
       { id: "anime", label: "Anime / Ciné / Séries", icon: "star", count: 12 },

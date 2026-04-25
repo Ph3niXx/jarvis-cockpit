@@ -41,6 +41,7 @@ const ICON_PATHS = {
   chevron_down: <path d="M6 9l6 6 6-6"/>,
   chevron_up: <path d="M6 15l6-6 6 6"/>,
   flame: <path d="M12 3c2 3 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4-1 4 3 3 3 0 0-2 0-4 0-5z"/>,
+  message_circle: <path d="M21 11.5a8.38 8.38 0 0 1-9 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.38 8.38 0 0 1 3 11.5a8.5 8.5 0 0 1 9-8.5 8.38 8.38 0 0 1 9 8.5z"/>,
   eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></>,
   shield: <path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/>,
   plug: <path d="M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0zM12 17v5"/>,

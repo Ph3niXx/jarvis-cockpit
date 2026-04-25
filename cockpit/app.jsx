@@ -4,7 +4,7 @@ const { useState, useEffect } = React;
 // Global keyboard shortcuts (PC/Mac). Anything panel-specific stays in the
 // panel file; this is only the top-level index.
 const KEYBOARD_SHORTCUTS = [
-  { group: "Navigation", keys: ["Ctrl", "K"],         label: "Ouvrir la recherche" },
+  { group: "Navigation", keys: ["Ctrl", "K"],         label: "Ouvrir la palette de commandes (nav, articles, Jarvis, idée)" },
   { group: "Navigation", keys: ["Ctrl", "N"],         label: "Capture rapide (carnet)" },
   { group: "Navigation", keys: ["Ctrl", "Shift", "N"], label: "Nouvelle idée avec modal (titre, description, libellés)" },
   { group: "Navigation", keys: ["Ctrl", "1-8"],       label: "Aller au panel N (Brief, Top, Nouveautés, Signaux, Opportunités, Idées, Radar, Jarvis)" },
@@ -191,10 +191,13 @@ function App() {
   const [retryTick, setRetryTick] = useState(0);
   const [sbMobileOpen, setSbMobileOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [cpOpen, setCpOpen] = useState(false);
   const [themeId, setThemeId] = useState(() => {
     try {
       const stored = localStorage.getItem("cockpit-theme");
       if (stored) return stored;
+      const h = new Date().getHours();
+      if (h >= 22 || h < 6) return "obsidian";
       if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) return "obsidian";
     } catch {}
     return "dawn";
@@ -208,6 +211,25 @@ function App() {
     root.setAttribute("data-theme", themeId);
     try { localStorage.setItem("cockpit-theme", themeId); } catch {}
   }, [themeId, theme]);
+
+  // Quiet mode auto : sans choix explicite, bascule Obsidian 22h-6h, Dawn ensuite.
+  useEffect(() => {
+    const tick = () => {
+      try {
+        const hasExplicit = localStorage.getItem("cockpit-theme-explicit");
+        if (hasExplicit) return;
+        const h = new Date().getHours();
+        if (h >= 22 || h < 6) {
+          if (themeId !== "obsidian") setThemeId("obsidian");
+        } else {
+          if (themeId !== "dawn") setThemeId("dawn");
+        }
+      } catch {}
+    };
+    const id = setInterval(tick, 60_000);
+    tick();
+    return () => clearInterval(id);
+  }, [themeId]);
 
   const handleNavigate = (id) => {
     setActivePanel(id);
@@ -293,13 +315,12 @@ function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, [activePanel]);
 
-  // Cmd/Ctrl+K → search panel + flag so the panel opens its modal on mount
+  // Cmd/Ctrl+K → ouvre la command palette (modale unifiée)
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        try { window.__openSearchOnMount = true; } catch {}
-        handleNavigate("search");
+        setCpOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -406,6 +427,7 @@ function App() {
     content = <PanelError key={`err:${activePanel}:${retryTick}`} id={activePanel} err={status.error} onRetry={retryActivePanel} />;
   } else if (activePanel === "brief") content = <Home key={panelKey} theme={theme} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "top") content = <PanelTop key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "review") content = <PanelReview key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "signals") content = <PanelSignals key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "radar") content = <PanelRadar key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "recos") content = <PanelRecos key={panelKey} data={data} onNavigate={handleNavigate} />;
@@ -426,6 +448,8 @@ function App() {
   else if (activePanel === "search") content = <PanelSearch key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "updates")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="VEILLE_DATA" title="Veille IA" actorsLabel="labos + éditeurs" prodSection={{ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }} />;
+  else if (activePanel === "claude")
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="CLAUDE_DATA" title="Claude" actorsLabel="canaux Anthropic" categoryLabel="Source" typeLabel="Format" prodSection={null} />;
   else if (activePanel === "sport")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="SPORT_DATA" title="Sport" showActors={false} categoryLabel="Discipline" typeLabel="Format" prodSection={null} />;
   else if (activePanel === "gaming_news")
@@ -448,11 +472,17 @@ function App() {
       {sbMobileOpen && (
         <div className="sb-mobile-backdrop" onClick={() => setSbMobileOpen(false)} />
       )}
-      <Sidebar theme={theme} activeId={activePanel} onSelect={handleNavigate} data={data} onThemeChange={setThemeId} mobileOpen={sbMobileOpen} onMobileClose={() => setSbMobileOpen(false)} />
+      <Sidebar theme={theme} activeId={activePanel} onSelect={handleNavigate} data={data} onThemeChange={(id) => { try { localStorage.setItem("cockpit-theme-explicit", "1"); } catch {} setThemeId(id); }} mobileOpen={sbMobileOpen} onMobileClose={() => setSbMobileOpen(false)} />
       <main className="main">
         <PanelErrorBoundary panelId={activePanel}>{content}</PanelErrorBoundary>
       </main>
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <CommandPalette
+        open={cpOpen}
+        onClose={() => setCpOpen(false)}
+        data={data}
+        onNavigate={(id) => { handleNavigate(id); setCpOpen(false); }}
+      />
       <button
         className="kbd-fab"
         onClick={() => setShortcutsOpen(true)}

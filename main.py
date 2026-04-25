@@ -3,7 +3,7 @@ Jarvis Cockpit — v2 Cockpit Edition
 =====================================
 Pipeline quotidien (lun-ven, 6h UTC via GitHub Actions) :
 1. Ping Supabase (anti-pause)
-2. Fetch RSS (45+ sources, 9 sections incluant energy)
+2. Fetch RSS (50+ sources, 10 sections dont claude)
 3. Recherche web temps réel via Gemini grounding
 4. Extraction de concepts IA → wiki_concepts
 5. Tracking signaux faibles → signal_tracking
@@ -41,8 +41,15 @@ SITE_URL = "https://ph3nixx.github.io/jarvis-cockpit"
 # ─── RSS FEEDS (source_name, url, section) ────────────────────────────────────
 
 RSS_FEEDS = [
+    # ── Claude · Anthropic (releases, SDK, skills) ───────────────────────────
+    ("Anthropic News",       "https://www.anthropic.com/rss.xml",                           "claude"),
+    ("Claude Code Releases", "https://github.com/anthropics/claude-code/releases.atom",     "claude"),
+    ("Anthropic SDK Python", "https://github.com/anthropics/anthropic-sdk-python/releases.atom",     "claude"),
+    ("Anthropic SDK TS",     "https://github.com/anthropics/anthropic-sdk-typescript/releases.atom", "claude"),
+    ("Claude Agent SDK",     "https://github.com/anthropics/claude-agent-sdk-python/releases.atom",  "claude"),
+    ("Anthropic Skills",     "https://github.com/anthropics/skills/commits/main.atom",      "claude"),
+
     # ── Nouveautés IA grand public ───────────────────────────────────────────
-    ("Anthropic News",       "https://www.anthropic.com/rss.xml",                           "updates"),
     ("OpenAI Blog",          "https://openai.com/blog/rss.xml",                             "updates"),
     ("Google AI Blog",       "https://blog.google/technology/ai/rss/",                      "updates"),
     ("Mistral AI Blog",      "https://mistral.ai/news/feed.xml",                            "updates"),
@@ -863,7 +870,7 @@ Structure exacte :
 RÈGLES :
 - Utilise UNIQUEMENT des URLs tirées des articles fournis (pas d'URLs inventées)
 - Pour src-badge : utilise le nom exact de la source
-- Pour top-section : utilise un des tags (updates, llm, agents, finserv, tools, biz, reg, papers, energy)
+- Pour top-section : utilise un des tags (claude, updates, llm, agents, finserv, tools, biz, reg, papers, energy)
 - Sois analytique et factuel, pas promotionnel
 - Si tu détectes un signal faible (terme nouveau qui revient 3+ fois), mentionne-le explicitement
 """

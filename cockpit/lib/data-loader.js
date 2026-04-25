@@ -1253,6 +1253,7 @@
   // ── Tier 2 loaders — lazy, per panel ─────────────────────
   const T2 = {
     async veille(){ return once("veille_articles", () => loadRecentArticles(30)); },
+    async claude(){ return once("claude_articles", () => q("articles", "section=eq.claude&order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async wiki(){ return once("wiki_concepts", () => q("wiki_concepts", "order=mention_count.desc&limit=200")); },
     async recos(){ return once("recos", () => q("learning_recommendations", "order=week_start.desc,target_axis&limit=30")); },
     async challenges(){ return once("challenges", () => q("weekly_challenges", "order=week_start.desc&limit=20")); },
@@ -3724,6 +3725,89 @@
         }
         return { articles };
       }
+      case "claude": {
+        const articles = await T2.claude();
+        if (window.CLAUDE_DATA) {
+          window.CLAUDE_DATA.feed = transformVeilleFeed(articles);
+          const fresh = articles[0];
+          const now = Date.now();
+          const ageH = a => {
+            const t = new Date(a.date_published || a.date_fetched || 0).getTime();
+            return (now - t) / 3600000;
+          };
+          const last24h = articles.filter(a => ageH(a) <= 24).length;
+          const last7d = articles.filter(a => ageH(a) <= 24 * 7).length;
+          const bySource = {};
+          articles.forEach(a => {
+            const src = a.source || "—";
+            bySource[src] = (bySource[src] || 0) + 1;
+          });
+          const topSourceEntry = Object.entries(bySource).sort((a, b) => b[1] - a[1])[0];
+          const topSource = topSourceEntry ? topSourceEntry[0] : "—";
+          const sourcesN = Object.keys(bySource).length;
+
+          if (fresh) {
+            window.CLAUDE_DATA.headline = {
+              ...(window.CLAUDE_DATA.headline || {}),
+              kicker: (fresh.source || "Anthropic") + " · " + (relTime(fresh.date_published || fresh.date_fetched) || "récent"),
+              actor: fresh.source || "Anthropic",
+              version: fresh.title || "",
+              tagline: stripHtml(fresh.summary || "").slice(0, 140),
+              body: stripHtml(fresh.summary || "").slice(0, 320) || fresh.title || "",
+              metrics: [
+                { label: "Releases 24h", value: String(last24h), delta: last24h ? "+" + last24h : "=" },
+                { label: "Releases 7j",  value: String(last7d),  delta: "=" },
+                { label: "Top source",   value: topSource,       delta: topSourceEntry ? "+" + topSourceEntry[1] : "=" },
+                { label: "Sources",      value: String(sourcesN), delta: "=" },
+              ],
+              tags: ["#claude", "#anthropic"],
+              url: fresh.url || null,
+              id: fresh.id || null,
+            };
+          }
+
+          // Actors = chaque source (anthropic.com + 5 repos GitHub).
+          // Pulse = volume 7j par source pour visualiser le rythme de release.
+          const srcMap = new Map();
+          articles.forEach(a => {
+            const name = a.source || "—";
+            if (!srcMap.has(name)) {
+              srcMap.set(name, {
+                id: name.toLowerCase().replace(/\W+/g, "-"),
+                name,
+                mark: name.split(/[\s.]/).map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase(),
+                color: nameHashColor(name),
+                followed: true,
+                last_activity: relTime(a.date_published || a.date_fetched),
+                last_title: a.title || "",
+                momentum: "",
+                pulse: [0, 0, 0, 0, 0, 0, 0, 0],
+                note: "",
+              });
+            }
+            if (ageH(a) <= 24 * 7) srcMap.get(name).pulse[7]++;
+          });
+          window.CLAUDE_DATA.actors = Array.from(srcMap.values())
+            .sort((a, b) => (b.pulse[7] || 0) - (a.pulse[7] || 0));
+
+          // Trends = top sources sur 7j, vues comme "axes de release".
+          window.CLAUDE_DATA.trends = Array.from(srcMap.values())
+            .map(s => ({
+              id: "tc-" + s.id,
+              label: s.name,
+              kicker: "Source",
+              momentum: s.pulse[7] + " release" + (s.pulse[7] > 1 ? "s" : "") + " · 7j",
+              pulse: s.pulse,
+              articles_count: s.pulse[7],
+              summary: s.pulse[7] + " sortie" + (s.pulse[7] > 1 ? "s" : "") + " côté " + s.name + " cette semaine.",
+              actors_involved: [],
+              status: s.pulse[7] >= 3 ? "rising" : s.pulse[7] >= 1 ? "stable" : "new",
+            }))
+            .filter(t => t.articles_count > 0)
+            .sort((a, b) => b.articles_count - a.articles_count);
+        }
+        return { articles };
+      }
       case "sport": {
         const articles = await T2.sport();
         if (window.SPORT_DATA) {
@@ -4493,7 +4577,7 @@
   // runs. The App-level effect uses this to decide whether to bump
   // dataVersion after loadPanel resolves.
   const TIER2_PANELS = new Set([
-    "updates", "wiki", "radar", "recos", "challenges", "opps", "ideas",
+    "updates", "claude", "wiki", "radar", "recos", "challenges", "opps", "ideas",
     "profile", "perf", "music", "gaming", "stacks", "history", "jobs",
     "sport", "gaming_news", "anime", "news", "jarvis", "signals",
   ]);
