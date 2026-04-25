@@ -132,6 +132,7 @@ Tables existantes :
 - `weekly_analysis` — logs des runs Claude (tokens, coûts, résultats)
 - `user_profile` — profil personnel key/value (identité, ambitions, intérêts, notes)
 - `usage_events` — télémétrie UX cockpit append-only (event_type, payload JSONB, ts). Migration: `jarvis/migrations/005_usage_events.sql`
+- `claude_veille` — synthèse hebdo Claude alimentée par une scheduled task Cowork (category, title, source_url, summary, applicability, how_to_apply, effort, priority, trend_context, status, notes). 4 buckets : `jarvis_applicable`, `claude_general`, `complementary_tools`, `other_news` + ligne `_summary` exécutive. INSERT service_role, UPDATE authenticated. Migration : `sql/011_claude_veille.sql`
 
 **Tables TFT :**
 - `tft_matches` — une ligne par match joué (placement, level, gold, durée, raw_payload JSONB, champs user_* éditables)
@@ -176,6 +177,7 @@ Tables existantes :
 | Ma semaine | articles + localStorage (read, actions, visits) | Temps réel (front-only) |
 | Nouveautés IA | articles (section=updates) | Quotidien |
 | Claude | articles (section=claude) — Anthropic + Claude Code + SDK Python/TS + Agent SDK + skills | Quotidien |
+| Veille outils | claude_veille (synthèse hebdo classée en 4 buckets, applicabilité Jarvis, comment l'appliquer) | Hebdomadaire (routine Cowork samedi) |
 | LLMs / Agents / Énergie / FinServ / Outils / Business / Régulation / Arxiv | articles (par section) | Quotidien |
 | Wiki IA | wiki_concepts | Quotidien (détection) + Hebdo (enrichissement Claude) |
 | Signaux faibles | signal_tracking + weekly_analysis.signals_summary | Quotidien (comptage) + Hebdo (analyse Claude) |

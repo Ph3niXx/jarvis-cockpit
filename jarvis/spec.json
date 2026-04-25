@@ -468,7 +468,7 @@
     }
   ],
   "cockpit_tabs": {
-    "summary": "Catalogue des 26 onglets du cockpit, leur rôle, leurs sources de données et leur cadence de mise à jour.",
+    "summary": "Catalogue des 27 onglets du cockpit, leur rôle, leurs sources de données et leur cadence de mise à jour.",
     "updated_at": "2026-04-25",
     "groups": [
       {
@@ -548,6 +548,16 @@
             "panel_file": "cockpit/panel-veille.jsx",
             "data_sources": ["articles (section=claude)"],
             "frequency": "daily"
+          },
+          {
+            "id": "veille-outils",
+            "label": "Veille outils",
+            "icon": "toolbox",
+            "description": "Synthèse hebdo Claude classée en 4 buckets (applicables Jarvis, usage général, outils complémentaires, autres news). Alimentée par une routine Cowork hebdomadaire qui couvre les sources non-RSS (analyses, blogs, threads). Workflow utilisateur : statut + notes par item.",
+            "panel_file": "cockpit/panel-veille-outils.jsx",
+            "data_sources": ["claude_veille"],
+            "frequency": "weekly",
+            "update_details": "Routine Cowork samedi (skill schedule)"
           },
           {
             "id": "sport",

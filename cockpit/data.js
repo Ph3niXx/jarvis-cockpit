@@ -92,6 +92,7 @@ window.COCKPIT_DATA = {
     { group: "Veille", items: [
       { id: "updates", label: "Veille IA", icon: "sparkles", count: 12 },
       { id: "claude", label: "Claude", icon: "bot", count: 6 },
+      { id: "veille-outils", label: "Veille outils", icon: "toolbox" },
       { id: "sport", label: "Sport", icon: "flag", count: 12 },
       { id: "gaming_news", label: "Gaming", icon: "wrench", count: 12 },
       { id: "anime", label: "Anime / Ciné / Séries", icon: "star", count: 12 },

@@ -72,6 +72,16 @@
       "last_updated": "2026-04-25"
     },
     {
+      "slug": "veille-outils",
+      "title": "Veille outils",
+      "order": 27,
+      "group": "Veille",
+      "dom_id": "veille-outils",
+      "scope": "pro",
+      "status": "documented",
+      "last_updated": "2026-04-25"
+    },
+    {
       "slug": "sport",
       "title": "Sport",
       "order": 7,

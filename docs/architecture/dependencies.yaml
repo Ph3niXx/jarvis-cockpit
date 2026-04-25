@@ -103,6 +103,11 @@ panels:
     reads: [business_ideas]
     writes: [business_ideas]
 
+  - id: veille-outils
+    file: cockpit/panel-veille-outils.jsx
+    reads: [claude_veille]
+    writes: [claude_veille]  # status + notes via authenticated UPDATE (INSERT réservé routine Cowork via service_role)
+
   - id: jobs
     file: cockpit/panel-jobs-radar.jsx
     reads: [jobs, job_scans]
@@ -202,6 +207,11 @@ tables:
     owner_pipeline: front
     rls: authenticated
     domain: business
+
+  - name: claude_veille
+    owner_pipeline: cowork_external  # routine Cowork hebdo (skill schedule) — INSERT en service_role via MCP Supabase
+    rls: authenticated  # SELECT + UPDATE pour authenticated, INSERT/DELETE réservés service_role
+    domain: veille
 
   - name: challenge_attempts
     owner_pipeline: front

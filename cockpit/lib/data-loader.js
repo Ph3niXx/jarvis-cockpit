@@ -1304,6 +1304,7 @@
     async gaming_news(){ return once("gaming_articles", () => q("gaming_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async anime(){ return once("anime_articles", () => q("anime_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async news(){ return once("news_articles", () => q("news_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
+    async veille_outils(){ return once("veille_outils", () => q("claude_veille", "order=created_at.desc&limit=200")); },
     async jarvis_messages(){ return once("jarvis_messages", () => q("jarvis_conversations", "order=created_at.desc&limit=200")); },
     async jarvis_facts(){ return once("jarvis_facts", () => q("profile_facts", "superseded_by=is.null&order=created_at.desc&limit=200")); },
     async jobs_scan_today(){
@@ -4433,6 +4434,28 @@
         }
         return { ideas };
       }
+      case "veille-outils": {
+        const rows = await T2.veille_outils();
+        if (!window.VEILLE_OUTILS_DATA) window.VEILLE_OUTILS_DATA = {};
+        const all = Array.isArray(rows) ? rows : [];
+        const summaryRow = all.find(r => r.category === "_summary") || null;
+        const items = all.filter(r => r.category !== "_summary");
+        const lastRun = items.reduce((max, r) => {
+          const d = r.run_date || r.created_at?.slice(0, 10) || "";
+          return d > max ? d : max;
+        }, "");
+        const byCategory = items.reduce((acc, r) => {
+          acc[r.category] = (acc[r.category] || 0) + 1;
+          return acc;
+        }, {});
+        window.VEILLE_OUTILS_DATA._raw = all;
+        window.VEILLE_OUTILS_DATA.items = items;
+        window.VEILLE_OUTILS_DATA.summary = summaryRow;
+        window.VEILLE_OUTILS_DATA.last_run = lastRun || null;
+        window.VEILLE_OUTILS_DATA.total = items.length;
+        window.VEILLE_OUTILS_DATA.by_category = byCategory;
+        return { items: rows };
+      }
       case "profile": {
         const [rows, facts, entitiesRows, history, commitments, uqs] = await Promise.all([
           raw.profileRows ? Promise.resolve(raw.profileRows) : q("user_profile", "order=key"),
@@ -4580,6 +4603,7 @@
     "updates", "claude", "wiki", "radar", "recos", "challenges", "opps", "ideas",
     "profile", "perf", "music", "gaming", "stacks", "history", "jobs",
     "sport", "gaming_news", "anime", "news", "jarvis", "signals",
+    "veille-outils",
   ]);
 
   // Hydrate globals with real data on boot (Tier 1 already fetched the
