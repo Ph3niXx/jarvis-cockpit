@@ -121,6 +121,7 @@
       articles_today: articles.length,
       signals_rising: rising,
       unread,
+      unread_total: unread,
       streak: computeStreak(),
       next_brief: beforeBrief ? "aujourd'hui 06:00" : "demain 06:00",
       cost_month: null,        // filled by Tier 2 loadCost() if needed
@@ -1210,6 +1211,9 @@
       challenges: [],  // Tier 2
     };
 
+    // Morning Card — 3 choses qui comptent aujourd'hui
+    data.morning_card = buildMorningCard(data);
+
     // Expose raw tables for tier-2 loaders that may want them
     window.__COCKPIT_RAW = {
       articlesToday, brief, signals, radarRows, profileRows, recent, weeklyAnalysis,
@@ -1218,6 +1222,32 @@
     // Shape exposed as window.COCKPIT_DATA — panels read from it directly.
     window.COCKPIT_DATA = data;
     return data;
+  }
+
+  function buildMorningCard(data){
+    const items = [];
+    const top0 = data.top && data.top[0];
+    if (top0 && top0.title) items.push({
+      kind: "article", icon: "file_text",
+      title: top0.title,
+      reason: `${top0.source || "—"} · ${top0.section || ""}`.replace(/\s·\s$/, ""),
+      cta: "lire", href: top0._url || top0.url || null,
+    });
+    const rising = (data.signals || []).find(s => s.trend === "rising" || s.trend === "new");
+    if (rising) items.push({
+      kind: "signal", icon: "trending_up",
+      title: rising.name,
+      reason: rising.context || `${rising.count} mentions cette semaine`,
+      cta: "voir signal", navigate: "signals",
+    });
+    const nextGap = data.radar && data.radar.next_gap;
+    if (nextGap && nextGap.axis && nextGap.axis !== "Radar à initialiser") items.push({
+      kind: "challenge", icon: "target",
+      title: `Combler ${nextGap.axis}`,
+      reason: nextGap.suggestion || nextGap.context || "Prochaine compétence à muscler",
+      cta: "commencer", navigate: "challenges",
+    });
+    return items.slice(0, 3);
   }
 
   // ── Tier 2 loaders — lazy, per panel ─────────────────────

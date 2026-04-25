@@ -155,10 +155,50 @@ function SignalCard({ signal, rank }) {
   );
 }
 
+function MorningCard({ items = [], onNavigate }) {
+  if (!items.length) return null;
+  return (
+    <section className="morning">
+      <div className="morning-head">
+        <div className="morning-eyebrow">Trois choses aujourd'hui</div>
+        <h2 className="morning-title">Commence par ça.</h2>
+      </div>
+      <ol className="morning-list">
+        {items.map((it, i) => (
+          <li key={i} className="morning-item">
+            <span className="morning-num">{String(i + 1).padStart(2, "0")}</span>
+            <div className="morning-body">
+              <div className="morning-kind">{it.kind}</div>
+              <h3 className="morning-item-title">{it.title}</h3>
+              <p className="morning-reason">{it.reason}</p>
+            </div>
+            <button
+              className="morning-cta"
+              onClick={() => {
+                if (it.href) window.open(it.href, "_blank", "noopener");
+                else if (it.navigate) onNavigate(it.navigate);
+              }}
+            >
+              {it.cta} <Icon name="arrow_right" size={12} stroke={2} />
+            </button>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 function Home({ theme, data, onNavigate }) {
   const { macro, top, signals, stats, date, user, radar, week } = data;
+  const morningItems = data.morning_card || [];
   const [readTop, setReadTop] = React.useState({});
   const toggleRead = (rank) => setReadTop({ ...readTop, [rank]: !readTop[rank] });
+  const [viewMode, setViewMode] = React.useState(() => {
+    try { return localStorage.getItem("home-view-mode") || "full"; } catch { return "full"; }
+  });
+  React.useEffect(() => {
+    try { localStorage.setItem("home-view-mode", viewMode); } catch {}
+  }, [viewMode]);
 
   return (
     <div className="home" data-theme-vibe={theme.id}>
@@ -188,6 +228,29 @@ function Home({ theme, data, onNavigate }) {
         </div>
       </header>
 
+      {morningItems.length > 0 && (
+        <div className="home-toggle" role="tablist" aria-label="Vue d'accueil">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === "morning"}
+            className={`home-toggle-btn ${viewMode === "morning" ? "is-active" : ""}`}
+            onClick={() => setViewMode("morning")}
+          >Morning Card</button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === "full"}
+            className={`home-toggle-btn ${viewMode === "full" ? "is-active" : ""}`}
+            onClick={() => setViewMode("full")}
+          >Brief complet</button>
+        </div>
+      )}
+
+      {viewMode === "morning" && morningItems.length > 0 ? (
+        <MorningCard items={morningItems} onNavigate={onNavigate} />
+      ) : (<>
+
       {/* ── HERO : the macro synthesis ─────────────────────────── */}
       <section className="hero">
         <div className="hero-frame">
@@ -211,28 +274,18 @@ function Home({ theme, data, onNavigate }) {
           </div>
 
           <div className="hero-col-side">
-            <div className="hero-stats">
-              <div className="hs-item">
-                <div className="hs-label">Depuis ta dernière visite</div>
-                <div className="hs-value">{stats.articles_today}</div>
-                <div className="hs-unit">articles</div>
-              </div>
-              <div className="hs-item">
-                <div className="hs-label">Signaux en hausse</div>
-                <div className="hs-value">{stats.signals_rising}</div>
-                <div className="hs-unit">termes</div>
-              </div>
-              <div className="hs-item">
-                <div className="hs-label">Streak</div>
-                <div className="hs-value hs-value--flame">
-                  {stats.streak}<Icon name="flame" size={18} stroke={1.5} />
-                </div>
-                <div className="hs-unit">jours</div>
-              </div>
-              <div className="hs-item">
-                <div className="hs-label">Prochain brief</div>
-                <div className="hs-value hs-value--sm">{stats.next_brief}</div>
-                <div className="hs-unit">automatique</div>
+            <div className="hero-todo">
+              <div className="hero-todo-label">À traiter depuis hier</div>
+              <div className="hero-todo-num">{stats.unread_total ?? stats.articles_today}</div>
+              <div className="hero-todo-unit">articles · {stats.signals_rising ?? 0} signaux à regarder</div>
+              <button className="btn btn--primary btn--sm hero-todo-cta" onClick={() => onNavigate("top")}>
+                Commencer la revue <Icon name="arrow_right" size={12} stroke={2} />
+              </button>
+            </div>
+            <div className="hero-meta">
+              <div className="hero-meta-item">
+                <span className="hero-meta-label">Prochain brief</span>
+                <span className="hero-meta-val">{stats.next_brief}</span>
               </div>
             </div>
           </div>
@@ -410,6 +463,8 @@ function Home({ theme, data, onNavigate }) {
           </div>
         </div>
       </section>
+
+      </>)}
 
       <footer className="home-foot">
         <span>Brief généré par Gemini Flash-Lite · synthèse hebdo par Claude Haiku</span>
