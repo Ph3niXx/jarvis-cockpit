@@ -453,12 +453,12 @@ Assistant IA personnel local ("Jarvis") qui :
 ### Stack technique Jarvis
 
 - **LM Studio** en serveur local sur `http://localhost:1234/v1` (compatible OpenAI API)
-- **LLM principal** : Qwen3.5 9B Q4_K_M (6.55 Go VRAM)
-- **Extraction JSON** : Qwen3-4B-Instruct-2507 Q4_K_M (~2.5 Go VRAM, slug LM Studio `qwen/qwen3-4b-2507`) — non-thinking, dédié `nightly_learner` car le modèle Thinking émet tout dans `<think>…</think>` (inutilisable après `_strip_thinking`)
-- **Embeddings** : Qwen3-Embedding-0.6B Q8_0 (~640 Mo)
+- **LLM principal (chat)** : Qwen3 4B Thinking 2507 Q4_K_M (~2.5 Go VRAM, slug `qwen/qwen3-4b-thinking-2507`) — utilisé par `/chat` (modes Rapide/Deep), `_compact_history`, `daily_brief_generator`, `status_generator`. Thinking on/off via `/no_think` dans le system prompt.
+- **Extraction JSON** : Qwen3 4B Instruct 2507 Q4_K_M (~2.5 Go VRAM, slug `qwen/qwen3-4b-2507`) — non-thinking, dédié `nightly_learner` car le modèle Thinking émet tout dans `<think>…</think>` (inutilisable après `_strip_thinking`)
+- **Embeddings** : Qwen3-Embedding-0.6B Q8_0 (~640 Mo, slug `qwen/qwen3-embedding-0.6b`) — vecteurs 1024-dim pour `memories_vectors` (RAG, indexation, recherche sémantique)
 - **Vector store** : Supabase pgvector (1024-dim, table `memories_vectors`)
-- **Hardware** : RTX 5070 Laptop **8 Go VRAM dédiée** (+ 15.9 Go Shared via PCIe), 32 Go RAM, Windows. Qwen3.5 9B Q4_K_M + prompt cache tangente la VRAM — si le throughput chute sous 5 tok/s, la VRAM déborde en Shared memory (inférence 10-50× plus lente). Bascule sur Qwen3 4B ou réduis le context à 4096 tokens.
-- **Mode thinking** de Qwen3.5 désactivé par défaut (utiliser `/no_think`)
+- **Hardware** : RTX 5070 Laptop **8 Go VRAM dédiée** (+ 15.9 Go Shared via PCIe), 32 Go RAM, Windows. Les 3 modèles chargés en parallèle pèsent ~5.7 Go — il reste ~2.3 Go pour le KV cache, OK tant que le contexte chat reste sous ~8k tokens. Si le throughput chute sous 5 tok/s c'est que la VRAM déborde en Shared (inférence 10-50× plus lente) — décharger un modèle non-utilisé ou réduire le context.
+- **Mode thinking** désactivé par défaut sur `qwen3-4b-thinking-2507` (utiliser `/no_think`)
 
 ### Structure du module
 
@@ -531,7 +531,7 @@ jarvis_data/               # Données perso, non versionné (activity_*.jsonl, o
 - `profile_facts` — faits structurés sur l'utilisateur (fact_type, fact_text, confidence, superseded_by). Extraits par `nightly_learner.py`, injectés dans le system prompt de chaque conversation.
 - `entities` — personnes, projets, outils, entreprises mentionnés (entity_type, name, description, mentions_count). Extraits par `nightly_learner.py`.
 - Migration : `jarvis/migrations/003_structured_memory.sql`
-- **`jarvis/nightly_learner.py`** — Script d'extraction nocturne multi-source idempotent. Sources : conversations Jarvis, activité fenêtre (JSONL), Outlook (JSON). Extensible pour Strava, etc. Checkpoint par source dans `jarvis_data/nightly_learner_state.json`. Envoie chaque bloc à Qwen3.5 pour extraction JSON (faits + entités), upsert dans les tables, reindex via indexer.py. Déclenché automatiquement à minuit par le scheduler asyncio dans server.py, au démarrage via start_jarvis.bat, ou manuellement via `POST /nightly-learner` ou `python jarvis/nightly_learner.py --days=N`.
+- **`jarvis/nightly_learner.py`** — Script d'extraction nocturne multi-source idempotent. Sources : conversations Jarvis, activité fenêtre (JSONL), Outlook (JSON). Extensible pour Strava, etc. Checkpoint par source dans `jarvis_data/nightly_learner_state.json`. Envoie chaque bloc à `qwen3-4b-2507` (non-thinking) pour extraction JSON (faits + entités), upsert dans les tables, reindex via indexer.py. Déclenché automatiquement à minuit par le scheduler asyncio dans server.py, au démarrage via start_jarvis.bat, ou manuellement via `POST /nightly-learner` ou `python jarvis/nightly_learner.py --days=N`.
 
 **Créées (Phase 6) :**
 - `activity_briefs` — briefs d'activité quotidiens (date unique, brief_html, stats JSONB). Seul le résumé y est stocké, pas les données brutes.
