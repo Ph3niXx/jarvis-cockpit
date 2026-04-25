@@ -137,7 +137,7 @@ function JvMessage({ m, onNavigate, onCopy, onRegenerate, canRegenerate }) {
         )}
         {m.kind === "jarvis" && !m.kind_aside && (
           <div className="jv-meta">
-            <span>Jarvis{m.mode ? ` · ${m.mode}` : ""}</span>
+            <span>Jarvis{m.mode ? ` · ${JV_MODE_BADGE[m.mode] || m.mode}` : ""}</span>
             <span className="jv-meta-actions">
               <button onClick={() => onCopy && onCopy(m.text)}>Copier</button>
               {canRegenerate && (
@@ -310,6 +310,12 @@ const JV_MODE_LABELS = {
   quick: "Rapide (LLM local · sans RAG)",
   deep:  "Deep (LLM local · RAG)",
   cloud: "Cloud (Claude Haiku · RAG)",
+};
+
+const JV_MODE_BADGE = {
+  quick: "Rapide",
+  deep:  "Deep",
+  cloud: "Cloud",
 };
 
 function PanelJarvis({ data, onNavigate }) {
@@ -498,7 +504,8 @@ function PanelJarvis({ data, onNavigate }) {
         text: answer,
         cites,
         ts: Date.now(),
-        mode: data?.backend || usedMode,
+        mode: usedMode,
+        backend: data?.backend,
       }]));
     } else {
       const isHTTPS = location.protocol === "https:";
