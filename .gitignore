@@ -1,1 +1,19 @@
 jarvis/intel/*.md
+
+# Python
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Claude Code (per-user) — track launch.json (shared dev server config)
+.claude/settings.local.json
+.claude/skills/
+.claude/worktrees/
+
+# Build artifacts
+video/node_modules/
+video/out/
+
+# OS
+.DS_Store
+Thumbs.db
