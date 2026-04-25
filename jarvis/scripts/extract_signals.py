@@ -26,13 +26,14 @@ THRESHOLD_PIPELINE_WARN = 20          # Above: pipeline suffering alert
 THRESHOLD_PIPELINE_CRIT = 50          # Above: pipeline critical alert
 THRESHOLD_SESSION_GAP = 30            # Minutes gap to split sessions
 
-# A synchroniser manuellement avec les <button data-panel="..."> de index.html.
-# Derniere mise a jour : 2026-04-12.
+# Source de verite : cockpit/app.jsx, chaine `else if (activePanel === "...")`.
+# A re-synchroniser quand un panel est ajoute ou retire.
+# Derniere mise a jour : 2026-04-25 (post-migration React + jarvis-lab + section claude).
 KNOWN_SECTIONS = {
-    "brief", "myweek", "updates", "llm", "agents", "energy", "finserv",
-    "tools", "biz", "reg", "papers", "wiki", "signals", "opportunities",
-    "radar", "recos", "challenges", "ideas", "rte", "jarvis",
-    "jarvis-project", "tft", "costs", "profile", "search", "history",
+    "anime", "brief", "challenges", "claude", "gaming", "gaming_news",
+    "history", "ideas", "jarvis", "jarvis-lab", "jobs", "music", "news",
+    "opps", "perf", "profile", "radar", "recos", "review", "search",
+    "signals", "sport", "stacks", "top", "updates", "week", "wiki",
 }
 
 TZ = timezone(timedelta(hours=2))
