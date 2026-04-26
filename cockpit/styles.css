@@ -4476,3 +4476,45 @@ select:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .ph-undo-toast { animation: none; }
 }
+
+/* ═══ Wiki tooltip — auto-link contextuel ═══════════════ */
+.wiki-decorated {
+  border-bottom: 1px dotted var(--brand);
+  cursor: help;
+  transition: background 120ms;
+}
+.wiki-decorated:hover { background: var(--brand-tint); }
+.wiki-tt {
+  position: absolute; z-index: 220;
+  width: 300px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--bd2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  color: var(--tx);
+  pointer-events: none;
+}
+.wiki-tt-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+.wiki-tt-desc {
+  color: var(--tx2);
+  line-height: 1.5;
+  margin-bottom: var(--space-2);
+}
+.wiki-tt-link {
+  pointer-events: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--brand);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.wiki-tt-link:hover { text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) {
+  .wiki-decorated { transition: none; }
+}

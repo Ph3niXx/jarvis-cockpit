@@ -28,6 +28,7 @@ Glossaire auto-maintenu du vocabulaire IA qui apparaît dans la veille. Chaque a
 - **Demander à Jarvis** : bouton qui envoie à Jarvis un prompt pré-rempli avec le titre de l'entrée en cours, pour poser une question contextualisée.
 - **Créer une entrée** : formulaire à deux branches — « Demande à Jarvis » (sujet + sources + profondeur, délégué à l'assistant) ou « J'écris ma note » (zone markdown + tags, sauvegarde directe dans le wiki en tant que note perso).
 - **Partage d'URL** : bouton Partager qui copie ou partage un lien direct rouvrant l'entrée quand on revient dessus.
+- **Tooltip au survol dans le reste du cockpit** : quand un terme du wiki apparaît dans un texte ailleurs dans l'app (brief du jour, contexte des signaux, réponses de Jarvis), il est souligné en pointillés. Au survol, un tooltip de 2 lignes affiche la définition courte et un lien direct vers la fiche complète.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-wiki.jsx](cockpit/panel-wiki.jsx) — 660 lignes, monté par [app.jsx:371](cockpit/app.jsx:371).
@@ -71,6 +72,7 @@ Route id = `"wiki"`. **Panel Tier 2**.
 | `wikiCategoryLabel(cat)` | Map slug catégorie → label FR | [data-loader.js](cockpit/lib/data-loader.js) |
 | `wikiRelativeUpdated(iso)` | ISO → "aujourd'hui" / "hier" / "il y a N jours" | [data-loader.js](cockpit/lib/data-loader.js) |
 | `loadPanel("wiki")` case | Appelle `T2.wiki()` + rebuild `WIKI_DATA` via `buildWikiFromConcepts` | [data-loader.js:4215-4222](cockpit/lib/data-loader.js:4215) |
+| `wiki-tooltip.js` (IIFE) | Auto-link contextuel : scanne `.top-summary, .hero-body, .sig-card-context, .jv-bubble` toutes les 1.5s, enveloppe les termes du trie (titres ≤ 30 chars + slug + tags, hors stopwords) dans `<span class="wiki-decorated" data-wiki=…>`. Au mouseover affiche un tooltip 300px avec titre + excerpt 140 chars + lien `#wiki/{slug}` | [cockpit/lib/wiki-tooltip.js](cockpit/lib/wiki-tooltip.js) |
 
 ## Back — sources de données
 
@@ -138,6 +140,7 @@ Le front n'écrit **jamais** dans `wiki_concepts`. Toutes les créations/mises �
 - [ ] **Pas de versioning** : quand Claude réécrit les `summary_*` à une nouvelle exécution hebdo, l'ancienne version est écrasée. Aucun historique pour rollback.
 
 ## Dernière MAJ
+2026-04-26 — ajout tooltip wiki au survol dans Brief / Signaux / chat Jarvis (auto-link `wiki-tooltip.js` + deep-link `#wiki/{slug}`).
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — source_type + marked/DOMPurify + deep-link + flow perso (local, non pushé)
