@@ -9,7 +9,7 @@ mixte
 Boucler la journée par un retour sur l'usage réel du cockpit — sections visitées, articles lus, idées créées ou déplacées, recherches lancées, sport, poids — pour transformer la consommation passive en apprentissage actif. Le matin trace l'intention, le soir constate ce qui a vraiment occupé la pensée. L'écart entre les deux devient un signal réflexif.
 
 ## Parcours utilisateur
-1. En fin de journée (après 19h), l'utilisateur clique "Miroir du soir" dans la sidebar (groupe Grille matinale, juste sous "Brief du jour") — ou tape directement la route `#evening`.
+1. En fin de journée (après 19h), l'utilisateur clique "Miroir du soir" dans la sidebar (groupe Aujourd'hui, juste sous "Brief du jour") — ou tape directement la route `#evening`.
 2. Le miroir s'ouvre sur un récap court de 3 à 4 paragraphes : focus thématique du jour, momentum personnel (action vs consommation), élément notable, et éventuellement un angle pour demain.
 3. L'utilisateur lit le récap. Le ton est familier-direct, opinionated mais jamais flagorneur.
 4. Deux boutons en bas : "← Brief du matin" pour comparer avec ce qu'il devait penser ce matin, "Demander à Jarvis" pour creuser un point précis.
@@ -78,4 +78,4 @@ RLS : SELECT pour `authenticated`, INSERT/UPDATE pour `service_role` uniquement 
 - [ ] Si la routine Cowork tombe plusieurs jours d'affilée, aucune alerte — il faut ouvrir Cowork pour le voir.
 
 ## Dernière MAJ
-2026-04-26 — création initiale (panel + route + entrée sidebar Grille matinale, table `daily_mirror`, doc routine Cowork).
+2026-04-26 — création initiale (panel + route + entrée sidebar Aujourd'hui, table `daily_mirror`, doc routine Cowork) ; alignement groupe sur le runtime suite au refacto NAV en source unique.

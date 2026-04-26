@@ -53,6 +53,7 @@ cockpit/panel-*.jsx                  # 19 panels dédiés
 cockpit/styles.css + styles-*.css    # Shell + stylesheets par domaine
 cockpit/themes.js                    # THEMES = {dawn, obsidian, atlas}
 cockpit/icons.jsx                    # <Icon name=... /> système commun
+cockpit/nav.js                       # Sidebar — source unique window.COCKPIT_NAV (consommée par data.js + data-loader.js)
 cockpit/data.js + data-*.js          # Schémas de référence (override à runtime)
 cockpit/lib/supabase.js              # Client + REST wrappers + JWT rotation
 cockpit/lib/auth.js                  # Google OAuth overlay + waitForAuth()
