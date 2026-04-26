@@ -16,19 +16,19 @@ C'est le premier écran à l'ouverture du cockpit (route `"brief"`, panel par d�
 5. Scan des quatre signaux faibles (nouveau / en hausse / stable / en baisse) pour voir ce qui bouge dans la veille.
 6. Coup d'œil au radar compétences et à l'encart "Ton prochain gap à combler" qui propose un challenge associé en un clic.
 7. Lecture finale du bilan de la semaine : heatmap 7 jours des articles lus par jour et compteurs (articles lus, gardés, streak).
-8. Bouton "Tout marquer lu" pour valider les trois incontournables comme lus d'un coup avant de passer à la suite.
+8. Bouton "Tout marquer lu" pour valider les trois incontournables comme lus d'un coup ; un bandeau discret en bas d'écran confirme l'action et propose un "Annuler" pendant six secondes au cas où le clic était involontaire.
 
 ## Fonctionnalités
 - **Vue Morning Card** : un toggle "Morning Card / Brief complet" persiste le mode choisi. En Morning Card, la page n'affiche que trois choses numérotées (article du jour, signal qui monte, prochain gap à combler) avec un seul CTA chacune — format minute pour les matins serrés. Bascule libre vers le Brief complet à tout moment.
-- **Synthèse du jour** : un paragraphe éditorial en tête de page qui résume l'actualité IA du jour, avec deux raccourcis vers le Top du jour et la Veille complète.
+- **Synthèse du jour** : un paragraphe éditorial en tête de page qui résume l'actualité IA du jour, avec deux raccourcis vers le Top du jour et la Veille complète. Quand l'utilisateur revient au cockpit après plus d'une demi-heure, le sur-titre bascule en "Depuis ta dernière visite — Xh" et compte les nouveaux articles arrivés depuis, pour positionner la lecture comme un delta plutôt qu'un récap quotidien.
 - **Lecture audio** : un bouton qui lit la synthèse à voix haute en français, avec une estimation du temps de lecture. Utile pour démarrer la journée mains-libres.
 - **À traiter depuis hier** : un grand chiffre dominant en couleur d'accent en colonne de droite du hero, qui agrège les articles non lus et rappelle le nombre de signaux à regarder. Bouton "Commencer la revue" qui amène directement sur le Top du jour. L'heure du prochain brief reste affichée en métadonnée discrète sous le bloc.
-- **Top 3 incontournables** : les trois articles à lire en priorité ce matin, chacun avec son score, sa source, son résumé et ses tags. Un clic sur la carte ouvre l'article et le marque lu. Au survol de la carte, un petit bouton "Garder" (pictogramme signet) apparaît en bas à droite pour bookmarker sans ouvrir.
+- **Top 3 incontournables** : les trois articles à lire en priorité ce matin, chacun avec son score, sa source, son résumé et ses tags. Un clic sur la carte ouvre l'article et le marque lu. Les boutons "Garder" et "Demander à Jarvis" restent visibles en filigrane sur chaque carte (pleine opacité au survol et en tactile) pour rester découvrables sans avoir à survoler.
 - **Signaux faibles** : les quatre tendances à surveiller, chacune avec sa courbe sur huit semaines et son delta, pour voir d'un coup d'œil si elle monte, stagne ou redescend.
 - **Radar compétences** : une vue circulaire des axes IA avec les lacunes mises en évidence par des points plus gros, pour repérer les zones à travailler.
 - **Prochain gap à combler** : un bloc à côté du radar qui désigne l'axe le plus faible et propose un raccourci direct vers un challenge ciblé.
 - **Bilan de la semaine** : une mini-heatmap Lundi→Dimanche du nombre d'articles lus chaque jour, complétée par trois compteurs (articles lus, gardés, streak courante).
-- **Tout marquer lu** : un bouton unique pour marquer les trois incontournables comme lus d'un coup, quand on a déjà consulté l'actualité ailleurs.
+- **Tout marquer lu** : un bouton unique pour marquer les trois incontournables comme lus d'un coup, quand on a déjà consulté l'actualité ailleurs. Un bandeau flottant confirme l'action et propose un bouton "Annuler" pendant six secondes pour revenir en arrière en cas de clic involontaire ; passé ce délai, le marquage est définitif.
 - **Signature coûts** : en pied de page, rappel des modèles IA qui alimentent la page (brief quotidien + analyses hebdo) et coût du mois rapporté au budget mensuel.
 
 ## Front — structure UI
@@ -131,6 +131,9 @@ Table **non lue malgré mention dans spec.json** : `activity_briefs` — écrite
 - [ ] **`<inconnu>` : seuils de score Top** — les scores 94/88/82 sont dérivés de `94 - i*6` ([data-loader.js:174](cockpit/lib/data-loader.js:174)), donc toujours les mêmes 3 valeurs selon le rang, **pas** un vrai score d'impact côté backend. À confirmer : est-ce intentionnel ou est-ce qu'un vrai score existe ailleurs ?
 
 ## Dernière MAJ
+2026-04-26 — sur-titre du hero passe en "Depuis ta dernière visite — Xh + N nouveaux articles" quand la dernière visite remonte à plus de 30 minutes ; fallback "Synthèse du matin" inchangé pour la première visite ou les rebonds courts.
+2026-04-26 — bouton "Tout marquer lu" : ajout d'un toast d'annulation de 6 s en bas d'écran, l'action redevient réversible le temps de la fenêtre.
+2026-04-26 — boutons d'action des cartes (Garder, Demander à Jarvis) visibles en permanence à 55 % d'opacité (100 % au survol et en tactile), avec une cible tactile bumpée à 36×36 desktop / 44×44 mobile.
 2026-04-25 — Morning Card : nouvelle vue "3 choses aujourd'hui" (article + signal qui monte + prochain gap), toggle persistant Morning Card/Brief complet en haut de la home.
 2026-04-24 — hero stats : 4 KPI remplacés par un seul chiffre dominant "À traiter depuis hier" + bouton "Commencer la revue" + métadonnée prochain brief. Streak retiré du hero (reste en sidebar et bilan semaine).
 2026-04-24 — top-cards : bouton "Marquer lu" supprimé (redondant avec le clic carte), bouton "Garder" devient pictogramme visible au survol uniquement.

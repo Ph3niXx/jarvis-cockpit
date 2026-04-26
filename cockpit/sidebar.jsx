@@ -45,6 +45,23 @@ function Sidebar({ theme, activeId, onSelect, data, onThemeChange, mobileOpen = 
     Object.fromEntries(data.nav.map((g, i) => [g.group, g.group === "Grille matinale" || i === 0]))
   );
   const [collapsed, setCollapsed] = useSbLocalState(SB_COLLAPSED_KEY, false);
+  const [explicit, setExplicit] = React.useState(() => {
+    try { return localStorage.getItem("cockpit-theme-explicit") === "1"; }
+    catch { return false; }
+  });
+  const pickAutoTheme = () => {
+    const h = new Date().getHours();
+    return (h >= 22 || h < 6) ? "obsidian" : "dawn";
+  };
+  const handleThemePick = (id) => {
+    if (onThemeChange) onThemeChange(id);
+    setExplicit(true);
+  };
+  const handleAutoPick = () => {
+    if (onThemeChange) onThemeChange(pickAutoTheme());
+    try { localStorage.removeItem("cockpit-theme-explicit"); } catch {}
+    setExplicit(false);
+  };
   const vibe = theme.vibe;
 
   // Expose toggle on window so the global Ctrl+B shortcut in app.jsx can
@@ -82,7 +99,7 @@ function Sidebar({ theme, activeId, onSelect, data, onThemeChange, mobileOpen = 
   const isMac = /Mac/.test(platform) && !isIOS;
   const kbdSym = (isMac || isIOS) ? '⌘' : 'Ctrl';
 
-  const streak = data.stats.streak || 14;
+  const streak = Number.isFinite(data.stats.streak) ? data.stats.streak : null;
   const costMonth = data.stats.cost_month || "—";
   const costBudget = data.stats.cost_budget || "—";
   const costHist = data.stats.cost_history_7d || [];
@@ -141,19 +158,31 @@ function Sidebar({ theme, activeId, onSelect, data, onThemeChange, mobileOpen = 
       {/* ═══════ FOOTER v2 ═══════ */}
       <div className="sb-foot">
         {/* Row 1: Streak + next brief */}
-        <div className="sb-foot-streak">
-          <div className="sb-foot-streak-main">
+        {streak === null ? (
+          <div className="sb-foot-streak sb-foot-streak--empty">
             <span className="sb-foot-streak-icon" aria-hidden="true">
               <Icon name="flame" size={13} stroke={1.75} />
             </span>
-            <span className="sb-foot-streak-num">{streak}</span>
-            <span className="sb-foot-streak-unit">j</span>
+            <div className="sb-foot-streak-meta">
+              <span>streak veille</span>
+              <span className="sb-foot-next">prochain 06:00</span>
+            </div>
           </div>
-          <div className="sb-foot-streak-meta">
-            <span>streak veille</span>
-            <span className="sb-foot-next">prochain 06:00</span>
+        ) : (
+          <div className="sb-foot-streak">
+            <div className="sb-foot-streak-main">
+              <span className="sb-foot-streak-icon" aria-hidden="true">
+                <Icon name="flame" size={13} stroke={1.75} />
+              </span>
+              <span className="sb-foot-streak-num">{streak}</span>
+              <span className="sb-foot-streak-unit">j</span>
+            </div>
+            <div className="sb-foot-streak-meta">
+              <span>streak veille</span>
+              <span className="sb-foot-next">prochain 06:00</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Row 2: API cost + sparkline */}
         <div className="sb-foot-cost">
@@ -167,30 +196,38 @@ function Sidebar({ theme, activeId, onSelect, data, onThemeChange, mobileOpen = 
 
         {/* Row 3: Theme toggle + Ctrl+K hint */}
         <div className="sb-foot-bottom">
-          <div className="sb-theme-toggle" role="group" aria-label="Thème">
+          <div className={`sb-theme-toggle ${explicit ? "is-explicit" : "is-auto"}`} role="group" aria-label="Thème">
             <button
-              className={`sb-theme-btn ${theme.id === "dawn" ? "is-active" : ""}`}
-              onClick={() => onThemeChange && onThemeChange("dawn")}
+              className={`sb-theme-btn ${explicit && theme.id === "dawn" ? "is-active" : ""}`}
+              onClick={() => handleThemePick("dawn")}
               title="Thème Dawn"
               aria-label="Thème Dawn"
             >
               <Icon name="sun" size={12} stroke={1.75} />
             </button>
             <button
-              className={`sb-theme-btn ${theme.id === "obsidian" ? "is-active" : ""}`}
-              onClick={() => onThemeChange && onThemeChange("obsidian")}
+              className={`sb-theme-btn ${explicit && theme.id === "obsidian" ? "is-active" : ""}`}
+              onClick={() => handleThemePick("obsidian")}
               title="Thème Obsidian"
               aria-label="Thème Obsidian"
             >
               <Icon name="moon" size={12} stroke={1.75} />
             </button>
             <button
-              className={`sb-theme-btn ${theme.id === "atlas" ? "is-active" : ""}`}
-              onClick={() => onThemeChange && onThemeChange("atlas")}
+              className={`sb-theme-btn ${explicit && theme.id === "atlas" ? "is-active" : ""}`}
+              onClick={() => handleThemePick("atlas")}
               title="Thème Atlas"
               aria-label="Thème Atlas"
             >
               <Icon name="square" size={12} stroke={1.75} />
+            </button>
+            <button
+              className={`sb-theme-btn sb-theme-btn--auto ${!explicit ? "is-active" : ""}`}
+              onClick={handleAutoPick}
+              title="Suivre l'heure (auto)"
+              aria-label="Suivre l'heure"
+            >
+              <Icon name="clock" size={12} stroke={1.75} />
             </button>
           </div>
           <div className="sb-foot-kbd">

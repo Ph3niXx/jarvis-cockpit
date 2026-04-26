@@ -272,6 +272,23 @@
     font-size: 12px !important;
     gap: 8px !important;
   }
+
+  /* ─── Card actions: full opacity on touch (no hover available) ─── */
+  .top-card .top-actions,
+  .sig-card-ask {
+    opacity: 1 !important;
+  }
+
+  /* ─── Touch targets: bump card actions to 44px (WCAG 2.1 AAA) ─── */
+  .card-action {
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+  .card-action--bookmark,
+  .card-action--ask {
+    width: 44px !important;
+    height: 44px !important;
+  }
 }
 
 /* Very narrow phones (≤380px): tighter paddings */

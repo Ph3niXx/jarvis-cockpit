@@ -205,12 +205,66 @@ function Home({ theme, data, onNavigate }) {
   const morningItems = data.morning_card || [];
   const [readTop, setReadTop] = React.useState({});
   const toggleRead = (rank) => setReadTop({ ...readTop, [rank]: !readTop[rank] });
+  const [undoState, setUndoState] = React.useState(null);
+  // undoState = { previousMap, count, timer } | null
+  React.useEffect(() => () => {
+    if (undoState && undoState.timer) clearTimeout(undoState.timer);
+  }, [undoState]);
+  const markAllRead = () => {
+    try {
+      const previousMap = JSON.parse(localStorage.getItem("read-articles") || "{}");
+      const newMap = { ...previousMap };
+      const ids = (top || []).map(t => t._id || t.id).filter(Boolean);
+      ids.forEach(id => { newMap[id] = { ts: Date.now() }; });
+      localStorage.setItem("read-articles", JSON.stringify(newMap));
+      setReadTop(Object.fromEntries((top || []).map(t => [t.rank, true])));
+      if (undoState && undoState.timer) clearTimeout(undoState.timer);
+      const timer = setTimeout(() => setUndoState(null), 6000);
+      setUndoState({ previousMap, count: ids.length, timer });
+    } catch {}
+  };
+  const undoMarkAll = () => {
+    if (!undoState) return;
+    clearTimeout(undoState.timer);
+    try {
+      localStorage.setItem("read-articles", JSON.stringify(undoState.previousMap));
+      setReadTop({});
+    } catch {}
+    setUndoState(null);
+  };
   const [viewMode, setViewMode] = React.useState(() => {
     try { return localStorage.getItem("home-view-mode") || "full"; } catch { return "full"; }
   });
   React.useEffect(() => {
     try { localStorage.setItem("home-view-mode", viewMode); } catch {}
   }, [viewMode]);
+
+  const lastVisitTs = React.useMemo(() => {
+    try {
+      const v = Number(localStorage.getItem("cockpit-last-visit-ts"));
+      return Number.isFinite(v) && v > 0 ? v : null;
+    } catch { return null; }
+  }, []);
+  React.useEffect(() => {
+    try { localStorage.setItem("cockpit-last-visit-ts", String(Date.now())); } catch {}
+  }, []);
+  const visitDelta = React.useMemo(() => {
+    if (!lastVisitTs) return null;
+    const now = Date.now();
+    const diffH = (now - lastVisitTs) / 3600000;
+    if (diffH < 0.5) return null;
+    if (diffH < 18) return { h: Math.round(diffH), kind: "today" };
+    return { h: Math.round(diffH), kind: "yesterday" };
+  }, [lastVisitTs]);
+  const newSinceVisit = React.useMemo(() => {
+    if (!lastVisitTs) return null;
+    let n = 0;
+    (data.top || []).forEach(t => {
+      const ts = t.fetch_iso ? new Date(t.fetch_iso).getTime() : null;
+      if (ts && ts > lastVisitTs) n++;
+    });
+    return n;
+  }, [lastVisitTs, data.top]);
 
   return (
     <div className="home" data-theme-vibe={theme.id}>
@@ -227,15 +281,7 @@ function Home({ theme, data, onNavigate }) {
           <AudioBriefChip macro={macro} />
           <button
             className="ph-chip ph-chip--primary"
-            onClick={() => {
-              try {
-                const rm = JSON.parse(localStorage.getItem("read-articles") || "{}");
-                (top || []).forEach(t => { const id = t._id || t.id; if (id) rm[id] = { ts: Date.now() }; });
-                localStorage.setItem("read-articles", JSON.stringify(rm));
-                // Force a lightweight refresh so the read state shows
-                setReadTop(Object.fromEntries((top || []).map(t => [t.rank, true])));
-              } catch {}
-            }}
+            onClick={markAllRead}
           ><Icon name="check" size={13} stroke={2.5} /> Tout marqué lu</button>
         </div>
       </header>
@@ -269,9 +315,22 @@ function Home({ theme, data, onNavigate }) {
           <div className="hero-col-main">
             <div className="hero-kicker">
               <span className="kicker-dot" />
-              {macro.kicker}
-              <span className="hero-kicker-sep">—</span>
-              <span className="hero-kicker-meta">{macro.articles_summarized} articles synthétisés · lecture {macro.reading_time}</span>
+              {visitDelta ? (
+                <>
+                  DEPUIS TA DERNIÈRE VISITE — {visitDelta.h}H
+                  {newSinceVisit != null && (
+                    <>{' '}<span className="hero-kicker-meta">
+                      · {newSinceVisit} nouveaux articles · {macro.articles_summarized} au total
+                    </span></>
+                  )}
+                </>
+              ) : (
+                <>
+                  {macro.kicker}
+                  <span className="hero-kicker-sep">—</span>
+                  <span className="hero-kicker-meta">{macro.articles_summarized} articles synthétisés · lecture {macro.reading_time}</span>
+                </>
+              )}
             </div>
             <h1 className="hero-title">{macro.title}</h1>
             <p className="hero-body">{macro.body}</p>
@@ -494,6 +553,13 @@ function Home({ theme, data, onNavigate }) {
         <span>Brief généré par Gemini Flash-Lite · synthèse hebdo par Claude Haiku</span>
         <span>{stats.cost_month} / {stats.cost_budget} ce mois</span>
       </footer>
+
+      {undoState && (
+        <div className="ph-undo-toast" role="status">
+          <span>{undoState.count} articles marqués lus</span>
+          <button className="ph-undo-btn" onClick={undoMarkAll}>Annuler</button>
+        </div>
+      )}
     </div>
   );
 }

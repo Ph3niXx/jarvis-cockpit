@@ -384,6 +384,11 @@ select:focus-visible {
   background: var(--tx);
   color: var(--bg2);
 }
+.sb-theme-toggle.is-auto .sb-theme-btn:not(.sb-theme-btn--auto) {
+  opacity: 0.5;
+}
+.sb-theme-btn--auto svg { opacity: 0.7; }
+.sb-theme-btn--auto.is-active svg { opacity: 1; }
 
 .sb-foot-kbd { display: flex; align-items: center; gap: var(--space-1); }
 .sb-kbd {
@@ -1198,24 +1203,25 @@ select:focus-visible {
 .top-actions { display: flex; gap: 4px; }
 .card-action {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 4px 8px;
+  padding: 6px 10px;
+  min-height: 32px;
   border-radius: var(--radius);
   border: 1px solid var(--bd);
   color: var(--tx2);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.04em;
   transition: all 120ms;
 }
 .card-action:hover { background: var(--bg2); color: var(--tx); border-color: var(--bd2); }
 .is-read .card-action { background: var(--positive-tint); border-color: var(--positive); color: var(--positive); }
 
-.top-card .top-actions { opacity: 0; transition: opacity 120ms; }
+.top-card .top-actions { opacity: 0.55; transition: opacity 120ms; }
 .top-card:hover .top-actions,
 .top-card:focus-within .top-actions { opacity: 1; }
 .card-action--bookmark {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px;
+  width: 36px; height: 36px;
   border-radius: 999px;
   background: var(--bg2);
   border: 1px solid var(--bd);
@@ -1225,7 +1231,7 @@ select:focus-visible {
 
 .card-action--ask {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px;
+  width: 36px; height: 36px;
   border-radius: 999px;
   background: var(--bg2);
   border: 1px solid var(--bd);
@@ -1233,7 +1239,7 @@ select:focus-visible {
   margin-left: 6px;
 }
 .card-action--ask:hover { color: var(--brand); border-color: var(--brand); }
-.sig-card-ask { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity 120ms; margin-left: 0; z-index: 2; }
+.sig-card-ask { position: absolute; top: 12px; right: 12px; opacity: 0.55; transition: opacity 120ms; margin-left: 0; z-index: 2; }
 .sig-card:hover .sig-card-ask,
 .sig-card:focus-within .sig-card-ask { opacity: 1; }
 
@@ -4444,4 +4450,29 @@ select:focus-visible {
 @media (prefers-reduced-motion: no-preference) {
   :root[data-theme="obsidian"] .hero-todo-num,
   :root[data-theme="obsidian"] .morning-title { transition: color 200ms; }
+}
+
+/* ═══ Undo toast (Brief — Tout marqué lu) ═══════════════ */
+.ph-undo-toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--tx); color: var(--bg2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  z-index: 200;
+  animation: phUndoIn 180ms ease;
+}
+.ph-undo-btn {
+  color: var(--bg2); text-decoration: underline; text-underline-offset: 3px;
+  font-weight: 600;
+}
+@keyframes phUndoIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ph-undo-toast { animation: none; }
 }
