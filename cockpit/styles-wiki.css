@@ -252,7 +252,7 @@
 }
 .wiki-item--auto::before { background: var(--brand); opacity: 0.6; }
 .wiki-item--perso::before { background: var(--tx); opacity: 0.4; }
-.wiki-item:hover { background: rgba(0,0,0,0.015); }
+.wiki-item:hover { background: color-mix(in srgb, var(--tx) 1.5%, transparent); }
 .wiki-item:hover::before { opacity: 1; }
 
 .wiki-item-head {

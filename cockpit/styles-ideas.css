@@ -228,7 +228,7 @@
   background: var(--tx);
   border-radius: 2px;
 }
-.id-flagship-score-fill--effort { background: #b8956a; }
+.id-flagship-score-fill--effort { background: var(--neutral); }
 .id-flagship-score-val {
   width: 24px; text-align: right;
   color: var(--tx);
@@ -272,7 +272,7 @@
 .id-sig-chip-dot--rising { background: var(--positive); }
 .id-sig-chip-dot--new    { background: var(--brand); }
 .id-sig-chip-dot--stable { background: var(--tx2); }
-.id-sig-chip-dot--declining { background: #b8956a; }
+.id-sig-chip-dot--declining { background: var(--neutral); }
 
 /* ── View switcher (pipeline | gallery | matrix) ────────── */
 .id-viewswitch {

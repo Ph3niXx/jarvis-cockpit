@@ -29,7 +29,7 @@
   font-weight: 500;
   text-transform: none;
 }
-.opp-herometa-val--urgent { color: var(--alert, #b8956a); }
+.opp-herometa-val--urgent { color: var(--alert, var(--neutral)); }
 .opp-herometa-val--taken  { color: var(--positive); }
 
 /* ── Scope switcher as filter row ───────────────────────── */
@@ -152,7 +152,7 @@
   background: var(--tx);
   border-radius: 3px;
 }
-.opp-flagship-window-bar-fill--closing { background: #b8956a; }
+.opp-flagship-window-bar-fill--closing { background: var(--neutral); }
 .opp-flagship-window-bar-sub {
   display: flex; justify-content: space-between;
   font-family: var(--font-mono); font-size: 10px;
@@ -192,7 +192,7 @@
 .opp-sig-chip-dot--rising { background: var(--positive); }
 .opp-sig-chip-dot--new    { background: var(--brand); }
 .opp-sig-chip-dot--stable { background: var(--tx2); }
-.opp-sig-chip-dot--declining { background: #b8956a; }
+.opp-sig-chip-dot--declining { background: var(--neutral); }
 
 /* ── View switcher (éditorial | kanban | fenêtres) ──────── */
 .opp-viewswitch {
@@ -413,7 +413,7 @@
   background: var(--bd);
 }
 .opp-effort-dot.is-filled { background: var(--tx); }
-.opp-effort-dot.is-filled--long { background: #b8956a; }
+.opp-effort-dot.is-filled--long { background: var(--neutral); }
 
 /* Competition */
 .opp-comp {
@@ -427,7 +427,7 @@
   background: var(--bd);
 }
 .opp-comp-bar.is-filled--low { background: var(--positive); }
-.opp-comp-bar.is-filled--med { background: #b8956a; }
+.opp-comp-bar.is-filled--med { background: var(--neutral); }
 .opp-comp-bar.is-filled--high { background: #c57455; }
 
 /* Window chip on card */
@@ -451,7 +451,7 @@
   line-height: 1.1;
 }
 .opp-card-window-val--closing { color: #c57455; }
-.opp-card-window-val--getting { color: #b8956a; }
+.opp-card-window-val--getting { color: var(--neutral); }
 
 .opp-card-window-bar {
   height: 4px;
@@ -465,7 +465,7 @@
   background: var(--tx);
 }
 .opp-card-window-bar-fill--closing { background: #c57455; }
-.opp-card-window-bar-fill--getting { background: #b8956a; }
+.opp-card-window-bar-fill--getting { background: var(--neutral); }
 .opp-card-signals {
   display: flex; flex-wrap: wrap; gap: 4px;
   margin-top: 2px;
@@ -708,7 +708,7 @@
   background: #c57455;
 }
 .opp-tl-bar--getting {
-  background: #b8956a;
+  background: var(--neutral);
 }
 .opp-tl-bar--perpetual {
   background: var(--bg2);
@@ -758,7 +758,7 @@
   width: 14px; height: 8px; border-radius: 2px;
 }
 .opp-tl-legend-sw--closing { background: #c57455; }
-.opp-tl-legend-sw--getting { background: #b8956a; }
+.opp-tl-legend-sw--getting { background: var(--neutral); }
 .opp-tl-legend-sw--right   { background: var(--tx); }
 .opp-tl-legend-sw--perp    {
   background: var(--bg2); border: 1px dashed var(--bd2);

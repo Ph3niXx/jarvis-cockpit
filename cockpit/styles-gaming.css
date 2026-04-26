@@ -873,7 +873,7 @@
   font-size: 14px;
   color: var(--tx2);
   text-align: center;
-  background: rgba(0,0,0,0.02);
+  background: color-mix(in srgb, var(--tx) 2%, transparent);
   margin-top: 12px;
 }
 

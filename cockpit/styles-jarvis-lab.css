@@ -87,7 +87,7 @@
   transition: background 120ms ease, border-color 120ms ease;
 }
 .jl-refresh-btn:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.04);
+  background: color-mix(in srgb, var(--tx) 4%, transparent);
   border-color: var(--brand, var(--jl-accent));
 }
 .jl-refresh-btn:disabled {

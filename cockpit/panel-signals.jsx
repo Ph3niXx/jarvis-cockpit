@@ -61,7 +61,7 @@ function MiniSpark({ history, trend }) {
   const pts = history.map((v, i) => `${i * step},${y(v)}`).join(" ");
   const color = trend === "rising" ? "var(--positive)"
     : trend === "new" ? "var(--brand)"
-    : trend === "declining" ? "#b8956a"
+    : trend === "declining" ? "var(--neutral)"
     : "var(--tx2)";
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ overflow: "visible" }}>
@@ -399,7 +399,7 @@ function HypeCycleView({ signals, onOpen, watched, onWatch }) {
             <linearGradient id="hype-bg-grad" x1="0" x2="1" y1="0" y2="0">
               <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.05" />
               <stop offset="55%" stopColor="var(--positive)" stopOpacity="0.06" />
-              <stop offset="78%" stopColor="#b8956a" stopOpacity="0.05" />
+              <stop offset="78%" stopColor="var(--neutral)" stopOpacity="0.05" />
               <stop offset="100%" stopColor="var(--tx)" stopOpacity="0.03" />
             </linearGradient>
           </defs>

@@ -44,7 +44,7 @@
 }
 .chal-stat-lbl--top { margin-bottom: 8px; }
 .chal-stat--streak .chal-stat-val { color: var(--brand); }
-.chal-stat--weak { background: rgba(0,0,0,0.02); }
+.chal-stat--weak { background: color-mix(in srgb, var(--tx) 2%, transparent); }
 .chal-stat-axis {
   font-family: var(--font-display);
   font-size: 26px;
@@ -259,7 +259,7 @@
   color: var(--bg);
 }
 .chal-card-badge--done {
-  background: rgba(0,0,0,0.06);
+  background: color-mix(in srgb, var(--tx) 6%, transparent);
   color: var(--fg-muted);
 }
 

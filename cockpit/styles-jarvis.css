@@ -484,7 +484,7 @@
   font-size: 9.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--alert, #b8956a);
+  color: var(--alert, var(--neutral));
   font-weight: 500;
 }
 
@@ -849,6 +849,6 @@
   border-color: var(--tx2);
 }
 .jv-mem-expand button.is-danger:hover {
-  color: var(--alert, #b8956a);
-  border-color: var(--alert, #b8956a);
+  color: var(--alert, var(--neutral));
+  border-color: var(--alert, var(--neutral));
 }
