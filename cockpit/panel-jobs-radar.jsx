@@ -207,9 +207,8 @@ function SalaryEstimate({ estimate, targetRange }) {
     ? "Calibré sur la fourchette publiée"
     : "Estimée depuis le marché + ton profil";
 
-  const fullTooltip = rationale
-    ? `${sourceLabel}\n\n${rationale}`
-    : sourceLabel;
+  const ariaLabel = rationale ? `${sourceLabel}. ${rationale}` : sourceLabel;
+  const showInfo = !!(rationale || sourceLabel);
 
   return (
     <div className={`jr-salary jr-salary--${tone}`}>
@@ -221,14 +220,13 @@ function SalaryEstimate({ estimate, targetRange }) {
         {tgt != null && <span className="jr-salary-target">~{tgt}{cur}</span>}
         {range && tgt != null && <span className="jr-salary-range">dans {range}{cur}</span>}
         {range && tgt == null && <span className="jr-salary-target">{range}{cur}</span>}
-        {basis === "inferred" && (
-          <button type="button" className="jr-salary-info" title={fullTooltip} aria-label={fullTooltip}>
+        {showInfo && (
+          <button type="button" className="jr-salary-info" aria-label={ariaLabel}>
             <span aria-hidden="true">i</span>
-          </button>
-        )}
-        {basis === "published" && rationale && (
-          <button type="button" className="jr-salary-info" title={fullTooltip} aria-label={fullTooltip}>
-            <span aria-hidden="true">i</span>
+            <span className="jr-salary-info-tip" role="tooltip">
+              <span className="jr-salary-info-source">{sourceLabel}</span>
+              {rationale && <span className="jr-salary-info-rationale">{rationale}</span>}
+            </span>
           </button>
         )}
         {inTarget !== null && (

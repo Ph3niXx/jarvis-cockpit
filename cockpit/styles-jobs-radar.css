@@ -607,10 +607,69 @@
   opacity: 0.7;
   transition: opacity 0.15s;
   align-self: center;
+  position: relative;
 }
-.jr-salary-info:hover { opacity: 1; }
+.jr-salary-info:hover,
+.jr-salary-info:focus-visible { opacity: 1; outline: none; }
 .jr-salary--in .jr-salary-info { color: var(--positive); }
 .jr-salary--out .jr-salary-info { color: var(--tx3); }
+
+.jr-salary-info-tip {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-3px);
+  width: 300px;
+  max-width: calc(100vw - 48px);
+  padding: 10px 12px;
+  background: var(--tx);
+  color: var(--bg);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  line-height: 1.5;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+  z-index: 50;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.jr-salary-info-tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--tx);
+}
+.jr-salary-info:hover .jr-salary-info-tip,
+.jr-salary-info:focus-visible .jr-salary-info-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.jr-salary-info-source {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  font-weight: 500;
+}
+.jr-salary-info-rationale {
+  font-family: var(--font-sans);
+  color: var(--bg);
+}
 .jr-salary-badge {
   font-family: var(--font-mono);
   font-size: 9.5px;
