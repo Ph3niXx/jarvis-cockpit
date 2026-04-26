@@ -1,10 +1,11 @@
 # Prompts Claude Code en attente
 
-| Fichier | Titre | Effort | Date audit |
-|---------|-------|--------|------------|
-| [v13-S1](pending/2026-04-25-S1-resync-known-sections.md) | Resync `KNOWN_SECTIONS` sur le vrai cockpit React | XS | 2026-04-25 |
-| [v13-S2](pending/2026-04-25-S2-lm-studio-unload-detection.md) | Détection LM Studio `model unloaded` mid-run | S | 2026-04-25 |
-| [v13-K1](pending/2026-04-25-K1-kill-stale-log-and-pending.md) | Kill `nightly_learner.log` legacy + close stale preflight pending | XS | 2026-04-25 |
-| [v10-S1](pending/2026-04-14-S1-preflight-lm-studio.md) | Préflight `check_lm_studio_ready` + état `llm_unavailable` (absorbé par v13-S2 — sera déplacé par v13-K1) | XS | 2026-04-14 |
+| Fichier | Titre | Effort | Date audit | Statut |
+|---------|-------|--------|------------|--------|
+| [v14-S1](pending/2026-04-26-S1-inference-stuck-detection.md) | Détection LM Studio `inference_stuck` | S | 2026-04-26 | _Shippé `34eb5a1` — à classer dans `done/`._ |
+| [v14-S2](pending/2026-04-26-S2-lint-known-sections.md) | Lint CI bloquant KNOWN_SECTIONS sync | XS | 2026-04-26 | _Shippé `efad1dd` — à classer dans `done/`._ |
+| [v14-K1](pending/2026-04-26-K1-hygiene-v13-prompts.md) | Hygiène : v13 prompts pending → done | XS | 2026-04-26 | _Shippé (ce commit) — à classer dans `done/` au prochain audit._ |
 
-**Workflow** : copier-coller le contenu d'un fichier dans Claude Code, exécuter, revoir le diff, commit, puis déplacer le fichier vers `done/`. Pour cette itération, exécuter K1 *en dernier* — il classe automatiquement v10-S1 dans `done/` avec note d'absorption par v13-S2.
+**Workflow** : copier-coller le contenu d'un fichier dans Claude Code, exécuter, revoir le diff, commit, puis déplacer le fichier vers `done/`.
+
+**Pour cette itération** : aucun prompt en attente d'exécution — les 3 prompts v14 du 2026-04-26 ont tous été shippés le jour même. Reste un classement physique pending → done à faire au prochain audit (sera traité par le K1 du jour J+1).
