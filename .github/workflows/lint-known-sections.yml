@@ -1,0 +1,34 @@
+name: Lint KNOWN_SECTIONS sync
+
+on:
+  push:
+    paths:
+      - 'cockpit/app.jsx'
+      - 'jarvis/scripts/extract_signals.py'
+      - 'scripts/lint_known_sections.py'
+      - '.github/workflows/lint-known-sections.yml'
+  pull_request:
+    paths:
+      - 'cockpit/app.jsx'
+      - 'jarvis/scripts/extract_signals.py'
+      - 'scripts/lint_known_sections.py'
+      - '.github/workflows/lint-known-sections.yml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verifier sync KNOWN_SECTIONS vs app.jsx (bloquant)
+        # Toute divergence entre `activePanel === "X"` (cockpit/app.jsx) et
+        # KNOWN_SECTIONS (jarvis/scripts/extract_signals.py) fait fail le
+        # check. Cf incident 2026-04-25 (v13-S1 resync puis derive 3h plus
+        # tard sur ajout veille-outils). Si fail, ajouter / retirer la
+        # section dans extract_signals.py.
+        run: python scripts/lint_known_sections.py
