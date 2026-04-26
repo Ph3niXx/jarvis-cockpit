@@ -515,7 +515,6 @@ select:focus-visible {
   border-bottom: 1px solid var(--bd);
   background: var(--bg);
   position: sticky; top: 0; z-index: 40;
-  backdrop-filter: blur(12px);
 }
 .ph-left {
   display: flex; align-items: center; gap: var(--space-3);
