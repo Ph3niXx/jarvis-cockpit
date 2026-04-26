@@ -138,12 +138,14 @@
         sessions.push({
           date: d.toISOString().slice(0, 10),
           type: "run",
+          sport_type: "Run",
           name,
           distance_km: +distance.toFixed(2),
           pace_min_km: +pace.toFixed(2),
           duration_min: +duration.toFixed(1),
           hr_avg: hr,
           elev_m: elev,
+          calories: Math.round(distance * 65),
           effort: dow === 4 ? "tempo" : dow === 6 ? "long" : "easy",
         });
       }
@@ -154,12 +156,18 @@
         const name = muscuNames[Math.floor(Math.random() * muscuNames.length)];
         sessions.push({
           date: d.toISOString().slice(0, 10),
-          type: "lift",
+          type: "workout",
+          sport_type: "WeightTraining",
           name,
           sets,
           tonnage_kg: tonnage,
           duration_min: dur,
-          effort: sets > 18 ? "volume" : "force",
+          distance_km: 0,
+          pace_min_km: 0,
+          elev_m: 0,
+          hr_avg: 110 + Math.floor(Math.random() * 20),
+          calories: Math.round(dur * 5.5),
+          effort: dur > 75 ? "long" : dur > 45 ? "moyen" : "court",
         });
       }
     }
@@ -180,13 +188,17 @@
     const d = new Date(s.date);
     return (TODAY - d) / 86400000 < 7 && s.type === "run";
   });
+  const last7workout = sessions.filter((s) => {
+    const d = new Date(s.date);
+    return (TODAY - d) / 86400000 < 7 && s.type === "workout";
+  });
   const last30run = sessions.filter((s) => {
     const d = new Date(s.date);
     return (TODAY - d) / 86400000 < 30 && s.type === "run";
   });
-  const last30lift = sessions.filter((s) => {
+  const last30workout = sessions.filter((s) => {
     const d = new Date(s.date);
-    return (TODAY - d) / 86400000 < 30 && s.type === "lift";
+    return (TODAY - d) / 86400000 < 30 && s.type === "workout";
   });
 
   // Périodes précédentes (30-60j)
@@ -196,16 +208,19 @@
     return days >= 30 && days < 60;
   });
   const prev30run = prev30.filter((s) => s.type === "run");
-  const prev30lift = prev30.filter((s) => s.type === "lift");
+  const prev30workout = prev30.filter((s) => s.type === "workout");
   const km_prev = +prev30run.reduce((a, s) => a + s.distance_km, 0).toFixed(1);
-  const tonnage_prev = prev30lift.reduce((a, s) => a + s.tonnage_kg, 0);
   const km_month = +last30run.reduce((a, s) => a + s.distance_km, 0).toFixed(1);
   const km_week = +last7.reduce((a, s) => a + s.distance_km, 0).toFixed(1);
   const pace_avg_month = +(
     last30run.reduce((a, s) => a + s.pace_min_km, 0) / Math.max(last30run.length, 1)
   ).toFixed(2);
-  const tonnage_month = last30lift.reduce((a, s) => a + s.tonnage_kg, 0);
-  const sessions_month_count = last30run.length + last30lift.length;
+  const workoutMin30 = Math.round(last30workout.reduce((a, s) => a + s.duration_min, 0));
+  const workoutMin30Prev = Math.round(prev30workout.reduce((a, s) => a + s.duration_min, 0));
+  const workoutMin7 = Math.round(last7workout.reduce((a, s) => a + s.duration_min, 0));
+  const workoutCal30 = Math.round(last30workout.reduce((a, s) => a + (s.calories || 0), 0));
+  const workoutDaysActive7 = new Set(last7workout.map(s => s.date)).size;
+  const sessions_month_count = last30run.length + last30workout.length;
 
   // Records
   const records = [
@@ -235,10 +250,9 @@
     week: {
       km: km_week,
       runs: last7.length,
-      lifts: sessions.filter((s) => {
-        const d = new Date(s.date);
-        return (TODAY - d) / 86400000 < 7 && s.type === "lift";
-      }).length,
+      workouts: last7workout.length,
+      workout_minutes: workoutMin7,
+      sessions: last7.length + last7workout.length,
       days_active: new Set(
         sessions
           .filter((s) => {
@@ -253,15 +267,24 @@
     month: {
       km: km_month,
       runs: last30run.length,
-      lifts: last30lift.length,
+      workouts: last30workout.length,
       sessions: sessions_month_count,
       pace_avg: pace_avg_month,
-      tonnage: tonnage_month,
+      workout_minutes: workoutMin30,
+      workout_minutes_prev: workoutMin30Prev,
+      workout_calories: workoutCal30,
+      workout_top_type: "WeightTraining",
+      workout_days_active_7: workoutDaysActive7,
       km_prev,
-      tonnage_prev,
+    },
+    year: {
+      km: Math.round(sessions.filter(s => s.type === "run" && (TODAY - new Date(s.date)) / 86400000 < 365).reduce((a, s) => a + (s.distance_km || 0), 0)),
+      runs: sessions.filter(s => s.type === "run" && (TODAY - new Date(s.date)) / 86400000 < 365).length,
     },
     weight_series,
     sessions: sessions.slice().reverse(), // récentes en premier
+    run_sessions: sessions.filter(s => s.type === "run").slice().reverse().slice(0, 20),
+    workout_sessions: sessions.filter(s => s.type === "workout").slice().reverse().slice(0, 20),
     records,
 
     // objectifs
@@ -270,5 +293,8 @@
       { label: "Poids de forme", target: "78.5 kg", current: today.weight.toFixed(1) + " kg", progress: 0.62, deadline: "juin 2026" },
       { label: "Masse grasse sous 16%", target: "16.0%", current: today.fat_pct.toFixed(1) + "%", progress: 0.78, deadline: "été 2026" },
     ],
+    _has_weight: true,
+    _has_runs: true,
+    _has_workouts: true,
   };
 })();

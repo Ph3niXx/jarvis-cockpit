@@ -2072,6 +2072,19 @@
     };
   }
 
+  // Categorize a Strava sport_type into one of: "run" | "workout" | "other".
+  // Workout = anything that's musculation, force, ou cross-training : Strava
+  // expose sport_type "WeightTraining", "Workout", "Crossfit", "Yoga", etc.
+  // Used to split the Forme panel into Course / Workout sub-tabs.
+  function categorizeSport(sportType){
+    const s = (sportType || "").toLowerCase();
+    if (s.includes("run")) return "run";
+    if (s.includes("weight") || s === "workout" || s.includes("crossfit") ||
+        s.includes("yoga") || s.includes("pilates") || s.includes("strength") ||
+        s.includes("training")) return "workout";
+    return "other";
+  }
+
   // Build FORME_DATA shape from strava_activities + withings_measurements.
   // The panel consumes: today, week, month, weight_series, sessions,
   // records, goals. Withings fields stay null until a sync exists —
@@ -2082,7 +2095,10 @@
     const acts = (activities || []).slice().sort((a, b) =>
       new Date(b.start_date || 0) - new Date(a.start_date || 0)
     );
-    const runs = acts.filter(a => (a.sport_type || "").toLowerCase().includes("run"));
+    // Tag each activity with its category once, reused everywhere.
+    acts.forEach(a => { a._cat = categorizeSport(a.sport_type); });
+    const runs = acts.filter(a => a._cat === "run");
+    const workouts = acts.filter(a => a._cat === "workout");
     const inLastN = (iso, n) => iso && (now - new Date(iso).getTime()) <= n * dayMs;
     const inRange = (iso, from, to) => {
       if (!iso) return false;
@@ -2095,9 +2111,12 @@
       const t = new Date(a.start_date || 0).getTime();
       return t >= now - 60 * dayMs && t < now - 30 * dayMs;
     });
-    const last7runs = last7.filter(a => (a.sport_type || "").toLowerCase().includes("run"));
-    const last30runs = last30.filter(a => (a.sport_type || "").toLowerCase().includes("run"));
-    const prev30runs = prev30.filter(a => (a.sport_type || "").toLowerCase().includes("run"));
+    const last7runs = last7.filter(a => a._cat === "run");
+    const last30runs = last30.filter(a => a._cat === "run");
+    const prev30runs = prev30.filter(a => a._cat === "run");
+    const last7workouts = last7.filter(a => a._cat === "workout");
+    const last30workouts = last30.filter(a => a._cat === "workout");
+    const prev30workouts = prev30.filter(a => a._cat === "workout");
 
     const sumKm = rows => rows.reduce((s, a) => s + (Number(a.distance_m) || 0) / 1000, 0);
     const sumMin = rows => rows.reduce((s, a) => s + (Number(a.moving_time_s) || 0) / 60, 0);
@@ -2128,16 +2147,28 @@
       last7.map(a => (a.start_date || "").slice(0, 10)).filter(Boolean)
     ).size;
 
-    // Sessions journal: include every sport, map to the shape the panel
-    // reads (run path). "lift" path is dead code now — no source.
-    const sessions = acts.slice(0, 20).map(a => {
+    // Sessions journal: keep the real category so each tab can filter.
+    // For runs we compute pace + effort by distance ; for workouts we
+    // compute effort by duration (long/medium/short). The "type" field
+    // matches our internal taxonomy (run/workout/other), distinct from
+    // Strava's raw sport_type which we keep alongside for display.
+    const mapSession = (a) => {
       const km = (Number(a.distance_m) || 0) / 1000;
       const min = (Number(a.moving_time_s) || 0) / 60;
       const pace = km > 0 ? min / km : 0;
+      const cat = a._cat;
+      let effort;
+      if (cat === "run") {
+        effort = pace > 0 && pace < 4.5 ? "tempo" : km > 15 ? "long" : "easy";
+      } else if (cat === "workout") {
+        effort = min > 75 ? "long" : min > 45 ? "moyen" : "court";
+      } else {
+        effort = "—";
+      }
       return {
         date: (a.start_date || "").slice(0, 10),
-        type: "run",
-        sport_type: a.sport_type || "Run",
+        type: cat,
+        sport_type: a.sport_type || "Activité",
         name: a.name || a.sport_type || "Activité",
         distance_km: +km.toFixed(2),
         pace_min_km: +pace.toFixed(2),
@@ -2145,9 +2176,12 @@
         hr_avg: a.average_heartrate ? Math.round(a.average_heartrate) : null,
         elev_m: Math.round(Number(a.total_elevation_gain) || 0),
         calories: a.calories ? Math.round(a.calories) : null,
-        effort: pace > 0 && pace < 4.5 ? "tempo" : km > 15 ? "long" : "easy",
+        effort,
       };
-    });
+    };
+    const sessions = acts.slice(0, 20).map(mapSession);
+    const runSessions = runs.slice(0, 20).map(mapSession);
+    const workoutSessions = workouts.slice(0, 20).map(mapSession);
 
     // Records: auto-derive from runs. Pace-based PBs (5k/10k) approximate
     // by taking the fastest activity whose distance is within the window.
@@ -2290,6 +2324,26 @@
       ? +((a[field] - b[field])).toFixed(2)
       : null;
 
+    // Workout-specific aggregates: durée totale (min), top sport_type
+    // dominant (e.g. "WeightTraining"), durée moyenne. No distance / pace
+    // because workouts don't run on a track ; effort is time-based.
+    const workoutMin30 = last30workouts.reduce((s, a) => s + (Number(a.moving_time_s) || 0) / 60, 0);
+    const workoutMin30Prev = prev30workouts.reduce((s, a) => s + (Number(a.moving_time_s) || 0) / 60, 0);
+    const workoutMin7 = last7workouts.reduce((s, a) => s + (Number(a.moving_time_s) || 0) / 60, 0);
+    const workoutCal30 = last30workouts.reduce((s, a) => s + (Number(a.calories) || 0), 0);
+    const topWorkoutType = (() => {
+      if (!last30workouts.length) return null;
+      const counts = {};
+      last30workouts.forEach(a => {
+        const k = a.sport_type || "Workout";
+        counts[k] = (counts[k] || 0) + 1;
+      });
+      return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+    })();
+    const workoutDaysActive7 = new Set(
+      last7workouts.map(a => (a.start_date || "").slice(0, 10)).filter(Boolean)
+    ).size;
+
     return {
       today: {
         date: new Date(now).toISOString().slice(0, 10),
@@ -2307,7 +2361,9 @@
       week: {
         km: km_week,
         runs: last7runs.length,
-        lifts: 0,
+        workouts: last7workouts.length,
+        workout_minutes: Math.round(workoutMin7),
+        sessions: last7.length,
         days_active: daysActiveThisWeek,
         streak,
         goal_km: 40,
@@ -2315,11 +2371,14 @@
       month: {
         km: km_month,
         runs: last30runs.length,
-        lifts: 0,
+        workouts: last30workouts.length,
         sessions: last30.length,
         pace_avg: +avgPace(last30runs).toFixed(2),
-        tonnage: 0,
-        tonnage_prev: 0,
+        workout_minutes: Math.round(workoutMin30),
+        workout_minutes_prev: Math.round(workoutMin30Prev),
+        workout_calories: Math.round(workoutCal30),
+        workout_top_type: topWorkoutType,
+        workout_days_active_7: workoutDaysActive7,
         km_prev,
         elev_m: Math.round(sumElev(last30runs)),
         calories: Math.round(sumCal(last30runs)),
@@ -2330,10 +2389,13 @@
       },
       weight_series: weightSeries,
       sessions,
+      run_sessions: runSessions,
+      workout_sessions: workoutSessions,
       records,
       goals: [],
       _has_weight: hasWeight,
-      _has_muscu: false,
+      _has_runs: runs.length > 0,
+      _has_workouts: workouts.length > 0,
     };
   }
 

@@ -19,16 +19,20 @@
 }
 
 /* ── HERO ───────────────────────────────────────── */
+/* Hero global : titre cross-discipline (gauche) + bloc composition Withings
+   compact (droite). Le bloc composition est intégré au hero parce que la
+   composition corporelle est globale, pas attachée à une discipline. */
 .fm-hero {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: 1.3fr 1fr;
   gap: 48px;
-  padding-bottom: 36px;
+  padding-bottom: 28px;
   border-bottom: 1px solid var(--bd);
-  align-items: end;
+  align-items: stretch;
 }
-@media (max-width: 920px) { .fm-hero { grid-template-columns: 1fr; gap: 24px; } }
+@media (max-width: 980px) { .fm-hero { grid-template-columns: 1fr; gap: 28px; } }
 
+.fm-hero-head { display: flex; flex-direction: column; justify-content: flex-end; }
 .fm-hero-eyebrow {
   font-family: var(--font-mono);
   font-size: 10.5px;
@@ -39,8 +43,8 @@
 }
 .fm-hero-title {
   font-family: var(--font-serif);
-  font-size: 44px;
-  line-height: 1.02;
+  font-size: 40px;
+  line-height: 1.05;
   letter-spacing: -0.025em;
   font-weight: 500;
   margin: 0 0 14px;
@@ -49,50 +53,176 @@
 .fm-hero-title em { font-style: italic; color: var(--brand); font-weight: 400; }
 .fm-hero-lede {
   font-family: var(--font-serif);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--tx2);
   font-style: italic;
   max-width: 540px;
   text-wrap: pretty;
+  margin: 0;
 }
 
-.fm-hero-stat {
+/* Bloc composition compact dans le hero — 3 cellules horizontales. */
+.fm-hero-comp {
   border-left: 3px solid var(--brand);
-  padding: 4px 0 4px 20px;
+  padding: 8px 0 8px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.fm-hero-stat-label {
+.fm-hero-comp-label {
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--tx2);
-  margin-bottom: 6px;
 }
-.fm-hero-stat-value {
+.fm-hero-comp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+@media (max-width: 540px) { .fm-hero-comp-grid { grid-template-columns: 1fr; } }
+.fm-hero-comp-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fm-hero-comp-key {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+.fm-hero-comp-val {
   font-family: var(--font-serif);
-  font-size: 52px;
+  font-size: 30px;
   line-height: 1;
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   color: var(--tx);
 }
-.fm-hero-stat-unit {
+.fm-hero-comp-val small {
   font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--tx3);
+  margin-left: 3px;
+  font-weight: 400;
+}
+.fm-hero-comp-delta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  margin-top: 2px;
+}
+.fm-hero-comp-delta.up { color: var(--up); }
+.fm-hero-comp-delta.down { color: var(--down); }
+.fm-hero-comp-delta.flat { color: var(--flat); }
+.fm-hero-comp--empty { opacity: 0.7; }
+.fm-hero-comp-empty-msg {
+  font-family: var(--font-serif);
+  font-style: italic;
   font-size: 14px;
   color: var(--tx3);
-  font-weight: 400;
-  margin-left: 4px;
+  margin: 0;
 }
-.fm-hero-stat-delta {
+.fm-hero-comp-empty-msg code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-style: normal;
+  background: var(--bg2);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Strip 7 jours multi-discipline — extrait du hero pour respirer. */
+.fm-week-strip {
+  margin-top: 24px;
+  padding: 20px 24px;
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  background: var(--bg);
+}
+.fm-week-strip-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fm-week-strip-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+.fm-week-strip-total {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--tx);
+  letter-spacing: -0.015em;
+}
+.fm-week-strip-total small {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--tx3);
+}
+
+/* Segment empilé multi-discipline (cf .fm-weekbar-stack). */
+.fm-weekbar-seg {
+  min-height: 4px;
+}
+.fm-weekbar-seg + .fm-weekbar-seg { margin-top: 1px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TABS — bascule Course / Workout (calqué sur .vo-tabs)
+   ═══════════════════════════════════════════════════════════════ */
+.fm-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 28px 0 8px;
+  padding: 4px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  width: fit-content;
+}
+.fm-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
   font-family: var(--font-mono);
   font-size: 12px;
-  margin-top: 6px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  color: var(--tx2);
+  cursor: pointer;
+  transition: all 0.15s;
 }
-.fm-hero-stat-delta.up { color: var(--up); }
-.fm-hero-stat-delta.down { color: var(--down); }
-.fm-hero-stat-delta.flat { color: var(--flat); }
+.fm-tab:hover { color: var(--tx); }
+.fm-tab.is-active {
+  background: var(--bg);
+  color: var(--brand);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.fm-tab-count {
+  font-size: 10.5px;
+  padding: 1px 7px;
+  background: var(--bg3);
+  border-radius: 8px;
+  color: var(--tx3);
+}
+.fm-tab.is-active .fm-tab-count {
+  background: color-mix(in srgb, var(--brand) 18%, transparent);
+  color: var(--brand);
+}
 
 /* ── SECTION header ─────────────────────────────── */
 .fm-section { padding: 44px 0; border-bottom: 1px solid var(--bd); }
@@ -522,7 +652,7 @@
 }
 .fm-sess-head {
   display: grid;
-  grid-template-columns: 90px 40px 1fr 100px 100px 60px;
+  grid-template-columns: 90px 100px 1fr 100px 100px 60px;
   gap: 14px;
   padding: 10px 16px;
   background: var(--bg2);
@@ -535,7 +665,7 @@
 }
 .fm-sess-row {
   display: grid;
-  grid-template-columns: 90px 40px 1fr 100px 100px 60px;
+  grid-template-columns: 90px 100px 1fr 100px 100px 60px;
   gap: 14px;
   padding: 12px 16px;
   border-top: 1px solid var(--bd);
@@ -557,7 +687,19 @@
   width: fit-content;
 }
 .fm-sess-type[data-t="run"] { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
-.fm-sess-type[data-t="lift"] { background: color-mix(in srgb, var(--tx) 8%, transparent); color: var(--tx); }
+.fm-sess-type[data-t="lift"],
+.fm-sess-type[data-t="workout"] { background: color-mix(in srgb, #5b8def 14%, transparent); color: #5b8def; }
+.fm-sess-type[data-t="other"] { background: var(--bg2); color: var(--tx3); }
+
+/* Variant journal workout — pas de colonne "distance · allure" */
+.fm-sessions--workout .fm-sess-head,
+.fm-sessions--workout .fm-sess-row {
+  grid-template-columns: 90px 100px 1fr 80px 80px 60px;
+}
+@media (max-width: 780px) {
+  .fm-sessions--workout .fm-sess-head { display: none; }
+  .fm-sessions--workout .fm-sess-row { grid-template-columns: 1fr; }
+}
 .fm-sess-name {
   font-family: var(--font-sans);
   font-size: 13px;
