@@ -167,7 +167,16 @@
 
   function buildTop(articles){
     const rm = getReadMap();
-    return articles.slice(0, 3).map((a, i) => ({
+    // Snooze : retire les articles encore en attente, promeut ceux dont
+    // la fenêtre de rappel est échue (réémergent en tête du top).
+    let pool = articles || [];
+    if (window.snooze) {
+      const dueIds = new Set(window.snooze.dueToday());
+      const promoted = pool.filter(a => dueIds.has(a.id));
+      const rest = pool.filter(a => !window.snooze.isActive(a.id) && !dueIds.has(a.id));
+      pool = [...promoted, ...rest];
+    }
+    return pool.slice(0, 3).map((a, i) => ({
       rank: i + 1,
       source: a.source || "—",
       section: (a.section || "").toUpperCase(),

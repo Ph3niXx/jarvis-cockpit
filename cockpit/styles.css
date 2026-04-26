@@ -1239,6 +1239,19 @@ select:focus-visible {
   margin-left: 6px;
 }
 .card-action--ask:hover { color: var(--brand); border-color: var(--brand); }
+
+.card-action--snooze {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 999px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  color: var(--tx2);
+  margin-left: var(--space-1);
+}
+.card-action--snooze:hover { color: var(--positive); border-color: var(--positive); }
+.top-card.is-snoozed { opacity: 0.4; transition: opacity 200ms; }
+.top-card.is-snoozed .top-actions { pointer-events: none; }
 .sig-card-ask { position: absolute; top: 12px; right: 12px; opacity: 0.55; transition: opacity 120ms; margin-left: 0; z-index: 2; }
 .sig-card:hover .sig-card-ask,
 .sig-card:focus-within .sig-card-ask { opacity: 1; }

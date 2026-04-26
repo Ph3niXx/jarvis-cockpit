@@ -205,6 +205,12 @@ function Home({ theme, data, onNavigate }) {
   const morningItems = data.morning_card || [];
   const [readTop, setReadTop] = React.useState({});
   const toggleRead = (rank) => setReadTop({ ...readTop, [rank]: !readTop[rank] });
+  const [snoozedTop, setSnoozedTop] = React.useState({});
+  const snoozeCard = (id, rank) => {
+    if (!id || !window.snooze) return;
+    window.snooze.add(id, 3);
+    setSnoozedTop((prev) => ({ ...prev, [rank]: true }));
+  };
   const [undoState, setUndoState] = React.useState(null);
   // undoState = { previousMap, count, timer } | null
   React.useEffect(() => () => {
@@ -395,7 +401,7 @@ function Home({ theme, data, onNavigate }) {
             return (
             <article
               key={t.rank}
-              className={`top-card ${readTop[t.rank] ? "is-read" : t.unread ? "is-unread" : ""} top-card--rank${t.rank}`}
+              className={`top-card ${readTop[t.rank] ? "is-read" : t.unread ? "is-unread" : ""} ${snoozedTop[t.rank] ? "is-snoozed" : ""} top-card--rank${t.rank}`}
               onClick={openArticle}
               style={hasUrl ? { cursor: "pointer" } : null}
             >
@@ -434,6 +440,17 @@ function Home({ theme, data, onNavigate }) {
                       }}
                     >
                       <Icon name="message_circle" size={12} stroke={2} />
+                    </button>
+                    <button
+                      className="card-action card-action--snooze"
+                      aria-label="Reporter à plus tard"
+                      title="Reporter (3 jours)"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        snoozeCard(t._id || t.id, t.rank);
+                      }}
+                    >
+                      <Icon name="clock" size={12} stroke={2} />
                     </button>
                   </div>
                 </div>
