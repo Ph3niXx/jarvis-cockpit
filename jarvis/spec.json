@@ -486,6 +486,16 @@
             "update_details": "Généré chaque matin à 06:00 UTC (Gemini Flash-Lite)"
           },
           {
+            "id": "evening",
+            "label": "Miroir du soir",
+            "icon": "moon",
+            "description": "Récap réflexif quotidien 19h : 3-4 paragraphes générés par Claude qui croisent sections visitées, articles lus, idées dynamiques, recherches, sport, poids, brief du matin. Contrepartie réflexive du brief du matin.",
+            "panel_file": "cockpit/panel-evening.jsx",
+            "data_sources": ["daily_mirror"],
+            "frequency": "daily",
+            "update_details": "Généré chaque soir 19h Paris par routine Cowork remote (Claude Haiku 4.5, ~5€/an)"
+          },
+          {
             "id": "review",
             "label": "Revue du jour",
             "icon": "play",

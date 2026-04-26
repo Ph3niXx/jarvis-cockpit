@@ -434,6 +434,7 @@ function App() {
   } else if (isTier2 && status && typeof status === "object" && status.error) {
     content = <PanelError key={`err:${activePanel}:${retryTick}`} id={activePanel} err={status.error} onRetry={retryActivePanel} />;
   } else if (activePanel === "brief") content = <Home key={panelKey} theme={theme} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "evening") content = <PanelEvening key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "top") content = <PanelTop key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "review") content = <PanelReview key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "signals") content = <PanelSignals key={panelKey} data={data} onNavigate={handleNavigate} />;

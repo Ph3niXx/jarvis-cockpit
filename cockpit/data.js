@@ -82,6 +82,7 @@ window.COCKPIT_DATA = {
   nav: [
     { group: "Grille matinale", items: [
       { id: "brief", label: "Brief du jour", icon: "sun", count: 47, active: true },
+      { id: "evening", label: "Miroir du soir", icon: "moon" },
       { id: "review", label: "Revue du jour", icon: "play" },
       { id: "top", label: "Top du jour", icon: "star", count: 8 },
       { id: "signals", label: "Signaux faibles", icon: "wave", count: 6 },

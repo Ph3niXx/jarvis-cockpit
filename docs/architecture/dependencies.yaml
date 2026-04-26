@@ -23,6 +23,11 @@ panels:
     reads: [articles, daily_briefs, signal_tracking, skill_radar, user_profile, weekly_analysis]
     writes: []
 
+  - id: evening
+    file: cockpit/panel-evening.jsx
+    reads: [daily_mirror]
+    writes: []
+
   - id: top
     file: cockpit/panel-top.jsx
     reads: [articles]
@@ -234,6 +239,11 @@ tables:
     owner_pipeline: daily_digest
     rls: authenticated
     domain: veille
+
+  - name: daily_mirror
+    owner_pipeline: cowork_external  # routine Cowork quotidienne 19h "Miroir du soir cockpit" — UPSERT en service_role via MCP
+    rls: authenticated  # SELECT pour authenticated, INSERT/UPDATE réservés service_role
+    domain: telemetry
 
   - name: entities
     owner_pipeline: jarvis_nightly_learner

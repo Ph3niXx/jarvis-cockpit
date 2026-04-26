@@ -1,0 +1,104 @@
+/* ═══════════════════════════════════════════════════════════════
+   COCKPIT — MIROIR DU SOIR
+   Récap réflexif quotidien 19h. Mise en page douce, lecture lente.
+   ═══════════════════════════════════════════════════════════════ */
+
+.evening {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 64px 48px 96px;
+  background: var(--bg2);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.evening--loading,
+.evening--empty {
+  justify-content: center;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.evening-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tx3);
+  margin-bottom: 18px;
+}
+
+.evening-head {
+  margin-bottom: 36px;
+}
+
+.evening-title {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--tx);
+  margin: 0;
+}
+
+.evening-sub {
+  font-size: 12px;
+  color: var(--tx3);
+  margin: 8px 0 0;
+}
+
+.evening-body {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--tx);
+  letter-spacing: -0.003em;
+}
+
+.evening-body p {
+  margin: 0 0 18px;
+}
+
+.evening-body p:last-child {
+  margin-bottom: 0;
+}
+
+.evening-body strong {
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.evening-loading-text,
+.evening-body-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tx2);
+  margin: 0 0 24px;
+}
+
+.evening-foot {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--bd);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.evening-foot .btn {
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .evening {
+    padding: 40px 20px 80px;
+  }
+  .evening-title {
+    font-size: 28px;
+  }
+  .evening-body {
+    font-size: 15px;
+  }
+}
