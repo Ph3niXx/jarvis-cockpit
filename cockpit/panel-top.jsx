@@ -111,6 +111,7 @@ function PanelTop({ data, onNavigate }) {
             <article className="top-feat-main" onClick={() => openArticleTop(feat1)} style={feat1._url ? { cursor: "pointer" } : null}>
               <div className="top-feat-rank">01</div>
               <div className="top-feat-meta">
+                <span className="top-reading">{(window.estimateReadingTime || (() => "—"))((feat1.summary || "") + " " + (feat1.title || ""))}</span>
                 <span>{feat1.source}</span>
                 <span>·</span>
                 <span>{feat1.section}</span>
@@ -131,6 +132,7 @@ function PanelTop({ data, onNavigate }) {
               <article className="top-feat-side" onClick={() => openArticleTop(feat2)} style={feat2._url ? { cursor: "pointer" } : null}>
                 <div className="top-feat-side-rank">02</div>
                 <div className="top-feat-side-meta">
+                  <span className="top-reading">{(window.estimateReadingTime || (() => "—"))((feat2.summary || "") + " " + (feat2.title || ""))}</span>
                   <span>{feat2.source}</span><span>·</span><span>{feat2.date}</span>
                 </div>
                 <h3 className="top-feat-side-title">{feat2.title}</h3>
@@ -145,6 +147,7 @@ function PanelTop({ data, onNavigate }) {
               <article className="top-feat-side" onClick={() => openArticleTop(feat3)} style={feat3._url ? { cursor: "pointer" } : null}>
                 <div className="top-feat-side-rank">03</div>
                 <div className="top-feat-side-meta">
+                  <span className="top-reading">{(window.estimateReadingTime || (() => "—"))((feat3.summary || "") + " " + (feat3.title || ""))}</span>
                   <span>{feat3.source}</span><span>·</span><span>{feat3.date}</span>
                 </div>
                 <h3 className="top-feat-side-title">{feat3.title}</h3>

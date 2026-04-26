@@ -193,8 +193,25 @@ function App() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [cpOpen, setCpOpen] = useState(false);
   const [recentOnly, setRecentOnly] = useState(() => {
-    try { return localStorage.getItem("filter-recent-only") === "1"; }
-    catch { return false; }
+    try {
+      const explicit = Number(localStorage.getItem("cockpit-recent-explicit"));
+      const explicitFresh = Number.isFinite(explicit) && explicit > 0 && (Date.now() - explicit) < 3600 * 1000;
+      if (explicitFresh) {
+        return localStorage.getItem("filter-recent-only") === "1";
+      }
+      const lastVisit = Number(localStorage.getItem("cockpit-last-visit-ts"));
+      if (Number.isFinite(lastVisit) && lastVisit > 0) {
+        const diff = Date.now() - lastVisit;
+        if (diff > 30 * 60 * 1000 && diff < 18 * 3600 * 1000) {
+          if (!window.__recentAutoTracked) {
+            window.__recentAutoTracked = true;
+            try { window.track && window.track("recent_filter_auto_on", { reason: "recent_visit" }); } catch {}
+          }
+          return true;
+        }
+      }
+      return false;
+    } catch { return false; }
   });
   useEffect(() => {
     try { localStorage.setItem("filter-recent-only", recentOnly ? "1" : "0"); } catch {}
@@ -433,7 +450,7 @@ function App() {
     content = <PanelLoader key={`loader:${activePanel}:${retryTick}`} id={activePanel} />;
   } else if (isTier2 && status && typeof status === "object" && status.error) {
     content = <PanelError key={`err:${activePanel}:${retryTick}`} id={activePanel} err={status.error} onRetry={retryActivePanel} />;
-  } else if (activePanel === "brief") content = <Home key={panelKey} theme={theme} data={data} onNavigate={handleNavigate} />;
+  } else if (activePanel === "brief") content = <Home key={panelKey} theme={theme} data={data} onNavigate={handleNavigate} recentOnly={recentOnly} setRecentOnly={setRecentOnly} />;
   else if (activePanel === "evening") content = <PanelEvening key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "top") content = <PanelTop key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "review") content = <PanelReview key={panelKey} data={data} onNavigate={handleNavigate} />;
@@ -495,7 +512,10 @@ function App() {
       />
       <button
         className={`recent-toggle ${recentOnly ? "is-active" : ""}`}
-        onClick={() => setRecentOnly(v => !v)}
+        onClick={() => {
+          setRecentOnly(v => !v);
+          try { localStorage.setItem("cockpit-recent-explicit", String(Date.now())); } catch {}
+        }}
         title={recentOnly ? "Voir tout" : "Voir seulement ce qui a changé depuis hier"}
         aria-pressed={recentOnly}
       >

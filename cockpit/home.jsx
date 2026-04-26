@@ -41,6 +41,13 @@ function AudioBriefChip({ macro }) {
   );
 }
 
+function estimateReadingTime(text) {
+  const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
+  const minutes = Math.max(1, Math.round(words / 230));
+  return `${minutes} min`;
+}
+window.estimateReadingTime = estimateReadingTime;
+
 function TrendArrow({ trend, delta }) {
   if (trend === "new") return <span className="pill-badge pill-badge--new">NEW</span>;
   if (trend === "rising") return (
@@ -201,11 +208,17 @@ function MorningCard({ items = [], onNavigate }) {
   );
 }
 
-function Home({ theme, data, onNavigate }) {
+function Home({ theme, data, onNavigate, recentOnly, setRecentOnly }) {
   const { macro, top, signals, stats, date, user, radar, week } = data;
   const morningItems = data.morning_card || [];
   const [readTop, setReadTop] = React.useState({});
-  const toggleRead = (rank) => setReadTop({ ...readTop, [rank]: !readTop[rank] });
+  const toggleRead = (rank) => {
+    const wasRead = !!readTop[rank];
+    setReadTop({ ...readTop, [rank]: !wasRead });
+    if (!wasRead) {
+      try { window.track && window.track("top_card_collapsed", { rank }); } catch {}
+    }
+  };
   const [snoozedTop, setSnoozedTop] = React.useState({});
   const snoozeCard = (id, rank) => {
     if (!id || !window.snooze) return;
@@ -273,6 +286,49 @@ function Home({ theme, data, onNavigate }) {
     return n;
   }, [lastVisitTs, data.top]);
 
+  const useDeltaHero = !!(visitDelta && visitDelta.h < 18 && newSinceVisit && newSinceVisit > 0);
+  const newTopItems = React.useMemo(() => {
+    if (!useDeltaHero || !lastVisitTs) return [];
+    return (data.top || []).filter(t => {
+      const ts = t.fetch_iso ? new Date(t.fetch_iso).getTime() : null;
+      return ts && ts > lastVisitTs;
+    });
+  }, [useDeltaHero, lastVisitTs, data.top]);
+  const truncate60 = (s) => {
+    if (!s) return "";
+    return s.length > 60 ? s.slice(0, 60).trimEnd() + "…" : s;
+  };
+  React.useEffect(() => {
+    if (!useDeltaHero) return;
+    try { window.track && window.track("hero_delta_shown", { newSinceVisit, hours: visitDelta.h }); } catch {}
+  }, [useDeltaHero]);
+
+  const ageOf = (iso) => {
+    if (!iso) return "";
+    const captured = new Date(iso);
+    if (isNaN(captured.getTime())) return "";
+    const days = Math.max(0, Math.floor((Date.now() - captured.getTime()) / 86400000));
+    if (days < 2) return "aujourd'hui";
+    if (days < 8) return `${days}j`;
+    if (days < 60) return `${Math.round(days / 7)} sem.`;
+    return `${Math.round(days / 30)} mois`;
+  };
+  const allRead = (data.top || []).every(t => readTop[t.rank] || snoozedTop[t.rank]);
+  const noUnreadGlobal = (stats.unread_total ?? stats.articles_today ?? 0) === 0;
+  const isZeroState = allRead && noUnreadGlobal;
+  const shownIdeas = React.useMemo(() => {
+    if (!isZeroState) return [];
+    const all = (window.IDEAS_DATA && window.IDEAS_DATA.ideas) || [];
+    return all
+      .filter(i => i.status === "incubating" || i.status === "maturing")
+      .sort((a, b) => new Date(a.last_touched) - new Date(b.last_touched))
+      .slice(0, 2);
+  }, [isZeroState]);
+  React.useEffect(() => {
+    if (!isZeroState) return;
+    try { window.track && window.track("zero_state_shown", { ideas_count: shownIdeas.length }); } catch {}
+  }, [isZeroState]);
+
   return (
     <div className="home" data-theme-vibe={theme.id}>
       {/* PAGE HEADER */}
@@ -339,16 +395,54 @@ function Home({ theme, data, onNavigate }) {
                 </>
               )}
             </div>
-            <h1 className="hero-title">{macro.title}</h1>
-            <p className="hero-body">{macro.body}</p>
-            <div className="hero-actions">
-              <button className="btn btn--primary" onClick={() => onNavigate("top")}>
-                Lire les 3 incontournables <Icon name="arrow_right" size={14} stroke={2} />
-              </button>
-              <button className="btn btn--ghost" onClick={() => onNavigate("updates")}>
-                Parcourir les {macro.articles_summarized || 0} articles
-              </button>
-            </div>
+            {useDeltaHero ? (
+              <>
+                <h1 className="hero-title">
+                  {newSinceVisit} {newSinceVisit === 1 ? "nouveauté" : "nouveautés"} depuis {visitDelta.h}h.
+                </h1>
+                <ul className="hero-delta-list">
+                  {newTopItems.slice(0, 4).map((t, i) => (
+                    <li key={t._id || t.id || `delta-${i}`}>
+                      <span className="src">{t.source}</span>
+                      <span className="ttl">{truncate60(t.title)}</span>
+                      <span className="score">{t.score}</span>
+                    </li>
+                  ))}
+                  {newTopItems.length > 4 && (
+                    <li className="hero-delta-more">+ {newTopItems.length - 4} plus</li>
+                  )}
+                </ul>
+                <p className="hero-body">{macro.body}</p>
+                <div className="hero-actions">
+                  <button className="btn btn--primary" onClick={() => onNavigate("top")}>
+                    {newSinceVisit === 1
+                      ? "Lire la nouveauté"
+                      : `Lire les ${Math.min(newSinceVisit, 4)} nouveautés`} <Icon name="arrow_right" size={14} stroke={2} />
+                  </button>
+                  <button className="btn btn--ghost" onClick={() => onNavigate("updates")}>
+                    Parcourir les {macro.articles_summarized || 0} articles
+                  </button>
+                </div>
+                <details className="hero-macro-collapse">
+                  <summary>Voir le brief macro complet</summary>
+                  <h1 className="hero-title">{macro.title}</h1>
+                  <p className="hero-body">{macro.body}</p>
+                </details>
+              </>
+            ) : (
+              <>
+                <h1 className="hero-title">{macro.title}</h1>
+                <p className="hero-body">{macro.body}</p>
+                <div className="hero-actions">
+                  <button className="btn btn--primary" onClick={() => onNavigate("top")}>
+                    Lire les 3 incontournables <Icon name="arrow_right" size={14} stroke={2} />
+                  </button>
+                  <button className="btn btn--ghost" onClick={() => onNavigate("updates")}>
+                    Parcourir les {macro.articles_summarized || 0} articles
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="hero-col-side">
@@ -370,7 +464,45 @@ function Home({ theme, data, onNavigate }) {
         </div>
       </section>
 
+      {recentOnly && !useDeltaHero && (
+        <div className="hero-recent-microcopy" role="note">
+          <span>Mode récent · seuls les articles &lt; 24h sont visibles.</span>
+          <button
+            type="button"
+            className="hero-recent-link"
+            onClick={() => { if (typeof setRecentOnly === "function") setRecentOnly(false); }}
+          >Voir tout</button>
+        </div>
+      )}
+
       {/* ── TOP 3 INCONTOURNABLES ───────────────────────────── */}
+      {isZeroState ? (
+        <section className="block block--zero">
+          <div className="zero-state">
+            <div className="zero-state-eyebrow">À jour</div>
+            <h2 className="zero-state-title">Tu as fait le tour. Bravo.</h2>
+            <p className="zero-state-body">
+              Pendant que tu attends le brief de demain matin, voilà 2 idées qui dorment dans ton carnet — peut-être le bon moment pour les creuser.
+            </p>
+            {shownIdeas.length > 0 && (
+              <div className="zero-state-ideas">
+                {shownIdeas.map(i => (
+                  <button key={i.id} type="button" className="zero-idea" onClick={() => onNavigate("ideas")}>
+                    <span className="zero-idea-kicker">{i.kicker || "Idée"}</span>
+                    <span className="zero-idea-title">{i.title}</span>
+                    <span className="zero-idea-age">en incubation depuis {ageOf(i.captured_at)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="zero-state-actions">
+              <button className="btn btn--ghost btn--sm" onClick={() => onNavigate("ideas")}>
+                Ouvrir le carnet <Icon name="arrow_right" size={12} stroke={2} />
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : (
       <section className="block">
         <div className="block-head">
           <div>
@@ -407,6 +539,8 @@ function Home({ theme, data, onNavigate }) {
               className={`top-card ${readTop[t.rank] ? "is-read" : t.unread ? "is-unread" : ""} ${snoozedTop[t.rank] ? "is-snoozed" : ""} top-card--rank${t.rank}`}
               data-recent={isRecent ? "1" : "0"}
               onClick={openArticle}
+              onContextMenu={(e) => { e.preventDefault(); toggleRead(t.rank); }}
+              title={readTop[t.rank] ? "clic-droit pour marquer comme non-lu" : null}
               style={hasUrl ? { cursor: "pointer" } : null}
             >
               <div className="top-card-rail">
@@ -418,6 +552,7 @@ function Home({ theme, data, onNavigate }) {
               </div>
               <div className="top-card-body">
                 <div className="top-meta">
+                  <span className="top-reading">{estimateReadingTime((t.summary || "") + " " + (t.title || ""))}</span>
                   <span className="top-source">{t.source}</span>
                   <span className="top-section">{t.section}</span>
                   <span className="top-date">{t.date}</span>
@@ -464,6 +599,7 @@ function Home({ theme, data, onNavigate }) {
           })}
         </div>
       </section>
+      )}
 
       {/* ── 2-COL : Signaux + Radar gap ─────────────────────── */}
       <section className="block block--two">

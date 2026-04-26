@@ -238,6 +238,10 @@ Table `usage_events` — append-only, pas de UPDATE/DELETE (enforcé par RLS). L
 | `jobs_action` | `{action, job_id}` | `cockpit/panel-jobs-radar.jsx` toggle |
 | `history_pin_toggled` | `{iso, pinned}` | `cockpit/panel-history.jsx::handleTogglePin()` |
 | `review_action` | `{action, id}` | `cockpit/panel-review.jsx::markReadAndAdvance()` |
+| `hero_delta_shown` | `{newSinceVisit, hours}` | `cockpit/home.jsx` useEffect quand le hero bascule en mode "nouveautés depuis Xh" |
+| `recent_filter_auto_on` | `{reason}` | `cockpit/app.jsx` useState init du toggle "Récent · 24h" quand l'auto-on kick in (visite récurrente 30min-18h) |
+| `zero_state_shown` | `{ideas_count}` | `cockpit/home.jsx` useEffect quand le hero bascule en mode "Tu as fait le tour. Bravo." (tout lu/snoozé + unread global = 0) |
+| `top_card_collapsed` | `{rank}` | `cockpit/home.jsx` `toggleRead()` quand une card du Top du jour passe en `is-read` (collapsed à 56px) |
 
 **Règle** : ajouter un nouvel event_type nécessite de mettre à jour ce tableau AVANT le commit.
 

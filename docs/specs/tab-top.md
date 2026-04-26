@@ -24,6 +24,7 @@ Prolongement du Brief pour qui veut plus que les 3 incontournables de la home et
 - **Suite du classement** : liste dense (rang, source, titre, section, date) en dessous pour parcourir les articles suivants quand il y en a plus de trois.
 - **Export markdown** : un bouton qui copie la sélection du jour au format markdown dans le presse-papiers (titre daté + liste de liens), prêt à coller dans Slack ou un carnet de notes, avec un feedback "Copié !" visuel.
 - **Message vide** : quand un filtre ne retourne aucun article, un message explicite invite à élargir la sélection.
+- **Tag temps de lecture** : sur chaque carte (hero + side), un petit badge mono "X min" estime le temps de lecture à 230 mots/minute (titre + résumé), pour permettre de doser une session matinale en un coup d'œil.
 
 ## Front — structure UI
 Fichier : [cockpit/panel-top.jsx](cockpit/panel-top.jsx) — 183 lignes, monté par [app.jsx:366](cockpit/app.jsx:366).
@@ -99,6 +100,7 @@ Aucun autre table. Pas de fetch propre au panel (Tier 1 only).
 - [ ] **`isoWeekTop` dupliqué** : même logique d'ISO week que dans [data-loader.js:40-50](cockpit/lib/data-loader.js:40) environ — à mutualiser dans `cockpit/lib/`.
 
 ## Dernière MAJ
+2026-04-26 — tag temps de lecture estimé "X min" (230 mots/min, titre + résumé) sur chaque carte feat hero et side. Helper `estimateReadingTime` partagé via `window` depuis home.jsx.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — d752b79
