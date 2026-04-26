@@ -25,11 +25,11 @@
       "slug": "review",
       "title": "Revue du jour",
       "order": 3,
-      "group": "Grille matinale",
+      "group": "Aujourd'hui",
       "dom_id": "review",
       "scope": "mixte",
       "status": "documented",
-      "last_updated": "2026-04-25"
+      "last_updated": "2026-04-26"
     },
     {
       "slug": "top",

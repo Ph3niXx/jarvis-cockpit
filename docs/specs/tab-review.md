@@ -9,7 +9,7 @@ mixte
 Quand on a 5 minutes le matin et qu'on veut traiter sa pile sans choisir, sans scroller, sans revenir en arrière. La Revue présente un seul article à la fois, plein écran, avec trois choix tranchés : passer, garder, ou transformer en idée. À la fin, écran de clôture pour la sensation de "fini".
 
 ## Parcours utilisateur
-1. L'utilisateur clique "Revue du jour" dans la sidebar (groupe Grille matinale) — ou tape directement la route `#review`.
+1. L'utilisateur clique "Revue du jour" dans la sidebar (groupe Aujourd'hui) — ou tape directement la route `#review`.
 2. Le premier article non lu de la pile s'affiche en grand, avec sa source, son rubrique, son titre et son résumé.
 3. L'utilisateur lit le résumé et choisit : **Passer** (l'article est marqué lu et on passe au suivant), **Garder** (idem mais avec une intention de revoir plus tard), ou **→ Idée** (basculer vers le carnet d'idées avec l'article comme inspiration).
 4. Au clavier, K ou flèche droite passent, S garde, I bascule vers les idées, J ou flèche gauche reviennent à l'article précédent.
@@ -77,3 +77,4 @@ Aucune lecture Supabase directe dans le panel — il consomme `data.top` (3 arti
 
 ## Dernière MAJ
 2026-04-25 — création initiale (panel + route + entrée sidebar Grille matinale).
+2026-04-26 — réalignement groupe sidebar : "Grille matinale" → "Aujourd'hui" (et restauration de l'entrée NAV runtime, oubliée lors de la migration vers data-loader.js).

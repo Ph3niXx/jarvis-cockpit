@@ -19,6 +19,7 @@ window.COCKPIT_NAV = [
   { group: "Aujourd'hui", items: [
     { id: "brief", label: "Brief du jour", icon: "sun" },
     { id: "evening", label: "Miroir du soir", icon: "moon" },
+    { id: "review", label: "Revue du jour", icon: "play" },
     { id: "top", label: "Top du jour", icon: "star" },
     { id: "week", label: "Ma semaine", icon: "calendar" },
     { id: "search", label: "Recherche", icon: "search" },
