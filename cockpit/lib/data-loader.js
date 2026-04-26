@@ -1134,7 +1134,9 @@
 
   // Nav — source unique : cockpit/nav.js (chargé avant data-loader.js).
   // Cf. nav.js pour le checklist d'ajout d'un nouveau panel.
-  const NAV = window.COCKPIT_NAV;
+  // Lecture lazy : window.COCKPIT_NAV peut ne pas être défini au moment où
+  // cette IIFE s'exécute selon l'ordre de chargement des scripts.
+  const getNav = () => window.COCKPIT_NAV || [];
 
   // ── Tier 1 boot — runs BEFORE <App/> mounts ──────────────
   async function bootTier1(){
@@ -1176,7 +1178,7 @@
       macro: buildMacro(articlesToday, brief),
       top: buildTop(articlesToday),
       signals: buildSignals(signals),
-      nav: NAV,
+      nav: getNav(),
       radar: buildRadar(radarRows),
       week: buildWeek(recent),
       recos: [],       // Tier 2
