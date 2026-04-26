@@ -187,6 +187,7 @@
       tags: (a.tags || []).slice(0, 3).map(t => "#" + String(t).replace(/^#/, "")),
       related: [],
       unread: !rm[a.id],
+      fetch_iso: a.date_fetched || (a.fetch_date ? a.fetch_date + "T06:00:00Z" : null),
       _id: a.id,
       _url: a.url,
     }));

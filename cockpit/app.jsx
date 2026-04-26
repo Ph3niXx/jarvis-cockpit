@@ -192,6 +192,14 @@ function App() {
   const [sbMobileOpen, setSbMobileOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [cpOpen, setCpOpen] = useState(false);
+  const [recentOnly, setRecentOnly] = useState(() => {
+    try { return localStorage.getItem("filter-recent-only") === "1"; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("filter-recent-only", recentOnly ? "1" : "0"); } catch {}
+    document.documentElement.dataset.filterRecent = recentOnly ? "1" : "0";
+  }, [recentOnly]);
   const [themeId, setThemeId] = useState(() => {
     try {
       const stored = localStorage.getItem("cockpit-theme");
@@ -484,6 +492,15 @@ function App() {
         data={data}
         onNavigate={(id) => { handleNavigate(id); setCpOpen(false); }}
       />
+      <button
+        className={`recent-toggle ${recentOnly ? "is-active" : ""}`}
+        onClick={() => setRecentOnly(v => !v)}
+        title={recentOnly ? "Voir tout" : "Voir seulement ce qui a changé depuis hier"}
+        aria-pressed={recentOnly}
+      >
+        <Icon name="clock" size={12} stroke={1.75} />
+        {recentOnly ? "Récent · 24h" : "Tout"}
+      </button>
       <button
         className="kbd-fab"
         onClick={() => setShortcutsOpen(true)}

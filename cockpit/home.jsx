@@ -126,8 +126,9 @@ function Sparkline({ values, trend }) {
 
 function SignalCard({ signal, rank, onNavigate }) {
   const trendLabel = { rising: "EN HAUSSE", new: "NOUVEAU", declining: "EN BAISSE", stable: "STABLE" }[signal.trend];
+  const isRecent = signal.trend === "new";
   return (
-    <article className={`sig-card sig-card--${signal.trend}`}>
+    <article className={`sig-card sig-card--${signal.trend}`} data-recent={isRecent ? "1" : "0"}>
       <div className="sig-card-head">
         <span className="sig-card-rank">#{String(rank + 1).padStart(2, "0")}</span>
         <span className={`sig-card-badge sig-card-badge--${signal.trend}`}>{trendLabel}</span>
@@ -398,10 +399,13 @@ function Home({ theme, data, onNavigate }) {
               window.open(url, "_blank", "noopener");
             };
             const hasUrl = !!(t._url || t.url);
+            const ts = t.fetch_iso ? new Date(t.fetch_iso).getTime() : null;
+            const isRecent = !!(ts && Date.now() - ts < 86400000);
             return (
             <article
               key={t.rank}
               className={`top-card ${readTop[t.rank] ? "is-read" : t.unread ? "is-unread" : ""} ${snoozedTop[t.rank] ? "is-snoozed" : ""} top-card--rank${t.rank}`}
+              data-recent={isRecent ? "1" : "0"}
               onClick={openArticle}
               style={hasUrl ? { cursor: "pointer" } : null}
             >

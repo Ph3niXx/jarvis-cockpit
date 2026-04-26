@@ -30,6 +30,7 @@ Panel le plus dense du cockpit. Centralise tout ce qui tombe des flux RSS veille
 - **Actions par article** : marquer lu/non-lu, archiver pour masquer définitivement, ouvrir dans un nouvel onglet. Un bouton « Tout marquer lu » vide la pile d'un coup.
 - **Cas prod / Agents en production** : grille de cartes d'entreprises (domaine, échelle, modèle, impact) pour voir qui a déployé quoi le mois en cours.
 - **Toggle de densité** : un flottant en bas à droite pour basculer entre un affichage éditorial aéré et un affichage dense.
+- **Filtre global "Récent · 24h"** : quand le filtre du shell (en haut à droite du cockpit) est actif, le feed ne montre que les articles publiés ou récupérés depuis moins de 24 heures ; les autres se masquent silencieusement. Identique sur tous les onglets de veille (Claude, Sport, Gaming, Anime, News, Veille outils).
 
 ## Front — structure UI
 Fichier : [cockpit/panel-veille.jsx](cockpit/panel-veille.jsx) — 620 lignes, monté par [app.jsx:384-385](cockpit/app.jsx:384) avec props `corpus="VEILLE_DATA"`, `title="Veille IA"`, `actorsLabel="labos + éditeurs"`, `prodSection={ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }`.
@@ -145,6 +146,7 @@ Pas de pipeline qui alimente `actors`, `trends`, `prod_cases` — tout est du co
 - [ ] **Couleurs acteurs dérivées d'un hash** : conflits de couleurs possibles avec beaucoup de sources similaires. Palette de 10 couleurs.
 
 ## Dernière MAJ
+2026-04-26 — feed cards exposent `data-recent="1"` quand `date_h <= 24` ; le filtre global du shell (`:root[data-filter-recent="1"]`) masque en CSS les cards `data-recent="0"`. Pas de re-fetch, pas de re-render, pure CSS.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-23 — acteurs/tendances dynamiques + fix feed fake + CTAs wirés + persistance readState (local, non pushé)

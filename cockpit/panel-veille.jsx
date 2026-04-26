@@ -566,10 +566,12 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
               markRead(f.id);
               window.open(f.url, "_blank", "noopener");
             };
+            const isRecent = typeof f.date_h === "number" && f.date_h <= 24;
             return (
               <article
                 key={f.id}
                 className={`vl-feed-item ${isRead ? "is-read" : "is-unread"} ${f.starred ? "is-starred" : ""}`}
+                data-recent={isRecent ? "1" : "0"}
                 onClick={openArticle}
                 style={f.url ? { cursor: "pointer" } : null}
               >
