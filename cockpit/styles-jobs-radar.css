@@ -407,7 +407,6 @@
   padding: 28px 28px 24px;
   box-shadow: var(--shadow-md);
   position: relative;
-  overflow: hidden;
 }
 .jr-hot::before {
   content: "";
@@ -415,6 +414,8 @@
   top: 0; left: 0; right: 0;
   height: 3px;
   background: var(--brand);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
 }
 [data-theme="obsidian"] .jr-hot::before { height: 1px; }
 
