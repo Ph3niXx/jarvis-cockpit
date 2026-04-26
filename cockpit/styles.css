@@ -4252,7 +4252,9 @@ select:focus-visible {
   }
   .kicker-dot,
   .sb-group-hotdot,
-  .sb-foot-user-status { animation: none !important; box-shadow: none !important; }
+  .sb-foot-user-status,
+  .sb-foot-streak-icon,
+  .top-unread-dot { animation: none !important; box-shadow: none !important; }
 }
 
 /* ═══ Panel skeleton (Tier 2 loader) ═══════════════════════════ */
