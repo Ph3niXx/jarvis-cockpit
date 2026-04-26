@@ -566,7 +566,7 @@
             "description": "2 sous-onglets : (1) Veille hebdo Claude classée en 4 buckets (applicables Jarvis, usage général, outils complémentaires, autres news) — alimentée par une routine Cowork hebdomadaire ; (2) Catalogue écosystème stable des outils inbound (qui se pluggent à Claude — MCP, skills, plugins) ou outbound (où Claude est utilisé — SDK, IDE, frameworks) — alimenté par une routine Cowork mensuelle + ajouts manuels.",
             "panel_file": "cockpit/panel-veille-outils.jsx",
             "data_sources": ["claude_veille", "claude_ecosystem"],
-            "frequency": "weekly+monthly",
+            "frequency": "mixed",
             "update_details": "Veille hebdo (samedi) + Catalogue mensuel (1er samedi du mois) via skill schedule Cowork"
           },
           {
