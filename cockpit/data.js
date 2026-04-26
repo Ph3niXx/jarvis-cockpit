@@ -78,49 +78,10 @@ window.COCKPIT_DATA = {
     { name: "mcp", count: 41, delta: +2, trend: "stable", history: [38,42,40,39,41,43,39,41], category: "Agents", context: "Model Context Protocol, standard d'Anthropic. Maintenant stabilisé." },
     { name: "copilot", count: 28, delta: -8, trend: "declining", history: [45,42,40,38,36,34,30,28], category: "Outils", context: "Mentions en baisse au profit de Cursor et Claude Code." },
   ],
-  // Sections du cockpit — sidebar
-  nav: [
-    { group: "Grille matinale", items: [
-      { id: "brief", label: "Brief du jour", icon: "sun", count: 47, active: true },
-      { id: "evening", label: "Miroir du soir", icon: "moon" },
-      { id: "review", label: "Revue du jour", icon: "play" },
-      { id: "top", label: "Top du jour", icon: "star", count: 8 },
-      { id: "signals", label: "Signaux faibles", icon: "wave", count: 6 },
-      { id: "jarvis", label: "Jarvis", icon: "assistant" },
-      { id: "week", label: "Ma semaine", icon: "calendar" },
-      { id: "search", label: "Recherche", icon: "search" },
-    ]},
-    { group: "Veille", items: [
-      { id: "updates", label: "Veille IA", icon: "sparkles", count: 12 },
-      { id: "claude", label: "Claude", icon: "bot", count: 6 },
-      { id: "veille-outils", label: "Veille outils", icon: "toolbox" },
-      { id: "sport", label: "Sport", icon: "flag", count: 12 },
-      { id: "gaming_news", label: "Gaming", icon: "wrench", count: 12 },
-      { id: "anime", label: "Anime / Ciné / Séries", icon: "star", count: 12 },
-      { id: "news", label: "Actualités", icon: "paper", count: 12 },
-    ]},
-    { group: "Apprentissage", items: [
-      { id: "radar", label: "Radar compétences", icon: "target" },
-      { id: "recos", label: "Recommandations", icon: "bookmark", count: 4, unread: 2 },
-      { id: "challenges", label: "Challenges", icon: "trophy", count: 3, unread: 1 },
-      { id: "wiki", label: "Wiki IA", icon: "book", count: 142 },
-    ]},
-    { group: "Business", items: [
-      { id: "opps", label: "Opportunités", icon: "lightbulb", count: 11, unread: 3 },
-      { id: "ideas", label: "Carnet d'idées", icon: "notebook", count: 7 },
-    ]},
-    { group: "Personnel", items: [
-      { id: "jarvis-lab", label: "Jarvis Lab", icon: "chart" },
-      { id: "profile", label: "Mon profil", icon: "user" },
-      { id: "perf", label: "Forme", icon: "activity" },
-      { id: "music", label: "Musique", icon: "music" },
-      { id: "gaming", label: "Gaming", icon: "gamepad" },
-    ]},
-    { group: "Système", items: [
-      { id: "stacks", label: "Stacks & Limits", icon: "wallet" },
-      { id: "history", label: "Historique", icon: "clock" },
-    ]},
-  ],
+  // Sections du cockpit — sidebar.
+  // Source unique : cockpit/nav.js (chargé avant data.js).
+  // Cf. nav.js pour le checklist d'ajout d'un nouveau panel.
+  nav: window.COCKPIT_NAV || [],
   // Radar compétences
   radar: {
     axes: [

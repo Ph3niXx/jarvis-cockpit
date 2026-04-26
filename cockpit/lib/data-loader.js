@@ -1132,49 +1132,9 @@
     };
   }
 
-  // Nav (matches design's COCKPIT_DATA.nav exactly, minus dropped panels
-  // per migration decisions: no rte/tft/jarvis-project/costs).
-  const NAV = [
-    { group: "Aujourd'hui", items: [
-      { id: "brief", label: "Brief du jour", icon: "sun" },
-      { id: "evening", label: "Miroir du soir", icon: "moon" },
-      { id: "top", label: "Top du jour", icon: "star" },
-      { id: "week", label: "Ma semaine", icon: "calendar" },
-      { id: "search", label: "Recherche", icon: "search" },
-    ]},
-    { group: "Veille", items: [
-      { id: "updates", label: "Veille IA", icon: "sparkles" },
-      { id: "veille-outils", label: "Veille outils", icon: "toolbox" },
-      { id: "sport", label: "Sport", icon: "flag" },
-      { id: "gaming_news", label: "Gaming", icon: "wrench" },
-      { id: "anime", label: "Anime / Ciné / Séries", icon: "star" },
-      { id: "news", label: "Actualités", icon: "paper" },
-    ]},
-    { group: "Apprentissage", items: [
-      { id: "radar", label: "Radar compétences", icon: "target" },
-      { id: "recos", label: "Recommandations", icon: "bookmark" },
-      { id: "challenges", label: "Challenges", icon: "trophy" },
-      { id: "wiki", label: "Wiki IA", icon: "book" },
-      { id: "signals", label: "Signaux faibles", icon: "wave" },
-    ]},
-    { group: "Business", items: [
-      { id: "opps", label: "Opportunités", icon: "lightbulb" },
-      { id: "ideas", label: "Carnet d'idées", icon: "notebook" },
-      { id: "jobs", label: "Jobs Radar", icon: "target" },
-    ]},
-    { group: "Personnel", items: [
-      { id: "jarvis", label: "Jarvis", icon: "assistant" },
-      { id: "jarvis-lab", label: "Jarvis Lab", icon: "chart" },
-      { id: "profile", label: "Mon profil", icon: "user" },
-      { id: "perf", label: "Forme", icon: "activity" },
-      { id: "music", label: "Musique", icon: "music" },
-      { id: "gaming", label: "Gaming", icon: "gamepad" },
-    ]},
-    { group: "Système", items: [
-      { id: "stacks", label: "Stacks & Limits", icon: "wallet" },
-      { id: "history", label: "Historique", icon: "clock" },
-    ]},
-  ];
+  // Nav — source unique : cockpit/nav.js (chargé avant data-loader.js).
+  // Cf. nav.js pour le checklist d'ajout d'un nouveau panel.
+  const NAV = window.COCKPIT_NAV;
 
   // ── Tier 1 boot — runs BEFORE <App/> mounts ──────────────
   async function bootTier1(){
