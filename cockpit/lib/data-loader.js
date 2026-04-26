@@ -1548,12 +1548,31 @@
       relation: w.relation || [w.current_title, w.context].filter(Boolean).join(" — "),
     }));
     const safe = intel.safe_maturity || intel.maturite_safe || null;
+    const salarySrc = intel.salary_estimate || intel.estimation_salaire || null;
+    let salary_estimate = null;
+    if (salarySrc && typeof salarySrc === "object") {
+      const min = Number(salarySrc.min);
+      const max = Number(salarySrc.max);
+      const target = Number(salarySrc.target);
+      salary_estimate = {
+        min: Number.isFinite(min) ? min : null,
+        max: Number.isFinite(max) ? max : null,
+        target: Number.isFinite(target) ? target : null,
+        currency: salarySrc.currency || "EUR",
+        basis: salarySrc.basis === "published" ? "published" : "inferred",
+        rationale: salarySrc.rationale || "",
+      };
+      if (salary_estimate.min == null && salary_estimate.max == null && salary_estimate.target == null) {
+        salary_estimate = null;
+      }
+    }
     return {
       company_signals: signals,
       lead,
       warm_network,
       safe_maturity: typeof safe === "string" ? safe : (safe ? JSON.stringify(safe) : null),
       angle: intel.angle || intel.angle_approche || "",
+      salary_estimate,
     };
   }
 

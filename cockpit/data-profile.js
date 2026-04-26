@@ -33,6 +33,7 @@ window.PROFILE_FIELD_LABELS = {
   sectors_of_interest: "Secteurs d'intérêt",
   learning_style: "Style d'apprentissage",
   weekly_notes: "Notes hebdo",
+  target_salary_range: "Fourchette salaire cible",
 };
 
 // Labels FR pour profile_facts.fact_type

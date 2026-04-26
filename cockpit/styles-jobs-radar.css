@@ -516,6 +516,123 @@
   color: var(--tx);
 }
 
+/* Salary estimate */
+.jr-salary {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border: 1.5px solid var(--brand);
+  border-radius: var(--radius);
+  background: var(--brand-tint);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+.jr-salary::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--brand);
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+[data-theme="obsidian"] .jr-salary { background: rgba(var(--brand-rgb, 184 92 56), 0.08); }
+.jr-salary--in {
+  border-color: var(--positive);
+  background: var(--positive-tint);
+}
+.jr-salary--in::before { background: var(--positive); }
+.jr-salary--out {
+  border-color: var(--bd2);
+  border-width: 1px;
+  background: var(--bg2);
+}
+.jr-salary--out::before { background: var(--bd2); }
+.jr-salary-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-ink, var(--brand));
+  font-weight: 600;
+}
+.jr-salary--in .jr-salary-label { color: var(--positive); }
+.jr-salary--out .jr-salary-label { color: var(--tx3); font-weight: 500; }
+.jr-salary-label svg { color: currentColor; }
+.jr-salary-body {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.jr-salary-target {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--brand-ink, var(--brand));
+  line-height: 1;
+}
+.jr-salary--in .jr-salary-target { color: var(--positive); }
+.jr-salary--out .jr-salary-target { color: var(--tx); }
+[data-theme="dawn"] .jr-salary-target { font-style: italic; }
+.jr-salary-range {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--tx2);
+  letter-spacing: 0.02em;
+}
+.jr-salary-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: var(--brand-ink, var(--brand));
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 600;
+  cursor: help;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+  align-self: center;
+}
+.jr-salary-info:hover { opacity: 1; }
+.jr-salary--in .jr-salary-info { color: var(--positive); }
+.jr-salary--out .jr-salary-info { color: var(--tx3); }
+.jr-salary-badge {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 2px;
+  font-weight: 600;
+  margin-left: auto;
+  align-self: center;
+}
+.jr-salary-badge--in {
+  background: var(--positive);
+  color: var(--bg);
+}
+.jr-salary-badge--out {
+  background: var(--bg2);
+  color: var(--tx3);
+  border: 1px solid var(--bd2);
+}
+.jr-salary-badge--neutral { display: none; }
+
 /* Intel */
 .jr-hot-intel {
   background: var(--bg3);

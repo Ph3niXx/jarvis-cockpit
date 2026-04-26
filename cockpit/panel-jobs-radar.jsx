@@ -180,6 +180,67 @@ function ScoreChip({ offer, big = false }) {
   );
 }
 
+// ─── Salary estimate (hot leads — calibrated from JD + profile) ───
+function SalaryEstimate({ estimate, targetRange }) {
+  if (!estimate) return null;
+  const { min, max, target, currency, basis, rationale } = estimate;
+  if (min == null && max == null && target == null) return null;
+
+  const cur = (!currency || currency === "EUR") ? "k€" : currency;
+  const range = (min != null && max != null) ? `${min}-${max}` : (min != null ? String(min) : (max != null ? String(max) : ""));
+  const tgt = target != null ? target : (min != null && max != null ? Math.round((min + max) / 2) : null);
+
+  let inTarget = null;
+  if (targetRange && tgt != null) {
+    const m = String(targetRange).match(/(\d+)\s*[-–—]\s*(\d+)/);
+    if (m) {
+      const lo = Number(m[1]);
+      const hi = Number(m[2]);
+      if (Number.isFinite(lo) && Number.isFinite(hi)) {
+        inTarget = (tgt >= lo && tgt <= hi);
+      }
+    }
+  }
+
+  const tone = inTarget === true ? "in" : inTarget === false ? "out" : "neutral";
+  const sourceLabel = basis === "published"
+    ? "Calibré sur la fourchette publiée"
+    : "Estimée depuis le marché + ton profil";
+
+  const fullTooltip = rationale
+    ? `${sourceLabel}\n\n${rationale}`
+    : sourceLabel;
+
+  return (
+    <div className={`jr-salary jr-salary--${tone}`}>
+      <div className="jr-salary-label">
+        <Icon name="zap" size={12} stroke={2} />
+        <span>Salaire estimé pour toi</span>
+      </div>
+      <div className="jr-salary-body">
+        {tgt != null && <span className="jr-salary-target">~{tgt}{cur}</span>}
+        {range && tgt != null && <span className="jr-salary-range">dans {range}{cur}</span>}
+        {range && tgt == null && <span className="jr-salary-target">{range}{cur}</span>}
+        {basis === "inferred" && (
+          <button type="button" className="jr-salary-info" title={fullTooltip} aria-label={fullTooltip}>
+            <span aria-hidden="true">i</span>
+          </button>
+        )}
+        {basis === "published" && rationale && (
+          <button type="button" className="jr-salary-info" title={fullTooltip} aria-label={fullTooltip}>
+            <span aria-hidden="true">i</span>
+          </button>
+        )}
+        {inTarget !== null && (
+          <span className={`jr-salary-badge jr-salary-badge--${tone}`}>
+            {inTarget ? "Dans ta fourchette cible" : "Hors fourchette cible"}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Rubric justif (3 lines, one per axis) ─────────────────
 function RubricBlock({ offer }) {
   return (
@@ -198,6 +259,7 @@ function RubricBlock({ offer }) {
 function HotLeadCard({ offer, rank, onApply, onSnooze, onArchive, onEditNotes, onSaveNotes, onCancelNotes, openMenu, onMenuToggle, notesEditing }) {
   const intel = offer.intel;
   const isNotesOpen = notesEditing === offer.id;
+  const targetRange = (window.PROFILE_DATA && window.PROFILE_DATA._values && window.PROFILE_DATA._values.target_salary_range) || null;
   return (
     <article className="jr-hot">
       {/* Head: rank, score, CV, age */}
@@ -233,6 +295,11 @@ function HotLeadCard({ offer, rank, onApply, onSnooze, onArchive, onEditNotes, o
         <div className="jr-section-kicker">Pourquoi ce score</div>
         <RubricBlock offer={offer} />
       </div>
+
+      {/* Salary estimate — calibrated for this profile */}
+      {intel && intel.salary_estimate && (
+        <SalaryEstimate estimate={intel.salary_estimate} targetRange={targetRange} />
+      )}
 
       {/* Intel — only on hot leads */}
       {intel && (
