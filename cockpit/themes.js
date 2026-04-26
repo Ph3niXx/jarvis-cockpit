@@ -17,7 +17,7 @@ window.THEMES = {
       "--surface": "#FFFFFF",
       "--tx": "#1F1815",
       "--tx2": "#5E524A",
-      "--tx3": "#9A8D82",
+      "--tx3": "#766960",
       "--bd": "#E0D5C0",
       "--bd2": "#C9BBA3",
       // Accents
@@ -161,7 +161,7 @@ window.THEMES = {
       "--surface": "#FFFFFF",
       "--tx": "#111315",
       "--tx2": "#4A4F55",
-      "--tx3": "#8A9096",
+      "--tx3": "#6B7075",
       "--bd": "#DCDDD7",
       "--bd2": "#C0C2BB",
       "--brand": "#2D3FE0",          // indigo encre
