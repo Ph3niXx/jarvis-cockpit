@@ -184,6 +184,14 @@ function Sidebar({ theme, activeId, onSelect, data, onThemeChange, mobileOpen = 
             >
               <Icon name="moon" size={12} stroke={1.75} />
             </button>
+            <button
+              className={`sb-theme-btn ${theme.id === "atlas" ? "is-active" : ""}`}
+              onClick={() => onThemeChange && onThemeChange("atlas")}
+              title="Thème Atlas"
+              aria-label="Thème Atlas"
+            >
+              <Icon name="square" size={12} stroke={1.75} />
+            </button>
           </div>
           <div className="sb-foot-kbd">
             <span className="sb-kbd">{kbdSym}</span>
