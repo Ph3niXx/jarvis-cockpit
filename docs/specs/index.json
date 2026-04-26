@@ -15,7 +15,7 @@
       "slug": "evening",
       "title": "Miroir du soir",
       "order": 2,
-      "group": "Grille matinale",
+      "group": "Aujourd'hui",
       "dom_id": "evening",
       "scope": "mixte",
       "status": "documented",
