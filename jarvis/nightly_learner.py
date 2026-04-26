@@ -463,6 +463,12 @@ def run(days: int | None = None) -> dict:
             state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
             _save_state(state)
             return {"status": "error", "reason": "lm_studio_unloaded_midrun"}
+        if "inference stuck" in str(e).lower():
+            log.error("Abort nightly run: LM Studio inference bloquee en boucle conversations (%s)", e)
+            state["last_result"] = "lm_studio_inference_stuck"
+            state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
+            _save_state(state)
+            return {"status": "error", "reason": "lm_studio_inference_stuck"}
         raise
 
     # 4. Source 2 & 3: Activity + Outlook
@@ -500,6 +506,12 @@ def run(days: int | None = None) -> dict:
                 state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
                 _save_state(state)
                 return {"status": "error", "reason": "lm_studio_unloaded_midrun"}
+            if "inference stuck" in str(e).lower():
+                log.error("Abort nightly run: LM Studio inference bloquee en boucle activite (%s)", e)
+                state["last_result"] = "lm_studio_inference_stuck"
+                state["last_run"] = datetime.now(tz=timezone.utc).isoformat()
+                _save_state(state)
+                return {"status": "error", "reason": "lm_studio_inference_stuck"}
             raise
     else:
         log.info("  Aucune donnee d'activite a traiter.")
