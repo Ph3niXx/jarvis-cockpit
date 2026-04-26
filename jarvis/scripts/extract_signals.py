@@ -29,13 +29,13 @@ THRESHOLD_SESSION_GAP = 30            # Minutes gap to split sessions
 # Source de verite : cockpit/app.jsx, chaine `else if (activePanel === "...")`.
 # Synchronisation forcee par scripts/lint_known_sections.py + CI
 # .github/workflows/lint-known-sections.yml (bloquant).
-# Derniere mise a jour : 2026-04-26 (ajout veille-outils + lint CI).
+# Derniere mise a jour : 2026-04-26 (ajout evening).
 KNOWN_SECTIONS = {
-    "anime", "brief", "challenges", "claude", "gaming", "gaming_news",
-    "history", "ideas", "jarvis", "jarvis-lab", "jobs", "music", "news",
-    "opps", "perf", "profile", "radar", "recos", "review", "search",
-    "signals", "sport", "stacks", "top", "updates", "veille-outils",
-    "week", "wiki",
+    "anime", "brief", "challenges", "claude", "evening", "gaming",
+    "gaming_news", "history", "ideas", "jarvis", "jarvis-lab", "jobs",
+    "music", "news", "opps", "perf", "profile", "radar", "recos", "review",
+    "search", "signals", "sport", "stacks", "top", "updates",
+    "veille-outils", "week", "wiki",
 }
 
 TZ = timezone(timedelta(hours=2))
