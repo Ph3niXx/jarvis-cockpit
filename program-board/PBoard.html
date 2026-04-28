@@ -1,0 +1,3215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Program Board Local</title>
+<style>
+  :root {
+    /* Light theme — pensé pour démo / présentation projecteur */
+    --bg: #f6f8fa;
+    --bg-elev: #ffffff;
+    --bg-elev2: #f0f3f6;
+    --bg-elev3: #e2e7ec;
+    --border: #d0d7de;
+    --border-strong: #afb8c1;
+    --text: #1f2328;
+    --text-muted: #59636e;
+    --text-dim: #818b98;
+    --accent: #0969da;
+    --accent-hover: #0550ae;
+    --warn: #bf6c00;
+    --danger: #cf222e;
+    --success: #1a7f37;
+    --feature: #8250df;
+
+    --state-backlog: #6e7781;
+    --state-cadrage: #0969da;
+    --state-affinage: #0969da;
+    --state-pret-dev: #0550ae;
+    --state-en-dev: #d4731c;
+    --state-revue: #8250df;
+    --state-pret-recette: #9a6700;
+    --state-recette: #9a6700;
+    --state-validation: #9a6700;
+    --state-livraison: #0969da;
+    --state-fermee: #1a7f37;
+    --state-abandonnee: #afb8c1;
+    --state-bloquee: #cf222e;
+    --state-default: #6e7781;
+
+    /* Layout dimensions (en coordonnées canvas, "world" units) */
+    --card-w: 240px;
+    --card-h: 116px;
+    --card-gap: 8px;
+    --col-w: 270px;       /* largeur d'une colonne sprint (incl. padding) */
+    --col-pad: 16px;
+    --row-min-h: 160px;
+    --header-h: 52px;
+    --side-w: 170px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body { display: flex; flex-direction: column; }
+
+  /* ========== Header ========== */
+  header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    z-index: 10;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  header h1 .badge {
+    padding: 1px 6px;
+    background: var(--accent);
+    color: white;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .toolbar .sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
+
+  button, .btn {
+    background: var(--bg-elev2);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    padding: 5px 9px;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.1s;
+    line-height: 1.4;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  button:hover, .btn:hover { background: var(--bg-elev3); border-color: var(--text-dim); }
+  button.primary, .btn.primary {
+    background: var(--accent); border-color: var(--accent); color: white;
+  }
+  button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  button.danger { color: var(--danger); }
+  button.danger:hover { background: rgba(248,81,73,0.1); border-color: var(--danger); }
+  button.icon { padding: 4px 7px; font-size: 13px; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  select, input[type="text"], input[type="search"] {
+    background: var(--bg-elev2);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: inherit;
+    min-width: 90px;
+  }
+  select:focus, input:focus { outline: none; border-color: var(--accent); }
+
+  label.field {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--text-muted);
+  }
+
+  /* Multi-select dropdown (Liens) */
+  .multidropdown { position: relative; }
+  .multidropdown-btn {
+    background: var(--bg-elev2);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    min-width: 120px;
+    text-align: left;
+    line-height: 1.4;
+  }
+  .multidropdown-btn:hover { background: var(--bg-elev3); }
+  .multidropdown.has-selection .multidropdown-btn {
+    border-color: var(--accent);
+    background: rgba(9,105,218,0.08);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .multidropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%; left: 0;
+    margin-top: 3px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    min-width: 220px;
+    z-index: 50;
+    padding: 4px;
+  }
+  .multidropdown.open .multidropdown-menu { display: block; }
+  .multidropdown-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .multidropdown-item:hover { background: var(--bg-elev2); }
+  .multidropdown-item input { margin: 0; cursor: pointer; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+  .dot-ok { background: #818b98; }
+  .dot-risque { background: var(--warn); }
+  .dot-retard { background: var(--danger); border: 2px dashed; box-sizing: border-box; }
+
+  .stats {
+    margin-left: auto;
+    display: flex; gap: 14px;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .stats span strong { color: var(--text); font-weight: 600; }
+
+  input[type="file"] { display: none; }
+
+  /* ========== Empty state ========== */
+  #emptyState {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    padding: 40px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  #emptyState h2 { margin: 0; color: var(--text); font-weight: 600; font-size: 18px; }
+  #emptyState p { margin: 0; max-width: 540px; line-height: 1.5; }
+  #emptyState .drop-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: 12px;
+    padding: 60px 80px;
+    margin-top: 12px;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  #emptyState .drop-zone.over { border-color: var(--accent); background: rgba(68,147,248,0.05); }
+  #emptyState .drop-zone .icon { font-size: 40px; margin-bottom: 8px; }
+
+  /* ========== Main / Canvas ========== */
+  main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+
+  #canvasViewport {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(0,0,0,0.07) 1px, transparent 0)
+      0 0 / 28px 28px,
+      var(--bg);
+    cursor: grab;
+  }
+  #canvasViewport.panning { cursor: grabbing; }
+  #canvasViewport.connecting { cursor: crosshair; }
+
+  #canvasWorld {
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+  }
+
+  /* Bandeau sprint (top) */
+  .sprint-headers {
+    position: absolute;
+    top: 0;
+    height: var(--header-h);
+    display: flex;
+  }
+  .sprint-header-cell {
+    width: var(--col-w);
+    padding: 12px var(--col-pad);
+    border-right: 1px solid var(--border);
+    background: var(--bg-elev);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .sprint-header-cell .sprint-name {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .sprint-header-cell .sprint-count {
+    background: var(--bg-elev3);
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .sprint-header-cell.is-current {
+    background: linear-gradient(180deg, #ddebff, var(--bg-elev));
+    border-bottom: 2px solid var(--accent);
+  }
+  .sprint-header-cell.is-current .sprint-name { color: var(--accent-hover); }
+  .sprint-header-cell.is-backlog { background: var(--bg-elev2); }
+  .sprint-header-cell.is-backlog .sprint-name { color: var(--text-muted); font-weight: 500; }
+
+  /* Bandeau squad (left) */
+  .squad-headers {
+    position: absolute;
+    left: 0;
+    top: var(--header-h);
+    width: var(--side-w);
+    display: flex; flex-direction: column;
+  }
+  .squad-header-cell {
+    width: var(--side-w);
+    padding: 16px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev);
+    display: flex; flex-direction: column; gap: 4px;
+    flex-shrink: 0;
+  }
+  .squad-header-cell .squad-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent-hover);
+  }
+  .squad-header-cell .squad-count {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  /* Coin top-left (intersection) */
+  .corner-cell {
+    position: absolute;
+    top: 0; left: 0;
+    width: var(--side-w);
+    height: var(--header-h);
+    background: var(--bg-elev2);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Grid lines (swimlane background) */
+  .grid-lines {
+    position: absolute;
+    top: var(--header-h); left: var(--side-w);
+    pointer-events: none;
+  }
+  .grid-col-line, .grid-row-line {
+    position: absolute;
+    background: var(--border);
+  }
+  .grid-col-line { top: 0; bottom: 0; width: 1px; }
+  .grid-row-line { left: 0; right: 0; height: 1px; }
+
+  /* Cells (squad x sprint) — drop zones */
+  .cells-layer {
+    position: absolute;
+    top: var(--header-h); left: var(--side-w);
+  }
+  .cell {
+    position: absolute;
+    transition: background 0.12s;
+  }
+  .cell.drag-over {
+    background: rgba(68,147,248,0.12);
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  .cell.is-current-sprint { background: rgba(68,147,248,0.025); }
+  .cell-overflow {
+    position: absolute;
+    bottom: 6px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-elev3);
+    color: var(--text-muted);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    z-index: 4;
+    white-space: nowrap;
+  }
+  .cell-overflow:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Connections SVG */
+  .connections-svg {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .conn {
+    fill: none;
+    stroke-width: 1.5;
+    transition: stroke-width 0.12s, opacity 0.12s;
+  }
+  .conn.lien { stroke: #818b98; }
+  .conn.bloque { stroke: var(--danger); stroke-width: 2; }
+  .conn.implemente { stroke: var(--feature); stroke-dasharray: 4 3; }
+  .conn.risque { stroke: var(--warn) !important; stroke-width: 2.5 !important; }
+  .conn.retard { stroke: var(--danger) !important; stroke-width: 3 !important; stroke-dasharray: 6 3 !important; }
+  .conn.hors-pi { stroke: var(--text-dim); stroke-dasharray: 2 4; opacity: 0.6; }
+  .conn.highlighted {
+    stroke-width: 3 !important;
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 4px currentColor);
+  }
+  .conn.dimmed { opacity: 0.15; }
+  .conn-arrow {
+    fill: currentColor;
+  }
+
+  /* Cards (positionnées en absolute) */
+  .cards-layer {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;  /* laissent passer aux cellules dessous */
+  }
+  .cards-layer .card { pointer-events: auto; }
+  .cards-layer .card.dragging { pointer-events: none; }
+  .card {
+    position: absolute;
+    width: var(--card-w);
+    height: var(--card-h);
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--state-default);
+    border-radius: 8px;
+    padding: 8px 11px;
+    cursor: grab;
+    transition: transform 0.08s, border-color 0.1s, box-shadow 0.12s, opacity 0.12s;
+    user-select: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.06);
+    display: flex; flex-direction: column; gap: 4px;
+    overflow: hidden;
+  }
+  .card:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 3px 8px rgba(0,0,0,0.06);
+    z-index: 5;
+  }
+  .card.dragging { opacity: 0.5; cursor: grabbing; z-index: 100; }
+  .card.is-feature {
+    background: linear-gradient(180deg, #f3edff, var(--bg-elev));
+    border-color: #d8c4ff;
+  }
+  .card.modified::after {
+    content: '✎';
+    position: absolute;
+    top: 6px; right: 8px;
+    color: var(--warn);
+    font-size: 11px;
+  }
+  .card.highlighted {
+    box-shadow: 0 0 0 1px var(--accent), 0 2px 6px rgba(9,105,218,0.15);
+    z-index: 15;
+  }
+  .card.dimmed { opacity: 0.3; }
+  .card.dep-incoming { box-shadow: 0 0 0 1px var(--success); z-index: 12; }
+  .card.dep-outgoing { box-shadow: 0 0 0 1px var(--warn); z-index: 12; }
+  .card.feature-sibling { box-shadow: 0 0 0 1px var(--feature); z-index: 13; }
+
+  .card-row1 {
+    display: flex; align-items: center; gap: 5px;
+    flex-shrink: 0;
+  }
+  .card-type-icon { font-size: 12px; flex-shrink: 0; }
+  .card-key {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px; font-weight: 700;
+    color: var(--accent-hover);
+    flex-shrink: 0;
+  }
+  .card.is-feature .card-key { color: var(--feature); }
+  .card-badges {
+    display: flex; gap: 3px;
+    margin-left: auto;
+  }
+  .card-badge {
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.04);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .card-badge.deps { color: var(--accent); }
+  .card-badge.deps-blocked { color: var(--danger); background: rgba(207,34,46,0.1); }
+  .card-badge.multi-sprint { color: var(--text-muted); }
+  .card-badge.derived { color: var(--feature); background: rgba(130,80,223,0.1); }
+
+  .card-parent {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px;
+    color: var(--feature);
+    background: rgba(130,80,223,0.08);
+    padding: 2px 5px 2px 2px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid rgba(130,80,223,0.2);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .card-parent:hover { background: rgba(130,80,223,0.18); border-color: var(--feature); }
+  .card-parent .card-parent-tag {
+    background: var(--feature);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 2px;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+  .card-parent .card-parent-key {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .card-parent .card-parent-excerpt {
+    color: var(--text-muted);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .drag-ghost {
+    opacity: 0.85;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18) !important;
+  }
+
+  .card-summary {
+    font-size: 12px;
+    line-height: 1.32;
+    color: var(--text);
+    flex: 1;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .card-meta {
+    display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+    font-size: 10px; color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .card-state {
+    padding: 1px 6px; border-radius: 3px;
+    background: rgba(0,0,0,0.04);
+    font-weight: 600; font-size: 10px;
+  }
+  .card-assignee {
+    color: var(--text-dim);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 110px;
+  }
+
+  /* Connect handle (sur card au hover) */
+  .card-connect-handle {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    border-radius: 50%;
+    cursor: crosshair;
+    opacity: 0;
+    transition: opacity 0.12s;
+    z-index: 10;
+  }
+  .card:hover .card-connect-handle { opacity: 1; }
+  .card-connect-handle:hover { transform: translateY(-50%) scale(1.3); }
+
+  /* Zoom controls (overlay) */
+  #zoomControls {
+    position: absolute;
+    bottom: 14px; left: 14px;
+    display: flex; gap: 4px;
+    background: var(--bg-elev2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 20;
+  }
+  #zoomControls button {
+    background: transparent;
+    border: none;
+    padding: 5px 9px;
+  }
+  #zoomControls button:hover { background: var(--bg-elev3); }
+  #zoomLevel {
+    padding: 5px 8px;
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 44px; text-align: center;
+  }
+
+  /* Help overlay (top-right of canvas) */
+  #helpOverlay {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: var(--bg-elev2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 20;
+    line-height: 1.5;
+  }
+  #helpOverlay kbd {
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
+    padding: 0 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--text);
+  }
+
+  /* Connecting line (when dragging from handle) */
+  .connecting-line {
+    position: absolute;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .connecting-line line {
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-dasharray: 5 3;
+  }
+
+  /* ========== Side panel ========== */
+  #sidePanel {
+    width: 420px;
+    background: var(--bg-elev);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden; flex-shrink: 0;
+    transition: margin-right 0.2s;
+  }
+  #sidePanel.hidden { margin-right: -420px; }
+
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-elev2);
+  }
+  .panel-header .panel-title { flex: 1; font-weight: 600; }
+  .panel-header .panel-key {
+    font-family: ui-monospace, monospace;
+    color: var(--accent-hover);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .panel-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+  .panel-body h3 {
+    margin: 16px 0 6px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-muted); font-weight: 600;
+  }
+  .panel-body h3:first-child { margin-top: 0; }
+  .panel-body .field-line {
+    display: grid; grid-template-columns: 110px 1fr;
+    gap: 8px; padding: 4px 0;
+    font-size: 12px;
+  }
+  .panel-body .field-line .label { color: var(--text-muted); }
+  .panel-body .field-line.modified .value::after {
+    content: " (modifié)"; color: var(--warn); font-size: 10px;
+  }
+  .summary-block {
+    margin: 6px 0 10px; padding: 10px;
+    background: var(--bg-elev2);
+    border-radius: 6px; line-height: 1.4;
+  }
+  .deps-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+  .dep-item {
+    background: var(--bg-elev2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 6px 8px;
+    font-size: 11px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dep-item .dep-type {
+    padding: 1px 6px; border-radius: 3px;
+    font-size: 10px; font-weight: 600;
+    background: rgba(0,0,0,0.06);
+  }
+  .dep-item.added { border-color: var(--success); }
+  .dep-item.added .dep-type { background: rgba(63,185,80,0.15); color: var(--success); }
+  .dep-item .dep-key {
+    font-family: ui-monospace, monospace;
+    color: var(--accent-hover); font-weight: 700; cursor: pointer;
+  }
+  .dep-item .dep-key:hover { text-decoration: underline; }
+  .dep-item .dep-summary {
+    flex: 1; color: var(--text-muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .dep-impact {
+    font-size: 10px; padding: 1px 5px; border-radius: 3px;
+  }
+  .dep-impact.tendu, .dep-impact.bloquee { background: rgba(248,81,73,0.12); color: var(--danger); }
+  .dep-impact.cible-hors-pi, .dep-impact.source-hors-pi { background: rgba(240,136,62,0.12); color: var(--warn); }
+  .dep-impact.ok { background: rgba(63,185,80,0.12); color: var(--success); }
+  .dep-impact.a-analyser { background: rgba(110,118,129,0.2); color: var(--text-muted); }
+  .dep-remove {
+    background: transparent; border: none;
+    color: var(--text-dim); padding: 2px 4px;
+    cursor: pointer; font-size: 14px; line-height: 1;
+  }
+  .dep-remove:hover { color: var(--danger); background: rgba(248,81,73,0.1); }
+  .add-dep-form {
+    margin-top: 8px; padding: 10px;
+    background: var(--bg-elev2); border-radius: 6px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .add-dep-form .row { display: flex; gap: 6px; }
+  .add-dep-form input { flex: 1; min-width: 0; }
+  .add-dep-form select { flex: 0 0 130px; }
+
+  .parent-edit-block {
+    padding: 10px;
+    background: var(--bg-elev2);
+    border-radius: 6px;
+    display: flex; flex-direction: column;
+  }
+  .parent-edit-block .row { display: flex; gap: 6px; align-items: center; }
+  .parent-edit-block input { flex: 1; min-width: 0; }
+  .parent-current {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(130,80,223,0.08);
+    border: 1px solid rgba(130,80,223,0.2);
+    border-radius: 5px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .parent-current .card-parent-tag {
+    background: var(--feature); color: white;
+    font-size: 9px; font-weight: 700;
+    padding: 1px 4px; border-radius: 2px; letter-spacing: 0.4px;
+  }
+  .parent-current .card-parent-key {
+    font-family: ui-monospace, monospace;
+    color: var(--feature); font-weight: 700;
+    cursor: pointer;
+  }
+  .parent-current .card-parent-key:hover { text-decoration: underline; }
+  .parent-current-summary {
+    color: var(--text-muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1; min-width: 0;
+  }
+  .typeahead-results {
+    max-height: 180px; overflow-y: auto;
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 5px; margin-top: 2px;
+  }
+  .typeahead-results .ta-item {
+    padding: 5px 8px; cursor: pointer;
+    font-size: 11px; border-bottom: 1px solid var(--border);
+  }
+  .typeahead-results .ta-item:last-child { border-bottom: none; }
+  .typeahead-results .ta-item:hover, .typeahead-results .ta-item.active { background: var(--bg-elev2); }
+  .typeahead-results .ta-key {
+    font-family: ui-monospace, monospace;
+    color: var(--accent-hover); font-weight: 700;
+  }
+
+  /* ========== Changelog drawer ========== */
+  #logDrawer {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 460px;
+    background: var(--bg-elev);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.2s;
+    z-index: 30;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+  }
+  #logDrawer.open { transform: translateX(0); }
+  #logList { flex: 1; overflow-y: auto; padding: 8px; }
+  .log-entry {
+    background: var(--bg-elev2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 8px 10px;
+    margin-bottom: 6px; font-size: 11px;
+  }
+  .log-entry .log-meta { color: var(--text-dim); font-size: 10px; margin-bottom: 3px; }
+  .log-entry .log-action { font-weight: 600; color: var(--accent-hover); }
+  .log-entry .log-action.action-move { color: var(--warn); }
+  .log-entry .log-action.action-add-dep { color: var(--success); }
+  .log-entry .log-action.action-remove-dep { color: var(--danger); }
+  .log-entry .log-detail { color: var(--text); margin-top: 2px; }
+  .log-entry .log-detail code {
+    background: var(--bg); padding: 1px 4px;
+    border-radius: 3px; font-family: ui-monospace, monospace;
+    color: var(--accent-hover);
+  }
+  .log-entry .log-arrow { color: var(--text-muted); margin: 0 4px; }
+  .log-empty { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 12px; }
+
+  /* Toast */
+  #toastWrap {
+    position: fixed; bottom: 16px; right: 16px;
+    display: flex; flex-direction: column; gap: 6px;
+    z-index: 1000; pointer-events: none;
+  }
+  .toast {
+    background: var(--bg-elev2);
+    border: 1px solid var(--border-strong);
+    border-left: 3px solid var(--success);
+    border-radius: 6px;
+    padding: 8px 12px; font-size: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: slideIn 0.18s ease-out;
+    pointer-events: auto;
+    max-width: 380px;
+  }
+  .toast.error { border-left-color: var(--danger); }
+  .toast.warn { border-left-color: var(--warn); }
+  .toast.info { border-left-color: var(--accent); }
+  @keyframes slideIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* Link type popover (when dropping a connection) */
+  #linkTypePopover {
+    position: absolute;
+    background: var(--bg-elev2);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    padding: 8px;
+    z-index: 100;
+    display: none;
+  }
+  #linkTypePopover.open { display: block; }
+  #linkTypePopover .lt-item {
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  #linkTypePopover .lt-item:hover { background: var(--bg-elev3); }
+  #linkTypePopover .lt-cancel {
+    color: var(--text-muted); font-size: 11px; margin-top: 4px;
+    border-top: 1px solid var(--border); padding-top: 6px;
+    text-align: center;
+  }
+
+  /* Overflow modal (when clicking +N de plus) */
+  #overflowOverlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .overflow-modal {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    width: 700px; max-width: 90vw; max-height: 80vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+  }
+  .overflow-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-elev2);
+    border-radius: 10px 10px 0 0;
+  }
+  .overflow-close {
+    margin-left: auto;
+    background: transparent; border: none;
+    color: var(--text-muted); cursor: pointer;
+    font-size: 16px;
+  }
+  .overflow-list {
+    overflow-y: auto;
+    padding: 8px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .overflow-row {
+    display: grid;
+    grid-template-columns: 90px 130px 1fr;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    align-items: center;
+    font-size: 12px;
+    border: 1px solid transparent;
+  }
+  .overflow-row:hover { background: var(--bg-elev2); border-color: var(--border); }
+  .overflow-summary { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Feature popup (vision Feature → clic sur card) */
+  #featurePopup {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .feature-popup-modal {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 900px; max-width: 92vw; max-height: 85vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+    overflow: hidden;
+  }
+  .feature-popup-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-elev2);
+    flex-wrap: wrap;
+  }
+  .feature-popup-header .card-key { font-size: 13px; }
+  .feature-popup-meta {
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 22px; flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--bg);
+  }
+  .feature-popup-meta strong { color: var(--text); font-weight: 600; }
+  .feature-us-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    overflow-y: auto;
+    display: block;
+    max-height: 60vh;
+  }
+  .feature-us-table thead {
+    position: sticky; top: 0; background: var(--bg-elev2);
+    z-index: 1;
+  }
+  .feature-us-table th, .feature-us-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: middle;
+  }
+  .feature-us-table th {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .feature-us-table tbody tr { cursor: pointer; }
+  .feature-us-table tbody tr:hover { background: var(--bg-elev2); }
+  .feature-us-table .us-summary {
+    max-width: 380px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hidden { display: none !important; }
+  .muted { color: var(--text-muted); }
+  .small { font-size: 11px; }
+  kbd {
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Program Board <span class="badge">canvas</span></h1>
+  <div class="toolbar">
+    <button class="primary" id="btnLoad">📁 Charger</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xlsm">
+
+    <span class="sep"></span>
+
+    <label class="field">PI <select id="piSelect"><option value="">—</option></select></label>
+    <label class="field">Projet <select id="projectSelect"><option value="">Tous</option></select></label>
+    <label class="field">Squad <select id="squadSelect"><option value="">Toutes</option></select></label>
+    <label class="field">Type <select id="typeSelect">
+      <option value="">Tous</option>
+      <option value="feature">Features</option>
+      <option value="us">US</option>
+    </select></label>
+    <label class="field">Liens
+      <div class="multidropdown" id="linkRiskWrap">
+        <button type="button" class="multidropdown-btn" id="linkRiskBtn">Tous ▾</button>
+        <div class="multidropdown-menu" id="linkRiskMenu">
+          <label class="multidropdown-item"><input type="checkbox" data-value="ok"> <span class="dot dot-ok"></span> OK</label>
+          <label class="multidropdown-item"><input type="checkbox" data-value="risque"> <span class="dot dot-risque"></span> À risque (chevauchement)</label>
+          <label class="multidropdown-item"><input type="checkbox" data-value="retard"> <span class="dot dot-retard"></span> Retard planning</label>
+        </div>
+      </div>
+    </label>
+    <input type="search" id="searchInput" placeholder="Recherche" style="width:160px">
+
+    <span class="sep"></span>
+
+    <button id="btnFit" title="Ajuster à l'écran (F)">⛶ Fit</button>
+    <button id="btnLog">📜 Modifs <span id="logCount" class="badge" style="background:var(--warn);display:none">0</span></button>
+    <button id="btnExportMd">📥 .md</button>
+    <button id="btnExportCsv">📥 .csv</button>
+    <button class="danger" id="btnReset">🗑 Reset</button>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<div id="emptyState">
+  <h2>Charge ton extraction Jira pour commencer</h2>
+  <p>Le fichier doit contenir les feuilles <code>Features</code>, <code>US</code> et <code>CONFIG_Squads</code>. Toutes les modifications restent locales et sont exportables en <code>.md</code> ou <code>.csv</code>.</p>
+  <div class="drop-zone" id="dropZone">
+    <div class="icon">📁</div>
+    <div><strong>Clique</strong> ou dépose ton <code>.xlsx</code> ici</div>
+  </div>
+  <p class="small">Une fois chargé : <kbd>scroll</kbd> pour pan, <kbd>Ctrl + scroll</kbd> ou pinch pour zoom, glisse les cartes pour les déplacer.</p>
+</div>
+
+<main class="hidden" id="mainArea">
+  <div id="canvasViewport">
+    <div id="canvasWorld">
+      <div class="corner-cell">Squad / Sprint</div>
+      <div class="sprint-headers"></div>
+      <div class="squad-headers"></div>
+      <div class="grid-lines"></div>
+      <div class="cells-layer"></div>
+      <svg class="connections-svg" id="connectionsSvg"></svg>
+      <div class="cards-layer" id="cardsLayer"></div>
+    </div>
+
+    <div id="zoomControls">
+      <button id="btnZoomOut" title="Dézoomer (-)">−</button>
+      <div id="zoomLevel">100%</div>
+      <button id="btnZoomIn" title="Zoomer (+)">+</button>
+      <button id="btnZoomReset" title="100% (0)">1:1</button>
+    </div>
+
+    <div id="helpOverlay">
+      <div><kbd>scroll</kbd> pan • <kbd>Ctrl+scroll</kbd> zoom • <kbd>F</kbd> fit • <kbd>L</kbd> modifs</div>
+    </div>
+
+    <svg class="connecting-line hidden" id="connectingLine">
+      <line x1="0" y1="0" x2="0" y2="0"/>
+    </svg>
+
+    <div id="linkTypePopover"></div>
+  </div>
+
+  <aside id="sidePanel" class="hidden">
+    <div class="panel-header">
+      <span class="panel-key" id="panelKey"></span>
+      <span class="panel-title" id="panelTitle"></span>
+      <button id="btnClosePanel">✕</button>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+  </aside>
+
+  <div id="logDrawer">
+    <div class="panel-header">
+      <span class="panel-title">📜 Journal des modifications</span>
+      <button id="btnCloseLog">✕</button>
+    </div>
+    <div id="logList"></div>
+    <div style="padding: 10px; border-top: 1px solid var(--border); display:flex; gap: 6px;">
+      <button id="btnLogExportMd" class="primary">Export .md</button>
+      <button id="btnLogExportCsv">Export .csv</button>
+      <button id="btnLogClear" class="danger" style="margin-left:auto">Vider</button>
+    </div>
+  </div>
+</main>
+
+<div id="toastWrap"></div>
+
+<script src="lib/xlsx.full.min.js"></script>
+<script>
+'use strict';
+
+/* ============================================================
+   STATE & CONSTANTS
+   ============================================================ */
+
+const STORAGE_KEY = 'programBoard.v2';
+
+const STATE_COLORS = {
+  'backlog':                 'var(--state-backlog)',
+  'cadrage':                 'var(--state-cadrage)',
+  'en affinage':             'var(--state-affinage)',
+  'pret pour developpement': 'var(--state-pret-dev)',
+  'en developpement':        'var(--state-en-dev)',
+  'en construction':         'var(--state-en-dev)',
+  'en revue de code':        'var(--state-revue)',
+  'pret pour recette':       'var(--state-pret-recette)',
+  'en recette':              'var(--state-recette)',
+  'validation fonctionnelle':'var(--state-validation)',
+  'en attente de livraison': 'var(--state-livraison)',
+  'fermee':                  'var(--state-fermee)',
+  'abandonnee':              'var(--state-abandonnee)',
+  'bloquee':                 'var(--state-bloquee)',
+  'ouvert':                  'var(--state-backlog)',
+};
+
+const LINK_TYPES_CANONICAL = ['est liée à', 'lie', 'bloque', 'est bloquée par', 'clone', 'is implemented by', 'implémente'];
+
+// Layout constants (correspondent aux CSS vars)
+const LAYOUT = {
+  CARD_W: 240,
+  CARD_H: 116,
+  CARD_GAP: 8,
+  COL_W: 270,
+  COL_PAD: 16,
+  ROW_MIN_H: 160,
+  HEADER_H: 52,
+  SIDE_W: 170,
+  MAX_CELL_CARDS: 8,
+};
+
+const state = {
+  features: new Map(),
+  us: new Map(),
+  squads: new Map(),
+  modifications: {},
+  changelog: [],
+  filters: { pi: '', project: '', squad: '', type: '', search: '', linkRiskSet: new Set() },
+  selectedKey: null,
+  hoveredKey: null,
+  fileName: null,
+  loadedAt: null,
+
+  // viewport
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+
+  // layout cache
+  layout: null,
+
+  // connection drag
+  connecting: null,  // { srcKey, ghostFrom, ghostTo }
+};
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+
+function normalize(s) {
+  if (!s) return '';
+  return String(s).toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .trim();
+}
+
+function stateColor(stateStr) {
+  return STATE_COLORS[normalize(stateStr)] || 'var(--state-default)';
+}
+
+function normalizeSprintToken(sprintStr) {
+  if (!sprintStr) return null;
+  const m = String(sprintStr).match(/(\d+)\.(\d+)/);
+  return m ? `${m[1]}.${m[2]}` : null;
+}
+
+function compareSprintTokens(a, b) {
+  if (!a) return 1; if (!b) return -1;
+  const [aMaj, aMin] = a.split('.').map(Number);
+  const [bMaj, bMin] = b.split('.').map(Number);
+  return aMaj !== bMaj ? aMaj - bMaj : aMin - bMin;
+}
+
+function splitMulti(val) {
+  if (!val) return [];
+  return String(val).split(';').map(s => s.trim()).filter(Boolean);
+}
+
+function currentSprintToken(item) {
+  // En vision Feature, on positionne sur le sprint de l'US enfant la plus tardive
+  if (item._virtualSprint !== undefined) return item._virtualSprint;
+  const sprintField = effectiveSprint(item);
+  if (!sprintField) return null;
+  const tokens = splitMulti(sprintField).map(normalizeSprintToken).filter(Boolean);
+  if (!tokens.length) return null;
+  tokens.sort(compareSprintTokens);
+  return tokens[tokens.length - 1];
+}
+
+// Tags entre crochets dans un résumé : "[SELLIGENT] - [RECO LFM] : Bla" → ["SELLIGENT", "RECO LFM"]
+function extractTags(summary) {
+  if (!summary) return [];
+  return [...summary.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim().toUpperCase());
+}
+
+// Mots significatifs pour heuristique de matching feature/US
+const STOPWORDS = new Set([
+  'SELLIGENT','PULSE','NEXT','MHCOM','STEP','SARATOGA','API','TNR','RGPD',
+  'POUR','DANS','AVEC','VERS','DEPUIS','SUR','ENTRE','PAR','SANS','CHEZ',
+  'AVOIR','ETRE','FAIRE','ALLER','VENIR','DIRE','VOIR','POUVOIR','VOULOIR',
+  'CETTE','CELUI','DONT','LEUR','LEURS','TOUS','TOUTE','TOUTES',
+  'PLUS','MOINS','BIEN','MAIS','AUSSI','MEME','TRES','DEJA','TOUT','RIEN',
+  'MISE','AOUT','EVOL','TRAITEMENT','TRAITEMENTS','EVOLUTION','EVOLUTIONS',
+  'GESTION','CREATION','CONFIGURATION','MODIFICATION','SUPPRESSION',
+  'PROJET','PROJETS','GENERAL','OBSO','MIDDLE','TECHNIQUE','TECHNIQUES',
+]);
+function extractKeywords(summary) {
+  if (!summary) return [];
+  const tags = extractTags(summary);
+  const allCaps = (summary.match(/\b[A-Z][A-Z0-9]{2,}\b/g) || []).map(s => s.toUpperCase());
+  return [...new Set([...tags, ...allCaps])];
+}
+
+// Tokens "mots normaux" pour Jaccard (mots de 4+ chars, hors stopwords)
+function extractTokens(summary) {
+  if (!summary) return new Set();
+  const cleaned = summary
+    .toUpperCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\[[^\]]*\]/g, ' ')           // retire les tags entre crochets (déjà couverts par extractKeywords)
+    .replace(/[^A-Z0-9]+/g, ' ');
+  const tokens = cleaned.split(/\s+/).filter(t => t.length >= 4 && !STOPWORDS.has(t) && !/^\d+$/.test(t));
+  return new Set(tokens);
+}
+
+function jaccard(setA, setB) {
+  if (!setA.size || !setB.size) return 0;
+  let inter = 0;
+  setA.forEach(t => { if (setB.has(t)) inter++; });
+  const uni = setA.size + setB.size - inter;
+  return uni > 0 ? inter / uni : 0;
+}
+
+// Cherche la feature parente d'une US :
+//   1) lien explicite "feature.lien.targetKey == us.key"
+//   2) sinon : meilleure feature du même projet partageant un tag (hors préfixe projet)
+let _parentCache = null;  // invalidé à chaque rerender
+
+function invalidateParentCache() { _parentCache = null; }
+
+function buildParentCache() {
+  _parentCache = new Map();
+  // Précalcule keywords + tokens des features (1 fois)
+  const fIndex = [];
+  state.features.forEach(f => {
+    fIndex.push({
+      f,
+      keywords: new Set(extractKeywords(f.summary).filter(t =>
+        t.length > 2 && !STOPWORDS.has(t) && !/^PI\d+$/.test(t) && !(f.project || '').toUpperCase().includes(t))),
+      tokens: extractTokens(f.summary),
+    });
+  });
+
+  state.us.forEach(us => {
+    // 1) Lien explicite (Feature.links → us.key)
+    let parent = null;
+    for (const f of state.features.values()) {
+      if (effectiveLinks(f).some(l => l.targetKey === us.key)) { parent = f; break; }
+    }
+
+    // 2) Mots-clés significatifs (tags entre crochets, acronymes) — match fort
+    if (!parent) {
+      const usKeywords = new Set(extractKeywords(us.summary));
+      if (usKeywords.size) {
+        const projUpper = (us.project || '').toUpperCase();
+        let bestMatch = null, bestScore = 0;
+        for (const fi of fIndex) {
+          if (fi.f.project !== us.project) continue;
+          let common = 0;
+          fi.keywords.forEach(t => {
+            if (usKeywords.has(t) && !projUpper.includes(t)) common++;
+          });
+          if (common > bestScore) { bestScore = common; bestMatch = fi.f; }
+        }
+        if (bestScore > 0) parent = bestMatch;
+      }
+    }
+
+    // 3) Similarité Jaccard sur les tokens des résumés (niveau de fallback plus large)
+    if (!parent) {
+      const usTokens = extractTokens(us.summary);
+      if (usTokens.size >= 2) {
+        let bestMatch = null, bestSim = 0;
+        for (const fi of fIndex) {
+          if (fi.f.project !== us.project) continue;
+          const sim = jaccard(usTokens, fi.tokens);
+          if (sim > bestSim) { bestSim = sim; bestMatch = fi.f; }
+        }
+        if (bestSim >= 0.18) parent = bestMatch;  // seuil pour éviter les faux positifs
+      }
+    }
+
+    if (parent) _parentCache.set(us.key, parent.key);
+  });
+}
+
+function getParentFeature(usKey) {
+  // Priorité : override manuel utilisateur (peut être null pour "détacher")
+  const m = state.modifications[usKey];
+  if (m && 'parentKey' in m) {
+    return m.parentKey ? state.features.get(m.parentKey) : null;
+  }
+  if (!_parentCache) buildParentCache();
+  const fk = _parentCache.get(usKey);
+  return fk ? state.features.get(fk) : null;
+}
+
+function setParentFeature(usKey, featureKey) {
+  const us = state.us.get(usKey);
+  if (!us) return;
+  if (featureKey && !state.features.get(featureKey)) {
+    toast(`Feature ${featureKey} introuvable`, 'error'); return;
+  }
+  const oldParent = getParentFeature(usKey);
+  if (!state.modifications[usKey]) state.modifications[usKey] = {};
+  state.modifications[usKey].parentKey = featureKey || null;
+  logChange({
+    action: 'set_parent',
+    key: usKey, summary: us.summary, project: us.project, squad: us.squad,
+    oldValue: oldParent ? oldParent.key : '(aucune)',
+    newValue: featureKey || '(détaché)',
+  });
+  saveToStorage();
+  toast(featureKey ? `${usKey} rattachée à ${featureKey}` : `${usKey} détachée`, 'success');
+  rerender();
+}
+
+// US enfants d'une feature (cohérent avec getParentFeature)
+function findChildrenUS(featureKey) {
+  if (!_parentCache) buildParentCache();
+  const result = [];
+  _parentCache.forEach((fk, usKey) => {
+    if (fk === featureKey) {
+      const us = state.us.get(usKey);
+      if (us) result.push(us);
+    }
+  });
+  return result;
+}
+
+// Sprint dérivé d'une feature : sprint le plus tardif de ses US enfants (filtré sur le PI)
+function deriveFeatureSprint(featureKey, piMajor) {
+  const children = findChildrenUS(featureKey);
+  let max = null;
+  children.forEach(us => {
+    // Vérifier que la US est dans le PI courant si filtré
+    if (piMajor) {
+      const incs = splitMulti(us.increment);
+      if (!incs.includes('PI' + piMajor)) return;
+    }
+    const sp = currentSprintToken(us);
+    if (sp && (piMajor ? sp.split('.')[0] === piMajor : true)) {
+      if (!max || compareSprintTokens(sp, max) > 0) max = sp;
+    }
+  });
+  return max;
+}
+
+function effectiveSprint(item) {
+  const m = state.modifications[item.key];
+  if (m && m.sprint !== undefined) return m.sprint;
+  return item.sprint;
+}
+
+function effectiveLinks(item) {
+  const m = state.modifications[item.key];
+  const removed = (m?.removedLinks || []).map(l => `${l.targetKey}|${l.type}`);
+  const original = (item.links || []).filter(l => !removed.includes(`${l.targetKey}|${l.type}`));
+  const added = (m?.addedLinks || []).map(l => ({...l, _added: true}));
+  return [...original, ...added];
+}
+
+function isItemModified(key) {
+  const m = state.modifications[key];
+  if (!m) return false;
+  return m.sprint !== undefined || (m.addedLinks?.length) || (m.removedLinks?.length);
+}
+
+function getItem(key) {
+  return state.features.get(key) || state.us.get(key) || null;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  if (d instanceof Date) return d.toLocaleDateString('fr-FR');
+  return String(d).split('T')[0] || String(d);
+}
+
+function fmtTimestamp(iso) {
+  return new Date(iso).toLocaleString('fr-FR', { dateStyle:'short', timeStyle:'medium' });
+}
+
+function escapeHTML(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+/* ============================================================
+   STORAGE
+   ============================================================ */
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    state.modifications = data.modifications || {};
+    state.changelog = data.changelog || [];
+    if (data.zoom) state.zoom = data.zoom;
+    if (data.panX !== undefined) state.panX = data.panX;
+    if (data.panY !== undefined) state.panY = data.panY;
+    if (Array.isArray(data.linkRiskSet)) state.filters.linkRiskSet = new Set(data.linkRiskSet);
+  } catch (e) { console.warn('Storage load failed:', e); }
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      modifications: state.modifications,
+      changelog: state.changelog,
+      zoom: state.zoom,
+      panX: state.panX,
+      panY: state.panY,
+      linkRiskSet: state.filters.linkRiskSet ? [...state.filters.linkRiskSet] : [],
+    }));
+  } catch (e) { toast('Erreur de sauvegarde locale: ' + e.message, 'error'); }
+}
+
+/* ============================================================
+   EXCEL PARSING
+   ============================================================ */
+
+function parseExcel(arrayBuffer) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+
+  const squads = new Map();
+  const squadSheet = wb.Sheets['CONFIG_Squads'];
+  if (squadSheet) {
+    XLSX.utils.sheet_to_json(squadSheet, { defval: null }).forEach(r => {
+      if (r['Projet'] && r['Squad']) squads.set(r['Projet'], r['Squad']);
+    });
+  }
+
+  const features = new Map();
+  const featuresSheet = wb.Sheets['Features'];
+  if (!featuresSheet) throw new Error('Feuille "Features" introuvable');
+  XLSX.utils.sheet_to_json(featuresSheet, { defval: null }).forEach(r => {
+    const key = r['Clé']; if (!key) return;
+    if (!features.has(key)) {
+      features.set(key, {
+        type: 'feature', key,
+        project: r['Projet'] || '',
+        squad: squads.get(r['Projet']) || 'AUTRE',
+        ticketType: r['Type de ticket'] || 'Epic',
+        summary: r['Résumé'] || '',
+        assignee: r['Personne assignée'] || '',
+        reporter: r['Rapporteur'] || '',
+        priority: r['Priorité'] || '',
+        state: r['État'] || '',
+        resolution: r['Résolution'] || '',
+        created: r['Création'] || null,
+        updated: r['Mise à jour'] || null,
+        dueDate: r["Date d'échéance"] || null,
+        sprint: r['Sprint'] || '',
+        increment: r['Incrément'] || '',
+        links: [],
+      });
+    }
+    const lk = r['Tickets liés.issueKey'], lt = r['Tickets liés.linkType'];
+    if (lk && lt) {
+      const item = features.get(key); const sig = `${lk}|${lt}`;
+      if (!item.links.find(l => `${l.targetKey}|${l.type}` === sig)) item.links.push({ targetKey: lk, type: lt });
+    }
+  });
+
+  const us = new Map();
+  const usSheet = wb.Sheets['US'];
+  if (!usSheet) throw new Error('Feuille "US" introuvable');
+  XLSX.utils.sheet_to_json(usSheet, { defval: null }).forEach(r => {
+    const key = r['Clé']; if (!key) return;
+    if (!us.has(key)) {
+      us.set(key, {
+        type: 'us', key,
+        project: r['Projet'] || '',
+        squad: squads.get(r['Projet']) || 'AUTRE',
+        ticketType: r['Type de ticket'] || 'Story',
+        summary: r['Résumé'] || '',
+        assignee: r['Personne assignée'] || '',
+        reporter: r['Rapporteur'] || '',
+        state: r['État'] || '',
+        dueDate: r["Date d'échéance"] || null,
+        sprint: r['Sprint'] || '',
+        increment: r['Incrément'] || '',
+        links: [],
+      });
+    }
+    const lk = r['Tickets liés.issueKey'] || r['Tickets liés'], lt = r['Tickets liés.linkType'];
+    if (lk && lt) {
+      const item = us.get(key); const sig = `${lk}|${lt}`;
+      if (!item.links.find(l => `${l.targetKey}|${l.type}` === sig)) item.links.push({ targetKey: lk, type: lt });
+    }
+  });
+
+  return { features, us, squads };
+}
+
+/* ============================================================
+   FILTERS & DERIVED DATA
+   ============================================================ */
+
+function getAllItems() { return [...state.features.values(), ...state.us.values()]; }
+
+function getFilteredItems() {
+  const f = state.filters;
+  const search = normalize(f.search);
+  const piMajor = f.pi ? f.pi.replace(/^PI/i, '') : null;
+
+  let items = getAllItems().filter(item => {
+    if (f.pi) {
+      const incs = splitMulti(item.increment);
+      if (!incs.includes(f.pi)) return false;
+    }
+    if (f.project && item.project !== f.project) return false;
+    if (f.squad && item.squad !== f.squad) return false;
+    if (f.type && item.type !== f.type) return false;
+    if (search) {
+      const hay = normalize(`${item.key} ${item.summary} ${item.assignee}`);
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Vision Feature : pour chaque feature, calculer le sprint dérivé
+  // (sprint de l'US enfant la plus tardive du PI courant)
+  if (f.type === 'feature') {
+    items = items.map(it => {
+      const derived = deriveFeatureSprint(it.key, piMajor);
+      return derived ? Object.assign(Object.create(Object.getPrototypeOf(it)), it, { _virtualSprint: derived }) : it;
+    });
+  }
+
+  return items;
+}
+
+function getAllPIs() {
+  const set = new Set();
+  getAllItems().forEach(item => splitMulti(item.increment).forEach(p => set.add(p)));
+  return [...set].sort().reverse();
+}
+
+function getAllProjects() {
+  const set = new Set();
+  getAllItems().forEach(item => { if (item.project) set.add(item.project); });
+  return [...set].sort();
+}
+
+function getAllSquads() {
+  return [...new Set([...state.squads.values()])].sort();
+}
+
+/* ============================================================
+   LAYOUT (computeLayout — produit une carte de positions)
+   ============================================================ */
+
+function computeLayout() {
+  let items = getFilteredItems();
+  if (!items.length) return null;
+
+  // Filtre liens : ne garder que les items source/cible d'au moins un lien matchant le Set
+  const linkRiskSet = state.filters.linkRiskSet;
+  if (linkRiskSet && linkRiskSet.size) {
+    const involved = new Set();
+    const itemsByKey = new Map(items.map(i => [i.key, i]));
+    items.forEach(it => {
+      effectiveLinks(it).forEach(link => {
+        const canon = canonicalLink(it.key, link.type, link.targetKey);
+        const src = itemsByKey.get(canon.src);
+        const tgt = itemsByKey.get(canon.tgt);
+        if (!src || !tgt) return;
+        const status = classifyLinkStatus(src, tgt, canon.kind);
+        if (linkRiskSet.has(status)) {
+          involved.add(canon.src);
+          involved.add(canon.tgt);
+        }
+      });
+    });
+    items = items.filter(it => involved.has(it.key));
+  }
+  if (!items.length) return null;
+
+  // Sprint columns : si un PI est filtré, on ne garde que les sprints du PI (major = numéro PI)
+  const sprintSet = new Set();
+  items.forEach(it => { const t = currentSprintToken(it); if (t) sprintSet.add(t); });
+  const piMajor = state.filters.pi ? state.filters.pi.replace(/^PI/i, '') : null;
+  let sprintTokens = [...sprintSet].sort(compareSprintTokens);
+  if (piMajor) {
+    sprintTokens = sprintTokens.filter(t => t.split('.')[0] === piMajor);
+  }
+  const sprintCols = ['__BACKLOG__', ...sprintTokens];
+
+  // Squad rows : ne garder que celles qui ont des items
+  const squadSet = new Set();
+  items.forEach(it => squadSet.add(item_squad(it)));
+  const squadRows = [...squadSet].sort();
+
+  // Map items par cellule. Si le sprint courant de l'item n'est pas dans les colonnes
+  // (typiquement : ancien sprint d'un PI antérieur sur un item PI24), on le met en Backlog.
+  const validSprints = new Set(sprintCols);
+  const cells = new Map();
+  items.forEach(it => {
+    let sp = currentSprintToken(it) || '__BACKLOG__';
+    if (!validSprints.has(sp)) sp = '__BACKLOG__';
+    const sq = item_squad(it);
+    const k = `${sq}|${sp}`;
+    if (!cells.has(k)) cells.set(k, []);
+    cells.get(k).push(it);
+  });
+
+  // Trier les items dans chaque cellule : Features puis US, puis par état, puis par clé
+  cells.forEach(arr => {
+    arr.sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'feature' ? -1 : 1;
+      const aClosed = /fermee|abandonnee/i.test(normalize(a.state));
+      const bClosed = /fermee|abandonnee/i.test(normalize(b.state));
+      if (aClosed !== bClosed) return aClosed ? 1 : -1;
+      return a.key.localeCompare(b.key);
+    });
+  });
+
+  // Hauteur de chaque squad row : basée sur le max de cards visibles (capped par MAX_CELL_CARDS)
+  const squadInfo = new Map();
+  let cy = 0;
+  squadRows.forEach(sq => {
+    let maxVisible = 0;
+    sprintCols.forEach(sp => {
+      const arr = cells.get(`${sq}|${sp}`);
+      if (arr) {
+        const visible = Math.min(arr.length, LAYOUT.MAX_CELL_CARDS);
+        if (visible > maxVisible) maxVisible = visible;
+      }
+    });
+    const padding = 14;
+    const rowH = Math.max(LAYOUT.ROW_MIN_H, padding * 2 + Math.max(1, maxVisible) * (LAYOUT.CARD_H + LAYOUT.CARD_GAP) - LAYOUT.CARD_GAP);
+    squadInfo.set(sq, { y: cy, h: rowH, count: countItemsInSquad(items, sq) });
+    cy += rowH;
+  });
+  const totalH = cy;
+
+  // X pour chaque sprint
+  const sprintX = new Map();
+  sprintCols.forEach((sp, i) => {
+    sprintX.set(sp, i * LAYOUT.COL_W);
+  });
+  const totalW = sprintCols.length * LAYOUT.COL_W;
+
+  // Position absolue : seuls les MAX_CELL_CARDS premiers de chaque cellule sont positionnés
+  const placed = new Map();  // key -> {x, y, item, cx, cy}
+  const overflow = new Map();  // `${sq}|${sp}` -> [items overflow]
+  items.forEach(it => {
+    let sp = currentSprintToken(it) || '__BACKLOG__';
+    if (!validSprints.has(sp)) sp = '__BACKLOG__';
+    const sq = item_squad(it);
+    const cell = cells.get(`${sq}|${sp}`);
+    const idx = cell.indexOf(it);
+    if (idx >= LAYOUT.MAX_CELL_CARDS) {
+      const k = `${sq}|${sp}`;
+      if (!overflow.has(k)) overflow.set(k, []);
+      overflow.get(k).push(it);
+      return;
+    }
+    const cellX = sprintX.get(sp);
+    const cellY = squadInfo.get(sq).y;
+    const x = cellX + (LAYOUT.COL_W - LAYOUT.CARD_W) / 2;
+    const y = cellY + 14 + idx * (LAYOUT.CARD_H + LAYOUT.CARD_GAP);
+    placed.set(it.key, {
+      item: it, x, y,
+      cx: x + LAYOUT.CARD_W / 2,
+      cy: y + LAYOUT.CARD_H / 2,
+      sprint: sp, squad: sq,
+    });
+  });
+
+  return {
+    items, sprintCols, squadRows, cells,
+    sprintX, squadInfo, placed, overflow,
+    totalW, totalH,
+  };
+}
+
+function item_squad(item) { return item.squad || 'AUTRE'; }
+
+function countItemsInSquad(items, sq) {
+  return items.filter(it => item_squad(it) === sq).length;
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+
+function logChange(entry) {
+  state.changelog.unshift({ ts: new Date().toISOString(), ...entry });
+  saveToStorage();
+  updateLogCount();
+}
+
+function moveSprint(key, newSprintToken, newSquad) {
+  const item = getItem(key);
+  if (!item) return;
+
+  // Squad change is not really supported (squad = property of project), so we ignore newSquad
+  // unless the user explicitly wants to change item.squad in modifications. For now: only sprint moves.
+
+  const oldSprint = effectiveSprint(item);
+  let newSprint;
+  if (newSprintToken === '__BACKLOG__') {
+    newSprint = '';
+  } else {
+    const sample = [...state.us.values(), ...state.features.values()]
+      .find(it => it.project === item.project && it.sprint && /\d+\.\d+/.test(it.sprint));
+    if (sample) {
+      const firstSprint = splitMulti(sample.sprint)[0] || '';
+      const prefix = firstSprint.replace(/\d+\.\d+.*$/, '');
+      newSprint = `${prefix}${newSprintToken}`;
+    } else {
+      newSprint = `Sprint ${newSprintToken}`;
+    }
+  }
+  if (oldSprint === newSprint) return;
+
+  if (!state.modifications[key]) state.modifications[key] = {};
+  state.modifications[key].sprint = newSprint;
+
+  logChange({
+    action: 'move_sprint',
+    key, summary: item.summary, project: item.project, squad: item.squad,
+    oldValue: oldSprint || '(aucun)', newValue: newSprint || '(aucun)',
+  });
+  saveToStorage();
+  toast(`${key} → ${newSprintToken === '__BACKLOG__' ? 'Backlog' : 'Sprint ' + newSprintToken}`, 'success');
+  rerender();
+}
+
+function addDependency(srcKey, tgtKey, linkType) {
+  if (srcKey === tgtKey) { toast('Source et cible identiques', 'warn'); return; }
+  const src = getItem(srcKey), tgt = getItem(tgtKey);
+  if (!src) { toast('Source introuvable', 'error'); return; }
+  if (!tgt && !confirm(`La cible ${tgtKey} n'existe pas dans l'export. Créer le lien quand même ?`)) return;
+  const links = effectiveLinks(src);
+  if (links.find(l => l.targetKey === tgtKey && l.type === linkType)) {
+    toast('Lien déjà existant', 'warn'); return;
+  }
+  if (!state.modifications[srcKey]) state.modifications[srcKey] = {};
+  if (!state.modifications[srcKey].addedLinks) state.modifications[srcKey].addedLinks = [];
+  state.modifications[srcKey].addedLinks.push({ targetKey: tgtKey, type: linkType });
+  logChange({
+    action: 'add_dep',
+    key: srcKey, summary: src.summary, project: src.project, squad: src.squad,
+    targetKey: tgtKey, targetSummary: tgt?.summary || '(externe)', linkType,
+  });
+  saveToStorage();
+  toast(`Lien ajouté : ${srcKey} ${linkType} ${tgtKey}`, 'success');
+  rerender();
+}
+
+function removeDependency(srcKey, tgtKey, linkType, isAdded) {
+  const src = getItem(srcKey); if (!src) return;
+  if (!state.modifications[srcKey]) state.modifications[srcKey] = {};
+  if (isAdded) {
+    state.modifications[srcKey].addedLinks = (state.modifications[srcKey].addedLinks || [])
+      .filter(l => !(l.targetKey === tgtKey && l.type === linkType));
+  } else {
+    if (!state.modifications[srcKey].removedLinks) state.modifications[srcKey].removedLinks = [];
+    if (!state.modifications[srcKey].removedLinks.find(l => l.targetKey === tgtKey && l.type === linkType)) {
+      state.modifications[srcKey].removedLinks.push({ targetKey: tgtKey, type: linkType });
+    }
+  }
+  logChange({
+    action: 'remove_dep',
+    key: srcKey, summary: src.summary, project: src.project, squad: src.squad,
+    targetKey: tgtKey, targetSummary: getItem(tgtKey)?.summary || '(externe)', linkType,
+    wasAdded: !!isAdded,
+  });
+  saveToStorage();
+  toast(`Lien supprimé : ${srcKey} ${linkType} ${tgtKey}`, 'success');
+  rerender();
+}
+
+function resetItem(key) {
+  if (!confirm(`Annuler toutes les modifs sur ${key} ?`)) return;
+  delete state.modifications[key];
+  saveToStorage();
+  toast(`${key} restauré à l'état Excel`, 'info');
+  rerender();
+}
+
+function resetAll() {
+  if (!confirm('Effacer toutes les modifications ET le journal ? Cette action est irréversible.')) return;
+  state.modifications = {}; state.changelog = [];
+  saveToStorage();
+  toast('Toutes les modifs réinitialisées', 'info');
+  rerender();
+  renderLog();
+  updateLogCount();
+}
+
+/* ============================================================
+   RENDERING — CANVAS
+   ============================================================ */
+
+function rerender() {
+  if (!state.features.size && !state.us.size) {
+    $('#mainArea').classList.add('hidden');
+    $('#emptyState').classList.remove('hidden');
+    return;
+  }
+  $('#mainArea').classList.remove('hidden');
+  $('#emptyState').classList.add('hidden');
+  populateFilters();
+  renderCanvas();
+  renderStats();
+  if (state.selectedKey) renderSidePanel();
+}
+
+function populateFilters() {
+  const piSel = $('#piSelect');
+  const pis = getAllPIs();
+  const cur = state.filters.pi;
+  piSel.innerHTML = pis.map(p => `<option value="${p}">${p}</option>`).join('');
+  if (cur && pis.includes(cur)) piSel.value = cur;
+  else { piSel.value = pis[0] || ''; state.filters.pi = piSel.value; }
+
+  const projSel = $('#projectSelect');
+  const projects = getAllProjects();
+  projSel.innerHTML = `<option value="">Tous (${projects.length})</option>` +
+    projects.map(p => `<option value="${escapeHTML(p)}">${escapeHTML(p)}</option>`).join('');
+  projSel.value = state.filters.project;
+
+  const squadSel = $('#squadSelect');
+  const squads = getAllSquads();
+  squadSel.innerHTML = `<option value="">Toutes (${squads.length})</option>` +
+    squads.map(s => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`).join('');
+  squadSel.value = state.filters.squad;
+
+  $('#typeSelect').value = state.filters.type;
+  $('#searchInput').value = state.filters.search;
+  syncLinkRiskUI();
+}
+
+function syncLinkRiskUI() {
+  const set = state.filters.linkRiskSet || new Set();
+  const labels = { ok: 'OK', risque: 'Risque', retard: 'Retard' };
+  const btn = $('#linkRiskBtn');
+  const wrap = $('#linkRiskWrap');
+  if (set.size === 0) btn.textContent = 'Tous ▾';
+  else btn.textContent = [...set].map(k => labels[k]).join(' + ') + ' ▾';
+  wrap.classList.toggle('has-selection', set.size > 0);
+  $$('#linkRiskMenu input[type="checkbox"]').forEach(cb => {
+    cb.checked = set.has(cb.dataset.value);
+  });
+}
+
+function renderStats() {
+  const items = getFilteredItems();
+  const features = items.filter(i => i.type === 'feature').length;
+  const us = items.filter(i => i.type === 'us').length;
+  const modified = items.filter(i => isItemModified(i.key)).length;
+  $('#stats').innerHTML = `
+    <span><strong>${features}</strong> features</span>
+    <span><strong>${us}</strong> US</span>
+    ${modified ? `<span style="color:var(--warn)"><strong>${modified}</strong> modifiées</span>` : ''}
+  `;
+}
+
+function renderCanvas() {
+  const layout = computeLayout();
+  state.layout = layout;
+  if (!layout) {
+    $('#cardsLayer').innerHTML = '';
+    $('#connectionsSvg').innerHTML = '';
+    return;
+  }
+
+  const world = $('#canvasWorld');
+  // size the world
+  const totalW = LAYOUT.SIDE_W + layout.totalW;
+  const totalH = LAYOUT.HEADER_H + layout.totalH;
+  world.style.width = totalW + 'px';
+  world.style.height = totalH + 'px';
+
+  // Sprint headers
+  const sprintHeadersEl = world.querySelector('.sprint-headers');
+  sprintHeadersEl.style.left = LAYOUT.SIDE_W + 'px';
+  sprintHeadersEl.style.width = layout.totalW + 'px';
+  sprintHeadersEl.innerHTML = layout.sprintCols.map(sp => {
+    const count = [...layout.placed.values()].filter(p => p.sprint === sp).length;
+    const isCurrent = sp === detectCurrentSprint(layout);
+    const isBacklog = sp === '__BACKLOG__';
+    return `<div class="sprint-header-cell ${isCurrent ? 'is-current' : ''} ${isBacklog ? 'is-backlog' : ''}">
+      <span class="sprint-name">${isBacklog ? '📋 Backlog' : 'Sprint ' + sp}</span>
+      <span class="sprint-count">${count}</span>
+    </div>`;
+  }).join('');
+
+  // Squad headers
+  const squadHeadersEl = world.querySelector('.squad-headers');
+  squadHeadersEl.innerHTML = layout.squadRows.map(sq => {
+    const info = layout.squadInfo.get(sq);
+    return `<div class="squad-header-cell" style="height:${info.h}px">
+      <div class="squad-name">${escapeHTML(sq)}</div>
+      <div class="squad-count">${info.count} item${info.count > 1 ? 's' : ''}</div>
+    </div>`;
+  }).join('');
+
+  // Grid lines (background)
+  const gridEl = world.querySelector('.grid-lines');
+  gridEl.style.width = layout.totalW + 'px';
+  gridEl.style.height = layout.totalH + 'px';
+  let gridHtml = '';
+  layout.sprintCols.forEach((sp, i) => {
+    if (i === 0) return;
+    gridHtml += `<div class="grid-col-line" style="left:${i * LAYOUT.COL_W}px"></div>`;
+  });
+  layout.squadRows.forEach((sq, i) => {
+    if (i === 0) return;
+    const info = layout.squadInfo.get(sq);
+    gridHtml += `<div class="grid-row-line" style="top:${info.y}px"></div>`;
+  });
+  gridEl.innerHTML = gridHtml;
+
+  // Cells layer (drop targets)
+  const cellsEl = world.querySelector('.cells-layer');
+  cellsEl.style.width = layout.totalW + 'px';
+  cellsEl.style.height = layout.totalH + 'px';
+  const currentSprint = detectCurrentSprint(layout);
+  let cellsHtml = '';
+  layout.squadRows.forEach(sq => {
+    const info = layout.squadInfo.get(sq);
+    layout.sprintCols.forEach(sp => {
+      const x = layout.sprintX.get(sp);
+      const y = info.y;
+      const isCur = sp === currentSprint;
+      cellsHtml += `<div class="cell ${isCur ? 'is-current-sprint' : ''}" data-squad="${escapeHTML(sq)}" data-sprint="${sp}"
+                       style="left:${x}px;top:${y}px;width:${LAYOUT.COL_W}px;height:${info.h}px"></div>`;
+    });
+  });
+  cellsEl.innerHTML = cellsHtml;
+  cellsEl.querySelectorAll('.cell').forEach(cell => {
+    cell.addEventListener('dragover', (e) => { e.preventDefault(); cell.classList.add('drag-over'); });
+    cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+    cell.addEventListener('drop', (e) => {
+      e.preventDefault();
+      cell.classList.remove('drag-over');
+      const key = e.dataTransfer.getData('text/plain');
+      if (key) moveSprint(key, cell.dataset.sprint, cell.dataset.squad);
+    });
+    // Badge "+N de plus" si overflow
+    const k = `${cell.dataset.squad}|${cell.dataset.sprint}`;
+    const ov = layout.overflow.get(k);
+    if (ov && ov.length) {
+      const badge = document.createElement('div');
+      badge.className = 'cell-overflow';
+      badge.textContent = `+${ov.length} de plus…`;
+      badge.title = ov.map(it => `${it.key} — ${it.summary}`).join('\n').slice(0, 1500);
+      badge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showOverflowList(ov, cell.dataset.squad, cell.dataset.sprint);
+      });
+      cell.appendChild(badge);
+    }
+  });
+
+  // Cards layer
+  const cardsEl = $('#cardsLayer');
+  cardsEl.style.left = LAYOUT.SIDE_W + 'px';
+  cardsEl.style.top = LAYOUT.HEADER_H + 'px';
+  cardsEl.style.width = layout.totalW + 'px';
+  cardsEl.style.height = layout.totalH + 'px';
+  cardsEl.innerHTML = '';
+  layout.placed.forEach(p => cardsEl.appendChild(makeCard(p)));
+
+  // Connections SVG
+  renderConnections(layout);
+
+  // Apply transform
+  applyViewTransform();
+
+  // First load: fit to screen if no zoom set
+  if (!state._fitDone) { fitToScreen(); state._fitDone = true; }
+}
+
+function detectCurrentSprint(layout) {
+  // Le sprint le plus récent où au moins une US est en construction/recette/revue
+  for (let i = layout.sprintCols.length - 1; i >= 0; i--) {
+    const sp = layout.sprintCols[i];
+    if (sp === '__BACKLOG__') continue;
+    const items = [...layout.placed.values()].filter(p => p.sprint === sp).map(p => p.item);
+    if (items.some(it => /developpement|construction|recette|revue/i.test(normalize(it.state)))) {
+      return sp;
+    }
+  }
+  return null;
+}
+
+function makeCard(placed) {
+  const { item, x, y } = placed;
+  const card = document.createElement('div');
+  card.className = 'card';
+  if (item.type === 'feature') card.classList.add('is-feature');
+  if (isItemModified(item.key)) card.classList.add('modified');
+  card.dataset.key = item.key;
+  card.style.left = x + 'px';
+  card.style.top = y + 'px';
+  card.style.borderLeftColor = stateColor(item.state);
+
+  const links = effectiveLinks(item);
+  const sprintMulti = splitMulti(effectiveSprint(item));
+  const tokens = sprintMulti.map(normalizeSprintToken).filter(Boolean);
+  const multiBadge = tokens.length > 1
+    ? `<span class="card-badge multi-sprint" title="${escapeHTML(sprintMulti.join(', '))}">⊞ ${tokens.length}</span>` : '';
+
+  let depsClass = 'deps';
+  if (links.some(l => /bloque|bloquée par/i.test(l.type))) depsClass = 'deps-blocked';
+  const depsBadge = links.length
+    ? `<span class="card-badge ${depsClass}" title="${escapeHTML(links.map(l => `${l.type} ${l.targetKey}`).join('\n'))}">🔗 ${links.length}</span>` : '';
+
+  const typeIcon = item.type === 'feature' ? '🎯' : '📝';
+  const assigneeShort = item.assignee ? item.assignee.split(' ').map(s => s[0] || '').slice(0, 2).join('') + ' ' + (item.assignee.split(' ').slice(-1)[0] || '') : '';
+
+  // Lien vers la feature parente (visible uniquement sur les US)
+  let parentLine = '';
+  if (item.type === 'us') {
+    const parent = getParentFeature(item.key);
+    if (parent) {
+      // Court extrait du résumé feature (sans les tags entre crochets et préfixes projet)
+      const stripped = (parent.summary || '')
+        .replace(/^\s*(\[[^\]]+\][\s:\-—]*)+/, '')
+        .trim();
+      const excerpt = stripped.length > 38 ? stripped.slice(0, 36) + '…' : stripped;
+      parentLine = `<div class="card-parent" data-parent-key="${parent.key}" title="Epic : ${escapeHTML(parent.summary)} (clic pour ouvrir)">
+        <span class="card-parent-tag">EPIC</span>
+        <span class="card-parent-key">${parent.key}</span>
+        <span class="card-parent-excerpt">${escapeHTML(excerpt)}</span>
+      </div>`;
+    }
+  }
+
+  // Pour features en vision feature : indication du sprint dérivé
+  let derivedBadge = '';
+  if (item.type === 'feature' && item._virtualSprint) {
+    derivedBadge = `<span class="card-badge derived" title="Sprint dérivé de l'US enfant la plus tardive">📍 ${item._virtualSprint}</span>`;
+  }
+
+  card.innerHTML = `
+    <div class="card-row1">
+      <span class="card-type-icon" title="${escapeHTML(item.ticketType)}">${typeIcon}</span>
+      <span class="card-key">${item.key}</span>
+      <div class="card-badges">${depsBadge}${multiBadge}${derivedBadge}</div>
+    </div>
+    ${parentLine}
+    <div class="card-summary" title="${escapeHTML(item.summary)}">${escapeHTML(item.summary)}</div>
+    <div class="card-meta">
+      <span class="card-state" style="color:${stateColor(item.state)};background:${stateColor(item.state)}1a">${escapeHTML(item.state || '?')}</span>
+      ${item.assignee ? `<span class="card-assignee" title="${escapeHTML(item.assignee)}">${escapeHTML(assigneeShort)}</span>` : ''}
+    </div>
+    <div class="card-connect-handle" title="Glisser pour créer une dépendance"></div>
+  `;
+
+  // Custom drag (plus fiable qu'HTML5 dans un canvas transformé)
+  card.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest('.card-connect-handle')) return;
+    if (e.target.closest('.card-parent')) return;
+    startCardDrag(card, item, e);
+  });
+
+  // Hover → highlight deps
+  card.addEventListener('mouseenter', () => highlightDeps(item.key));
+  card.addEventListener('mouseleave', () => clearHighlight());
+
+  // Connect handle: dépendance par drag
+  const handle = card.querySelector('.card-connect-handle');
+  handle.addEventListener('mousedown', (e) => {
+    e.stopPropagation(); e.preventDefault();
+    startConnection(item.key, e);
+  });
+
+  // Hover sur la mention feature parente → highlight les US sœurs
+  const parentEl = card.querySelector('.card-parent');
+  if (parentEl) {
+    parentEl.addEventListener('mouseenter', (e) => {
+      e.stopPropagation();
+      highlightFeatureGroup(parentEl.dataset.parentKey);
+    });
+    parentEl.addEventListener('mouseleave', () => clearHighlight());
+    parentEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectItem(parentEl.dataset.parentKey);
+    });
+  }
+
+  return card;
+}
+
+function startCardDrag(card, item, e) {
+  e.preventDefault();
+  const startX = e.clientX, startY = e.clientY;
+  let dragging = false;
+  let ghost = null;
+  let lastCellEl = null;
+
+  const onMove = (ev) => {
+    const dx = ev.clientX - startX, dy = ev.clientY - startY;
+    if (!dragging && Math.hypot(dx, dy) > 6) {
+      dragging = true;
+      card.classList.add('dragging');
+      // créer un ghost qui suit le curseur
+      ghost = card.cloneNode(true);
+      ghost.classList.add('drag-ghost');
+      ghost.classList.remove('dragging');
+      ghost.style.position = 'fixed';
+      ghost.style.pointerEvents = 'none';
+      ghost.style.zIndex = '999';
+      ghost.style.left = '0px';
+      ghost.style.top = '0px';
+      ghost.style.width = LAYOUT.CARD_W + 'px';
+      ghost.style.height = LAYOUT.CARD_H + 'px';
+      ghost.style.transformOrigin = 'top left';
+      document.body.appendChild(ghost);
+    }
+    if (dragging && ghost) {
+      const gx = ev.clientX - LAYOUT.CARD_W * state.zoom / 2;
+      const gy = ev.clientY - LAYOUT.CARD_H * state.zoom / 2;
+      ghost.style.transform = `translate(${gx}px, ${gy}px) scale(${state.zoom})`;
+      // Highlight cellule sous le curseur (scan tous les elements à ce point)
+      ghost.style.display = 'none';
+      const cellEl = findCellAtPoint(ev.clientX, ev.clientY);
+      ghost.style.display = '';
+      if (lastCellEl && lastCellEl !== cellEl) {
+        lastCellEl.classList.remove('drag-over');
+        lastCellEl = null;
+      }
+      if (cellEl) { cellEl.classList.add('drag-over'); lastCellEl = cellEl; }
+    }
+  };
+
+  const onUp = (ev) => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    card.classList.remove('dragging');
+    if (lastCellEl) lastCellEl.classList.remove('drag-over');
+    if (ghost) ghost.remove();
+    if (!dragging) {
+      // Clic simple → ouvrir détail
+      selectItem(item.key);
+      return;
+    }
+    // Drop : trouver la cellule sous le curseur
+    const cellEl = findCellAtPoint(ev.clientX, ev.clientY);
+    if (cellEl && cellEl.dataset.sprint && cellEl.dataset.sprint !== currentSprintToken(item)) {
+      moveSprint(item.key, cellEl.dataset.sprint);
+    }
+  };
+
+  function findCellAtPoint(cx, cy) {
+    const elems = document.elementsFromPoint(cx, cy);
+    return elems.find(e => e.classList && e.classList.contains('cell')) || null;
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+/* ============================================================
+   CONNECTIONS (SVG)
+   ============================================================ */
+
+function renderConnections(layout) {
+  const svg = $('#connectionsSvg');
+  const totalW = LAYOUT.SIDE_W + layout.totalW;
+  const totalH = LAYOUT.HEADER_H + layout.totalH;
+  svg.setAttribute('width', totalW);
+  svg.setAttribute('height', totalH);
+  svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+
+  // Compute arrows en canonicalisant et dédupliquant les liens
+  // (chaque pair Jira "A bloque B" + "B est bloquée par A" devient une seule flèche A→B)
+  const arrows = [];
+  const seenEdges = new Set();
+  layout.placed.forEach(p => {
+    effectiveLinks(p.item).forEach(link => {
+      const canon = canonicalLink(p.item.key, link.type, link.targetKey);
+      const sig = `${canon.kind}|${canon.src}|${canon.tgt}`;
+      if (seenEdges.has(sig)) return;
+      seenEdges.add(sig);
+      const srcP = layout.placed.get(canon.src);
+      const tgtP = layout.placed.get(canon.tgt);
+      if (!srcP || !tgtP) return;
+      arrows.push({ src: srcP, tgt: tgtP, link, kind: canon.kind });
+    });
+  });
+
+  // Filtre par catégorie de risque (multi-sélection)
+  const linkRiskSet = state.filters.linkRiskSet;
+  const filteredArrows = (linkRiskSet && linkRiskSet.size)
+    ? arrows.filter(a => linkRiskSet.has(classifyLinkStatus(a.src.item, a.tgt.item, a.kind)))
+    : arrows;
+
+  const defs = `<defs>
+    <marker id="arrowhead-default" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#818b98"/>
+    </marker>
+    <marker id="arrowhead-bloque" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#cf222e"/>
+    </marker>
+    <marker id="arrowhead-impl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8250df"/>
+    </marker>
+    <marker id="arrowhead-risque" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#bf6c00"/>
+    </marker>
+    <marker id="arrowhead-retard" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#cf222e"/>
+    </marker>
+  </defs>`;
+
+  // Origin offset (cards layer is at LAYOUT.SIDE_W, LAYOUT.HEADER_H)
+  const ox = LAYOUT.SIDE_W;
+  const oy = LAYOUT.HEADER_H;
+
+  let html = defs;
+  filteredArrows.forEach((a) => {
+    const sx = ox + a.src.x + LAYOUT.CARD_W;
+    const sy = oy + a.src.cy;
+    const tx = ox + a.tgt.x;
+    const ty = oy + a.tgt.cy;
+
+    const dx = tx - sx;
+    let path;
+    if (Math.abs(dx) < 40) {
+      const sxc = ox + a.src.cx;
+      const txc = ox + a.tgt.cx;
+      const syEdge = oy + (a.src.y + (ty < sy ? 0 : LAYOUT.CARD_H));
+      const tyEdge = oy + (a.tgt.y + (ty < sy ? LAYOUT.CARD_H : 0));
+      const midY = (syEdge + tyEdge) / 2;
+      path = `M ${sxc} ${syEdge} C ${sxc} ${midY}, ${txc} ${midY}, ${txc} ${tyEdge}`;
+    } else if (dx < 0) {
+      const sxL = ox + a.src.x;
+      const txR = ox + a.tgt.x + LAYOUT.CARD_W;
+      const ctrlOffset = 60;
+      path = `M ${sxL} ${sy} C ${sxL - ctrlOffset} ${sy}, ${txR + ctrlOffset} ${ty}, ${txR} ${ty}`;
+    } else {
+      const offset = Math.min(80, dx * 0.4);
+      path = `M ${sx} ${sy} C ${sx + offset} ${sy}, ${tx - offset} ${ty}, ${tx} ${ty}`;
+    }
+
+    const cls = linkClass(a.src.item, a.tgt.item, a.kind);
+    const marker = cls.includes('retard') ? 'arrowhead-retard'
+                 : cls.includes('risque') ? 'arrowhead-risque'
+                 : cls.includes('bloque') ? 'arrowhead-bloque'
+                 : cls.includes('implemente') ? 'arrowhead-impl'
+                 : 'arrowhead-default';
+    html += `<path class="conn ${cls}" d="${path}" marker-end="url(#${marker})" data-from="${a.src.item.key}" data-to="${a.tgt.item.key}" data-kind="${a.kind}"/>`;
+  });
+
+  svg.innerHTML = html;
+}
+
+// Canonicalise un lien (src, type, tgt) en (kind, srcCanon, tgtCanon) avec direction stable.
+// Permet de dédupliquer les pairs Jira "A bloque B" + "B est bloquée par A" en un seul edge.
+function canonicalLink(srcKey, type, tgtKey) {
+  const t = (type || '').toLowerCase();
+  // Liens "bloque" : direction de celui qui bloque vers celui qui est bloqué
+  if (/(^|[^a-z])(bloque par|bloquée par|blocked by|is blocked by)/.test(t) ||
+      t.includes('est bloquée par') || t.includes('est bloque par')) {
+    return { kind: 'BLOCK', src: tgtKey, tgt: srcKey };
+  }
+  if (/(^|[^a-z])(bloque|blocks)([^a-z]|$)/.test(t) || t === 'bloque' || t === 'blocks') {
+    return { kind: 'BLOCK', src: srcKey, tgt: tgtKey };
+  }
+  // Implémentation : feature → US
+  if (/implémenté par|is implemented by/.test(t)) {
+    return { kind: 'IMPL', src: tgtKey, tgt: srcKey };
+  }
+  if (/implémente|implements/.test(t)) {
+    return { kind: 'IMPL', src: srcKey, tgt: tgtKey };
+  }
+  // Lien neutre (lié / lie / linked) : bidirectionnel, on ordonne par clé
+  if (/lié|lie|linked|liée à/.test(t)) {
+    const [a, b] = [srcKey, tgtKey].sort();
+    return { kind: 'LINK', src: a, tgt: b };
+  }
+  if (t.includes('clone')) {
+    const [a, b] = [srcKey, tgtKey].sort();
+    return { kind: 'CLONE', src: a, tgt: b };
+  }
+  return { kind: 'OTHER', src: srcKey, tgt: tgtKey };
+}
+
+// Classe CSS du lien selon la catégorie (BLOCK/LINK/IMPL) + statut planning
+function linkClass(srcItem, tgtItem, kind) {
+  let cls = '';
+  if (kind === 'BLOCK') cls = 'bloque';
+  else if (kind === 'IMPL') cls = 'implemente';
+  else cls = 'lien';
+
+  const status = classifyLinkStatus(srcItem, tgtItem, kind);
+  if (status !== 'ok') cls += ' ' + status;
+  return cls;
+}
+
+// Classifie un lien selon le risque planning :
+//   'retard' : bloquant (source) sera livré APRÈS la cible (BLOCK avec srcSp > tgtSp)
+//   'risque' : sprints chevauchent (même sprint pour source et cible)
+//   'ok'     : pas de problème détecté
+//   'unknown': sprint manquant
+function classifyLinkStatus(srcItem, tgtItem, kind) {
+  const srcSp = currentSprintToken(srcItem);
+  const tgtSp = currentSprintToken(tgtItem);
+  if (!srcSp || !tgtSp) return 'unknown';
+  const cmp = compareSprintTokens(srcSp, tgtSp);
+  if (kind === 'BLOCK') {
+    if (cmp > 0) return 'retard';
+    if (cmp === 0) return 'risque';
+    return 'ok';
+  }
+  if (kind === 'IMPL') {
+    if (cmp > 0) return 'retard';
+    return 'ok';
+  }
+  // LINK / CLONE / OTHER : pas de précédence, juste signaler le chevauchement
+  if (cmp === 0) return 'risque';
+  return 'ok';
+}
+
+function highlightFeatureGroup(featureKey) {
+  // Highlight la feature + ses US enfants visibles sur le board
+  const feature = state.features.get(featureKey);
+  if (!feature) return;
+  const childKeys = new Set(findChildrenUS(featureKey).map(us => us.key));
+  childKeys.add(featureKey);
+  $$('.card').forEach(card => {
+    const k = card.dataset.key;
+    if (childKeys.has(k)) {
+      card.classList.add('feature-sibling');
+      card.classList.remove('dimmed');
+    } else {
+      card.classList.add('dimmed');
+    }
+  });
+  $$('.conn').forEach(p => p.classList.add('dimmed'));
+}
+
+function highlightDeps(key) {
+  state.hoveredKey = key;
+  // Ensemble des keys liées (sortantes + entrantes)
+  const linked = new Set([key]);
+  const item = getItem(key);
+  if (item) effectiveLinks(item).forEach(l => linked.add(l.targetKey));
+  // Entrantes
+  getAllItems().forEach(it => {
+    effectiveLinks(it).forEach(l => { if (l.targetKey === key) linked.add(it.key); });
+  });
+
+  $$('.card').forEach(card => {
+    const k = card.dataset.key;
+    if (k === key) {
+      card.classList.add('highlighted');
+      card.classList.remove('dimmed');
+    } else if (linked.has(k)) {
+      card.classList.remove('dimmed');
+      // Distinguer entrantes/sortantes
+      const isOutgoing = item && effectiveLinks(item).some(l => l.targetKey === k);
+      const isIncoming = effectiveLinks(getItem(k) || {links:[]}).some(l => l.targetKey === key);
+      if (isOutgoing) card.classList.add('dep-outgoing');
+      if (isIncoming) card.classList.add('dep-incoming');
+    } else {
+      card.classList.add('dimmed');
+    }
+  });
+
+  $$('.conn').forEach(p => {
+    if (p.dataset.from === key || p.dataset.to === key) {
+      p.classList.add('highlighted');
+      p.classList.remove('dimmed');
+    } else {
+      p.classList.add('dimmed');
+    }
+  });
+}
+
+function clearHighlight() {
+  state.hoveredKey = null;
+  $$('.card').forEach(c => c.classList.remove('highlighted', 'dimmed', 'dep-incoming', 'dep-outgoing', 'feature-sibling'));
+  $$('.conn').forEach(p => p.classList.remove('highlighted', 'dimmed'));
+  if (state.selectedKey) {
+    const card = document.querySelector(`.card[data-key="${state.selectedKey}"]`);
+    if (card) card.classList.add('highlighted');
+  }
+}
+
+/* ============================================================
+   PAN / ZOOM
+   ============================================================ */
+
+function applyViewTransform() {
+  const world = $('#canvasWorld');
+  world.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+  $('#zoomLevel').textContent = Math.round(state.zoom * 100) + '%';
+}
+
+function zoomBy(factor, anchorX, anchorY) {
+  const oldZoom = state.zoom;
+  const newZoom = Math.max(0.15, Math.min(2.5, oldZoom * factor));
+  if (newZoom === oldZoom) return;
+  // Garde le point sous le curseur stable
+  const vp = $('#canvasViewport').getBoundingClientRect();
+  if (anchorX === undefined) { anchorX = vp.width / 2; anchorY = vp.height / 2; }
+  const worldX = (anchorX - state.panX) / oldZoom;
+  const worldY = (anchorY - state.panY) / oldZoom;
+  state.zoom = newZoom;
+  state.panX = anchorX - worldX * newZoom;
+  state.panY = anchorY - worldY * newZoom;
+  applyViewTransform();
+  saveToStorage();
+}
+
+function fitToScreen() {
+  if (!state.layout) return;
+  const vp = $('#canvasViewport').getBoundingClientRect();
+  const totalW = LAYOUT.SIDE_W + state.layout.totalW;
+  // Zoom = ce qui rentre en largeur, capé à [0.4, 1.0]
+  state.zoom = Math.max(0.4, Math.min(1.0, vp.width / (totalW + 40)));
+  // Toujours montrer les squad headers : panX = 0 ou centré si le board rentre
+  const scaledW = totalW * state.zoom;
+  state.panX = scaledW < vp.width ? (vp.width - scaledW) / 2 : 0;
+  state.panY = 0;
+  applyViewTransform();
+  saveToStorage();
+}
+
+function showOverflowList(items, squad, sprint) {
+  // Affiche un overlay liste avec toutes les cards en overflow, cliquable
+  const existing = document.getElementById('overflowOverlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'overflowOverlay';
+  overlay.innerHTML = `
+    <div class="overflow-modal">
+      <div class="overflow-header">
+        <strong>${escapeHTML(squad)}</strong> • Sprint ${sprint === '__BACKLOG__' ? 'Backlog' : sprint}
+        <span class="muted">— ${items.length} item${items.length > 1 ? 's' : ''} non affiché${items.length > 1 ? 's' : ''}</span>
+        <button class="overflow-close">✕</button>
+      </div>
+      <div class="overflow-list">
+        ${items.map(it => `
+          <div class="overflow-row" data-key="${it.key}">
+            <span class="card-key">${it.key}</span>
+            <span class="card-state" style="color:${stateColor(it.state)};background:${stateColor(it.state)}1a">${escapeHTML(it.state || '?')}</span>
+            <span class="overflow-summary">${escapeHTML(it.summary)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector('.overflow-close').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelectorAll('.overflow-row').forEach(r => {
+    r.addEventListener('click', () => {
+      selectItem(r.dataset.key);
+      overlay.remove();
+    });
+  });
+}
+
+function setupPanZoom() {
+  const vp = $('#canvasViewport');
+
+  // Wheel = pan, Ctrl+wheel = zoom
+  vp.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      const rect = vp.getBoundingClientRect();
+      const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      zoomBy(factor, e.clientX - rect.left, e.clientY - rect.top);
+    } else {
+      state.panX -= e.deltaX;
+      state.panY -= e.deltaY;
+      applyViewTransform();
+    }
+  }, { passive: false });
+
+  // Drag fond pour pan
+  let panning = false;
+  let panStartX, panStartY, panStartPanX, panStartPanY;
+
+  vp.addEventListener('mousedown', (e) => {
+    // Si target est une card, le drag native HTML5 prendra le relais
+    if (e.target.closest('.card') || e.target.closest('#zoomControls') || e.target.closest('#helpOverlay')) return;
+    if (state.connecting) return;
+    panning = true;
+    panStartX = e.clientX; panStartY = e.clientY;
+    panStartPanX = state.panX; panStartPanY = state.panY;
+    vp.classList.add('panning');
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!panning) return;
+    state.panX = panStartPanX + (e.clientX - panStartX);
+    state.panY = panStartPanY + (e.clientY - panStartY);
+    applyViewTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (panning) { panning = false; vp.classList.remove('panning'); saveToStorage(); }
+  });
+
+  // Buttons
+  $('#btnZoomIn').addEventListener('click', () => zoomBy(1.2));
+  $('#btnZoomOut').addEventListener('click', () => zoomBy(1 / 1.2));
+  $('#btnZoomReset').addEventListener('click', () => {
+    state.zoom = 1;
+    applyViewTransform();
+    saveToStorage();
+  });
+  $('#btnFit').addEventListener('click', fitToScreen);
+}
+
+/* ============================================================
+   CONNECTION DRAG (drag from card handle to another card)
+   ============================================================ */
+
+function startConnection(srcKey, mouseEvent) {
+  state.connecting = { srcKey };
+  $('#canvasViewport').classList.add('connecting');
+
+  const placed = state.layout.placed.get(srcKey);
+  if (!placed) return;
+  const fromX = LAYOUT.SIDE_W + placed.x + LAYOUT.CARD_W;
+  const fromY = LAYOUT.HEADER_H + placed.cy;
+  state.connecting.fromX = fromX;
+  state.connecting.fromY = fromY;
+
+  const line = $('#connectingLine');
+  line.classList.remove('hidden');
+  const lineEl = line.querySelector('line');
+  lineEl.setAttribute('x1', fromX);
+  lineEl.setAttribute('y1', fromY);
+  // Convert mouse event to world coords using current transform
+  const wpos = clientToWorld(mouseEvent.clientX, mouseEvent.clientY);
+  lineEl.setAttribute('x2', wpos.x);
+  lineEl.setAttribute('y2', wpos.y);
+  // Position the SVG over canvas world (it's positioned absolute in viewport, NOT world,
+  // so we need to apply current transform manually)
+  positionConnectingLine();
+
+  window.addEventListener('mousemove', onConnectionMove);
+  window.addEventListener('mouseup', onConnectionUp);
+}
+
+function positionConnectingLine() {
+  // Move connecting line so it follows the world transform
+  const line = $('#connectingLine');
+  const vp = $('#canvasViewport').getBoundingClientRect();
+  line.setAttribute('width', vp.width);
+  line.setAttribute('height', vp.height);
+  line.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+  line.style.transformOrigin = '0 0';
+}
+
+function onConnectionMove(e) {
+  if (!state.connecting) return;
+  const wpos = clientToWorld(e.clientX, e.clientY);
+  const lineEl = $('#connectingLine line');
+  lineEl.setAttribute('x2', wpos.x);
+  lineEl.setAttribute('y2', wpos.y);
+}
+
+function onConnectionUp(e) {
+  window.removeEventListener('mousemove', onConnectionMove);
+  window.removeEventListener('mouseup', onConnectionUp);
+  $('#canvasViewport').classList.remove('connecting');
+  $('#connectingLine').classList.add('hidden');
+  if (!state.connecting) return;
+
+  // Check if released over a card
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  const tgtCard = target?.closest('.card');
+  const srcKey = state.connecting.srcKey;
+  state.connecting = null;
+
+  if (tgtCard && tgtCard.dataset.key && tgtCard.dataset.key !== srcKey) {
+    showLinkTypePopover(srcKey, tgtCard.dataset.key, e.clientX, e.clientY);
+  }
+}
+
+function clientToWorld(cx, cy) {
+  const vp = $('#canvasViewport').getBoundingClientRect();
+  const x = (cx - vp.left - state.panX) / state.zoom;
+  const y = (cy - vp.top - state.panY) / state.zoom;
+  return { x, y };
+}
+
+function showLinkTypePopover(srcKey, tgtKey, clientX, clientY) {
+  const pop = $('#linkTypePopover');
+  const vp = $('#canvasViewport').getBoundingClientRect();
+  pop.style.left = (clientX - vp.left + 8) + 'px';
+  pop.style.top = (clientY - vp.top + 8) + 'px';
+  pop.innerHTML = LINK_TYPES_CANONICAL.map(t => `<div class="lt-item" data-type="${escapeHTML(t)}">${escapeHTML(t)} <span class="muted small">${tgtKey}</span></div>`).join('') +
+    `<div class="lt-item lt-cancel" data-cancel="1">Annuler</div>`;
+  pop.classList.add('open');
+  pop.querySelectorAll('.lt-item').forEach(el => {
+    el.addEventListener('click', () => {
+      pop.classList.remove('open');
+      if (el.dataset.cancel) return;
+      addDependency(srcKey, tgtKey, el.dataset.type);
+    });
+  });
+  // Click outside to close
+  setTimeout(() => {
+    document.addEventListener('mousedown', closeLinkPopover, { once: true });
+  }, 0);
+}
+
+function closeLinkPopover(e) {
+  const pop = $('#linkTypePopover');
+  if (!pop.contains(e.target)) pop.classList.remove('open');
+}
+
+/* ============================================================
+   SIDE PANEL
+   ============================================================ */
+
+function selectItem(key) {
+  const item = getItem(key);
+  if (!item) return;
+  // En vision Feature, clic sur une feature → popup tableau de ses US
+  if (state.filters.type === 'feature' && item.type === 'feature') {
+    showFeatureUsPopup(item);
+    return;
+  }
+  state.selectedKey = key;
+  $('#sidePanel').classList.remove('hidden');
+  renderSidePanel();
+  $$('.card').forEach(c => c.classList.toggle('highlighted', c.dataset.key === key));
+}
+
+function showFeatureUsPopup(feature) {
+  const existing = document.getElementById('featurePopup');
+  if (existing) existing.remove();
+  const children = findChildrenUS(feature.key);
+  // Trier par sprint puis par clé
+  children.sort((a, b) => {
+    const aSp = currentSprintToken(a), bSp = currentSprintToken(b);
+    const c = compareSprintTokens(aSp, bSp);
+    return c !== 0 ? c : a.key.localeCompare(b.key);
+  });
+  const overlay = document.createElement('div');
+  overlay.id = 'featurePopup';
+  overlay.innerHTML = `
+    <div class="feature-popup-modal">
+      <div class="feature-popup-header">
+        <span class="card-key" style="color:var(--feature)">${feature.key}</span>
+        <strong>${escapeHTML(feature.summary)}</strong>
+        <span class="muted small">— ${children.length} US enfant${children.length > 1 ? 's' : ''}</span>
+        <button class="overflow-close">✕</button>
+      </div>
+      <div class="feature-popup-meta">
+        <span><strong>Projet :</strong> ${escapeHTML(feature.project)}</span>
+        <span><strong>Squad :</strong> ${escapeHTML(feature.squad)}</span>
+        <span><strong>État :</strong> <span class="card-state" style="color:${stateColor(feature.state)};background:${stateColor(feature.state)}1a">${escapeHTML(feature.state)}</span></span>
+        <span><strong>Incrément :</strong> ${escapeHTML(feature.increment || '—')}</span>
+      </div>
+      ${children.length === 0
+        ? '<div class="muted" style="padding:20px;text-align:center">Aucune US enfant détectée (via les liens sortants de la feature).</div>'
+        : `
+        <table class="feature-us-table">
+          <thead>
+            <tr><th>Clé</th><th>Résumé</th><th>État</th><th>Sprint</th><th>Squad</th></tr>
+          </thead>
+          <tbody>
+            ${children.map(us => `
+              <tr data-key="${us.key}">
+                <td><span class="card-key">${us.key}</span></td>
+                <td class="us-summary">${escapeHTML(us.summary)}</td>
+                <td><span class="card-state" style="color:${stateColor(us.state)};background:${stateColor(us.state)}1a">${escapeHTML(us.state || '?')}</span></td>
+                <td>${currentSprintToken(us) ? 'Sprint ' + currentSprintToken(us) : '<span class="muted">Backlog</span>'}</td>
+                <td>${escapeHTML(us.squad)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector('.overflow-close').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelectorAll('tbody tr').forEach(r => {
+    r.addEventListener('click', () => {
+      overlay.remove();
+      // basculer en vision US et sélectionner l'item
+      state.filters.type = 'us';
+      $('#typeSelect').value = 'us';
+      rerender();
+      setTimeout(() => selectItem(r.dataset.key), 100);
+    });
+  });
+}
+
+function closePanel() {
+  $('#sidePanel').classList.add('hidden');
+  state.selectedKey = null;
+  $$('.card').forEach(c => c.classList.remove('highlighted'));
+}
+
+function renderSidePanel() {
+  const item = getItem(state.selectedKey);
+  if (!item) { closePanel(); return; }
+  const m = state.modifications[item.key] || {};
+  const links = effectiveLinks(item);
+  const sprintEff = effectiveSprint(item);
+  const sprintModified = m.sprint !== undefined;
+  const incomingLinks = findIncomingLinks(item.key);
+
+  $('#panelKey').textContent = item.key;
+  $('#panelTitle').textContent = item.ticketType + ' • ' + item.project;
+
+  // Feature parente (US uniquement)
+  let parentBlock = '';
+  if (item.type === 'us') {
+    const parent = getParentFeature(item.key);
+    const isManualOverride = m && 'parentKey' in m;
+    parentBlock = `
+      <h3>🎯 Feature parente${isManualOverride ? ' (rattachée manuellement)' : ''}</h3>
+      <div class="parent-edit-block">
+        ${parent
+          ? `<div class="parent-current">
+               <span class="card-parent-tag">EPIC</span>
+               <span class="card-parent-key" onclick="selectItem('${parent.key}')">${parent.key}</span>
+               <span class="parent-current-summary">${escapeHTML(parent.summary)}</span>
+             </div>`
+          : `<div class="muted small">Aucune feature détectée. Tu peux la rattacher manuellement ci-dessous.</div>`}
+        <div class="row" style="margin-top:6px">
+          <input type="text" id="parentInput" placeholder="Clé feature ou recherche" autocomplete="off" style="flex:1">
+          <button id="btnSetParent" class="primary">Rattacher</button>
+          ${parent ? `<button id="btnDetachParent" class="danger" title="Détacher cette US">✕</button>` : ''}
+        </div>
+        <div id="parentTypeahead"></div>
+      </div>
+    `;
+  }
+
+  $('#panelBody').innerHTML = `
+    <div class="summary-block">${escapeHTML(item.summary)}</div>
+    <div class="field-line"><span class="label">Type</span><span class="value">${escapeHTML(item.ticketType)}</span></div>
+    <div class="field-line"><span class="label">Projet</span><span class="value">${escapeHTML(item.project)}</span></div>
+    <div class="field-line"><span class="label">Squad</span><span class="value">${escapeHTML(item.squad)}</span></div>
+    <div class="field-line"><span class="label">État</span><span class="value"><span class="card-state" style="background:${stateColor(item.state)}33;color:${stateColor(item.state)}">${escapeHTML(item.state)}</span>${item.resolution ? ` <span class="muted">(${escapeHTML(item.resolution)})</span>` : ''}</span></div>
+    <div class="field-line"><span class="label">Assigné</span><span class="value">${escapeHTML(item.assignee || '—')}</span></div>
+    <div class="field-line"><span class="label">Rapporteur</span><span class="value">${escapeHTML(item.reporter || '—')}</span></div>
+    ${item.priority ? `<div class="field-line"><span class="label">Priorité</span><span class="value">${escapeHTML(item.priority)}</span></div>` : ''}
+    <div class="field-line"><span class="label">Échéance</span><span class="value">${fmtDate(item.dueDate) || '—'}</span></div>
+    <div class="field-line ${sprintModified ? 'modified' : ''}"><span class="label">Sprint</span><span class="value">${escapeHTML(sprintEff || '—')}</span></div>
+    <div class="field-line"><span class="label">Incrément</span><span class="value">${escapeHTML(item.increment || '—')}</span></div>
+    ${parentBlock}
+
+    <h3>🔗 Dépendances sortantes (${links.length})</h3>
+    <div class="deps-list">
+      ${links.length ? links.map(l => renderDepItem(l, item)).join('') : '<div class="muted small">Aucune</div>'}
+    </div>
+
+    <h3>↩ Dépendances entrantes (${incomingLinks.length})</h3>
+    <div class="deps-list">
+      ${incomingLinks.length ? incomingLinks.map(l => renderIncomingDepItem(l)).join('') : '<div class="muted small">Aucune</div>'}
+    </div>
+
+    <h3>➕ Ajouter une dépendance</h3>
+    <div class="add-dep-form">
+      <div class="row">
+        <input type="text" id="depTargetInput" placeholder="Clé Jira ou recherche" autocomplete="off">
+        <select id="depTypeSelect">
+          ${LINK_TYPES_CANONICAL.map(t => `<option value="${t}">${t}</option>`).join('')}
+        </select>
+      </div>
+      <div id="depTypeahead"></div>
+      <div class="row">
+        <button class="primary" id="btnAddDep" style="flex:1">Ajouter le lien</button>
+      </div>
+    </div>
+
+    ${isItemModified(item.key) ? `
+      <h3>Modifications locales</h3>
+      <button class="danger" onclick="resetItem('${item.key}')">↺ Annuler les modifs sur ${item.key}</button>
+    ` : ''}
+  `;
+
+  const targetInput = $('#depTargetInput');
+  const typeSelect = $('#depTypeSelect');
+  const taContainer = $('#depTypeahead');
+  let selectedTarget = null;
+
+  targetInput.addEventListener('input', () => {
+    const q = normalize(targetInput.value);
+    if (!q) { taContainer.innerHTML = ''; selectedTarget = null; return; }
+    const matches = getAllItems()
+      .filter(it => it.key !== item.key)
+      .filter(it => normalize(it.key).includes(q) || normalize(it.summary).includes(q))
+      .slice(0, 8);
+    taContainer.innerHTML = matches.length ? `
+      <div class="typeahead-results">
+        ${matches.map(it => `
+          <div class="ta-item" data-key="${it.key}">
+            <span class="ta-key">${it.key}</span>
+            <span class="muted small"> ${escapeHTML(it.summary).slice(0, 80)}</span>
+          </div>
+        `).join('')}
+      </div>
+    ` : '';
+    taContainer.querySelectorAll('.ta-item').forEach(el => {
+      el.addEventListener('click', () => {
+        targetInput.value = el.dataset.key;
+        selectedTarget = el.dataset.key;
+        taContainer.innerHTML = '';
+      });
+    });
+  });
+
+  $('#btnAddDep').addEventListener('click', () => {
+    const tgt = (selectedTarget || targetInput.value).trim().toUpperCase();
+    if (!tgt) { toast('Spécifie une clé cible', 'warn'); return; }
+    addDependency(item.key, tgt, typeSelect.value);
+    targetInput.value = ''; selectedTarget = null; taContainer.innerHTML = '';
+  });
+
+  // Wiring du sélecteur de feature parente (uniquement sur US)
+  const parentInput = $('#parentInput');
+  if (parentInput && item.type === 'us') {
+    const parentTa = $('#parentTypeahead');
+    let chosenParent = null;
+    parentInput.addEventListener('input', () => {
+      const q = normalize(parentInput.value);
+      if (!q) { parentTa.innerHTML = ''; chosenParent = null; return; }
+      const matches = [...state.features.values()]
+        .filter(f => normalize(f.key).includes(q) || normalize(f.summary).includes(q))
+        .slice(0, 8);
+      parentTa.innerHTML = matches.length ? `
+        <div class="typeahead-results">
+          ${matches.map(f => `
+            <div class="ta-item" data-key="${f.key}">
+              <span class="ta-key">${f.key}</span>
+              <span class="muted small"> ${escapeHTML(f.summary).slice(0, 80)}</span>
+            </div>
+          `).join('')}
+        </div>` : '';
+      parentTa.querySelectorAll('.ta-item').forEach(el => {
+        el.addEventListener('click', () => {
+          parentInput.value = el.dataset.key;
+          chosenParent = el.dataset.key;
+          parentTa.innerHTML = '';
+        });
+      });
+    });
+    $('#btnSetParent').addEventListener('click', () => {
+      const key = (chosenParent || parentInput.value).trim().toUpperCase();
+      if (!key) { toast('Spécifie une feature', 'warn'); return; }
+      setParentFeature(item.key, key);
+    });
+    const btnDetach = $('#btnDetachParent');
+    if (btnDetach) btnDetach.addEventListener('click', () => setParentFeature(item.key, null));
+  }
+}
+
+function renderDepItem(link, srcItem) {
+  const target = getItem(link.targetKey);
+  const impact = computeImpact(srcItem, target, link);
+  return `
+    <div class="dep-item ${link._added ? 'added' : ''}">
+      <span class="dep-type">${escapeHTML(link.type)}</span>
+      <span class="dep-key" onclick="selectItem('${link.targetKey}')">${link.targetKey}</span>
+      <span class="dep-summary">${escapeHTML(target?.summary || '(externe)')}</span>
+      ${impact ? `<span class="dep-impact ${impact.cls}" title="${escapeHTML(impact.tooltip)}">${impact.label}</span>` : ''}
+      <button class="dep-remove" title="Supprimer le lien" onclick="removeDependency('${srcItem.key}', '${link.targetKey}', '${escapeHTML(link.type)}', ${!!link._added})">✕</button>
+    </div>
+  `;
+}
+
+function renderIncomingDepItem(link) {
+  const src = getItem(link.srcKey);
+  return `
+    <div class="dep-item">
+      <span class="dep-type">${escapeHTML(link.type)}</span>
+      <span class="dep-key" onclick="selectItem('${link.srcKey}')">${link.srcKey}</span>
+      <span class="dep-summary">${escapeHTML(src?.summary || '')}</span>
+    </div>
+  `;
+}
+
+function findIncomingLinks(key) {
+  const result = [];
+  getAllItems().forEach(it => {
+    effectiveLinks(it).forEach(l => {
+      if (l.targetKey === key) result.push({ srcKey: it.key, type: l.type });
+    });
+  });
+  return result;
+}
+
+function computeImpact(src, tgt, link) {
+  if (!tgt) return { cls: 'cible-hors-pi', label: 'Hors export', tooltip: 'Cible absente du fichier Excel' };
+  const tgtPi = splitMulti(tgt.increment);
+  const piFilter = state.filters.pi;
+  if (piFilter && !tgtPi.includes(piFilter)) {
+    return { cls: 'cible-hors-pi', label: 'Hors PI', tooltip: `Cible incrément: ${tgt.increment}` };
+  }
+  const srcSp = currentSprintToken(src), tgtSp = currentSprintToken(tgt);
+  if (srcSp && tgtSp && compareSprintTokens(tgtSp, srcSp) > 0) {
+    return { cls: 'tendu', label: 'TENDU', tooltip: `Cible ${tgtSp} après source ${srcSp}` };
+  }
+  return { cls: 'ok', label: 'OK', tooltip: '' };
+}
+
+/* ============================================================
+   CHANGELOG VIEW
+   ============================================================ */
+
+function renderLog() {
+  const list = $('#logList');
+  if (!state.changelog.length) {
+    list.innerHTML = `<div class="log-empty">Aucune modification pour l'instant.<br><br>Déplace des cartes ou utilise la poignée bleue 🔵 sur les cards pour créer un lien.</div>`;
+    return;
+  }
+  list.innerHTML = state.changelog.map(e => renderLogEntry(e)).join('');
+}
+
+function renderLogEntry(e) {
+  let actionLabel = '', actionCls = '', detail = '';
+  switch (e.action) {
+    case 'move_sprint':
+      actionLabel = '⇄ Déplacement de sprint'; actionCls = 'action-move';
+      detail = `<code>${e.key}</code> • ${escapeHTML(e.oldValue)} <span class="log-arrow">→</span> ${escapeHTML(e.newValue)}`;
+      break;
+    case 'add_dep':
+      actionLabel = '➕ Ajout dépendance'; actionCls = 'action-add-dep';
+      detail = `<code>${e.key}</code> <em>${escapeHTML(e.linkType)}</em> <code>${e.targetKey}</code>`;
+      break;
+    case 'remove_dep':
+      actionLabel = '➖ Suppression dépendance'; actionCls = 'action-remove-dep';
+      detail = `<code>${e.key}</code> <em>${escapeHTML(e.linkType)}</em> <code>${e.targetKey}</code>${e.wasAdded ? ' (lien ajouté localement)' : ''}`;
+      break;
+    case 'set_parent':
+      actionLabel = '🎯 Rattachement Epic'; actionCls = 'action-add-dep';
+      detail = `<code>${e.key}</code> • ${escapeHTML(e.oldValue)} <span class="log-arrow">→</span> ${escapeHTML(e.newValue)}`;
+      break;
+    default:
+      actionLabel = e.action; detail = JSON.stringify(e);
+  }
+  return `
+    <div class="log-entry">
+      <div class="log-meta">${fmtTimestamp(e.ts)}${e.project ? ' • ' + escapeHTML(e.project) : ''}${e.squad ? ' • ' + escapeHTML(e.squad) : ''}</div>
+      <div><span class="log-action ${actionCls}">${actionLabel}</span></div>
+      <div class="log-detail">${detail}</div>
+      ${e.summary ? `<div class="log-detail muted small">${escapeHTML(e.summary).slice(0, 100)}</div>` : ''}
+    </div>
+  `;
+}
+
+function updateLogCount() {
+  const n = state.changelog.length;
+  const badge = $('#logCount');
+  badge.textContent = n;
+  badge.style.display = n ? 'inline-block' : 'none';
+}
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+
+function exportMd() {
+  if (!state.changelog.length) { toast('Aucune modification à exporter', 'warn'); return; }
+  const lines = [];
+  lines.push(`# Compte-rendu des modifications — Program Board`); lines.push('');
+  lines.push(`Généré le **${new Date().toLocaleString('fr-FR')}**.`);
+  if (state.fileName) lines.push(`Source : \`${state.fileName}\` (chargé le ${state.loadedAt})`);
+  lines.push('');
+  lines.push(`**${state.changelog.length}** modification(s) à reporter dans Jira.`); lines.push('');
+
+  const moves = state.changelog.filter(e => e.action === 'move_sprint');
+  const addedDeps = state.changelog.filter(e => e.action === 'add_dep');
+  const removedDeps = state.changelog.filter(e => e.action === 'remove_dep');
+  const parents = state.changelog.filter(e => e.action === 'set_parent');
+
+  if (moves.length) {
+    lines.push(`## ⇄ Déplacements de sprint (${moves.length})`); lines.push('');
+    lines.push('| Date | Clé | Projet | Sprint avant | Sprint après | Résumé |');
+    lines.push('|------|-----|--------|--------------|--------------|--------|');
+    moves.forEach(e => {
+      lines.push(`| ${fmtTimestamp(e.ts)} | \`${e.key}\` | ${e.project || ''} | ${e.oldValue} | ${e.newValue} | ${(e.summary || '').replace(/\|/g,'\\|').slice(0,80)} |`);
+    });
+    lines.push('');
+  }
+  if (addedDeps.length) {
+    lines.push(`## ➕ Liens ajoutés (${addedDeps.length})`); lines.push('');
+    lines.push('| Date | Source | Type | Cible | Résumé source |');
+    lines.push('|------|--------|------|-------|---------------|');
+    addedDeps.forEach(e => {
+      lines.push(`| ${fmtTimestamp(e.ts)} | \`${e.key}\` | ${e.linkType} | \`${e.targetKey}\` | ${(e.summary || '').replace(/\|/g,'\\|').slice(0,80)} |`);
+    });
+    lines.push('');
+  }
+  if (removedDeps.length) {
+    lines.push(`## ➖ Liens supprimés (${removedDeps.length})`); lines.push('');
+    lines.push("| Date | Source | Type | Cible | Lien d'origine ? |");
+    lines.push('|------|--------|------|-------|------------------|');
+    removedDeps.forEach(e => {
+      lines.push(`| ${fmtTimestamp(e.ts)} | \`${e.key}\` | ${e.linkType} | \`${e.targetKey}\` | ${e.wasAdded ? 'Non (ajouté localement)' : 'Oui (présent dans Jira)'} |`);
+    });
+    lines.push('');
+  }
+  if (parents.length) {
+    lines.push(`## 🎯 Rattachements Epic (${parents.length})`); lines.push('');
+    lines.push('| Date | US | Avant | Après | Résumé US |');
+    lines.push('|------|----|-------|-------|-----------|');
+    parents.forEach(e => {
+      lines.push(`| ${fmtTimestamp(e.ts)} | \`${e.key}\` | ${e.oldValue} | ${e.newValue} | ${(e.summary || '').replace(/\|/g,'\\|').slice(0,80)} |`);
+    });
+    lines.push('');
+  }
+
+  lines.push('---'); lines.push('## Journal complet (chronologique)'); lines.push('');
+  state.changelog.slice().reverse().forEach(e => {
+    lines.push(`- **${fmtTimestamp(e.ts)}** — ${e.action} \`${e.key}\` ${e.action === 'move_sprint' ? `: ${e.oldValue} → ${e.newValue}` : `${e.linkType} \`${e.targetKey || ''}\``}`);
+  });
+
+  download(`program-board_modifs_${dateStamp()}.md`, lines.join('\n'), 'text/markdown');
+}
+
+function exportCsv() {
+  if (!state.changelog.length) { toast('Aucune modification à exporter', 'warn'); return; }
+  const rows = [['timestamp','action','key','project','squad','summary','field','old_value','new_value','target_key','link_type','was_added']];
+  state.changelog.slice().reverse().forEach(e => {
+    if (e.action === 'move_sprint') rows.push([e.ts, e.action, e.key, e.project, e.squad, e.summary, 'sprint', e.oldValue, e.newValue, '', '', '']);
+    else if (e.action === 'add_dep') rows.push([e.ts, e.action, e.key, e.project, e.squad, e.summary, 'links', '', '', e.targetKey, e.linkType, '']);
+    else if (e.action === 'remove_dep') rows.push([e.ts, e.action, e.key, e.project, e.squad, e.summary, 'links', e.linkType + ' ' + e.targetKey, '', e.targetKey, e.linkType, e.wasAdded ? 'true' : 'false']);
+    else if (e.action === 'set_parent') rows.push([e.ts, e.action, e.key, e.project, e.squad, e.summary, 'epic', e.oldValue, e.newValue, e.newValue, '', '']);
+  });
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+  download(`program-board_modifs_${dateStamp()}.csv`, '﻿' + csv, 'text/csv');
+}
+
+function csvEscape(v) {
+  if (v == null) return '';
+  const s = String(v);
+  if (/[",\n;]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+function dateStamp() {
+  const d = new Date();
+  return d.toISOString().slice(0,10).replace(/-/g,'') + '_' + d.toTimeString().slice(0,5).replace(':','');
+}
+function download(filename, content, mime = 'text/plain') {
+  const blob = new Blob([content], { type: mime + ';charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`Fichier ${filename} téléchargé`, 'success');
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+function toast(msg, kind = 'info', duration = 3000) {
+  const wrap = $('#toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind;
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transition = 'opacity 0.2s';
+    setTimeout(() => t.remove(), 200);
+  }, duration);
+}
+
+/* ============================================================
+   FILE LOADING
+   ============================================================ */
+
+async function handleFile(file) {
+  if (!file) return;
+  try {
+    toast(`Lecture de ${file.name}...`, 'info', 1200);
+    const buf = await file.arrayBuffer();
+    const parsed = parseExcel(buf);
+    state.features = parsed.features;
+    state.us = parsed.us;
+    state.squads = parsed.squads;
+    state.fileName = file.name;
+    state.loadedAt = new Date().toLocaleString('fr-FR');
+    state.filters.pi = '';
+    state._fitDone = false;
+    invalidateParentCache();
+    rerender();
+    toast(`✓ ${parsed.features.size} features et ${parsed.us.size} US chargées`, 'success', 4000);
+  } catch (e) {
+    console.error(e);
+    toast('Erreur de lecture : ' + e.message, 'error', 6000);
+  }
+}
+
+/* ============================================================
+   EVENT WIRING
+   ============================================================ */
+
+window.selectItem = selectItem;
+window.removeDependency = removeDependency;
+window.resetItem = resetItem;
+window.app = { handleFile, parseExcel, state, getAllItems, getFilteredItems, getAllPIs, computeLayout, rerender, moveSprint, addDependency, setParentFeature, getParentFeature, findChildrenUS, fitToScreen, zoomBy };
+
+function init() {
+  loadFromStorage();
+  updateLogCount();
+  renderLog();
+
+  $('#btnLoad').addEventListener('click', () => $('#fileInput').click());
+  $('#fileInput').addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+  const dz = $('#dropZone');
+  dz.addEventListener('click', () => $('#fileInput').click());
+  ['dragenter','dragover'].forEach(evt => dz.addEventListener(evt, (e) => { e.preventDefault(); dz.classList.add('over'); }));
+  ['dragleave','drop'].forEach(evt => dz.addEventListener(evt, (e) => { e.preventDefault(); dz.classList.remove('over'); }));
+  dz.addEventListener('drop', (e) => {
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  $('#piSelect').addEventListener('change', (e) => { state.filters.pi = e.target.value; state._fitDone = false; rerender(); });
+  $('#projectSelect').addEventListener('change', (e) => { state.filters.project = e.target.value; state._fitDone = false; rerender(); });
+  $('#squadSelect').addEventListener('change', (e) => { state.filters.squad = e.target.value; state._fitDone = false; rerender(); });
+  $('#typeSelect').addEventListener('change', (e) => { state.filters.type = e.target.value; rerender(); });
+  $('#searchInput').addEventListener('input', (e) => { state.filters.search = e.target.value; rerender(); });
+  // Multi-select Liens
+  const linkRiskWrap = $('#linkRiskWrap');
+  const linkRiskBtn = $('#linkRiskBtn');
+  linkRiskBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    linkRiskWrap.classList.toggle('open');
+  });
+  document.addEventListener('mousedown', (e) => {
+    if (!linkRiskWrap.contains(e.target)) linkRiskWrap.classList.remove('open');
+  });
+  $$('#linkRiskMenu input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (!state.filters.linkRiskSet) state.filters.linkRiskSet = new Set();
+      if (cb.checked) state.filters.linkRiskSet.add(cb.dataset.value);
+      else state.filters.linkRiskSet.delete(cb.dataset.value);
+      syncLinkRiskUI();
+      saveToStorage();
+      rerender();
+    });
+  });
+
+  $('#btnClosePanel').addEventListener('click', closePanel);
+  $('#btnLog').addEventListener('click', () => {
+    $('#logDrawer').classList.toggle('open');
+    if ($('#logDrawer').classList.contains('open')) renderLog();
+  });
+  $('#btnCloseLog').addEventListener('click', () => $('#logDrawer').classList.remove('open'));
+  $('#btnLogClear').addEventListener('click', () => {
+    if (!confirm('Vider le journal ? (les modifications sur les items restent)')) return;
+    state.changelog = []; saveToStorage(); updateLogCount(); renderLog();
+    toast('Journal vidé', 'info');
+  });
+  $('#btnLogExportMd').addEventListener('click', exportMd);
+  $('#btnLogExportCsv').addEventListener('click', exportCsv);
+  $('#btnExportMd').addEventListener('click', exportMd);
+  $('#btnExportCsv').addEventListener('click', exportCsv);
+  $('#btnReset').addEventListener('click', resetAll);
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'Escape') {
+      closePanel();
+      $('#logDrawer').classList.remove('open');
+      $('#linkTypePopover').classList.remove('open');
+    }
+    if (e.key === 'l' || e.key === 'L') $('#btnLog').click();
+    if (e.key === 'f' || e.key === 'F') fitToScreen();
+    if (e.key === '+' || e.key === '=') zoomBy(1.2);
+    if (e.key === '-') zoomBy(1 / 1.2);
+    if (e.key === '0') { state.zoom = 1; applyViewTransform(); saveToStorage(); }
+  });
+
+  setupPanZoom();
+}
+
+init();
+</script>
+</body>
+</html>
