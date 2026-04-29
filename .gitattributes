@@ -1,0 +1,18 @@
+# Normalise les fins de ligne — LF par défaut, exceptions Windows-only ci-dessous.
+* text=auto eol=lf
+
+# Scripts Windows : garder CRLF pour rester exécutables par cmd.exe / Task Scheduler.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binaires (sûreté — `text=auto` les détecte déjà mais on est explicite).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
