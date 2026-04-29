@@ -1490,14 +1490,45 @@
     return Math.max(0, Math.round((today - d) / 86400000));
   }
 
+  // Pipeline writes ~13 distinct shapes for rubric_justif (mixed EN/FR,
+  // abbreviated, single-axis fallbacks). Normalize all of them to the
+  // {axis, text} array the panel renders.
+  const ROLE_LABELS_RUBRIC = {
+    sr_pm: "Senior PM", pm: "Product Manager", hop: "Head of Product",
+    vp: "VP Product", cpo: "CPO", rte: "Release Train Engineer",
+    pgm: "Program Manager", pjm: "Project Manager", cos: "Chief of Staff",
+  };
   function transformJobRubric(rubric){
     if (!rubric) return [];
     if (Array.isArray(rubric)) return rubric;
-    return [
-      { axis: "Séniorité", text: rubric.seniority || "" },
-      { axis: "Secteur",   text: rubric.sector    || "" },
-      { axis: "Impact",    text: rubric.impact    || "" },
-    ].filter(r => r.text);
+    if (typeof rubric !== "object") return [];
+
+    // Three-axis shapes: EN, FR, FR-abbreviated, partial, mixed.
+    const sen = rubric.seniority || rubric.seniorite || rubric.sen || "";
+    const sec = rubric.sector    || rubric.secteur   || rubric.sec || "";
+    const imp = rubric.impact    || rubric.imp       || "";
+    const bonus = rubric.bonus || "";
+    const tri = [
+      sen ? { axis: "Séniorité", text: sen } : null,
+      sec ? { axis: "Secteur",   text: sec } : null,
+      imp ? { axis: "Impact",    text: imp } : null,
+      bonus ? { axis: "Bonus",   text: bonus } : null,
+    ].filter(Boolean);
+    if (tri.length) return tri;
+
+    // Single-axis fallbacks — written when the pipeline can't derive the
+    // full 3-axis rubric (low-info offer, red-flag-only match, role tag).
+    if (rubric.role) {
+      const slug = String(rubric.role).toLowerCase();
+      return [{ axis: "Match rôle", text: ROLE_LABELS_RUBRIC[slug] || String(rubric.role) }];
+    }
+    if (rubric.note)    return [{ axis: "Note",      text: String(rubric.note) }];
+    if (rubric.reason)  return [{ axis: "Note",      text: String(rubric.reason) }];
+    if (rubric.redflag || rubric.red_flag) {
+      return [{ axis: "Vigilance", text: String(rubric.redflag || rubric.red_flag) }];
+    }
+    if (rubric.gap)     return [{ axis: "Lacune",    text: String(rubric.gap) }];
+    return [];
   }
 
   function transformJobIntel(intel){
@@ -1581,17 +1612,19 @@
     const MONTHS_FR_SCAN = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
     const DAYS_FR_SCAN   = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
     const today = new Date();
-    // 7-day volumes Mon→Sun for the current ISO week
+    // 7-day volumes Mon→Sun for the current ISO week. Build the iso key
+    // from local date components — `toISOString()` returns UTC and shifts
+    // the day around midnight in non-UTC zones, leaving columns blank.
     const dayOfWeek = (today.getDay() + 6) % 7; // Mon=0
     const monday = new Date(today); monday.setHours(0,0,0,0);
     monday.setDate(today.getDate() - dayOfWeek);
+    const isoLocal = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     const byDate = {};
     (last7Scans || []).forEach(s => { if (s.scan_date) byDate[s.scan_date] = s; });
     const volumes_7d = [];
     for (let i = 0; i < 7; i++){
       const d = new Date(monday); d.setDate(monday.getDate() + i);
-      const iso = d.toISOString().slice(0, 10);
-      volumes_7d.push(Number(byDate[iso]?.processed_count || 0));
+      volumes_7d.push(Number(byDate[isoLocal(d)]?.processed_count || 0));
     }
 
     // Category ratios from active jobs (new + to_apply + applied)
@@ -1617,7 +1650,34 @@
     const sumCv = pdfCount + docxCount || 1;
     const pdf_pct  = Math.round(pdfCount  / sumCv * 100);
     const docx_pct = 100 - pdf_pct;
-    const signalCvFromScan = todayScan && todayScan.signal_cv && typeof todayScan.signal_cv === "object" ? todayScan.signal_cv : null;
+    // signal_cv: support both the panel-native shape
+    // ({pdf_pct, docx_pct, window_days, insight}) and the pipeline V2 shape
+    // ({tendance, implication, total_hot_leads_30d, pdf_recommended_count,
+    // docx_recommended_count}). Compute pcts from counts when missing,
+    // and fall back to `implication` for the insight line.
+    function readSignalCvShape(src){
+      if (!src || typeof src !== "object") return null;
+      let pdfPct = (src.pdf_pct != null) ? Number(src.pdf_pct) : null;
+      let docxPct = (src.docx_pct != null) ? Number(src.docx_pct) : null;
+      const pCount = Number(src.pdf_recommended_count);
+      const dCount = Number(src.docx_recommended_count);
+      if ((pdfPct == null || docxPct == null) && (Number.isFinite(pCount) || Number.isFinite(dCount))) {
+        const p = Number.isFinite(pCount) ? pCount : 0;
+        const d = Number.isFinite(dCount) ? dCount : 0;
+        const sum = p + d;
+        if (sum > 0) {
+          pdfPct = pdfPct != null ? pdfPct : Math.round(p / sum * 100);
+          docxPct = docxPct != null ? docxPct : (100 - Math.round(p / sum * 100));
+        }
+      }
+      const insight = src.insight || src.implication || "";
+      const window_days = Number.isFinite(Number(src.window_days)) ? Number(src.window_days) : null;
+      // Reject the row if it carries no usable signal — caller will fall back
+      // to the computed-from-jobs estimate.
+      if (pdfPct == null && docxPct == null && !insight) return null;
+      return { pdf_pct: pdfPct, docx_pct: docxPct, window_days, insight };
+    }
+    const signalCvFromScan = readSignalCvShape(todayScan?.signal_cv);
 
     // Date label in French
     const dLabel = `${DAYS_FR_SCAN[today.getDay()]} ${today.getDate()} ${MONTHS_FR_SCAN[today.getMonth()]}`;
@@ -1647,7 +1707,9 @@
         pdf_pct:  Number(signalCvFromScan.pdf_pct  ?? pdf_pct),
         docx_pct: Number(signalCvFromScan.docx_pct ?? docx_pct),
         window_days: Number(signalCvFromScan.window_days ?? 30),
-        insight: signalCvFromScan.insight || (pdfCount >= docxCount ? "Les offres récentes recommandent majoritairement le PDF." : "Le DOCX reste dominant sur la période — garde les deux versions à jour."),
+        insight: signalCvFromScan.insight || (pdfCount >= docxCount
+          ? "Les offres récentes recommandent majoritairement le PDF."
+          : "Le DOCX reste dominant sur la période — garde les deux versions à jour."),
       } : {
         pdf_pct, docx_pct, window_days: 30,
         insight: sumCv <= 1
