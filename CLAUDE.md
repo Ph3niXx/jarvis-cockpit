@@ -394,6 +394,7 @@ Le renderer utilise les CSS variables globales `--brand`, `--tx`, `--tx2`, `--tx
 - Le CostTracker dans weekly_analysis.py arrête le pipeline si le budget est dépassé
 - Le `user_profile` et le `skill_radar` sont injectés comme contexte dans tous les prompts Claude
 - Les logs pipelines locaux vivent dans `jarvis_data/*.log` (pas `jarvis/logs/`)
+- **Service worker (`sw.js`)** : ne jamais éditer le `STATIC[]` ni la const `CACHE` à la main. Lancer `node scripts/sync-sw.mjs` après toute modif de `index.html` ou de `cockpit/**`, ou laisser la GH Action `sw-sync` ([.github/workflows/sw-sync.yml](.github/workflows/sw-sync.yml)) auto-commit le manifest sur la PR. Le script ré-extrait les `href`/`src` de `index.html`, écrit le `STATIC[]` trié et bumpe `cockpit-vN` d'1 unité — l'invalidation côté client est ainsi garantie pour les users PWA mobile.
 
 ## Weekly Pipeline
 
