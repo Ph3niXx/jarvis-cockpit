@@ -155,10 +155,6 @@
   .vl-trends-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
   .vl-trend-card { padding: 18px !important; }
 
-  /* ─── Prod cases grid (anime table, gaming cards) ─── */
-  .vl-prod-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
-  .vl-prod-card { padding: 18px !important; }
-
   /* Prod table → horizontal scroll so columns stay readable */
   .vl-prod-table-wrap { overflow-x: auto; }
   .vl-prod-table { min-width: 560px; }

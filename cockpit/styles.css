@@ -3959,82 +3959,6 @@ select:focus-visible {
   color: var(--tx);
 }
 
-/* ─── CAS PROD ─── */
-.vl-prod-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-.vl-prod-card {
-  background: var(--surface);
-  border: 1px solid var(--bd);
-  border-radius: var(--radius);
-  padding: 22px 22px 20px;
-  display: flex; flex-direction: column;
-  gap: 14px;
-  transition: all 180ms ease;
-}
-.vl-prod-card:hover {
-  border-color: var(--bd2);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px -8px rgba(0,0,0,0.08);
-}
-.vl-prod-head { display: flex; align-items: center; gap: 12px; }
-.vl-prod-logo {
-  width: 40px; height: 40px;
-  border-radius: 8px;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: white;
-  font-family: "Inter", sans-serif;
-  font-weight: 700;
-  font-size: 11.5px;
-  letter-spacing: 0.02em;
-  flex-shrink: 0;
-}
-.vl-prod-company {
-  font-family: "Inter", sans-serif;
-  font-size: 15px; font-weight: 600;
-  color: var(--tx);
-}
-.vl-prod-domain {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10.5px;
-  color: var(--tx3);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-top: 2px;
-}
-.vl-prod-scale {
-  font-family: "Fraunces", serif;
-  font-size: 28px;
-  font-weight: 500;
-  color: var(--brand);
-  line-height: 1.05;
-  letter-spacing: -0.015em;
-  padding-bottom: 2px;
-}
-.vl-prod-head-line {
-  font-family: "Inter", sans-serif;
-  font-size: 14px; line-height: 1.5;
-  color: var(--tx2);
-  margin: 0;
-  flex: 1;
-  text-wrap: pretty;
-}
-.vl-prod-foot {
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 10px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--bd);
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10.5px;
-  color: var(--tx3);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.vl-prod-model { color: var(--tx2); }
-.vl-prod-impact { color: var(--positive); font-weight: 500; }
-
 /* ─── CAS PROD — MODE TABLEAU (sorties à venir) ─── */
 .vl-prod-filter-row {
   display: flex; align-items: baseline;
@@ -4396,12 +4320,6 @@ select:focus-visible {
   font-size: 22px;
   font-weight: 600;
 }
-.vl-dense .vl-prod-scale {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 20px;
-  font-weight: 600;
-}
-
 /* ─── RESPONSIVE ─── */
 @media (max-width: 960px) {
   .vl-hero { grid-template-columns: 1fr; gap: 28px; padding: 28px 24px; }

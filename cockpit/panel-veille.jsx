@@ -668,39 +668,9 @@ function PanelVeille({ data, onNavigate, corpus = "VEILLE_DATA", title = "Veille
         })()}
       </section>
 
-      {/* ═══════ CAS PROD / SORTIES À VENIR ═══════ */}
-      {prodSection && (
-        prodTableMode
-          ? <ProdTable prodSection={prodSection} items={v.prod_cases} />
-          : (
-            <section className="vl-section">
-              <div className="vl-section-head">
-                <div>
-                  <div className="vl-section-kicker">{prodSection.kicker}</div>
-                  <h2 className="vl-section-title">{prodSection.title}</h2>
-                </div>
-              </div>
-              <div className="vl-prod-grid">
-                {v.prod_cases.map((p) => (
-                  <article key={p.company} className="vl-prod-card">
-                    <div className="vl-prod-head">
-                      <span className="vl-prod-logo" style={{ background: p.color }}>{p.logo_mark}</span>
-                      <div>
-                        <div className="vl-prod-company">{p.company}</div>
-                        <div className="vl-prod-domain">{p.domain}</div>
-                      </div>
-                    </div>
-                    <div className="vl-prod-scale">{p.scale}</div>
-                    <p className="vl-prod-head-line">{p.headline}</p>
-                    <div className="vl-prod-foot">
-                      <span className="vl-prod-model">{p.model}</span>
-                      <span className="vl-prod-impact">{p.impact}</span>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )
+      {/* ═══════ SORTIES À VENIR (anime/ciné/séries) ═══════ */}
+      {prodSection && prodTableMode && (
+        <ProdTable prodSection={prodSection} items={v.prod_cases} />
       )}
 
       {/* ═══════ TWEAK TONE TOGGLE ═══════ */}

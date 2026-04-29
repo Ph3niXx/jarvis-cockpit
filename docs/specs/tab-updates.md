@@ -1,18 +1,18 @@
 # Veille IA
 
-> Feed unifié des actualités IA : hero release + acteurs suivis + tendances transverses + chronologie filtrable + cas prod, sur 30 jours d'articles.
+> Feed unifié des actualités IA : hero release + acteurs suivis + tendances transverses + chronologie filtrable, sur 30 jours d'articles.
 
 ## Scope
 pro
 
 ## Finalité fonctionnelle
-Panel le plus dense du cockpit. Centralise tout ce qui tombe des flux RSS veille IA : releases de labos/éditeurs, frameworks, cas prod entreprise, papiers, deals, régulation, analyses. Transforme les 400 articles des 30 derniers jours (`T2.veille()`) en un feed navigable avec filtres triples (acteur / type / période) + filtre "tendance" cliquable.
+Panel le plus dense du cockpit. Centralise tout ce qui tombe des flux RSS veille IA : releases de labos/éditeurs, frameworks, papiers, deals, régulation, analyses. Transforme les 400 articles des 30 derniers jours (`T2.veille()`) en un feed navigable avec filtres triples (acteur / type / période) + filtre "tendance" cliquable.
 
 ⚠️ Ce panel **partage le composant** `PanelVeille` avec 4 autres routes (`sport`, `gaming_news`, `anime`, `news`) via un système de props/corpus. Le corpus "updates" pointe sur `window.VEILLE_DATA`.
 
 ## Parcours utilisateur
 1. Clic sidebar "Veille IA" — un loader s'affiche pendant deux à trois secondes le temps de charger les 30 derniers jours d'articles.
-2. La page apparaît avec le hero (dernière release mise en avant), la grille d'acteurs suivis, les tendances transverses, le feed chronologique et la grille de cas prod.
+2. La page apparaît avec le hero (dernière release mise en avant), la grille d'acteurs suivis, les tendances transverses et le feed chronologique.
 3. L'utilisateur combine les filtres : par acteur (clic sur une carte d'acteur ou une pill), par type (Release / Framework / Cas prod / Papier / Deal / Régulation / Analyse), par période (24h / 7j / 30j).
 4. Clic sur une carte de tendance pour filtrer en plus le feed sur les mots-clés de la tendance.
 5. Par défaut, le feed est groupé par type (sections dépliables) avec prévisualisation de cinq items et bouton "Voir les N autres" pour déplier.
@@ -28,12 +28,11 @@ Panel le plus dense du cockpit. Centralise tout ce qui tombe des flux RSS veille
 - **Feed chronologique** : tous les articles des 30 derniers jours groupés par type (Release / Framework / Cas prod / Papier / Deal / Régulation / Analyse), triés non-lus en premier, avec prévisualisation de cinq items et bouton « Voir les N autres » pour déplier.
 - **Triple filtre** : trois groupes de pills (acteur / type / période 24h-7j-30j) combinables, avec bouton de réinitialisation quand le filtre vide la vue.
 - **Actions par article** : marquer lu/non-lu, archiver pour masquer définitivement, ouvrir dans un nouvel onglet. Un bouton « Tout marquer lu » vide la pile d'un coup.
-- **Cas prod / Agents en production** : grille de cartes d'entreprises (domaine, échelle, modèle, impact) pour voir qui a déployé quoi le mois en cours.
 - **Toggle de densité** : un flottant en bas à droite pour basculer entre un affichage éditorial aéré et un affichage dense.
 - **Filtre global "Récent · 24h"** : quand le filtre du shell (en haut à droite du cockpit) est actif, le feed ne montre que les articles publiés ou récupérés depuis moins de 24 heures ; les autres se masquent silencieusement. Identique sur tous les onglets de veille (Claude, Sport, Gaming, Anime, News, Veille outils).
 
 ## Front — structure UI
-Fichier : [cockpit/panel-veille.jsx](cockpit/panel-veille.jsx) — 620 lignes, monté par [app.jsx:384-385](cockpit/app.jsx:384) avec props `corpus="VEILLE_DATA"`, `title="Veille IA"`, `actorsLabel="labos + éditeurs"`, `prodSection={ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }`.
+Fichier : [cockpit/panel-veille.jsx](cockpit/panel-veille.jsx), monté par [app.jsx:476-477](cockpit/app.jsx:476) avec props `corpus="VEILLE_DATA"`, `title="Veille IA"`, `actorsLabel="labos + éditeurs"`, `prodSection={null}` (la section "Agents en production" mockée a été supprimée le 2026-04-27).
 
 Structure DOM (`.vl-panel`) :
 - `.vl-hero` (split left/right)
@@ -44,8 +43,9 @@ Structure DOM (`.vl-panel`) :
 - `.vl-section` **Feed chronologique**
   - `.vl-filters > .vl-filter-group × 3` (acteur/type/période)
   - `.vl-feed-groups > <details>.vl-feed-group × N` (ou `.vl-feed > .vl-feed-item × N` si flat)
-- `.vl-section` **Cas prod / Agents en production** — `.vl-prod-grid > .vl-prod-card × N` OU `<ProdTable>`
 - `.vl-tone-toggle` flottant en bas à droite
+
+Le composant accepte toujours `prodSection` + `prodTableMode` pour la route `anime` (rendu `<ProdTable>` des sorties à venir). La grille mock "agents en production" a été retirée — `prodSection={null}` sur Veille IA.
 
 Route id = `"updates"`, URL hash `#updates`. **Panel Tier 2** (listé dans `TIER2_PANELS` à [data-loader.js:4251](cockpit/lib/data-loader.js:4251)).
 
@@ -88,7 +88,6 @@ Mapping section → type (hardcoded) dans [data-loader.js:2605-2614](cockpit/lib
 - `VEILLE_DATA.headline` — patch complet incluant `url` + `id` pour activer les CTAs.
 
 **Données toujours fake** :
-- `VEILLE_DATA.prod_cases` — grid des agents en prod (contenu spécifique par corpus, pas de pipeline générique).
 - `VEILLE_DATA.headline.metrics` — 4 benchmarks (SWE-bench, τ-bench, prix, contexte) — difficile à auto-générer.
 
 Le `feed` est toujours reconstruit depuis `articles` (même si vide).
@@ -101,7 +100,7 @@ Le `feed` est toujours reconstruit depuis `articles` (même si vide).
 - **Weekly pipeline** ([weekly_analysis.py](weekly_analysis.py)) : aucune interaction directe.
 - **Jarvis (local)** : aucune.
 
-Pas de pipeline qui alimente `actors`, `trends`, `prod_cases` — tout est du contenu curé hardcodé.
+Pas de pipeline qui alimente `actors` ou `trends` — `actors` est dérivé des `articles` (top 12 sources avec momentum), `trends` du `signal_tracking`.
 
 ## Appels externes
 - **Supabase REST** : `T2.veille()` via `q("articles", ...)`. Partagé avec `history` (même clé de cache via `once()`).
@@ -129,7 +128,7 @@ Pas de pipeline qui alimente `actors`, `trends`, `prod_cases` — tout est du co
 - **readState** : reset à `{}` à chaque navigation (in-memory only, perdu).
 
 ## Limitations connues / TODO
-- [x] ~~`actors`, `trends` = fake data~~ → **fixé** : actors agrégés depuis `articles` (top 12 sources avec momentum), trends depuis `signal_tracking` (top 6 termes). `prod_cases` et `headline.metrics` restent fake (trop spécifiques).
+- [x] ~~`actors`, `trends` = fake data~~ → **fixé** : actors agrégés depuis `articles` (top 12 sources avec momentum), trends depuis `signal_tracking` (top 6 termes). `headline.metrics` reste fake (trop spécifique).
 - [x] ~~Feed reste fake si Supabase vide~~ → **fixé** : `if (window.VEILLE_DATA)` au lieu de `if (window.VEILLE_DATA && articles.length)`. Feed vide quand le corpus l'est.
 - [x] ~~Bouton "Ajouter un acteur" sans onClick~~ → **remplacé** par un hint non-interactif "Auto-détecté · top 12".
 - [x] ~~CTAs hero "Lire le détail" / "Sauvegarder" sans onClick~~ → **wirés** : "Lire le détail" ouvre `headline.url` + marque lu, "Sauvegarder" écrit `kept: true` dans `localStorage.read-articles[headline.id]`. Boutons `disabled` si `url/id` absents.
@@ -140,12 +139,14 @@ Pas de pipeline qui alimente `actors`, `trends`, `prod_cases` — tout est du co
 - [ ] **`<details>` natifs pour les groupes** : bon pour l'accessibilité mais l'UX est moyen (pas de transition, indicateur basique).
 - [ ] **Pas de pagination au-delà de 400 articles** : un cockpit actif depuis 2 mois perdra les articles plus anciens du corpus visible.
 - [ ] **Hero ne gère pas "pas de release récente"** : `fresh = articles[0]` prend toujours le dernier, même si c'est un vieux article.
-- [ ] **`prod_cases` + `headline.metrics` restent fake** — benchmarks et cas prod demandent une curation manuelle.
+- [x] ~~`prod_cases` (Agents en production) = fake data~~ → **supprimé le 2026-04-27** : la grille mock (BNP / Axa / SG / Allianz) ne reflétait pas l'actualité réelle. Pas de pipeline générique pour la régénérer ; on retire plutôt qu'afficher du faux.
+- [ ] **`headline.metrics` reste fake** — benchmarks (SWE-bench, τ-bench, prix, contexte) demandent une curation manuelle.
 - [ ] **`actors_involved` des trends toujours vide** : nécessiterait une dénormalisation dans `signal_tracking` (liste des sources citant le terme).
 - [ ] **Panels frères partagent le composant** : toute modif sur `updates` affecte aussi `sport`, `gaming_news`, `anime`, `news`. Les helpers `loadVeilleReadState` / `saveVeilleReadState` sont donc globaux cross-corpus.
 - [ ] **Couleurs acteurs dérivées d'un hash** : conflits de couleurs possibles avec beaucoup de sources similaires. Palette de 10 couleurs.
 
 ## Dernière MAJ
+2026-04-27 — section "Agents en production" supprimée (grille mock BNP/Axa/SG/Allianz qui ne reflétait pas l'actualité réelle). `prodSection={null}` sur la route, suppression du bloc grille dans `panel-veille.jsx`, du `prod_cases` dans `data-veille.js`, du CSS `.vl-prod-grid/.vl-prod-card/...`. Le mode `prodTableMode` reste utilisé par la route `anime` (sorties à venir, données réelles via Jikan).
 2026-04-26 — feed cards exposent `data-recent="1"` quand `date_h <= 24` ; le filtre global du shell (`:root[data-filter-recent="1"]`) masque en CSS les cards `data-recent="0"`. Pas de re-fetch, pas de re-render, pure CSS.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.

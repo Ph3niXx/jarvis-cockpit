@@ -252,53 +252,6 @@ window.VEILLE_DATA = {
     },
   ],
 
-  // Cas prod (déjà filtrable depuis feed, version détaillée)
-  prod_cases: [
-    {
-      company: "BNP Paribas",
-      logo_mark: "BNP",
-      color: "#00915a",
-      scale: "140 cas d'usage",
-      model: "Mistral Large 2",
-      domain: "Banque + Assurance",
-      when: "Avril 2026",
-      headline: "Industrialisation à l'échelle sur cloud souverain, dont 40 cas en assurance.",
-      impact: "Contrat 5 ans · souveraineté",
-    },
-    {
-      company: "Axa France",
-      logo_mark: "AXA",
-      color: "#00008f",
-      scale: "2M sinistres/an",
-      model: "Claude 4 + Milvus",
-      domain: "Assurance Auto",
-      when: "Mars 2026",
-      headline: "Agent claims autonome sur sinistres auto. Baisse 23% temps de traitement.",
-      impact: "NPS +14 pts",
-    },
-    {
-      company: "Société Générale",
-      logo_mark: "SG",
-      color: "#e60028",
-      scale: "85k users actifs",
-      model: "Claude Sonnet + RAG",
-      domain: "Banque détail",
-      when: "Février 2026",
-      headline: "Agora, assistant conseiller, déployé sur toute la banque de détail.",
-      impact: "40% usage quotidien",
-    },
-    {
-      company: "Allianz",
-      logo_mark: "A",
-      color: "#0033a0",
-      scale: "18 pays",
-      model: "GPT-5 + AWS Bedrock",
-      domain: "Assurance multi-lignes",
-      when: "Janvier 2026",
-      headline: "Plateforme agents unifiée pour souscription, claims et fraude.",
-      impact: "ROI 14 mois",
-    },
-  ],
   // Tendances transverses — sujets indépendants des gros acteurs
   trends: [
     {

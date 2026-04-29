@@ -474,7 +474,7 @@ function App() {
   else if (activePanel === "history") content = <PanelHistory key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "search") content = <PanelSearch key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "updates")
-    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="VEILLE_DATA" title="Veille IA" actorsLabel="labos + éditeurs" prodSection={{ kicker: "Agents en production", title: "Qui a déployé quoi, ce mois-ci" }} />;
+    content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="VEILLE_DATA" title="Veille IA" actorsLabel="labos + éditeurs" prodSection={null} />;
   else if (activePanel === "claude")
     content = <PanelVeille key={panelKey} data={data} onNavigate={handleNavigate} corpus="CLAUDE_DATA" title="Claude" actorsLabel="canaux Anthropic" categoryLabel="Source" typeLabel="Format" prodSection={null} />;
   else if (activePanel === "sport")
