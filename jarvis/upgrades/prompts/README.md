@@ -2,7 +2,6 @@
 
 | Fichier | Titre | Effort | Date audit |
 |---------|-------|--------|------------|
-| [v17-K1](pending/2026-04-28-K1-shell-archive-v14-prompts.md) | Ranger 3 prompts v14 shippés → `done/` (shell direct, sans Claude Code) | XS | 2026-04-28 (v17) |
 | [v16-S1](pending/2026-04-28-S1-gitattributes-crlf.md) | `.gitattributes` + renormalize CRLF/LF (tuer 72 modifs whitespace) | XS | 2026-04-28 (v16) |
 | [v16-K1](pending/2026-04-28-K1-mark-p31-killed.md) | Marquer P31 (préflight LM Studio général) comme `killed` | XS | 2026-04-28 (v16) |
 | [v15-S1](pending/2026-04-27-S1-inference-stuck-tighten.md) | Durcir `inference_stuck` (abort sans `check_lm_studio`) | XS | 2026-04-27 |
@@ -12,11 +11,9 @@
 
 **Ordre d'exécution recommandé (v17, 2026-04-28 soir)** :
 
-1. **v17-K1** (shell direct, 30 sec) — drainer le bruit v14 du pending pour rendre la liste lisible. Pas besoin d'ouvrir Claude Code.
-2. **v16-S1** (`.gitattributes` + renormalize) — verrou structurel. Tant qu'il n'est pas levé, commiter le reste reste psychologiquement coûteux (72 modifs whitespace polluent `git status`).
-3. **v15-K1** — déplacer ce prompt en `done/` (no-op après v17-K1 ; juste archiver le fichier).
-4. **v16-K1** (annoter P31 killed dans INDEX.md).
-5. **v15-S1** (durcir `inference_stuck` — fix le trou observé le 26/04).
-6. **v15-S2** (coupler `signals.md` à `start_jarvis.bat` — 5e jour sans signals.md aujourd'hui).
+1. **v16-S1** (`.gitattributes` + renormalize) — verrou structurel. Tant qu'il n'est pas levé, commiter le reste reste psychologiquement coûteux (72 modifs whitespace polluent `git status`).
+2. **v16-K1** (annoter P31 killed dans INDEX.md).
+3. **v15-S1** (durcir `inference_stuck` — fix le trou observé le 26/04).
+4. **v15-S2** (coupler `signals.md` à `start_jarvis.bat` — 5e jour sans signals.md aujourd'hui).
 
 **Engagement audit v17 → v18** : si à la prochaine routine Cowork (mercredi 29/04), `git log` ne montre toujours pas l'exécution d'au moins **v17-K1 + v16-S1**, l'audit v18 ne sera pas produit. La routine se mettra en pause explicite jusqu'à exécution du backlog.
