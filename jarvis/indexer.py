@@ -336,7 +336,7 @@ def index_table(table: str, incremental: bool = False, dry_run: bool = False) ->
                 "embedding": vectors[i + j],
             })
 
-        ok = sb_post("memories_vectors", batch, upsert=True)
+        ok = sb_post("memories_vectors", batch, upsert=True, on_conflict="source_table,source_id,chunk_index")
         if ok:
             upserted += len(batch)
 
@@ -374,7 +374,7 @@ def _index_user_profile(dry_run: bool) -> dict:
             "metadata": {"type": "profile_aggregate"},
         })
 
-    ok = sb_post("memories_vectors", records, upsert=True)
+    ok = sb_post("memories_vectors", records, upsert=True, on_conflict="source_table,source_id,chunk_index")
     return {"chunks": len(records) if ok else 0, "rows": len(rows)}
 
 

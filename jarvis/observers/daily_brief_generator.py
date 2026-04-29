@@ -16,11 +16,9 @@ import re
 import sys
 from datetime import date, datetime, timedelta
 
-import requests
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from config import SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY
+from supabase_client import sb_post
 
 log = logging.getLogger("daily_brief_generator")
 
@@ -29,16 +27,6 @@ Résume cette journée de travail en 2-3 phrases en français. Sois factuel et c
 Mentionne les activités principales et le rythme de la journée.
 Ne donne pas de conseils, juste un résumé.
 /no_think"""
-
-
-def _sb_headers() -> dict:
-    """Use service_role key for writes, fall back to anon."""
-    key = SUPABASE_SERVICE_KEY or SUPABASE_KEY
-    return {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-    }
 
 
 def _format_minutes(minutes: int) -> str:
@@ -245,18 +233,11 @@ def generate_brief(date_str: str | None = None) -> dict:
         "brief_html": brief_html,
         "stats": merged_stats,
     }
-    headers = {**_sb_headers(), "Prefer": "resolution=merge-duplicates"}
     try:
-        r = requests.post(
-            f"{SUPABASE_URL}/rest/v1/activity_briefs",
-            headers=headers,
-            json=payload,
-            timeout=10,
-        )
-        if r.status_code in (200, 201):
+        if sb_post("activity_briefs", payload, upsert=True, on_conflict="date"):
             log.info("Brief upserted for %s (%d min observed)", target.isoformat(), stats["total_minutes"])
         else:
-            log.warning("Upsert failed: %s %s", r.status_code, r.text[:200])
+            log.warning("Upsert failed for %s", target.isoformat())
     except Exception as e:
         log.warning("Supabase upsert failed: %s", e)
 
