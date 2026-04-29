@@ -103,35 +103,37 @@ Historique de toutes les propositions de Jarvis Upgrade Scout.
 | 2026-04-26 | P32 | Cloud fallback dans `nightly_learner._llm_extract` après échec local | PARK | S | deferred | (downgraded from ship after rechallenging — redondant après v14-S1 + v13-S2) Si après 2 semaines avec v14-S1 mergé, ≥ 3 nuits consécutives sans extraction |
 | 2026-04-26 | P33 | Fix wiki TypeError sur `e.word_count.toLocaleString` (108 occurrences/sem) | PARK | XS | deferred | (downgraded from ship after rechallenging — bug UX bruyant, hors North Star "silent failures") Prochaine fenêtre UX-focused OR > 200 occurrences/sem |
 | 2026-04-26 | P34 | Fix `Chunks: 0` bug dans `status_generator.get_chunks_count()` (Content-Range mal lu) | PARK | XS | deferred | Quand snapshot Jarvis Lab consulté ≥ 3x/sem OR feature dépend de cette métrique |
-| 2026-04-27 | S1 | Durcir `inference_stuck` — abort sur 2e `APITimeoutError` sans dépendre de `check_lm_studio()` | SHIP | XS | proposed | v14-S1 a un trou : 2/3 cas du 26/04 ont passé attempts=3 × 1114s parce que `check_lm_studio` retourne "unreachable" sous saturation totale |
-| 2026-04-27 | S2 | Coupler `signals.md` au démarrage Jarvis (`run_nightly_after_deps.bat`) | SHIP | XS | proposed | 3 jours consécutifs sans signals.md (25/04, 26/04, 27/04). Aucune automatisation visible dans le repo. Bypass de Task Scheduler |
-| 2026-04-27 | K1 | Hygiène : 3 prompts v14 pending → done + refresh prompts/README | KILL | XS | proposed | v14-S1/S2/K1 shippés mais traînent dans pending/, README incohérent |
+| 2026-04-27 | S1 | Durcir `inference_stuck` — abort sur 2e `APITimeoutError` sans dépendre de `check_lm_studio()` | SHIP | XS | shipped | Commit 566a084. Test mock APITimeoutError × 2 → RuntimeError "inference stuck" en attempt=2/3, latency 2001 ms (vs 1114000 sans fix). |
+| 2026-04-27 | S2 | Coupler `signals.md` au démarrage Jarvis (`run_nightly_after_deps.bat`) | SHIP | XS | shipped | Commit 89c6866. Validation : `python jarvis/scripts/extract_signals.py` → 2026-04-29-signals.md généré en 2.4s (4013 bytes). |
+| 2026-04-27 | K1 | Hygiène : 3 prompts v14 pending → done + refresh prompts/README | KILL | XS | shipped | Commit b8f3a3f (absorbé par v17-K1). |
 | 2026-04-27 | P35 | Fix `panel:opps` TypeError null.urgency (24 occurrences) | PARK | XS | deferred | Prochaine fenêtre UX-focused (cogroupé avec P33) |
-| 2026-04-28 | S1 | `.gitattributes` + renormalize CRLF/LF (tuer 72 modifs whitespace-only) | SHIP | XS | proposed | 95 modifs working tree dont 72 whitespace-only. Pas de .gitattributes à racine. Bloque mécaniquement le commit des audits depuis 3 cycles |
-| 2026-04-28 | K1 | Marquer P31 (`Préflight LM Studio général`) comme `killed` | KILL | XS | proposed | Couverture doublement assurée par v13-S2 + v14-S1, condition de réveil obsolète |
+| 2026-04-28 | S1 | `.gitattributes` + renormalize CRLF/LF (tuer 72 modifs whitespace-only) | SHIP | XS | shipped | Commit 3a1a63d. Renormalize sans effet (autocrlf=true gère déjà), `.gitattributes` reste en place comme guard-rail portable. |
+| 2026-04-28 | K1 | Marquer P31 (`Préflight LM Studio général`) comme `killed` | KILL | XS | shipped | Commit 1c65373 (élargi : sync INDEX backlog v13→v19 préparé par Jean). |
 | 2026-04-28 | P36 | `audit_commit.sh` + règle CLAUDE.md (auto-commit fin d'audit) | PARK | XS | deferred | (downgraded from ship after rechallenging — red team test 1+4 : un script ne change pas le manque de discipline). Si après v16-S1 mergé et 2 semaines, audits restent non commités, automatiser |
 | 2026-04-28v17 | — | 0 SHIP émis (décision défensive : 5 prompts pending non exécutés saturent le débit) | — | — | — | Re-run du soir, 6h après v16. Engagement explicite : pas de v18 si v17-K1 + v16-S1 ne sont pas exécutés d'ici la prochaine routine |
-| 2026-04-28v17 | K1 | Ranger 3 prompts v14 shippés `pending/` → `done/` (shell direct, sans Claude Code) | KILL | XS | proposed | v14-K1/S1/S2 (commits fc4e16d, 34eb5a1, efad1dd) traînent dans pending depuis 48h+ parce que v15-K1 lui-même pending. Bypass Claude Code = casse le verrou |
+| 2026-04-28v17 | K1 | Ranger 3 prompts v14 shippés `pending/` → `done/` (shell direct, sans Claude Code) | KILL | XS | shipped | Commits b8f3a3f + a64128a. Bypass Claude Code → exécuté finalement via Claude Code en session v20 quand même. |
 | 2026-04-28v17 | P37 | Auto-commit batch des artefacts Cowork (jarvis audit + design audit + veille claude + ecosystem) | PARK | S | deferred | Découverte v17 : ~22 fichiers untracked générés par 4 routines parallèles. Réveil quand v16-S1 mergé ET pattern persiste 7 jours après hygiène |
 | 2026-04-29v18 | — | **PAUSE ROUTINE** — engagement v17 honoré : 0 commit en 72h, 9 prompts pending non exécutés, 81 whitespace modifs persistent. Aucun SHIP / KILL / PARK émis. Reprise v19 dès qu'un commit post-26/04 apparaît. | — | — | — | Action minimale recommandée (15 min Jean, sans Claude Code) : `git mv` 4 prompts redondants v14+v15 → `done/` + edit README. Voir `jarvis/upgrades/2026-04-29-audit.md`. |
 | 2026-04-29v19 | — | **PAUSE CONFIRMÉE** — 2e run du jour, ~11h après v18, conditions strictement identiques. Streak git silence 83h, 9 prompts pending inchangés. Aucun SHIP / KILL / PARK émis. Reprise v20 si ≥1 commit post-26/04 OU ≥1 prompt drainé. | — | — | — | Engagement durci : prochaine exécution sans changement → pas même de notice (no-op plus honnête qu'addendum répété). |
+| 2026-04-29v20 | — | **REPRISE ROUTINE** — backlog v15+v16+v17 entièrement drainé en 1 session Claude Code (5 SHIP/KILL shippés, 4 commits artefacts/refactor, streak git silence cassée). Conditions de reprise (≥1 commit post-26/04 ET ≥1 prompt drainé) largement remplies. | — | — | — | Session 2026-04-29 ~17h-20h via prompt "Continue pour tout débloquer" + "Corrige tout le reste" : exec en chaîne v16-S1, v16-K1, v15-S1, v15-S2, archive prompts, refactor cockpit veille, commit artefacts Cowork batch. 12 commits sur main de `b8f3a3f` à ce sync INDEX. |
 
 ## Stats
 
 - Propositions totales : 97
-- SHIP shippés : 30 (v1: 5, v2: 2, v3: 3, v4: 3, v5: 2, v6: 3, v7: 3, v8: 2, v9: 2, v10: 0, v11: 0, v12: 1, v13: 2, v14: 2, v15: 0, v16: 0, v17: 0)
-- SHIP proposés (en attente) : 3 (v15-S1 inference_stuck tighten + v15-S2 signals on startup + v16-S1 .gitattributes CRLF)
+- SHIP shippés : 33 (v1: 5, v2: 2, v3: 3, v4: 3, v5: 2, v6: 3, v7: 3, v8: 2, v9: 2, v10: 0, v11: 0, v12: 1, v13: 2, v14: 2, v15: 2, v16: 1, v17: 0)
+- SHIP proposés (en attente) : 0 (backlog drainé v20)
 - SHIP rétrogradés : 7 (v7-S3 → P17, v10-S3 → P20, v10-S1 → P31, v13-S3 → P27, v14-S3 cloud fallback → P32, v14-S4 wiki TypeError → P33, v16-S2 audit_commit → P36) ; v17 = 3 candidats considérés/rétrogradés (C1 → P36, C2 → P37, C3 → P28 reconfirmé) sans nouveau ratio compté car aucun ne relevait du seuil "candidat sérieux à émettre"
-- KILL shippés : 15 (v1: 2, v2: 1, v3: 2, v4: 2, v5: 1, v6: 1, v7: 1, v8: 1, v9: 1, v12: 1, v13: 1, v14: 1)
-- KILL proposés : 3 (v15-K1 hygiène v14 prompts + v16-K1 P31 killed + v17-K1 shell archive v14)
-- PARK (différé) : 36 (P37 ajouté ; P31 toujours en `deferred` jusqu'à exécution v16-K1)
+- KILL shippés : 18 (v1: 2, v2: 1, v3: 2, v4: 2, v5: 1, v6: 1, v7: 1, v8: 1, v9: 1, v12: 1, v13: 1, v14: 1, v15: 1, v16: 1, v17: 1)
+- KILL proposés : 0 (backlog drainé v20)
+- PARK (différé) : 35 (P37 ajouté ; P31 retiré — killed via v16-K1)
 - Taux d'exécution v1→v9 : 96% (25/26 shippés)
 - Taux d'exécution v13 : 3/3 shippés (100%) — meilleur sprint depuis v9
 - Taux d'exécution v14 : 3/3 shippés (100%) — niveau v13 maintenu
-- Taux d'exécution v15 : 0/3 shippés (0%) — cause structurelle (working tree pollué) → adressée par v16-S1, lui-même non exécuté
-- Taux d'exécution v16 : 0/2 shippés (0%) — 2e sprint consécutif à 0%
-- Taux d'exécution v17 : 0 SHIP émis par décision défensive — 1 KILL émis (v17-K1)
+- Taux d'exécution v15 : 2/3 shippés (67%) — v15-S1 + v15-S2 drainés v20 ; v15-K1 absorbé par v17-K1
+- Taux d'exécution v16 : 2/2 shippés (100%) — drainés v20
+- Taux d'exécution v17 : 1/1 KILL shippé (v17-K1, drainé v20) — 0 SHIP émis par décision défensive
 - Taux d'exécution v18 : **PAUSE ROUTINE** — engagement v17 honoré (0 commit en 72h), aucune émission
 - Taux d'exécution v19 : **PAUSE CONFIRMÉE** — 2e run du jour identique, aucune émission
+- Taux d'exécution v20 : **REPRISE** — 5 ships drainés en bloc (v15-S1, v15-S2, v16-S1, v16-K1, v17-K1) + 4 commits hygiène/archive/refactor + sync INDEX → backlog 100% rattrapé en 1 session Claude Code
 - Taux de rechallenging (rétrogradations) : 18.9% (7/37 shippés ou émis) — v17/v18/v19 ne comptent pas dans la cible (pas de SHIP émis)
-- **Streak git silence** : 83h depuis dernier commit `75d4ced` (2026-04-26 23:29) — record 2026 prolongé (+11h vs v18, +35h vs v17)
+- **Streak git silence** : cassée le 2026-04-29 par session Claude Code v20 (12 commits de `b8f3a3f` à ce sync INDEX). Record 83h conclu — début d'une nouvelle métrique « jours consécutifs avec ≥1 commit ».
