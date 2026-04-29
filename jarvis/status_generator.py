@@ -105,27 +105,40 @@ def sb_upsert_service(table: str, data: dict) -> bool:
 # ── Live data enrichment ──────────────────────────────────────
 
 def get_chunks_count() -> int:
-    """Count chunks in memories_vectors."""
+    """Count chunks in memories_vectors via Range header (PostgREST canonical pattern).
+
+    Uses service_role key — RLS migration 006 restricts memories_vectors to
+    `authenticated`, so anon (publishable) returns Content-Range: */0.
+    """
+    key = SUPABASE_SERVICE_KEY or SUPABASE_KEY
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Range": "0-0",
+        "Range-Unit": "items",
+        "Prefer": "count=exact",
+    }
     try:
-        rows = sb_read("memories_vectors", "select=id&limit=1&offset=0")
-        # Use HEAD trick: fetch with count header
-        headers = {
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Prefer": "count=exact",
-        }
         r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/memories_vectors?select=id&limit=0",
+            f"{SUPABASE_URL}/rest/v1/memories_vectors?select=id",
             headers=headers,
             timeout=10,
         )
         content_range = r.headers.get("Content-Range", "")
-        # Format: "0-0/4217" or "*/4217"
+        # Format: "0-0/N" (success) or "*/N" (empty/forbidden range)
         if "/" in content_range:
             total = content_range.split("/")[-1]
             if total.isdigit():
                 return int(total)
-        return 0
+        # Fallback: Content-Range absent/non-numérique → 2e appel + len()
+        print("  [WARN] chunks count: Content-Range absent/non-numérique, fallback len(rows)")
+        fb_headers = {"apikey": key, "Authorization": f"Bearer {key}"}
+        fb = requests.get(
+            f"{SUPABASE_URL}/rest/v1/memories_vectors?select=id&limit=10000",
+            headers=fb_headers,
+            timeout=10,
+        )
+        return len(fb.json()) if fb.status_code == 200 else 0
     except Exception as e:
         print(f"  [WARN] chunks count: {e}")
         return 0
