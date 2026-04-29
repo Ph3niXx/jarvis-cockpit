@@ -4639,9 +4639,12 @@
           T2.jobs_scan_today().catch(() => null),
           T2.jobs_scans_7d().catch(() => []),
         ]);
-        // Fall back to mock JOBS_DATA when the table is empty (first-run UX).
-        if (window.JOBS_DATA && (allJobs?.length || todayScan)) {
+        // Hydrate JOBS_DATA only when Supabase returned real data. If the table
+        // is empty, leave window.JOBS_DATA undefined — the panel renders its
+        // own empty state (panel-jobs-radar.jsx:565 `if (!jobs) return null`).
+        if (allJobs?.length || todayScan) {
           const offers = (allJobs || []).map(transformJobRow);
+          window.JOBS_DATA = window.JOBS_DATA || {};
           window.JOBS_DATA.offers = offers;
           window.JOBS_DATA.scan = transformJobScan(todayScan, last7Scans, offers);
           window.JOBS_DATA._raw = { jobs: allJobs, todayScan, last7Scans };
