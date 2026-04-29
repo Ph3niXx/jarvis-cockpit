@@ -59,11 +59,16 @@ Route id = `"stacks"`. **Panel Tier 2**.
 | `stPct(used, limit)` | % safe (clamp 999, null si types invalides) | [panel-stacks.jsx:9](cockpit/panel-stacks.jsx:9) |
 | `stLevelFor(quota)` | exceeded/critical/warn/safe/info selon thresholds + flag `exceeded` | [panel-stacks.jsx:13](cockpit/panel-stacks.jsx:13) |
 | `stFmtNum(v)` | Format FR : `1 234` ou `N.NN` selon magnitude | [panel-stacks.jsx:23](cockpit/panel-stacks.jsx:23) |
-| `stUpsertProfile(key, value)` (async) | `POST user_profile?on_conflict=key` avec `Prefer: resolution=merge-duplicates` | [panel-stacks.jsx:120](cockpit/panel-stacks.jsx:120) |
-| `stEditClaudeBalance(onDone)` (async) | 3 prompts → 2-4 upserts → invalidate cache → reload panel | [panel-stacks.jsx:132](cockpit/panel-stacks.jsx:132) |
-| `stEditGeminiRateLimit(onDone)` (async) | 1 confirm + 3 prompts → 5 upserts → reload | [panel-stacks.jsx:169](cockpit/panel-stacks.jsx:169) |
-| `handleRefresh()` (inline) | invalidate stacks_/weekly_analysis/articles_today → `loadPanel("stacks")` | [panel-stacks.jsx:326](cockpit/panel-stacks.jsx:326) |
-| `handleEdit(serviceId)` (inline) | Dispatcher vers stEditClaudeBalance/stEditGeminiRateLimit | [panel-stacks.jsx:342](cockpit/panel-stacks.jsx:342) |
+| `StModal({ title, subtitle, fields, onCancel, onSubmit, submitLabel })` | Modale réutilisable thémable : focus auto sur 1er champ, `Esc` cancel, `Ctrl+Entrée` save, validation inline (`required` + `validate`), erreurs par champ + erreur form-level (`_form`) en cas de throw côté `onSubmit`. Supporte `type: "checkbox"` pour un toggle (remplace `window.confirm`). | [panel-stacks.jsx:31](cockpit/panel-stacks.jsx:31) |
+| `stUpsertProfile(key, value)` (async) | `POST user_profile?on_conflict=key` avec `Prefer: resolution=merge-duplicates` | [panel-stacks.jsx:223](cockpit/panel-stacks.jsx:223) |
+| `stReloadAfterEdit()` (async) | Invalidate `user_profile` + `stacks_`, reload `__COCKPIT_RAW.profileRows`, `loadPanel("stacks")` | [panel-stacks.jsx:235](cockpit/panel-stacks.jsx:235) |
+| `openClaudeBalanceModal()` (inline) | Setter `modalState = { kind: "claude-balance", initial: {balance, credit, expires} }` | [panel-stacks.jsx:280](cockpit/panel-stacks.jsx:280) |
+| `openGeminiRateLimitModal()` (inline) | Setter `modalState = { kind: "gemini-rate-limit", initial: {hit, model, peak, limit} }` | [panel-stacks.jsx:292](cockpit/panel-stacks.jsx:292) |
+| `handleSubmitClaudeBalance(values)` (async, inline) | 2-4 upserts atomiques → ferme la modale → `stReloadAfterEdit()` | [panel-stacks.jsx:304](cockpit/panel-stacks.jsx:304) |
+| `handleSubmitGeminiRateLimit(values)` (async, inline) | 5 upserts atomiques (toggle hit + 4 champs) → ferme la modale → `stReloadAfterEdit()` | [panel-stacks.jsx:322](cockpit/panel-stacks.jsx:322) |
+| `showError(message)` (inline) | Toast inline `.st-toast--error` auto-dismiss 3.6s — remplace `window.alert` | [panel-stacks.jsx:265](cockpit/panel-stacks.jsx:265) |
+| `handleRefresh()` (inline) | invalidate stacks_/weekly_analysis/articles_today → `loadPanel("stacks")` | [panel-stacks.jsx:271](cockpit/panel-stacks.jsx:271) |
+| `handleEdit(serviceId)` (inline) | Dispatcher vers `openClaudeBalanceModal()` / `openGeminiRateLimitModal()` | [panel-stacks.jsx:336](cockpit/panel-stacks.jsx:336) |
 | `allAlerts` useMemo (inline) | Consolide alertes critical+warn de tous les services, tri critical first | [panel-stacks.jsx:361](cockpit/panel-stacks.jsx:361) |
 | `transformStacks({ weekly, articles30d, dbStats, todayArts, profileRows, gemUsage })` | Assemble toute la shape STACKS_DATA depuis 5 corpus + 1 RPC + profil manuel | [data-loader.js:3084](cockpit/lib/data-loader.js:3084) |
 | `buildStacksHeroSub(...)` | Génère le sous-titre hero (claude/supabase/gemini contexte) | [data-loader.js:3537](cockpit/lib/data-loader.js:3537) |
@@ -97,7 +102,7 @@ Route id = `"stacks"`. **Panel Tier 2**.
   - `POST user_profile?on_conflict=key` (upsert manuel via boutons)
   - `GET user_profile?order=key` (refresh après edit)
 - **Liens console externes** (target=_blank) : `console.anthropic.com/settings/usage`, `aistudio.google.com/app/apikey`, `supabase.com/dashboard/project/mrmgptqpflzyavdfqwwv`, `github.com/settings/billing/summary`.
-- **`window.prompt` / `window.confirm`** : 3×prompt + 0×confirm pour Claude, 3×prompt + 1×confirm pour Gemini.
+- **Aucun `window.prompt` / `window.confirm` / `window.alert`** : tout passe par le composant `StModal` thémé + un toast inline `st-toast` (Esc/Ctrl+Entrée raccourcis clavier).
 - **Aucun appel réseau direct externe** (tout passe par Supabase REST).
 
 ## Dépendances
@@ -116,9 +121,10 @@ Route id = `"stacks"`. **Panel Tier 2**.
 - **RPC `get_gemini_usage_stats` 404** : `.catch(() => null)` → `gemReal = null` → fallback sur proxy articles × 2. `hasRealGem = false` → breakdown affiche "articles/jour" au lieu de "appels/jour".
 - **Saisies manuelles absentes** (cas actuel, 0 lignes `stacks.*`) : `hasManualBalance = false` et `hasGemManual = false` → status Claude dérivé de la projection, status Gemini dérivé du proxy articles. Le bouton "Mettre à jour" reste visible et fonctionnel.
 - **Saisie manuelle invalide** : `Number("xxx") === NaN` → `Number.isFinite(NaN)` = false → `hasManualBalance/hasGemManual` = false, le fallback prend le relais silencieusement.
-- **Cancel d'un prompt** (`window.prompt` retourne `null`) : early-return, aucune écriture.
-- **`stUpsertProfile` échec** : `res.ok === false` → `throw new Error("upsert 4xx")` → `handleEdit` catch et alert "Erreur : xxx".
-- **prompt() "0"** : converti `Number("0") = 0`, `Number.isFinite(0) = true` → sauvé. Un solde de 0$ fait passer Claude en "critical" à juste titre.
+- **Cancel modale** : `Esc`, clic sur backdrop, ou bouton "Annuler" → `setModalState(null)` sans écriture.
+- **`stUpsertProfile` échec** : `res.ok === false` → `throw new Error("upsert 4xx")` → `StModal` catch et affiche l'erreur dans `.st-modal-formerror` (rouge tinté), bouton réactivé pour retry. Pas de toast global ni de fermeture forcée.
+- **Saisie "0"** : `Number("0") = 0`, `Number.isFinite(0) = true` → sauvé. Un solde de 0$ fait passer Claude en "critical" à juste titre.
+- **Validation inline** : `required` empty → `Requis` ; `validate(v)` retourne un message → affiché en rouge sous le champ ; `Ctrl+Entrée` ne valide pas tant qu'une erreur est visible.
 - **projected > budget × 3** : barre clampée à `Math.min(100, pct)` côté UI mais le pourcentage affiché peut atteindre 999 (`stPct` clamp).
 - **Mois en cours jour 1** : `monthProgress = 1/30 ≈ 0.033` → `projected = monthCost / 0.033 = monthCost × 30` → peut exploser tôt dans le mois. Non rétrogradé.
 - **Conversion USD→EUR statique** : `0.92` hardcoded → drift non pris en compte si le taux change.
@@ -136,7 +142,7 @@ Route id = `"stacks"`. **Panel Tier 2**.
 - [ ] **GitHub 100% indicatif** : pas d'API publique free-tier pour l'usage Actions. Les quotas affichés sont à 0 et l'alerte renvoie vers github.com/settings/billing.
 - [ ] **Limite Gemini free tier 1500 req/jour hardcoded** : c'est le tier Flash mais le Pro est 50/j et on mélange les deux en proxy.
 - [ ] **Series 30j Supabase = flat proxy** ([data-loader.js:3468](cockpit/lib/data-loader.js:3468)) : `{...d, value: dbMB / 30}` → barres identiques. Pas de vraie série (on n'a qu'un snapshot).
-- [x] ~~**Prompts natifs**~~ → **fixé** : nouveau composant `StEditModal` (React inline, réutilise les classes CSS `tk-*` du TicketModal). 4 types de champs (text/number/date/boolean). `Ctrl+Entrée` save, `Escape` cancel, focus auto sur premier champ, erreurs affichées dans la modal.
+- [x] ~~**Prompts natifs**~~ → **fixé** (2026-04-29) : nouveau composant `StModal` (React inline, classes CSS dédiées `st-modal*` + `st-modal-field--toggle` + `st-toast`). Champs `text` / `decimal` / `numeric` / `checkbox` (toggle). `Ctrl+Entrée` save, `Esc` cancel, focus auto, validation inline (`required`, `validate(v)`), erreurs par champ + erreur form-level si `onSubmit` throw. `window.alert` remplacé par un toast `.st-toast--error` auto-dismiss 3.6s.
 - [ ] **Aucun feedback intermédiaire** sur les edits : 4 upserts séquentiels pendant lesquels le bouton affiche "Enregistre…" mais pas de barre de progression.
 - [ ] **Filtres non persistés** : `typeFilter` et `statusFilter` reviennent à "all" à chaque reload.
 - [ ] **Pas de polling auto** : nécessite un clic manuel sur "↻ refresh" pour voir les nouveaux appels Gemini/Claude.
@@ -149,6 +155,7 @@ Route id = `"stacks"`. **Panel Tier 2**.
 - [ ] **`stacks.*` namespace user_profile** : conventions nommage non documentée en dehors du code. Si quelqu'un modifie les clés, le loader tombe en silence sur ses defaults.
 
 ## Dernière MAJ
+2026-04-29 — switch `window.prompt`/`confirm`/`alert` → composant `StModal` thémable + toast inline. Drift spec/code fixé (StEditModal mentionné en avril mais jamais shipé). Versions bumpées : `panel-stacks.jsx?v=2`, `styles-stacks.css?v=2`.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 6 fixes (modal React StEditModal, FX dynamique Frankfurter, budget configurable, coût Jarvis cloud additionné, projection stable 7j-avg, MAU réel via migration 014)

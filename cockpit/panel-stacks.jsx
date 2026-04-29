@@ -27,6 +27,128 @@ function stFmtNum(v) {
   return v.toFixed(2).replace(/\.?0+$/, "");
 }
 
+// ── Modal réutilisable (remplace window.prompt/confirm) ──
+// fields: [{ key, label, type?: "text"|"checkbox", initial?, required?, hint?, placeholder?, inputMode?, validate?(v) }]
+function StModal({ title, subtitle, fields, onCancel, onSubmit, submitLabel = "Enregistrer" }) {
+  const firstInputRef = React.useRef(null);
+  const [values, setValues] = React.useState(() =>
+    Object.fromEntries(fields.map(f => [f.key, f.initial ?? (f.type === "checkbox" ? false : "")]))
+  );
+  const [errors, setErrors] = React.useState({});
+  const [submitting, setSubmitting] = React.useState(false);
+
+  const validate = () => {
+    const errs = {};
+    for (const f of fields) {
+      if (f.type === "checkbox") continue;
+      const v = String(values[f.key] ?? "").trim();
+      if (f.required && !v) errs[f.key] = "Requis";
+      else if (v && f.validate) {
+        const r = f.validate(v);
+        if (r) errs[f.key] = r;
+      }
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    if (!validate()) return;
+    setSubmitting(true);
+    try {
+      await onSubmit(values);
+    } catch (e) {
+      setErrors({ _form: String(e?.message || e).slice(0, 160) });
+      setSubmitting(false);
+    }
+  };
+
+  // Latest-callback refs so the keydown listener never captures stale state.
+  const submitRef = React.useRef(handleSubmit);
+  submitRef.current = handleSubmit;
+  const cancelRef = React.useRef(onCancel);
+  cancelRef.current = onCancel;
+
+  React.useEffect(() => {
+    firstInputRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); cancelRef.current?.(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault(); submitRef.current?.();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
+  return (
+    <div className="st-modal-backdrop" onMouseDown={onCancel}>
+      <div
+        className="st-modal"
+        onMouseDown={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="st-modal-head">
+          <h2>{title}</h2>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
+        <form
+          className="st-modal-body"
+          onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
+        >
+          {fields.map((f, i) => {
+            const isCheckbox = f.type === "checkbox";
+            const err = errors[f.key];
+            if (isCheckbox) {
+              return (
+                <label key={f.key} className="st-modal-field st-modal-field--toggle">
+                  <input
+                    ref={i === 0 ? firstInputRef : null}
+                    type="checkbox"
+                    checked={Boolean(values[f.key])}
+                    onChange={(e) => setValues(v => ({ ...v, [f.key]: e.target.checked }))}
+                  />
+                  <span>{f.label}</span>
+                  {f.hint && <small>{f.hint}</small>}
+                </label>
+              );
+            }
+            return (
+              <label key={f.key} className="st-modal-field">
+                <span>{f.label}{f.required && " *"}</span>
+                <input
+                  ref={i === 0 ? firstInputRef : null}
+                  type={f.type || "text"}
+                  value={values[f.key] ?? ""}
+                  onChange={(e) => setValues(v => ({ ...v, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                  inputMode={f.inputMode}
+                  aria-invalid={err ? "true" : undefined}
+                />
+                {f.hint && !err && <small>{f.hint}</small>}
+                {err && <small className="is-error">{err}</small>}
+              </label>
+            );
+          })}
+          {errors._form && <p className="st-modal-formerror">{errors._form}</p>}
+          <button type="submit" hidden aria-hidden="true" />
+        </form>
+        <div className="st-modal-foot">
+          <button className="btn btn--ghost" type="button" onClick={onCancel} disabled={submitting}>
+            Annuler
+          </button>
+          <button className="btn btn--primary" type="button" onClick={handleSubmit} disabled={submitting}>
+            {submitting ? "Enregistrement…" : submitLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Spark chart ─────────────────────────────────────
 function StChart({ series, unit, color }) {
   const w = 900, h = 90;
@@ -129,76 +251,14 @@ async function stUpsertProfile(key, value) {
   return res.json();
 }
 
-async function stEditClaudeBalance(onDone) {
-  const cur = (window.STACKS_DATA?.services?.find(x => x.id === "claude")?.manual_balance) || {};
-  const balance = window.prompt(
-    "Solde Anthropic restant (USD) ?\nExemple : 4.41\n(Vu dans console.anthropic.com)",
-    cur.usd != null ? String(cur.usd) : ""
-  );
-  if (balance == null || balance.trim() === "") return;
-  const credit = window.prompt(
-    "Crédit initial (USD) — laisse vide si pas applicable :",
-    cur.credit_usd != null ? String(cur.credit_usd) : ""
-  );
-  const expires = window.prompt(
-    "Date d'expiration du crédit (YYYY-MM-DD) — laisse vide si pas applicable :",
-    cur.credit_expires || ""
-  );
-  const today = new Date().toISOString().slice(0, 10);
-  const updates = [
-    stUpsertProfile("stacks.anthropic_balance_usd", String(Number(balance))),
-    stUpsertProfile("stacks.anthropic_balance_updated_at", today),
-  ];
-  if (credit && credit.trim() !== "") updates.push(stUpsertProfile("stacks.anthropic_credit_usd", String(Number(credit))));
-  if (expires && expires.trim() !== "") updates.push(stUpsertProfile("stacks.anthropic_credit_expires", expires.trim()));
-  await Promise.all(updates);
-  if (window.__COCKPIT_RAW) {
-    window.__COCKPIT_RAW.profileRows = null; // force reload
-  }
-  if (window.cockpitDataLoader) {
-    window.cockpitDataLoader.invalidateCache("user_profile");
-    // Reload user_profile into __COCKPIT_RAW for next stacks transform
-    const fresh = await window.sb.query("user_profile", "order=key");
-    if (window.__COCKPIT_RAW) window.__COCKPIT_RAW.profileRows = fresh;
-    window.cockpitDataLoader.invalidateCache("stacks_");
-    await window.cockpitDataLoader.loadPanel("stacks");
-  }
-  if (onDone) onDone();
-}
-
-async function stEditGeminiRateLimit(onDone) {
-  const cur = (window.STACKS_DATA?.services?.find(x => x.id === "gemini")?.manual_rate_limit) || {};
-  const hit = window.confirm("Rate limit Gemini atteint actuellement ?\n\nOK = oui (critical), Annuler = non");
-  const model = window.prompt(
-    "Modèle concerné (ex : Gemini 2.5 Flash Lite) :",
-    cur.model_limited || "Gemini 2.5 Flash Lite"
-  );
-  if (model == null) return;
-  const peak = window.prompt(
-    "Pic RPM observé (requêtes/min) :",
-    cur.peak_rpm != null ? String(cur.peak_rpm) : "11"
-  );
-  const limit = window.prompt(
-    "Limite RPM du tier :",
-    cur.peak_rpm_limit != null ? String(cur.peak_rpm_limit) : "10"
-  );
-  if (peak == null || limit == null) return;
-  const today = new Date().toISOString().slice(0, 10);
-  await Promise.all([
-    stUpsertProfile("stacks.gemini_rate_limit_hit", hit ? "true" : "false"),
-    stUpsertProfile("stacks.gemini_peak_rpm", String(Number(peak))),
-    stUpsertProfile("stacks.gemini_peak_rpm_limit", String(Number(limit))),
-    stUpsertProfile("stacks.gemini_model_limited", model.trim()),
-    stUpsertProfile("stacks.gemini_observed_at", today),
-  ]);
-  if (window.cockpitDataLoader) {
-    window.cockpitDataLoader.invalidateCache("user_profile");
-    const fresh = await window.sb.query("user_profile", "order=key");
-    if (window.__COCKPIT_RAW) window.__COCKPIT_RAW.profileRows = fresh;
-    window.cockpitDataLoader.invalidateCache("stacks_");
-    await window.cockpitDataLoader.loadPanel("stacks");
-  }
-  if (onDone) onDone();
+// Refresh user_profile rows + reload stacks panel after a manual edit.
+async function stReloadAfterEdit() {
+  if (!window.cockpitDataLoader) return;
+  window.cockpitDataLoader.invalidateCache("user_profile");
+  const fresh = await window.sb.query("user_profile", "order=key");
+  if (window.__COCKPIT_RAW) window.__COCKPIT_RAW.profileRows = fresh;
+  window.cockpitDataLoader.invalidateCache("stacks_");
+  await window.cockpitDataLoader.loadPanel("stacks");
 }
 
 // ── Service block ───────────────────────────────────
@@ -322,6 +382,18 @@ function PanelStacks({ data, onNavigate }) {
   const [statusFilter, setStatusFilter] = useStState("all");
   const [refreshing, setRefreshing] = useStState(false);
   const [refreshedAt, setRefreshedAt] = useStState(null);
+  // Modal piloté par PanelStacks (cf. StModal défini en haut du fichier).
+  // shape: null | { kind: "claude-balance"|"gemini-rate-limit", initial: {...} }
+  const [modalState, setModalState] = useStState(null);
+  // Toast inline (remplace window.alert sur erreur).
+  const [toast, setToast] = useStState(null);
+  const toastTimerRef = React.useRef(null);
+
+  const showError = (message) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message: String(message || "Erreur inconnue"), tone: "error" });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3600);
+  };
 
   async function handleRefresh() {
     if (refreshing) return;
@@ -339,14 +411,70 @@ function PanelStacks({ data, onNavigate }) {
     }
   }
 
-  async function handleEdit(serviceId) {
+  function openClaudeBalanceModal() {
+    const cur = (window.STACKS_DATA?.services?.find(x => x.id === "claude")?.manual_balance) || {};
+    setModalState({
+      kind: "claude-balance",
+      initial: {
+        balance: cur.usd != null ? String(cur.usd) : "",
+        credit: cur.credit_usd != null ? String(cur.credit_usd) : "",
+        expires: cur.credit_expires || "",
+      },
+    });
+  }
+
+  function openGeminiRateLimitModal() {
+    const cur = (window.STACKS_DATA?.services?.find(x => x.id === "gemini")?.manual_rate_limit) || {};
+    setModalState({
+      kind: "gemini-rate-limit",
+      initial: {
+        hit: Boolean(cur.hit),
+        model: cur.model_limited || "Gemini 2.5 Flash Lite",
+        peak: cur.peak_rpm != null ? String(cur.peak_rpm) : "11",
+        limit: cur.peak_rpm_limit != null ? String(cur.peak_rpm_limit) : "10",
+      },
+    });
+  }
+
+  async function handleSubmitClaudeBalance(values) {
+    const today = new Date().toISOString().slice(0, 10);
+    const updates = [
+      stUpsertProfile("stacks.anthropic_balance_usd", String(Number(values.balance))),
+      stUpsertProfile("stacks.anthropic_balance_updated_at", today),
+    ];
+    if (values.credit && String(values.credit).trim() !== "") {
+      updates.push(stUpsertProfile("stacks.anthropic_credit_usd", String(Number(values.credit))));
+    }
+    if (values.expires && String(values.expires).trim() !== "") {
+      updates.push(stUpsertProfile("stacks.anthropic_credit_expires", String(values.expires).trim()));
+    }
+    await Promise.all(updates);
+    setModalState(null);
+    await stReloadAfterEdit();
+    setRefreshedAt(new Date());
+  }
+
+  async function handleSubmitGeminiRateLimit(values) {
+    const today = new Date().toISOString().slice(0, 10);
+    await Promise.all([
+      stUpsertProfile("stacks.gemini_rate_limit_hit", values.hit ? "true" : "false"),
+      stUpsertProfile("stacks.gemini_peak_rpm", String(Number(values.peak))),
+      stUpsertProfile("stacks.gemini_peak_rpm_limit", String(Number(values.limit))),
+      stUpsertProfile("stacks.gemini_model_limited", String(values.model || "").trim()),
+      stUpsertProfile("stacks.gemini_observed_at", today),
+    ]);
+    setModalState(null);
+    await stReloadAfterEdit();
+    setRefreshedAt(new Date());
+  }
+
+  function handleEdit(serviceId) {
     try {
-      if (serviceId === "claude") await stEditClaudeBalance();
-      else if (serviceId === "gemini") await stEditGeminiRateLimit();
-      setRefreshedAt(new Date());
+      if (serviceId === "claude") openClaudeBalanceModal();
+      else if (serviceId === "gemini") openGeminiRateLimitModal();
     } catch (e) {
-      console.error("[stacks] edit failed:", e);
-      window.alert("Erreur : " + (e.message || "inconnue"));
+      console.error("[stacks] open modal failed:", e);
+      showError("Impossible d'ouvrir l'éditeur · " + (e.message || "inconnu"));
     }
   }
 
@@ -496,6 +624,94 @@ function PanelStacks({ data, onNavigate }) {
       <div className="st-services">
         {filtered.map((s) => <StServiceBlock key={s.id} s={s} onEdit={handleEdit} />)}
       </div>
+
+      {/* Modale d'édition (Claude balance / Gemini rate limit) */}
+      {modalState?.kind === "claude-balance" && (
+        <StModal
+          title="Mettre à jour le solde Anthropic"
+          subtitle="Vu sur console.anthropic.com — copie tes valeurs ici."
+          submitLabel="Enregistrer le solde"
+          fields={[
+            {
+              key: "balance", label: "Solde restant (USD)",
+              required: true, initial: modalState.initial.balance,
+              inputMode: "decimal", placeholder: "4.41",
+              hint: "Format : nombre, ex 4.41",
+              validate: (v) => isNaN(Number(v)) ? "Nombre invalide" : null,
+            },
+            {
+              key: "credit", label: "Crédit initial (USD)",
+              initial: modalState.initial.credit,
+              inputMode: "decimal", placeholder: "10.00",
+              hint: "Optionnel — laisse vide si pas applicable",
+              validate: (v) => v && isNaN(Number(v)) ? "Nombre invalide" : null,
+            },
+            {
+              key: "expires", label: "Expiration du crédit",
+              initial: modalState.initial.expires,
+              placeholder: "2026-12-31",
+              hint: "Format YYYY-MM-DD, optionnel",
+              validate: (v) => {
+                if (!v) return null;
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "Format YYYY-MM-DD";
+                const dt = new Date(v + "T00:00:00Z");
+                if (isNaN(dt.getTime()) || dt.toISOString().slice(0, 10) !== v) return "Format YYYY-MM-DD";
+                return null;
+              },
+            },
+          ]}
+          onCancel={() => setModalState(null)}
+          onSubmit={handleSubmitClaudeBalance}
+        />
+      )}
+
+      {modalState?.kind === "gemini-rate-limit" && (
+        <StModal
+          title="Mettre à jour le rate limit Gemini"
+          subtitle="Bloqué pendant un run ? Renseigne le pic observé pour piloter le statut."
+          submitLabel="Enregistrer le relevé"
+          fields={[
+            {
+              key: "hit", label: "Rate limit atteint actuellement",
+              type: "checkbox", initial: modalState.initial.hit,
+              hint: "Coche si le pipeline a tapé la limite récemment (statut critical).",
+            },
+            {
+              key: "model", label: "Modèle concerné",
+              required: true, initial: modalState.initial.model,
+              placeholder: "Gemini 2.5 Flash Lite",
+              hint: "Le tier free dépend du modèle — sois précis.",
+            },
+            {
+              key: "peak", label: "Pic RPM observé",
+              required: true, initial: modalState.initial.peak,
+              inputMode: "numeric", placeholder: "11",
+              hint: "Requêtes/min observées au moment du blocage.",
+              validate: (v) => isNaN(Number(v)) ? "Nombre invalide" : null,
+            },
+            {
+              key: "limit", label: "Limite RPM du tier",
+              required: true, initial: modalState.initial.limit,
+              inputMode: "numeric", placeholder: "10",
+              hint: "Limite officielle du tier (Flash Lite free = 10 RPM).",
+              validate: (v) => isNaN(Number(v)) ? "Nombre invalide" : null,
+            },
+          ]}
+          onCancel={() => setModalState(null)}
+          onSubmit={handleSubmitGeminiRateLimit}
+        />
+      )}
+
+      {/* Toast inline (remplace window.alert) */}
+      {toast && (
+        <div
+          className={`st-toast st-toast--${toast.tone || "error"}`}
+          role="status"
+          aria-live="polite"
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
