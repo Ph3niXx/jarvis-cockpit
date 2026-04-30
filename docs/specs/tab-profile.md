@@ -40,6 +40,7 @@ Le panel sert à : (1) **voir** ce que Claude voit de toi (payload exact + token
 - **Recherche globale accent-insensitive** : un seul champ recherche qui filtre simultanément faits, entités et commitments (« prefere » matche « préfère »).
 - **Copier le payload Claude** : bouton qui copie l'exact contexte envoyé aux LLM dans le presse-papiers, pour debug ou partage, avec feedback « ✓ Copié » temporaire.
 - **Export JSON intégral** : bouton qui télécharge tout le profil (champs + faits + entités + commitments + questions + historique) au format JSON daté.
+- **Préférences UI · Aide clavier flottante** : zone en bas du panel avec une case à cocher pour réafficher le bouton "?" flottant en bas à droite. Le bouton se masque tout seul après 7 jours d'usage pour réduire la friction visuelle ; la touche "?" du clavier continue toujours d'ouvrir l'aide. La préférence est stockée localement (par machine).
 
 ## Front — structure UI
 Fichier : [cockpit/panel-profile.jsx](cockpit/panel-profile.jsx) — 1022 lignes, monté par [app.jsx:408](cockpit/app.jsx:408). CSS dédié : [cockpit/styles-profile.css](cockpit/styles-profile.css) — 1028 lignes, scope `pf2-*`. Ressources dans [index.html:26, 67, 92](index.html:26).
@@ -184,6 +185,7 @@ Route id = `"profile"`. **Panel Tier 2** ([data-loader.js:4528](cockpit/lib/data
 - [ ] **UQ auto-gen pipeline (scope backend)** : si on veut vraiment livrer la promesse retirée, ajouter un step dans `weekly_analysis.py` qui recalcule la triangulation côté Python et insère dans `uncomfortable_questions` quand `level === "stale-critical"`. Alignement avec la logique front dans `triangulation` useMemo.
 
 ## Dernière MAJ
+2026-04-30 — ajout préférence "Afficher l'aide clavier flottante" (Zone 08). Le FAB "?" se masque automatiquement après 7 jours d'usage ; toggle dans le panel pour le réafficher.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 7 correctifs appliqués (migration 012 versionnée, télémétrie `error_shown` partout, `profile_fact_superseded` tracé, recherche accent-insensitive, `notes` éditable dans commitments, copy UQ corrigée, dead code `pfDeleteCommitment` supprimé) — commit `c456ac9` (base).

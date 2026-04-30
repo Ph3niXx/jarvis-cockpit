@@ -191,6 +191,7 @@ function App() {
   const [retryTick, setRetryTick] = useState(0);
   const [sbMobileOpen, setSbMobileOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [showKbdFab, setShowKbdFab] = useState(true);
   const [cpOpen, setCpOpen] = useState(false);
   const [recentOnly, setRecentOnly] = useState(() => {
     try {
@@ -404,6 +405,23 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Hide the help FAB after 7 days of usage. The keyboard shortcut "?"
+  // continues to work — only the visual nudge disappears.
+  useEffect(() => {
+    try {
+      const force = localStorage.getItem("cockpit-show-kbd-fab") === "1";
+      if (force) { setShowKbdFab(true); return; }
+      const firstSeen = localStorage.getItem("cockpit-first-seen");
+      if (!firstSeen) {
+        localStorage.setItem("cockpit-first-seen", String(Date.now()));
+        setShowKbdFab(true);
+        return;
+      }
+      const days = (Date.now() - parseInt(firstSeen, 10)) / 86400000;
+      setShowKbdFab(days < 7);
+    } catch { setShowKbdFab(true); }
+  }, []);
+
   // "?" → ouvre l'overlay d'aide | Escape → referme tout overlay/modale
   useEffect(() => {
     const onKey = (e) => {
@@ -522,12 +540,14 @@ function App() {
         <Icon name="clock" size={12} stroke={1.75} />
         {recentOnly ? "Récent · 24h" : "Tout"}
       </button>
-      <button
-        className="kbd-fab"
-        onClick={() => setShortcutsOpen(true)}
-        title="Raccourcis clavier (?)"
-        aria-label="Afficher les raccourcis clavier"
-      >?</button>
+      {showKbdFab && (
+        <button
+          className="kbd-fab"
+          onClick={() => setShortcutsOpen(true)}
+          title="Raccourcis clavier (?)"
+          aria-label="Afficher les raccourcis clavier"
+        >?</button>
+      )}
     </div>
   );
 }

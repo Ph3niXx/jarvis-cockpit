@@ -160,6 +160,9 @@ function PanelProfile({ data, onNavigate }) {
   const [saving, setSaving] = usePfState({});
   const [search, setSearch] = usePfState("");
   const [copyFlash, setCopyFlash] = usePfState(false);
+  const [kbdFabPref, setKbdFabPref] = usePfState(() => {
+    try { return localStorage.getItem("cockpit-show-kbd-fab") === "1"; } catch { return false; }
+  });
   const [localRows, setLocalRows] = usePfState(rows);
   const [localFacts, setLocalFacts] = usePfState(facts);
   const [localCommits, setLocalCommits] = usePfState(commitments);
@@ -790,6 +793,30 @@ function PanelProfile({ data, onNavigate }) {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ══ ZONE 8 — PRÉFÉRENCES UI ══ */}
+      <section className="pf2-zone">
+        <div className="pf2-zone-head">
+          <span className="pf2-zone-num">08</span>
+          <h2 className="pf2-zone-title">Préférences UI</h2>
+          <span className="pf2-zone-meta">stockées localement (cette machine)</span>
+        </div>
+        <label className="prof-toggle">
+          <input
+            type="checkbox"
+            checked={kbdFabPref}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setKbdFabPref(checked);
+              try {
+                if (checked) localStorage.setItem("cockpit-show-kbd-fab", "1");
+                else localStorage.removeItem("cockpit-show-kbd-fab");
+              } catch {}
+            }}
+          />
+          Afficher l'aide clavier flottante (?) — la touche <kbd>?</kbd> ouvre toujours l'aide
+        </label>
       </section>
     </div>
   );
