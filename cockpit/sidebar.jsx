@@ -168,6 +168,18 @@ function Sidebar({ theme, activeId, onSelect, data, onThemeChange, mobileOpen = 
               <span className="sb-foot-next">prochain 06:00</span>
             </div>
           </div>
+        ) : streak === 0 ? (
+          <div className="sb-foot-streak sb-foot-streak--zero">
+            <div className="sb-foot-streak-main">
+              <span className="sb-foot-streak-icon sb-foot-streak-zero" aria-hidden="true">
+                <Icon name="flame" size={13} stroke={1.75} />
+              </span>
+              <span className="sb-foot-streak-num sb-foot-streak-zero" aria-hidden="true">·</span>
+            </div>
+            <div className="sb-foot-streak-meta">
+              <span className="sb-foot-streak-zero-msg">Premier jour. Lis 1 article pour démarrer.</span>
+            </div>
+          </div>
         ) : (
           <div className="sb-foot-streak">
             <div className="sb-foot-streak-main">
