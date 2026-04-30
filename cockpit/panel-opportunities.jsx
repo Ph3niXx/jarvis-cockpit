@@ -127,7 +127,7 @@ function SignalChip({ name, onClick }) {
 
 // ─── Flagship (top priority opportunity) ─────────────────
 function FlagshipCard({ opp, onTake, onPass, onOpenSignal, onAskJarvis, onSendToIdeas }) {
-  const w = opp.window;
+  const w = opp.window || {};
   const progress = windowProgress(w);
   const barCls = w.urgency === "closing" ? "opp-flagship-window-bar-fill--closing"
                : w.urgency === "getting_late" ? "opp-flagship-window-bar-fill--closing"
@@ -162,7 +162,7 @@ function FlagshipCard({ opp, onTake, onPass, onOpenSignal, onAskJarvis, onSendTo
       <div className="opp-flagship-side">
         <div>
           <div className="opp-flagship-window-label">Fenêtre de tir</div>
-          <div className="opp-flagship-window-val">{w.closes_in}</div>
+          <div className="opp-flagship-window-val">{w.closes_in || "—"}</div>
           <div className="opp-flagship-window-sub">
             {w.closes_iso ? `ferme le ${new Date(w.closes_iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}` : "pas de deadline"}
           </div>
@@ -174,7 +174,7 @@ function FlagshipCard({ opp, onTake, onPass, onOpenSignal, onAskJarvis, onSendTo
           </div>
           <div className="opp-flagship-window-bar-sub">
             <span>ouverte S{w.opens?.replace("S", "")}</span>
-            <span>{URGENCY_LABEL[w.urgency]}</span>
+            <span>{URGENCY_LABEL[w.urgency] || URGENCY_LABEL.right_time}</span>
           </div>
         </div>
 
@@ -193,7 +193,7 @@ function FlagshipCard({ opp, onTake, onPass, onOpenSignal, onAskJarvis, onSendTo
 
 // ─── Card (editorial row) ────────────────────────────────
 function OppCard({ opp, open, onToggle, onTake, onPass, onReset, onOpenSignal, onAskJarvis, onSendToIdeas }) {
-  const w = opp.window;
+  const w = opp.window || {};
   const cls = `opp-card ${opp.status === "taken" ? "is-taken" : ""} ${opp.status === "passed" ? "is-passed" : ""}`;
   const progress = windowProgress(w);
   const winCls = w.urgency === "closing" ? "--closing"
