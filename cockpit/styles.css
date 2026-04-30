@@ -4601,3 +4601,19 @@ select:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .wiki-decorated { transition: none; }
 }
+
+/* ═══ Kill-switch global pour reduced-motion ═════════════════
+   Couvre les 9 animations infinies réparties dans
+   cockpit/styles-*.css. Plus besoin d'ajouter une garde dans
+   chaque stylesheet — ce bloc s'applique en cascade.
+   ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
