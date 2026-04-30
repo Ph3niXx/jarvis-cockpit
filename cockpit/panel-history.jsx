@@ -423,7 +423,7 @@ function PanelHistory({ data, onNavigate, onLoadDay, historicalDay }) {
   }, [filtered]);
 
   const selectedDay = selectedIso ? hist.days.find((d) => d.iso === selectedIso) : null;
-  const t = hist.totals;
+  const t = hist?.totals || {};
 
   return (
     <div className="hi-wrap">
@@ -441,22 +441,22 @@ function PanelHistory({ data, onNavigate, onLoadDay, historicalDay }) {
         <div className="hi-kpis">
           <div className="hi-kpi">
             <div className="hi-kpi-label">Articles vus (60j)</div>
-            <div className="hi-kpi-val">{t.total_articles.toLocaleString("fr-FR")}</div>
-            <div className="hi-kpi-sub">{(t.total_articles / hist.days.length).toFixed(0)}/jour en moyenne</div>
+            <div className="hi-kpi-val">{(t.total_articles ?? 0).toLocaleString("fr-FR")}</div>
+            <div className="hi-kpi-sub">{((t.total_articles ?? 0) / Math.max(1, hist?.days?.length || 1)).toFixed(0)}/jour en moyenne</div>
           </div>
           <div className="hi-kpi">
             <div className="hi-kpi-label">Requêtes Jarvis</div>
-            <div className="hi-kpi-val">{t.total_jarvis_calls.toLocaleString("fr-FR")}</div>
-            <div className="hi-kpi-sub">streak en cours · {t.streak_days}j</div>
+            <div className="hi-kpi-val">{(t.total_jarvis_calls ?? 0).toLocaleString("fr-FR")}</div>
+            <div className="hi-kpi-sub">streak en cours · {t.streak_days ?? 0}j</div>
           </div>
           <div className="hi-kpi">
             <div className="hi-kpi-label">Jour le plus chargé</div>
-            <div className="hi-kpi-val" style={{ fontSize: 18 }}>{t.peak_day.short_label}</div>
-            <div className="hi-kpi-sub">{t.peak_day.articles} articles ce jour-là</div>
+            <div className="hi-kpi-val" style={{ fontSize: 18 }}>{t.peak_day?.short_label || "—"}</div>
+            <div className="hi-kpi-sub">{t.peak_day?.articles ?? 0} articles ce jour-là</div>
           </div>
           <div className="hi-kpi">
             <div className="hi-kpi-label">Actions consignées</div>
-            <div className="hi-kpi-val">{t.total_actions}</div>
+            <div className="hi-kpi-val">{t.total_actions ?? 0}</div>
             <div className="hi-kpi-sub">sur les 60 derniers jours</div>
           </div>
         </div>
