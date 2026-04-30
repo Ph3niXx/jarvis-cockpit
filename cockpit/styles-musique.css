@@ -52,7 +52,8 @@
   content: "";
   width: 6px; height: 6px; border-radius: 50%;
   background: #fff;
-  animation: mz-pulse 1.6s ease-in-out infinite;
+  animation: mz-pulse 1.6s ease-in-out 3;
+  animation-fill-mode: forwards;
 }
 @keyframes mz-pulse {
   0%, 100% { opacity: 1; }

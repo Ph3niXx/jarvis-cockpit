@@ -150,7 +150,8 @@
 .jl-node--in-progress .jl-node-dot {
   background: transparent;
   border: 2px solid var(--jl-accent);
-  animation: jl-pulse 1.8s ease-in-out infinite;
+  animation: jl-pulse 1.8s ease-in-out 3;
+  animation-fill-mode: forwards;
 }
 .jl-node--backlog .jl-node-dot {
   background: transparent;
@@ -334,7 +335,8 @@
 .jl-feature-badge--done .jl-feature-badge-dot { background: var(--jl-accent); }
 .jl-feature-badge--in-progress .jl-feature-badge-dot {
   background: var(--jl-accent);
-  animation: jl-feature-pulse 2s ease-in-out infinite;
+  animation: jl-feature-pulse 2s ease-in-out 3;
+  animation-fill-mode: forwards;
 }
 .jl-feature-badge--backlog .jl-feature-badge-dot { background: var(--jl-text-mute); }
 .jl-feature-badge--blocked .jl-feature-badge-dot { background: var(--jl-error); }

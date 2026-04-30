@@ -68,7 +68,8 @@
   border-radius: 50%;
   background: var(--positive);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--positive) 18%, transparent);
-  animation: jv-pulse 2.4s ease-in-out infinite;
+  animation: jv-pulse 2.4s ease-in-out 3;
+  animation-fill-mode: forwards;
 }
 @keyframes jv-pulse {
   0%, 100% { opacity: 1; }

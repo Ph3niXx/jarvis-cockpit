@@ -3463,7 +3463,8 @@ select:focus-visible {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--brand);
   box-shadow: 0 0 0 3px var(--brand-tint);
-  animation: vl-pulse 2s ease-in-out infinite;
+  animation: vl-pulse 2s ease-in-out 3;
+  animation-fill-mode: forwards;
 }
 @keyframes vl-pulse { 0%,100%{opacity:1;} 50%{opacity:.6;} }
 .vl-hero-sep { opacity: 0.4; }

@@ -281,7 +281,8 @@
 .st-service-status.is-critical { color: var(--critical); }
 .st-service-status.is-critical .st-status-dot {
   background: var(--critical);
-  animation: st-pulse 1.8s ease-in-out infinite;
+  animation: st-pulse 1.8s ease-in-out 3;
+  animation-fill-mode: forwards;
 }
 @keyframes st-pulse {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--critical) 60%, transparent); }

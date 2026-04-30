@@ -96,7 +96,8 @@
   border-radius: 50%;
   background: var(--brand);
   box-shadow: 0 0 0 3px var(--brand-tint);
-  animation: jr-pulse 2.4s ease-in-out infinite;
+  animation: jr-pulse 2.4s ease-in-out 3;
+  animation-fill-mode: forwards;
 }
 @keyframes jr-pulse {
   0%,100% { opacity: 1; transform: scale(1); }

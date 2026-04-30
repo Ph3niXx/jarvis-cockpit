@@ -64,7 +64,8 @@
   content: ""; width: 8px; height: 8px; border-radius: 50%;
   background: var(--brand);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 14%, transparent);
-  animation: opp-pulse 2.4s ease-in-out infinite;
+  animation: opp-pulse 2.4s ease-in-out 3;
+  animation-fill-mode: forwards;
 }
 @keyframes opp-pulse {
   0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 14%, transparent); }

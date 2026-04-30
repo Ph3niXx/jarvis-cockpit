@@ -714,7 +714,8 @@
   border-radius: 50%;
   background: radial-gradient(circle, rgba(217,119,87,0.3) 0%, transparent 70%);
   margin-bottom: 24px;
-  animation: pulse-eval 1.6s ease-in-out infinite;
+  animation: pulse-eval 1.6s ease-in-out 3;
+  animation-fill-mode: forwards;
 }
 @keyframes pulse-eval {
   0%, 100% { transform: scale(1); opacity: 0.7; }
