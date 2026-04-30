@@ -259,6 +259,19 @@ function Home({ theme, data, onNavigate, recentOnly, setRecentOnly }) {
     try { localStorage.setItem("home-view-mode", viewMode); } catch {}
   }, [viewMode]);
 
+  const [heroCompact, setHeroCompact] = React.useState(() => {
+    try { return localStorage.getItem("cockpit-hero-compact") === "1"; }
+    catch { return false; }
+  });
+  const toggleHeroCompact = () => {
+    setHeroCompact(v => {
+      const next = !v;
+      try { localStorage.setItem("cockpit-hero-compact", next ? "1" : "0"); } catch {}
+      try { window.track && window.track("hero_compact_toggled", { state: next ? "compact" : "full" }); } catch {}
+      return next;
+    });
+  };
+
   const lastVisitTs = React.useMemo(() => {
     try {
       const v = Number(localStorage.getItem("cockpit-last-visit-ts"));
@@ -373,8 +386,18 @@ function Home({ theme, data, onNavigate, recentOnly, setRecentOnly }) {
       ) : (<>
 
       {/* ── HERO : the macro synthesis ─────────────────────────── */}
-      <section className="hero">
+      <section className={`hero ${heroCompact ? "is-compact" : ""}`}>
         <div className="hero-frame">
+          <button
+            className="hero-compact-toggle"
+            onClick={toggleHeroCompact}
+            title={heroCompact ? "Hero plein format" : "Hero compact"}
+            aria-label={heroCompact ? "Étendre le hero" : "Réduire le hero"}
+            aria-pressed={heroCompact}
+          >
+            <Icon name={heroCompact ? "chevron_down" : "chevron_up"} size={12} stroke={2} />
+            {heroCompact ? "Plein" : "Compact"}
+          </button>
           <div className="hero-col-main">
             <div className="hero-kicker">
               <span className="kicker-dot" />

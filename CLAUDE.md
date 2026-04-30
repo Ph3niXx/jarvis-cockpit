@@ -242,6 +242,7 @@ Table `usage_events` — append-only, pas de UPDATE/DELETE (enforcé par RLS). L
 | `recent_filter_auto_on` | `{reason}` | `cockpit/app.jsx` useState init du toggle "Récent · 24h" quand l'auto-on kick in (visite récurrente 30min-18h) |
 | `zero_state_shown` | `{ideas_count}` | `cockpit/home.jsx` useEffect quand le hero bascule en mode "Tu as fait le tour. Bravo." (tout lu/snoozé + unread global = 0) |
 | `top_card_collapsed` | `{rank}` | `cockpit/home.jsx` `toggleRead()` quand une card du Top du jour passe en `is-read` (collapsed à 56px) |
+| `hero_compact_toggled` | `{state}` (`"compact"` / `"full"`) | `cockpit/home.jsx::toggleHeroCompact()` quand l'utilisateur clique le toggle compact/plein du hero (préférence persistée dans `localStorage.cockpit-hero-compact`) |
 
 **Règle** : ajouter un nouvel event_type nécessite de mettre à jour ce tableau AVANT le commit.
 
