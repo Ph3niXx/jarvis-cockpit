@@ -28,6 +28,27 @@ button:focus-visible,
 a:focus-visible {
   outline-offset: 2px;
 }
+
+/* ═══ Skip link — WCAG 2.4.1 (a11y clavier / lecteur d'écran) ═══ */
+.skip-link {
+  position: absolute;
+  top: -44px;
+  left: 8px;
+  padding: 8px 14px;
+  background: var(--tx);
+  color: var(--bg);
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  z-index: 1000;
+  transition: top 140ms;
+}
+.skip-link:focus {
+  top: 8px;
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {

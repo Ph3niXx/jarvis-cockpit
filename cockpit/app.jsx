@@ -507,6 +507,15 @@ function App() {
 
   return (
     <div className={`app ${sbMobileOpen ? "is-sb-mobile-open" : ""}`}>
+      <a
+        href="#main-content"
+        className="skip-link"
+        onClick={(e) => {
+          e.preventDefault();
+          const main = document.getElementById("main-content");
+          if (main) { main.focus(); main.scrollIntoView({ block: "start" }); }
+        }}
+      >Aller au contenu principal</a>
       <button
         className="sb-mobile-trigger"
         onClick={() => setSbMobileOpen(v => !v)}
@@ -518,7 +527,7 @@ function App() {
         <div className="sb-mobile-backdrop" onClick={() => setSbMobileOpen(false)} />
       )}
       <Sidebar theme={theme} activeId={activePanel} onSelect={handleNavigate} data={data} onThemeChange={(id) => { try { localStorage.setItem("cockpit-theme-explicit", "1"); } catch {} setThemeId(id); }} mobileOpen={sbMobileOpen} onMobileClose={() => setSbMobileOpen(false)} />
-      <main className="main">
+      <main className="main" id="main-content" tabIndex="-1">
         <PanelErrorBoundary panelId={activePanel}>{content}</PanelErrorBoundary>
       </main>
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
