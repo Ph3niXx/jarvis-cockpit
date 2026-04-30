@@ -4,17 +4,17 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .jl-root {
-  --jl-bg:          #0a0a0a;
-  --jl-surface:     #141414;
-  --jl-surface-alt: #1c1c1c;
-  --jl-divider:     #262626;
-  --jl-text-mute:   #737373;
-  --jl-text:        #a3a3a3;
-  --jl-text-strong: #e5e5e5;
-  --jl-text-max:    #fafafa;
-  --jl-accent:      #00ff9d;
-  --jl-warning:     #ffb800;
-  --jl-error:       #ef4444;
+  --jl-bg:          var(--bg);
+  --jl-surface:     var(--bg2);
+  --jl-surface-alt: var(--bg3);
+  --jl-divider:     var(--bd);
+  --jl-text-mute:   var(--tx3);
+  --jl-text:        var(--tx2);
+  --jl-text-strong: var(--tx);
+  --jl-text-max:    var(--tx);
+  --jl-accent:      var(--brand);
+  --jl-warning:     var(--neutral);
+  --jl-error:       var(--alert);
 
   background: var(--jl-bg);
   color: var(--jl-text);
@@ -430,17 +430,17 @@
   color: var(--jl-text);
   font-family: var(--font-body, 'Inter', sans-serif);
 
-  --jl-bg:          #0a0a0a;
-  --jl-surface:     #141414;
-  --jl-surface-alt: #1c1c1c;
-  --jl-divider:     #262626;
-  --jl-text-mute:   #737373;
-  --jl-text:        #a3a3a3;
-  --jl-text-strong: #e5e5e5;
-  --jl-text-max:    #fafafa;
-  --jl-accent:      #00ff9d;
-  --jl-warning:     #ffb800;
-  --jl-error:       #ef4444;
+  --jl-bg:          var(--bg);
+  --jl-surface:     var(--bg2);
+  --jl-surface-alt: var(--bg3);
+  --jl-divider:     var(--bd);
+  --jl-text-mute:   var(--tx3);
+  --jl-text:        var(--tx2);
+  --jl-text-strong: var(--tx);
+  --jl-text-max:    var(--tx);
+  --jl-accent:      var(--brand);
+  --jl-warning:     var(--neutral);
+  --jl-error:       var(--alert);
 }
 .jl-drawer.is-open { transform: translateX(0); }
 
@@ -1748,7 +1748,7 @@
 .jl-arch-deps-panel-counts { display: flex; gap: 4px; font-size: 9px; }
 .jl-arch-deps-r, .jl-arch-deps-w { padding: 1px 5px; border-radius: 2px; font-weight: 600; }
 .jl-arch-deps-r { background: var(--bg2, #141414); color: var(--tx3, #737373); }
-.jl-arch-deps-w { background: var(--brand, #c2410c); color: #fff; }
+.jl-arch-deps-w { background: var(--brand, #c2410c); color: var(--bg); }
 
 .jl-arch-deps-detail {
   background: var(--surface, #13161a);

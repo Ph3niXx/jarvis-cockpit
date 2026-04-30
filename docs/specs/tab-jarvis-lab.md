@@ -182,6 +182,7 @@ Format spec.json (haut niveau) :
 - [ ] **`scope` binaire perso/pro** : le CLAUDE.md note que beaucoup d'onglets sont "mixte" — le spec.json (validé par `VALID_SCOPE = {"perso", "pro"}`) force à choisir. Les features mixtes sont rangées en "perso" par défaut.
 
 ## Dernière MAJ
+2026-04-30 — hygiène CSS, hex hardcodés du palette `--jl-*` (lignes 7-17 et 433-443) remplacés par alias vers les tokens globaux (`--bg`, `--bg2`, `--bg3`, `--bd`, `--tx`, `--tx2`, `--tx3`, `--brand`, `--neutral`, `--alert`). Le panel respecte désormais Dawn / Obsidian / Atlas. Hex orphelin conservé : `#8a74ff` (line 771, indicateur catégoriel "weekly" — pas d'équivalent dans le design system).
 2026-04-24 — ajout section Architecture (4 vues : Couches / Flux / Timeline / Dépendances) lues depuis docs/architecture/*.yaml.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
