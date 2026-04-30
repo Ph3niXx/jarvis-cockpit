@@ -116,16 +116,26 @@ Historique de toutes les propositions de Jarvis Upgrade Scout.
 | 2026-04-29v18 | — | **PAUSE ROUTINE** — engagement v17 honoré : 0 commit en 72h, 9 prompts pending non exécutés, 81 whitespace modifs persistent. Aucun SHIP / KILL / PARK émis. Reprise v19 dès qu'un commit post-26/04 apparaît. | — | — | — | Action minimale recommandée (15 min Jean, sans Claude Code) : `git mv` 4 prompts redondants v14+v15 → `done/` + edit README. Voir `jarvis/upgrades/2026-04-29-audit.md`. |
 | 2026-04-29v19 | — | **PAUSE CONFIRMÉE** — 2e run du jour, ~11h après v18, conditions strictement identiques. Streak git silence 83h, 9 prompts pending inchangés. Aucun SHIP / KILL / PARK émis. Reprise v20 si ≥1 commit post-26/04 OU ≥1 prompt drainé. | — | — | — | Engagement durci : prochaine exécution sans changement → pas même de notice (no-op plus honnête qu'addendum répété). |
 | 2026-04-29v20 | — | **REPRISE ROUTINE** — backlog v15+v16+v17 entièrement drainé en 1 session Claude Code (5 SHIP/KILL shippés, 4 commits artefacts/refactor, streak git silence cassée). Conditions de reprise (≥1 commit post-26/04 ET ≥1 prompt drainé) largement remplies. | — | — | — | Session 2026-04-29 ~17h-20h via prompt "Continue pour tout débloquer" + "Corrige tout le reste" : exec en chaîne v16-S1, v16-K1, v15-S1, v15-S2, archive prompts, refactor cockpit veille, commit artefacts Cowork batch. 12 commits sur main de `b8f3a3f` à ce sync INDEX. |
+| 2026-04-29v21 | S1 | Réparer `get_chunks_count()` — Chunks=0 → vrai compte ≥1000 (P34 promu, condition triple-remplie : jarvis-lab 27 ouvertures/sem) | SHIP | XS | shipped | Commit `b4e5804`. Validation `last_status_gen.log` : `Chunks: 1006`. |
+| 2026-04-29v21 | S2 | CSP `wss://*.supabase.co` — fix `panel:jobs` WebSocket (11 occ./sem, nouveau signal v21) | SHIP | XS | shipped | Commit `7935da5`. Validation prod attendue dans `signals.md` du 6/05 (≤ 2 occ. résiduelles). |
+| 2026-04-29v21 | S3 | `sb_post(on_conflict=...)` — tue 4 erreurs 409/run cumulées (memories_vectors P21 + activity_briefs nouveau) | SHIP | S | shipped | Commit `8f3764d`. Validation prod attendue dès le run nightly du 30/04 06:24 UTC. |
+| 2026-04-29v21 | K1 | Kill `cockpit/data-jobs.js` (773 lignes mock daté du 20/04, fallback hors usage réel) | KILL | XS | shipped | Commit `5e83774`. |
+| 2026-04-29v21 | P38 | Phi-4-mini-instruct (Microsoft, 3.8B Q4_K_M ~3.5 Go) comme modèle d'extraction nightly + briefs (vs Qwen3.5 9B chat Deep) | PARK | M | deferred | Quand 1 nuit nightly_learner échoue OR latence p90 > 60s sur _compact_history 3j consécutifs (ex-veille 29/04) |
+| 2026-04-29v21 | P39 | Outlook Graph + msal `tenant=consumers` en remplacement de l'observer COM pywin32 | PARK | M | deferred | Si observer COM crashe ≥ 2x/sem OR Jean travaille un jour sans Outlook desktop ouvert (ex-veille 29/04, élargit P22) |
+| 2026-04-29v21 | P40 | VectorChord-BM25 / pg_search hybrid + RRF dans retriever.py (fusionne P28/P2/P6) | PARK | M | deferred | Quand un retrieval test "trouve la conv où on parlait de RLS" rate par cosine pure ET P38 shippé (ex-veille 29/04) |
+| 2026-04-30 | S1 | Fix `panel:history` TypeError sur `t.total_articles.toLocaleString` (P33 promu, fenêtre UX-focused) | SHIP | XS | proposed | Guards défensifs `?? 0` + `t.peak_day?.short_label` sur 6 accès non gardés (lignes 426, 444, 449, 450, 454, 455, 459) |
+| 2026-04-30 | S2 | Fix `panel:opps` TypeError sur `w.urgency` (P35 promu, sous condition Phase 0) | SHIP | XS | proposed | `const w = opp.window \|\| {}` aux lignes 130 et 196 + `URGENCY_LABEL[w.urgency] \|\| URGENCY_LABEL.right_time`. Auto-rétrograde si Phase 0 montre `window` NOT NULL en base. |
+| 2026-04-30 | K1 | Hygiène v21 — 4 prompts pending → done/, commit audit v21 untracked, sync INDEX/README | KILL | XS | proposed | `git mv` 4 fichiers + `git add jarvis/upgrades/2026-04-29v21-audit.md` + commit batch |
 
 ## Stats
 
-- Propositions totales : 97
-- SHIP shippés : 33 (v1: 5, v2: 2, v3: 3, v4: 3, v5: 2, v6: 3, v7: 3, v8: 2, v9: 2, v10: 0, v11: 0, v12: 1, v13: 2, v14: 2, v15: 2, v16: 1, v17: 0)
-- SHIP proposés (en attente) : 0 (backlog drainé v20)
-- SHIP rétrogradés : 7 (v7-S3 → P17, v10-S3 → P20, v10-S1 → P31, v13-S3 → P27, v14-S3 cloud fallback → P32, v14-S4 wiki TypeError → P33, v16-S2 audit_commit → P36) ; v17 = 3 candidats considérés/rétrogradés (C1 → P36, C2 → P37, C3 → P28 reconfirmé) sans nouveau ratio compté car aucun ne relevait du seuil "candidat sérieux à émettre"
-- KILL shippés : 18 (v1: 2, v2: 1, v3: 2, v4: 2, v5: 1, v6: 1, v7: 1, v8: 1, v9: 1, v12: 1, v13: 1, v14: 1, v15: 1, v16: 1, v17: 1)
-- KILL proposés : 0 (backlog drainé v20)
-- PARK (différé) : 35 (P37 ajouté ; P31 retiré — killed via v16-K1)
+- Propositions totales : 107 (+3 en v22 : 2 SHIP + 1 KILL ; 0 nouveau PARK)
+- SHIP shippés : 36 (v1: 5, v2: 2, v3: 3, v4: 3, v5: 2, v6: 3, v7: 3, v8: 2, v9: 2, v10: 0, v11: 0, v12: 1, v13: 2, v14: 2, v15: 2, v16: 1, v17: 0, v21: 3, v22: 0)
+- SHIP proposés (en attente) : 2 (v22-S1, v22-S2)
+- SHIP rétrogradés : 7 (v7-S3 → P17, v10-S3 → P20, v10-S1 → P31, v13-S3 → P27, v14-S3 cloud fallback → P32, v14-S4 wiki TypeError → P33, v16-S2 audit_commit → P36) ; 0 rétrogradé v17, v21, v22
+- KILL shippés : 19 (v1: 2, v2: 1, v3: 2, v4: 2, v5: 1, v6: 1, v7: 1, v8: 1, v9: 1, v12: 1, v13: 1, v14: 1, v15: 1, v16: 1, v17: 1, v21: 1, v22: 0)
+- KILL proposés : 1 (v22-K1)
+- PARK (différé) : 38 (inchangé ; P31 toujours killed)
 - Taux d'exécution v1→v9 : 96% (25/26 shippés)
 - Taux d'exécution v13 : 3/3 shippés (100%) — meilleur sprint depuis v9
 - Taux d'exécution v14 : 3/3 shippés (100%) — niveau v13 maintenu
@@ -135,5 +145,8 @@ Historique de toutes les propositions de Jarvis Upgrade Scout.
 - Taux d'exécution v18 : **PAUSE ROUTINE** — engagement v17 honoré (0 commit en 72h), aucune émission
 - Taux d'exécution v19 : **PAUSE CONFIRMÉE** — 2e run du jour identique, aucune émission
 - Taux d'exécution v20 : **REPRISE** — 5 ships drainés en bloc (v15-S1, v15-S2, v16-S1, v16-K1, v17-K1) + 4 commits hygiène/archive/refactor + sync INDEX → backlog 100% rattrapé en 1 session Claude Code
-- Taux de rechallenging (rétrogradations) : 18.9% (7/37 shippés ou émis) — v17/v18/v19 ne comptent pas dans la cible (pas de SHIP émis)
-- **Streak git silence** : cassée le 2026-04-29 par session Claude Code v20 (12 commits de `b8f3a3f` à ce sync INDEX). Record 83h conclu — début d'une nouvelle métrique « jours consécutifs avec ≥1 commit ».
+- Taux d'exécution v21 : **REPRISE COMPLÈTE puis DRAINAGE** — 3 SHIP émis le 29/04 18:29, tous shippés le soir même (b4e5804/7935da5/8f3764d), + 1 KILL shippé (5e83774), + 3 commits opportunistes (sw auto-sync, refactor stacks, .nojekyll). 4/4 v21 = 100% en 1 journée.
+- Taux d'exécution v22 : **CADENCE NORMALE** — 2 SHIP émis (S1 panel:history TypeError P33 promu, S2 panel:opps TypeError P35 promu sous condition Phase 0), 1 KILL hygiène v21 (4 prompts pending → done/ + audit v21 commit). Pas de S3 (cartouche gardée). 0 PARK ajouté.
+- Taux de rechallenging (rétrogradations) : 18.6% (8/43 shippés ou émis incluant v22 ; cible 20%) — sous cible, à surveiller. Si v23 sans rétrogradation, force la rétrogradation du SHIP le plus faible.
+- **Streak commits consécutifs** : 2 jours en cours (29/04 + 30/04 attendu via v22-K1). Record précédent silence cassé le 29/04 (83h) par session v20 (12 commits) puis v21 soirée (7 commits utiles).
+- **Bilan mensuel avril (à jour 30/04)** : 35 SHIP shippés + 1 attendu (v22-K1). 19 KILL shippés. 8 SHIP rétrogradés. 14 PARKs actifs (P26-P40 hors P31 killed). NS la plus récurrente : "fiabiliser stack LM Studio" (5 audits/8 entre 25/04 et 28/04). NS désormais clos depuis 4 jours sans incident.
