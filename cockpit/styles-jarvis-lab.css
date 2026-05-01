@@ -768,7 +768,7 @@
   outline-offset: 2px;
 }
 .jl-tab-card[data-frequency="daily"]    { border-left: 2px solid var(--jl-accent); }
-.jl-tab-card[data-frequency="weekly"]   { border-left: 2px solid #8a74ff; }
+.jl-tab-card[data-frequency="weekly"]   { border-left: 2px solid var(--accent2); }
 .jl-tab-card[data-frequency="realtime"] { border-left: 2px solid var(--jl-text-strong); }
 .jl-tab-card[data-frequency="manual"]   { border-left: 2px solid var(--jl-text-mute); }
 .jl-tab-card[data-frequency="mixed"]    { border-left: 2px solid var(--jl-warning); }

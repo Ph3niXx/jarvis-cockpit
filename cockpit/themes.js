@@ -30,6 +30,8 @@ window.THEMES = {
       "--alert-tint": "#F4DDD6",
       "--neutral": "#b8956a",
       "--neutral-tint": "#F5EBDF",
+      "--accent2": "#7C5BC4",        // purple aubergine éditorial
+      "--accent2-tint": "#EDE3F5",
       // Type
       "--font-display": "'Fraunces', 'Times New Roman', serif",
       "--font-body": "'Inter', system-ui, sans-serif",
@@ -105,6 +107,8 @@ window.THEMES = {
       "--alert-tint": "rgba(249, 115, 102, 0.12)",
       "--neutral": "#D4A572",
       "--neutral-tint": "rgba(212, 165, 114, 0.12)",
+      "--accent2": "#A78BFA",        // lavender néon, cohérent avec le cyan mint
+      "--accent2-tint": "rgba(167, 139, 250, 0.12)",
       "--font-display": "'Inter', system-ui, sans-serif",
       "--font-body": "'Inter', system-ui, sans-serif",
       "--font-mono": "'JetBrains Mono', 'SF Mono', monospace",
@@ -177,6 +181,8 @@ window.THEMES = {
       "--alert-tint": "#F8DCDC",
       "--neutral": "#9C7B45",
       "--neutral-tint": "#F0E8D4",
+      "--accent2": "#6D4DBF",        // violet encre, cousin de l'indigo brand
+      "--accent2-tint": "#E5DDF5",
       "--font-display": "'Instrument Serif', Georgia, serif",
       "--font-body": "'Inter', system-ui, sans-serif",
       "--font-mono": "'JetBrains Mono', 'SF Mono', monospace",
