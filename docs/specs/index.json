@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-25T14:00:00Z",
+  "generated_at": "2026-05-01T12:00:00Z",
   "tabs": [
     {
       "slug": "brief",
@@ -34,7 +34,7 @@
     {
       "slug": "top",
       "title": "Top du jour",
-      "order": 3,
+      "order": 4,
       "group": "Aujourd'hui",
       "dom_id": "top",
       "scope": "mixte",
@@ -44,7 +44,7 @@
     {
       "slug": "week",
       "title": "Ma semaine",
-      "order": 3,
+      "order": 5,
       "group": "Aujourd'hui",
       "dom_id": "week",
       "scope": "mixte",
@@ -54,7 +54,7 @@
     {
       "slug": "search",
       "title": "Recherche",
-      "order": 4,
+      "order": 6,
       "group": "Aujourd'hui",
       "dom_id": "search",
       "scope": "mixte",
@@ -64,7 +64,7 @@
     {
       "slug": "updates",
       "title": "Veille IA",
-      "order": 5,
+      "order": 7,
       "group": "Veille",
       "dom_id": "updates",
       "scope": "pro",
@@ -74,7 +74,7 @@
     {
       "slug": "claude",
       "title": "Claude",
-      "order": 6,
+      "order": 8,
       "group": "Veille",
       "dom_id": "claude",
       "scope": "pro",
@@ -84,7 +84,7 @@
     {
       "slug": "veille-outils",
       "title": "Veille outils",
-      "order": 27,
+      "order": 9,
       "group": "Veille",
       "dom_id": "veille-outils",
       "scope": "pro",
@@ -94,7 +94,7 @@
     {
       "slug": "sport",
       "title": "Sport",
-      "order": 7,
+      "order": 10,
       "group": "Veille",
       "dom_id": "sport",
       "scope": "perso",
@@ -104,7 +104,7 @@
     {
       "slug": "gaming-news",
       "title": "Gaming (news)",
-      "order": 8,
+      "order": 11,
       "group": "Veille",
       "dom_id": "gaming_news",
       "scope": "perso",
@@ -114,7 +114,7 @@
     {
       "slug": "anime",
       "title": "Anime / Ciné / Séries",
-      "order": 9,
+      "order": 12,
       "group": "Veille",
       "dom_id": "anime",
       "scope": "perso",
@@ -124,7 +124,7 @@
     {
       "slug": "news",
       "title": "Actualités",
-      "order": 10,
+      "order": 13,
       "group": "Veille",
       "dom_id": "news",
       "scope": "mixte",
@@ -134,7 +134,7 @@
     {
       "slug": "radar",
       "title": "Radar compétences",
-      "order": 11,
+      "order": 14,
       "group": "Apprentissage",
       "dom_id": "radar",
       "scope": "pro",
@@ -144,7 +144,7 @@
     {
       "slug": "recos",
       "title": "Recommandations",
-      "order": 12,
+      "order": 15,
       "group": "Apprentissage",
       "dom_id": "recos",
       "scope": "pro",
@@ -154,7 +154,7 @@
     {
       "slug": "challenges",
       "title": "Challenges",
-      "order": 13,
+      "order": 16,
       "group": "Apprentissage",
       "dom_id": "challenges",
       "scope": "pro",
@@ -164,7 +164,7 @@
     {
       "slug": "wiki",
       "title": "Wiki IA",
-      "order": 14,
+      "order": 17,
       "group": "Apprentissage",
       "dom_id": "wiki",
       "scope": "pro",
@@ -174,7 +174,7 @@
     {
       "slug": "signals",
       "title": "Signaux faibles",
-      "order": 15,
+      "order": 18,
       "group": "Apprentissage",
       "dom_id": "signals",
       "scope": "pro",
@@ -184,17 +184,17 @@
     {
       "slug": "opps",
       "title": "Opportunités",
-      "order": 16,
+      "order": 19,
       "group": "Business",
       "dom_id": "opps",
       "scope": "pro",
       "status": "documented",
-      "last_updated": "2026-04-24"
+      "last_updated": "2026-05-01"
     },
     {
       "slug": "ideas",
       "title": "Carnet d'idées",
-      "order": 17,
+      "order": 20,
       "group": "Business",
       "dom_id": "ideas",
       "scope": "pro",
@@ -204,17 +204,17 @@
     {
       "slug": "jobs",
       "title": "Jobs Radar",
-      "order": 18,
+      "order": 21,
       "group": "Business",
       "dom_id": "jobs",
       "scope": "pro",
       "status": "documented",
-      "last_updated": "2026-04-30"
+      "last_updated": "2026-05-01"
     },
     {
       "slug": "jarvis",
       "title": "Jarvis",
-      "order": 19,
+      "order": 22,
       "group": "Personnel",
       "dom_id": "jarvis",
       "scope": "mixte",
@@ -224,7 +224,7 @@
     {
       "slug": "jarvis-lab",
       "title": "Jarvis Lab",
-      "order": 20,
+      "order": 23,
       "group": "Personnel",
       "dom_id": "jarvis-lab",
       "scope": "perso",
@@ -234,7 +234,7 @@
     {
       "slug": "profile",
       "title": "Mon profil",
-      "order": 21,
+      "order": 24,
       "group": "Personnel",
       "dom_id": "profile",
       "scope": "mixte",
@@ -244,7 +244,7 @@
     {
       "slug": "perf",
       "title": "Forme",
-      "order": 22,
+      "order": 25,
       "group": "Personnel",
       "dom_id": "perf",
       "scope": "perso",
@@ -254,7 +254,7 @@
     {
       "slug": "music",
       "title": "Musique",
-      "order": 23,
+      "order": 26,
       "group": "Personnel",
       "dom_id": "music",
       "scope": "perso",
@@ -264,7 +264,7 @@
     {
       "slug": "gaming",
       "title": "Gaming",
-      "order": 24,
+      "order": 27,
       "group": "Personnel",
       "dom_id": "gaming",
       "scope": "perso",
@@ -274,7 +274,7 @@
     {
       "slug": "stacks",
       "title": "Stacks & Limits",
-      "order": 25,
+      "order": 28,
       "group": "Système",
       "dom_id": "stacks",
       "scope": "mixte",
@@ -284,12 +284,12 @@
     {
       "slug": "history",
       "title": "Historique",
-      "order": 26,
+      "order": 29,
       "group": "Système",
       "dom_id": "history",
       "scope": "mixte",
       "status": "documented",
-      "last_updated": "2026-04-24"
+      "last_updated": "2026-05-01"
     }
   ]
 }

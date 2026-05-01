@@ -6,9 +6,9 @@
 mixte
 
 ## Finalité fonctionnelle
-Revivre n'importe quel jour des 60 derniers : volume d'articles, brief Gemini sauvegardé, signaux faibles de la semaine, actions consignées depuis la télémétrie, et une note perso libre persistée en localStorage. Le panel reconstruit une "fiche journalière" à partir de 4 tables indépendantes (`articles`, `daily_briefs`, `usage_events`, `signal_tracking`) — aucune pré-agrégation côté backend, tout est calculé au vol dans `transformHistory()` à chaque visite. Le pin (via icône "●" ou touche `p`) stocke les ISO en localStorage pour marquer les moments clés.
+Revivre n'importe quel jour des 60 derniers : volume d'articles, brief Gemini sauvegardé, signaux faibles de la semaine, actions consignées depuis la télémétrie, et une note perso libre persistée en base. Le panel reconstruit une "fiche journalière" à partir de 5 tables indépendantes (`articles`, `daily_briefs`, `usage_events`, `signal_tracking`, `history_notes`) — aucune pré-agrégation côté backend, tout est calculé au vol dans `transformHistory()` à chaque visite. Le pin (via icône "●" ou touche `p`) stocke les ISO en localStorage pour marquer les moments clés.
 
-⚠️ L'onglet affiche 60 jours fixes alors que la DB n'a que ~20 jours d'articles et 13 jours d'usage_events au 2026-04-24. La majorité des jours affichés sont donc vides — voir Limitations.
+⚠️ L'onglet affiche 60 jours fixes alors que la DB n'a qu'une vingtaine de jours d'articles et de télémétrie. La majorité des jours affichés sont donc vides — voir Limitations.
 
 ## Parcours utilisateur
 1. Clic sidebar "Historique" (groupe Système) — le panel charge en parallèle articles, briefs quotidiens, télémétrie et signaux de la fenêtre historique.
@@ -169,6 +169,7 @@ challenge_completed 1  (non mappé)
 - [ ] **Drawer fixed-right** pas responsive sur mobile.
 
 ## Dernière MAJ
+2026-05-01 — sync spec ↔ code : note les guards défensifs sur `hist?.totals` + `t.peak_day?.short_label` + `t.total_articles ?? 0` ajoutés le 2026-04-30 (commit `69ea05b`, P33) pour neutraliser le crash quand l'agrégat `transformHistory()` retournait des champs manquants. Aucun changement fonctionnel observable — fix de robustesse uniquement.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — retrodoc initial basé sur HEAD `c456ac9`. Correctifs appliqués le même jour :

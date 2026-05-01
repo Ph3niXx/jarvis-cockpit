@@ -153,6 +153,7 @@ Route id = `"opps"`. **Panel Tier 2** ([data-loader.js:4465](cockpit/lib/data-lo
 - [ ] **Pas de filtre par statut visible** : impossible de voir uniquement "mes saisies" ou "mes refus" dans la vue principale — on a juste le ledger en bas.
 
 ## Dernière MAJ
+2026-05-01 — sync spec ↔ code : note les guards défensifs `opp.window || {}` ajoutés le 2026-04-30 (commit `ce34742`, P35) pour neutraliser le crash quand `weekly_opportunities.window` est null. Aucun changement fonctionnel observable côté utilisateur — fix de robustesse uniquement.
 2026-04-24 — réécriture Parcours utilisateur en vocabulaire produit.
 2026-04-24 — réécriture Fonctionnalités en vocabulaire produit.
 2026-04-24 — rétro-doc + 6 correctifs appliqués (today dynamique, fake data purgée, empty state, purge backend incrémentale, statuts en DB via migration 011, `.opp-detail-biz`, telemetry error) — commit `c456ac9` (base) + migration 011 appliquée.

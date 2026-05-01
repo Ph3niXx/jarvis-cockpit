@@ -3,10 +3,11 @@
 ## Vue d'ensemble
 
 Cockpit IA personnel pour un manager en transformation digitale qui veut :
-1. Se tenir à jour sur les évolutions IA (veille quotidienne automatisée)
-2. Monter en compétence IA de manière mesurable (radar, challenges, recommandations)
-3. Identifier des opportunités business (incubateur, radar d'opportunités)
-4. Optimiser sa mission actuelle avec l'IA (RTE Toolbox)
+1. Se tenir à jour sur les évolutions IA (veille quotidienne automatisée + 4 corpus RSS satellites perso : sport, gaming, anime, actualités)
+2. Monter en compétence IA de manière mesurable (radar, challenges, recommandations, wiki, signaux faibles)
+3. Identifier des opportunités business (carnet d'idées, radar d'opportunités, Jobs Radar LinkedIn)
+4. Suivre sa vie perso (forme via Strava/Withings, musique via Last.fm, gaming via Steam/TFT)
+5. Travailler avec son assistant IA local Jarvis (chat + RAG + observers + nightly learner)
 
 ## Utilisateur
 
@@ -36,6 +37,14 @@ Cockpit IA personnel pour un manager en transformation digitale qui veut :
   - API Last.fm → Supabase (scrobbles, stats quotidiennes, tops hebdo, loved tracks)
 - **Pipeline Steam** : `pipelines/steam_sync.py` via GitHub Actions (quotidien 5h30 UTC)
   - API Steam → Supabase (bibliothèque, playtime, achievements, stats gaming)
+- **Pipeline Sport (RSS)** : `pipelines/sport_sync.py` via GitHub Actions (quotidien 6h30 UTC)
+  - RSS L'Équipe / RMC Sport / Millenium / Cyclism'Actu → table `sport_articles`
+- **Pipeline Gaming (RSS)** : `pipelines/gaming_sync.py` via GitHub Actions (quotidien 6h45 UTC)
+  - RSS JeuxVideo.com / Gamekult / IGN / Eurogamer / PC Gamer / Dexerto / GamesIndustry → table `gaming_articles`
+- **Pipeline Anime (RSS + Jikan)** : `pipelines/anime_sync.py` via GitHub Actions (quotidien 7h00 UTC)
+  - RSS AlloCiné / Première / ANN / Deadline / Variety + API Jikan v4 (MyAnimeList) → table `anime_articles`
+- **Pipeline News (RSS)** : `pipelines/news_sync.py` via GitHub Actions (quotidien 7h15 UTC)
+  - RSS Le Monde / Le Figaro / FranceInfo / BFM Paris / BBC World / France 24 / RFI → table `news_articles`
 - **Email** : Gmail SMTP notification quotidienne
 - **MCP Supabase** : connecteur direct disponible dans Claude Code (apply_migration, execute_sql, etc.) — nécessite OAuth au début de chaque session
 
@@ -49,7 +58,7 @@ cockpit/                             # Handoff React maquette (Dawn/Obsidian/Atl
 cockpit/app.jsx                      # Router + theme switcher + panel keys
 cockpit/sidebar.jsx                  # Sidebar collapsible + 6 groupes
 cockpit/home.jsx                     # Brief du jour (hero + top 3 + signaux + radar + week)
-cockpit/panel-*.jsx                  # 19 panels dédiés
+cockpit/panel-*.jsx                  # 23 panels dédiés (panel-veille mutualisé sur 6 corpus → 29 onglets visibles)
 cockpit/styles.css + styles-*.css    # Shell + stylesheets par domaine
 cockpit/themes.js                    # THEMES = {dawn, obsidian, atlas}
 cockpit/icons.jsx                    # <Icon name=... /> système commun
@@ -89,6 +98,16 @@ pipelines/requirements-steam.txt     # Dépendances isolées pour le pipeline St
 .github/workflows/steam-sync.yml    # Cron Steam quotidien 5h30 UTC
 docs/steam-setup.md                  # Procédure de setup Steam
 docs/strava-setup.md                 # Procédure de setup Strava
+pipelines/sport_sync.py              # Pipeline RSS sport → sport_articles
+pipelines/gaming_sync.py             # Pipeline RSS gaming → gaming_articles
+pipelines/anime_sync.py              # Pipeline RSS anime/ciné/séries + Jikan → anime_articles
+pipelines/news_sync.py               # Pipeline RSS actualités généralistes → news_articles
+.github/workflows/sport-sync.yml    # Cron Sport quotidien 6h30 UTC
+.github/workflows/gaming-sync.yml   # Cron Gaming quotidien 6h45 UTC
+.github/workflows/anime-sync.yml    # Cron Anime quotidien 7h00 UTC
+.github/workflows/news-sync.yml     # Cron News quotidien 7h15 UTC
+docs/specs/                          # Specs produit par onglet (29 fichiers tab-*.md + index.json)
+docs/architecture/                   # Source de vérité archi (layers, pipelines, dependencies, flows, decisions)
 CLAUDE.md                            # Ce fichier
 ```
 
@@ -133,8 +152,18 @@ Tables existantes :
 - `weekly_analysis` — logs des runs Claude (tokens, coûts, résultats)
 - `user_profile` — profil personnel key/value (identité, ambitions, intérêts, notes)
 - `usage_events` — télémétrie UX cockpit append-only (event_type, payload JSONB, ts). Migration: `jarvis/migrations/005_usage_events.sql`
+- `gemini_api_calls` — log fire-and-forget de chaque appel Gemini (input_tokens, output_tokens, model, fired_at). Alimente le panel Stacks
+- `daily_mirror` — "Miroir du soir" rendu par une routine Cowork quotidienne 19h (text + bullets + tone). 1 ligne/jour, INSERT service_role / SELECT authenticated
 - `claude_veille` — synthèse hebdo Claude alimentée par une scheduled task Cowork (category, title, source_url, summary, applicability, how_to_apply, effort, priority, trend_context, status, notes). 4 buckets : `jarvis_applicable`, `claude_general`, `complementary_tools`, `other_news` + ligne `_summary` exécutive. INSERT service_role, UPDATE authenticated. Migration : `sql/011_claude_veille.sql`
 - `claude_ecosystem` — catalogue stable des outils inbound (qui se pluggent à Claude — MCP, skills, plugins) ou outbound (où Claude est utilisé — SDK, IDE, frameworks). Slug unique pour dédup, status workflow (active/dismissed/archived), priorité user, pin, notes. Alimenté par une 2e routine Cowork mensuelle ([docs/cowork-routines/catalogue-ecosystem.md](docs/cowork-routines/catalogue-ecosystem.md)) + ajouts manuels depuis le front. SELECT/INSERT/UPDATE authenticated. Migration : `sql/012_claude_ecosystem.sql` (seed initial : 13 entrées de référence).
+- `jobs` + `job_scans` — feed d'offres LinkedIn scoré 0-10 + scan quotidien (volumes, ratios, signal CV). Alimenté par une routine Cowork externe (hors GitHub Actions) en service_role. Migration : `jarvis/migrations/008_jobs_radar.sql` + trigger `jobs_inherit_user_status` (`sql/013_jobs_inherit_status.sql`) qui hérite du statut archived/snoozed sur les republications LinkedIn. RLS particulière : `using(true)` (pas restreint `authenticated`).
+- `challenge_attempts` — historique des tentatives de challenges (mode théorie/pratique, score, succès, completed_at). Le radar est bumpé quand un premier passage atteint ≥ 70 %.
+- `commitments` — engagements pris par l'utilisateur depuis le panel Profil (titre, description, status, target_date)
+- `uncomfortable_questions` — questions de coaching que l'utilisateur n'a pas envie d'entendre, posées dans le panel Profil
+- `history_notes` — notes perso libres par jour ISO (panel Historique). RLS authenticated complète (select/insert/update/delete). Migration : `sql/012_history_notes.sql`
+- `gaming_wishlist` — wishlist Steam complétée par l'utilisateur depuis le panel Gaming
+- `user_profile_history` — table d'audit alimentée par un trigger DB sur chaque UPDATE de `user_profile` (ancienne valeur + horodatage)
+- `anime_articles`, `gaming_articles`, `news_articles`, `sport_articles` — articles RSS des 4 corpus perso (mêmes colonnes que `articles` : source, title, url, summary, fetch_date)
 
 **Tables TFT :**
 - `tft_matches` — une ligne par match joué (placement, level, gold, durée, raw_payload JSONB, champs user_* éditables)
@@ -169,35 +198,47 @@ Tables existantes :
 - `withings_measurements` — 1 ligne par jour (measure_date PK, weight_kg, fat_pct, fat_mass_kg, muscle_mass_kg, hydration_kg, bone_mass_kg, measured_at). Latest per-column wins.
 - `withings_measurements_raw` — archive brute par groupe de mesures (measure_group_id PK, user_id, payload JSONB)
 
-**RLS (après migration 006)** : toutes les tables requièrent `authenticated` pour SELECT. 4 tables frontend (business_ideas, user_profile, skill_radar, tft_matches) ont aussi INSERT/UPDATE pour `authenticated`. Anon ne peut plus rien lire. Les pipelines backend (main.py, weekly_analysis.py, tft_pipeline.py, Jarvis) utilisent `service_role` key qui bypass RLS.
+**RLS (après migration 006)** : toutes les tables requièrent `authenticated` pour SELECT. ~16 tables sont éditables côté front avec INSERT/UPDATE `authenticated` — voir `docs/architecture/dependencies.yaml::panels[].writes` pour la liste vivante (radar, opps, ideas, jobs, profile, recos, challenges, wiki, stacks, history, veille-outils, jarvis, gaming, review). Anon ne peut plus rien lire. Les pipelines backend (main.py, weekly_analysis.py, tft_pipeline.py, pipelines/*, Jarvis) utilisent `service_role` key qui bypass RLS. **Exceptions** : `jobs` et `job_scans` sont en `using(true)` (divergence assumée pour la routine Cowork externe — l'écriture front reste whitelistée sur `status` + `user_notes`).
 
 ### Sections du cockpit (sidebar)
 
+29 onglets répartis en 6 groupes (source canonique : `cockpit/nav.js`). La table panel↔données vivante est dans `docs/architecture/dependencies.yaml::panels[]`.
+
+**Aujourd'hui** (6 onglets) — Brief du jour · Miroir du soir · Revue du jour · Top du jour · Ma semaine · Recherche
+**Veille** (7 onglets) — Veille IA · Claude · Veille outils · Sport · Gaming (news) · Anime/Ciné/Séries · Actualités
+**Apprentissage** (5 onglets) — Radar compétences · Recommandations · Challenges · Wiki IA · Signaux faibles
+**Business** (3 onglets) — Opportunités · Carnet d'idées · Jobs Radar
+**Personnel** (6 onglets) — Jarvis · Jarvis Lab · Mon profil · Forme · Musique · Gaming
+**Système** (2 onglets) — Stacks & Limits · Historique
+
 | Section | Source de données | Fréquence |
 |---|---|---|
-| Brief du jour | daily_briefs + activity_briefs | Quotidien (Gemini + Jarvis observer) |
+| Brief du jour | daily_briefs + activity_briefs + articles + signal_tracking + skill_radar | Quotidien (Gemini + Jarvis observer) |
+| Miroir du soir | daily_mirror | Quotidien 19h (routine Cowork) |
+| Revue du jour | articles (top + week) + localStorage read-articles | Temps réel (flow unread-first) |
+| Top du jour | articles | Quotidien |
 | Ma semaine | articles + localStorage (read, actions, visits) | Temps réel (front-only) |
-| Nouveautés IA | articles (section=updates) | Quotidien |
+| Recherche | articles + wiki_concepts + business_ideas + jarvis_conversations (full-text ilike) | Temps réel |
+| Veille IA | articles (section=updates) + signal_tracking | Quotidien |
 | Claude | articles (section=claude) — Anthropic + Claude Code + SDK Python/TS + Agent SDK + skills | Quotidien |
-| Veille outils | claude_veille (veille hebdo, 4 buckets) + claude_ecosystem (catalogue stable inbound/outbound) | Hebdo (routine veille) + Mensuel (routine catalogue) + Ajouts manuels |
-| LLMs / Agents / Énergie / FinServ / Outils / Business / Régulation / Arxiv | articles (par section) | Quotidien |
+| Veille outils | claude_veille (4 buckets) + claude_ecosystem (catalogue stable inbound/outbound) | Hebdo (routine veille) + Mensuel (routine catalogue) + Ajouts manuels |
+| Sport / Gaming (news) / Anime / Actualités | sport_articles / gaming_articles / anime_articles / news_articles | Quotidien (4 pipelines RSS dédiés) |
 | Wiki IA | wiki_concepts | Quotidien (détection) + Hebdo (enrichissement Claude) |
-| Signaux faibles | signal_tracking + weekly_analysis.signals_summary | Quotidien (comptage) + Hebdo (analyse Claude) |
-| Opportunités | weekly_opportunities | Hebdomadaire (Claude) |
+| Signaux faibles | signal_tracking + weekly_analysis.signals_summary + wiki_concepts | Quotidien (comptage) + Hebdo (analyse Claude) |
+| Opportunités | weekly_opportunities + business_ideas (Send to Ideas) | Hebdomadaire (Claude) |
 | Radar compétences | skill_radar | Manuel (diagnostic) + Hebdo (challenges) |
 | Recommandations | learning_recommendations | Hebdomadaire (Claude) |
-| Challenges | weekly_challenges | Hebdomadaire (Claude) |
+| Challenges | weekly_challenges + challenge_attempts | Hebdomadaire (Claude) + Manuel (tentatives) |
 | Carnet d'idées | business_ideas | Manuel (depuis le front) |
-| RTE Toolbox | rte_usecases | Hebdomadaire (enrichissement Claude) |
-| Jarvis | jarvis_conversations + server.py (localhost:8765) | Temps réel (chat local/cloud) |
-| Mon profil | user_profile | Manuel (depuis le front) |
+| Jobs Radar | jobs + job_scans | Quotidien (routine Cowork externe LinkedIn) |
+| Jarvis | jarvis_conversations + profile_facts + server.py (localhost:8765) | Temps réel (chat local/cloud) |
+| Jarvis Lab | jarvis/spec.json + docs/specs/ + docs/architecture/ (statiques) | Lecture directe des fichiers versionnés |
+| Mon profil | user_profile + profile_facts + entities + commitments + uncomfortable_questions + user_profile_history | Manuel (depuis le front) |
 | Forme | strava_activities + withings_measurements (1 panel scrollable : KPIs 30j, charge hebdo 12 sem, composition + courbes long range, records auto-calculés, journal 20 dernières séances) | Quotidien (Strava 4h30 UTC + Withings 4h45 UTC) |
-| Musique | music_scrobbles, music_stats_daily, music_top_weekly, music_loved_tracks + Last.fm API frontend | Quotidien (Last.fm API) |
-| Gaming (Vue d'ensemble) | steam_games_snapshot, gaming_stats_daily, steam_achievements, steam_game_details | Quotidien (Steam API) |
-| TFT Matches | tft_matches + tft_match_units + tft_match_traits + tft_match_lobby | Toutes les 2h (Riot API) |
-| Coûts API | weekly_analysis.tokens_used | Hebdomadaire (auto-loggé) |
-| Recherche | articles (full-text ilike) | Temps réel |
-| Historique | articles (groupé par fetch_date) | Quotidien |
+| Musique | music_scrobbles, music_stats_daily, music_top_weekly, music_loved_tracks, music_genre_weekly, music_insights_weekly + Last.fm API frontend | Quotidien (Last.fm API) |
+| Gaming | steam_games_snapshot, gaming_stats_daily, steam_achievements, steam_game_details, gaming_wishlist + tft_matches + tft_rank_history | Quotidien (Steam API) + 2h (Riot TFT API) |
+| Stacks & Limits | weekly_analysis.tokens_used + gemini_api_calls + articles + user_profile (balances) | Hebdomadaire (auto-loggé) + Frankfurter API (taux USD→EUR) |
+| Historique | articles + daily_briefs + usage_events + signal_tracking + history_notes (60 jours) | Quotidien |
 
 ### Data layer front
 
@@ -248,7 +289,7 @@ Table `usage_events` — append-only, pas de UPDATE/DELETE (enforcé par RLS). L
 
 ## Maintenance des specs Jarvis Lab (`docs/specs/`)
 
-Chaque onglet du cockpit a un spec dédié dans `docs/specs/tab-<slug>.md`. L'index `docs/specs/index.json` liste les 25 onglets avec leur `last_updated` (date ISO). Le panel "Jarvis Lab" consomme ces deux sources en direct pour afficher la doc dans l'app, donc **toute dérive entre code et spec devient visible pour l'utilisateur**.
+Chaque onglet du cockpit a un spec dédié dans `docs/specs/tab-<slug>.md`. L'index `docs/specs/index.json` liste les 29 onglets avec leur `last_updated` (date ISO). Le panel "Jarvis Lab" consomme ces deux sources en direct pour afficher la doc dans l'app, donc **toute dérive entre code et spec devient visible pour l'utilisateur**.
 
 ### Règle cardinale
 
@@ -307,13 +348,16 @@ Cette règle est **vérifiée automatiquement en CI** par le même workflow `lin
 
 ### Mapping panel ↔ spec
 
-Les 5 onglets Veille partagent `panel-veille.jsx` : une modif de ce fichier peut impliquer plusieurs specs simultanément.
+Les 6 onglets Veille (updates / claude / sport / gaming-news / anime / news) partagent `panel-veille.jsx` via des `corpus` distincts (VEILLE_DATA, CLAUDE_DATA, SPORT_DATA, GAMING_DATA, ANIME_DATA, NEWS_DATA) : une modif de ce fichier peut impliquer plusieurs specs simultanément.
 
 | Spec | Source |
 |---|---|
 | tab-brief.md | home.jsx |
+| tab-evening.md | panel-evening.jsx |
+| tab-review.md | panel-review.jsx |
 | tab-top/week/search.md | panel-top/week/search.jsx |
-| tab-updates/sport/gaming-news/anime/news.md | panel-veille.jsx |
+| tab-updates/claude/sport/gaming-news/anime/news.md | panel-veille.jsx (corpus distincts) |
+| tab-veille-outils.md | panel-veille-outils.jsx |
 | tab-radar/recos/challenges/wiki/signals.md | panel-radar/recos/challenges/wiki/signals.jsx |
 | tab-opps/ideas/jobs.md | panel-opportunities/ideas/jobs-radar.jsx |
 | tab-jarvis/jarvis-lab/profile.md | panel-jarvis/jarvis-lab/profile.jsx |
@@ -532,15 +576,15 @@ jarvis_data/               # Données perso, non versionné (activity_*.jsonl, o
 **Créées (Phase 2) :**
 - `memories_vectors` — RAG vectoriel unifié (source_table, source_id, chunk_text, embedding vector(1024), metadata JSONB)
   - Fonction RPC `match_memories(query_embedding, match_threshold, match_count, filter_source_table)` pour recherche sémantique
-  - Index IVFFlat cosine, RLS public
-  - Tables sources indexées : articles, wiki_concepts, weekly_opportunities, business_ideas, rte_usecases, user_profile
+  - Index IVFFlat cosine, RLS authenticated (depuis migration 006)
+  - Tables sources indexées : articles, wiki_concepts, weekly_opportunities, business_ideas, rte_usecases, user_profile, profile_facts, entities
 
 **Créées (Phase 3) :**
 - `jarvis_conversations` — messages bruts sauvegardés en temps réel (session_id, role, content, mode, tokens_used). Chaque échange user/assistant est écrit immédiatement via le endpoint /chat.
 - `profile_facts` — faits structurés sur l'utilisateur (fact_type, fact_text, confidence, superseded_by). Extraits par `nightly_learner.py`, injectés dans le system prompt de chaque conversation.
 - `entities` — personnes, projets, outils, entreprises mentionnés (entity_type, name, description, mentions_count). Extraits par `nightly_learner.py`.
 - Migration : `jarvis/migrations/003_structured_memory.sql`
-- **`jarvis/nightly_learner.py`** — Script d'extraction nocturne multi-source idempotent. Sources : conversations Jarvis, activité fenêtre (JSONL), Outlook (JSON). Extensible pour Strava, etc. Checkpoint par source dans `jarvis_data/nightly_learner_state.json`. Envoie chaque bloc à `qwen3-4b-2507` (non-thinking) pour extraction JSON (faits + entités), upsert dans les tables, reindex via indexer.py. Déclenché automatiquement à minuit par le scheduler asyncio dans server.py, au démarrage via start_jarvis.bat, ou manuellement via `POST /nightly-learner` ou `python jarvis/nightly_learner.py --days=N`.
+- **`jarvis/nightly_learner.py`** — Script d'extraction nocturne multi-source idempotent. Sources : conversations Jarvis, activité fenêtre (JSONL), Outlook (JSON). Extensible pour Strava, etc. Checkpoint par source dans `jarvis_data/nightly_learner_state.json`. Envoie chaque bloc à Qwen3.5 9B Instruct (slug `qwen/qwen3.5-9b`, modèle unique partagé avec le chat) pour extraction JSON (faits + entités), upsert dans les tables, reindex via indexer.py. Déclenché automatiquement à minuit par le scheduler asyncio dans server.py, au démarrage via start_jarvis.bat, ou manuellement via `POST /nightly-learner` ou `python jarvis/nightly_learner.py --days=N`.
 
 **Créées (Phase 6) :**
 - `activity_briefs` — briefs d'activité quotidiens (date unique, brief_html, stats JSONB). Seul le résumé y est stocké, pas les données brutes.
@@ -564,5 +608,4 @@ La section "Projet Jarvis" dans le cockpit affiche l'avancement du projet en tem
 - Certains RSS ne publient pas quotidiennement (LLMs, Énergie souvent à 0)
 - Le HTML brut dans les summaries est strippé côté JS mais pas toujours côté Python (anciens articles)
 - Le diagnostic du radar ne peut être refait qu'en remettant les scores à 0 en base
-- Les challenges n'ont pas encore de bouton "Marquer comme complété" côté front
 - La carte des concepts (graphe de relations entre concepts wiki) n'est pas encore implémentée

@@ -123,7 +123,7 @@ Route id = `"jobs"`. **Panel Tier 2** ([data-loader.js:4528](cockpit/lib/data-lo
 ## Dépendances
 - **Onglets in** : sidebar "Jobs Radar" (groupe Business). Aucun cross-nav entrant.
 - **Onglets out** : aucun — pas de navigation vers d'autres panels.
-- **Pipelines obligatoires** : **pipeline Cowork externe**. Sans lui, les tables restent vides et le panel retombe sur le mock `data-jobs.js` (24 offres fictives).
+- **Pipelines obligatoires** : **pipeline Cowork externe**. Sans lui, les tables restent vides et le panel affiche un état d'absence (les mocks de démo ont été retirés le 2026-04-29).
 - **Tier 1 dépendances** : aucune — entièrement self-contained en Tier 2.
 - **Variables d'env / secrets** :
   - Front : clé publishable Supabase + JWT Google OAuth (même si RLS policies ici sont `using(true)`, les headers `apikey` et `Authorization` sont quand même envoyés).
@@ -131,7 +131,7 @@ Route id = `"jobs"`. **Panel Tier 2** ([data-loader.js:4528](cockpit/lib/data-lo
 
 ## États & edge cases
 - **Loading** : `<PanelLoader>` Tier 2 pendant les 3 fetchs parallèles.
-- **Tables vides** (migration non appliquée ou scan jamais tourné) : `allJobs?.length || todayScan` est false → la condition [data-loader.js:4507](cockpit/lib/data-loader.js:4507) empêche l'assign → **le mock de `data-jobs.js` reste visible**. 24 offres fictives Alan/Qonto/etc. Contrairement à la demande "plus de fake data" appliquée à `opps`, ici le fallback est toujours actif.
+- **Tables vides** (migration non appliquée ou scan jamais tourné) : `allJobs?.length || todayScan` est false → `JOBS_DATA` reste à sa forme vide d'init (offers `[]`, scan `null`). Le panel affiche son état "Aucune offre" (filtres → `.jr-empty`) plutôt qu'un faux feed. Le mock `data-jobs.js` a été retiré le 2026-04-29.
 - **Tous les hot leads masqués** (tous `archived` / `snoozed` ou 0 score ≥ 7) : `hotLeads.length === 0` → la section `.jr-hot-section` ne se render pas. Pas de message dédié — le hero disparaît silencieusement.
 - **Liste vide après filtres** : `.jr-empty` avec icône search + "Aucune offre avec ces filtres" + sub "Essaie de relâcher un critère — ou reviens demain matin."
 - **PATCH échoue** : toast `"Erreur de sync — changement local uniquement"` tone error. **Pas de rollback** — l'override local reste visible, la DB reste cohérente avec la vraie valeur. L'utilisateur peut être induit en erreur.
@@ -151,7 +151,7 @@ Route id = `"jobs"`. **Panel Tier 2** ([data-loader.js:4528](cockpit/lib/data-lo
 - **Republication LinkedIn d'une offre archivée/snoozée** : quand le scan Cowork insère une nouvelle annonce (nouveau `linkedin_job_id`) avec le même `(lower(trim(title)), lower(trim(company)))` qu'une ligne récemment archivée (≤30j) ou snoozée (≤7j, durée du snooze), un trigger Postgres `BEFORE INSERT` (`jobs_inherit_user_status`, migration `sql/013_jobs_inherit_status.sql`) hérite du `status` et copie les `user_notes` si la nouvelle ligne en est dépourvue. Les autres colonnes (score, intel, dates, url) restent celles du nouveau scan. Au-delà des fenêtres temporelles, la nouvelle ligne repart en `status='new'`.
 
 ## Limitations connues / TODO
-- [ ] **Mock toujours affiché si tables vides** : contra-pattern vs `opps` (qui a un empty state dédié). `data-jobs.js` expose 24 offres de démo réalistes qui survivent si le scan Cowork n'a jamais tourné — risque de croire que le cockpit fonctionne alors qu'il affiche de la démo.
+- [x] **Mock toujours affiché si tables vides** — résolu le 2026-04-29 (commit `5e83774`) : `data-jobs.js` supprimé, le panel utilise désormais l'état vide légitime quand Supabase ne remonte rien.
 - [ ] **RLS permissive** : `jobs_read_public` + `jobs_user_update` utilisent `using(true)` sans `TO authenticated`. Anon avec juste l'apikey lit toutes les offres + peut PATCH n'importe quoi. À aligner sur migration 006.
 - [ ] **Toast ok trompeur si `sb.patchJSON` absent** : l'update reste purement local mais le toast affiche "Postulé · statut mis à jour". Devrait être un toast "Synchro indisponible — local only".
 - [ ] **Pas de rollback sur PATCH échoué** : juste un toast erreur, l'offre garde son statut mis à jour localement. Au prochain reload, la DB écrase — perte silencieuse.
@@ -168,6 +168,7 @@ Route id = `"jobs"`. **Panel Tier 2** ([data-loader.js:4528](cockpit/lib/data-lo
 - [ ] **`window.JOBS_DATA.offers[idx] = { ...old, ...patch }` en mute direct** : potentiellement problématique si un re-render React lit la ref tout en la mutant. Ici l'effet est secondaire mais pas idiomatique.
 
 ## Dernière MAJ
+2026-05-01 — sync spec ↔ code après audit : retire les mentions du mock `data-jobs.js` (Dépendances, États & edge cases, Limitations) — le fichier a été supprimé le 2026-04-29 (commit `5e83774`), `data-loader.js` n'initialise plus `JOBS_DATA` en fallback. Le panel affiche désormais un état vide légitime quand Supabase ne remonte rien.
 2026-04-30 — fix "offres archivées qui réapparaissent le lendemain". Cause : LinkedIn republie certaines offres avec un nouveau `linkedin_job_id` tous les 1-3 jours, donc la dédup unique sur cette clé ne tient pas. Ajout d'un trigger Postgres `BEFORE INSERT` (`jobs_inherit_user_status`, migration `sql/013_jobs_inherit_status.sql`) qui hérite du `status` archived (≤30j) ou snoozed (≤7j) et des `user_notes` quand une paire `(lower(trim(title)), lower(trim(company)))` matche une ligne précédente.
 2026-04-26 — tooltip CSS custom au hover du `(i)` (au lieu du `title=` natif lent et non stylable). Affiche source + rationale sur fond `--tx`, flèche pointant vers le bouton, 300px max. Pattern réutilisé depuis `.jr-score-tip`.
 2026-04-26 — encart "Salaire estimé pour toi" : refonte UX sur retour user. Code couleur orange brand-tint en mode neutral (au lieu d'un gris discret) pour que le chiffre ressorte. Le `rationale` part dans un tooltip natif via un bouton `(i)` au lieu d'un paragraphe — encart 2x plus compact. Backfill manuel de 30 hot leads existants en DB via UPDATE jsonb_set (la routine Cowork V3.1 ne re-traite pas le stock historique).

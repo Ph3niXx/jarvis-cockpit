@@ -32,7 +32,7 @@ pipelines:
     avg_duration_s: 120
     budget_usd: 0
     status: active
-    notes: "Ping Saturday 10:00 UTC via cron secondaire '0 10 * * 6' pour empêcher la mise en veille du free tier Supabase. Retry Gemini ×4 avec fallback HTML si 503."
+    notes: "Cron unique tous les jours 06:00 UTC. Retry Gemini ×4 avec fallback HTML si 503."
 
   - id: weekly_analysis
     name: "Analyses hebdo (Claude Haiku)"
@@ -55,7 +55,7 @@ pipelines:
     avg_duration_s: 420
     budget_usd: 0.03
     status: active
-    notes: "CostTracker hard-cap 1 $/run. Enrichit les wiki_concepts dont summary_* est NULL. Step 2b enrich_top_signals pour jarvis_take + alerts."
+    notes: "CostTracker hard-cap 1 $/run. 6 étapes : enrich_wiki, analyze_signals, generate_recommendations, generate_challenges, enrich_rte, analyze_opportunities."
 
   - id: tft_sync
     name: "TFT matches (Riot API)"

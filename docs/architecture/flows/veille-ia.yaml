@@ -17,7 +17,7 @@ pipeline:
   id: daily_digest
   workflow: ".github/workflows/daily_digest.yml"
   script: "main.py"
-  cron: "0 6 * * 1-5 (+ 0 10 * * 6 ping samedi)"
+  cron: "0 6 * * *"
   steps:
     - "Fetch RSS → dedup par URL"
     - "Gemini enrichit : tags, section, date_published, score"

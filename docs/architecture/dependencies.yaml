@@ -28,6 +28,11 @@ panels:
     reads: [daily_mirror]
     writes: []
 
+  - id: review
+    file: cockpit/panel-review.jsx
+    reads: [articles]   # via data.top + data.week.items hydratés en Tier 1
+    writes: [usage_events]  # track("review_action") sur skip/save
+
   - id: top
     file: cockpit/panel-top.jsx
     reads: [articles]
@@ -47,6 +52,12 @@ panels:
     file: cockpit/panel-veille.jsx
     corpus: VEILLE_DATA
     reads: [articles, signal_tracking]
+    writes: []
+
+  - id: claude
+    file: cockpit/panel-veille.jsx
+    corpus: CLAUDE_DATA
+    reads: [articles]   # filtrés section=claude
     writes: []
 
   - id: sport

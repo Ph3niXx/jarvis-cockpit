@@ -23,8 +23,8 @@ Format court : **Contexte** (pourquoi se pose la question) → **Décision** (ce
 ## ADR-04 · 2026-Q1 · Pipelines backend en `service_role`, front en `authenticated`
 
 - **Contexte** : les pipelines GitHub Actions tournent sans session `auth.uid()` — ils ne peuvent pas être des utilisateurs `authenticated`. Le front lui a une session Google OAuth.
-- **Décision** : migration `sql/006_rls_authenticated.sql` — toutes les tables exigent `authenticated` pour SELECT. Les 4 tables éditables côté front (`business_ideas`, `user_profile`, `skill_radar`, `tft_matches`) ont aussi INSERT/UPDATE `authenticated`. Les pipelines utilisent `SUPABASE_SERVICE_KEY` qui bypass RLS.
-- **Conséquences** : anon ne peut plus rien lire (fini le partage public du cockpit sans login) ; `start_jarvis.bat` refuse de démarrer sans `SUPABASE_SERVICE_KEY` en env ; chaque nouvelle table ajoutée doit explicitement configurer ses policies (cf. migrations récentes).
+- **Décision** : migration `sql/006_rls_authenticated.sql` — toutes les tables exigent `authenticated` pour SELECT. Les tables éditées par le front (~16 aujourd'hui : `business_ideas`, `user_profile`, `skill_radar`, `weekly_opportunities`, `learning_recommendations`, `challenge_attempts`, `wiki_concepts`, `commitments`, `uncomfortable_questions`, `gaming_wishlist`, `history_notes`, `claude_veille`, `claude_ecosystem`, `profile_facts`, `usage_events`, `jobs`) ont aussi INSERT/UPDATE `authenticated` — voir `dependencies.yaml::panels[].writes` pour la liste vivante. Les pipelines utilisent `SUPABASE_SERVICE_KEY` qui bypass RLS.
+- **Conséquences** : anon ne peut plus rien lire (fini le partage public du cockpit sans login) ; `start_jarvis.bat` refuse de démarrer sans `SUPABASE_SERVICE_KEY` en env ; chaque nouvelle table ajoutée doit explicitement configurer ses policies (cf. migrations récentes). Exception : `jobs` et `job_scans` sont en `using(true)` (pas restreints `authenticated`) — divergence assumée pour la routine Cowork qui pousse en service_role mais pour laquelle l'écriture reste whitelistée côté front sur `status` + `user_notes`.
 
 ## ADR-05 · 2026-Q1 · Data layer front à deux tiers
 
@@ -70,7 +70,7 @@ Format court : **Contexte** (pourquoi se pose la question) → **Décision** (ce
 
 ## ADR-12 · 2026-Q2 · Specs produit par onglet + lint bloquant
 
-- **Contexte** : les 25 onglets du cockpit dérivaient vite du code — personne ne savait ce qu'ils étaient censés faire.
+- **Contexte** : les 29 onglets du cockpit dérivaient vite du code — personne ne savait ce qu'ils étaient censés faire.
 - **Décision** : un `docs/specs/tab-<slug>.md` par onglet, source de vérité consommée en direct par Jarvis Lab. Sections `Fonctionnalités` et `Parcours utilisateur` écrites en vocabulaire produit (pas de chemins `.jsx`, pas de `Tier 1`, pas de colonnes DB). Lint bloquant CI (`lint_specs_produit.py`).
 - **Conséquences** : toute PR de code à impact sur un onglet doit updater son spec dans le même commit ; drift automatiquement détecté par `spec-drift-check.yml` ; lint CI bloque les régressions de vocabulaire.
 

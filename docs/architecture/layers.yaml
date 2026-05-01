@@ -5,7 +5,7 @@
 #   boxes[].accent=true  : composant "pivot" (bord orange dans le rendu).
 #   edges[].type         : cross_layer | adjacent | intra_layer
 #     - cross_layer  : saute une couche, emprunte OBLIGATOIREMENT le rail
-#                      vertical à droite (x ≈ 955, hors layer-bg), L-shape,
+#                      vertical à droite (x ≈ 1014, hors layer-bg), L-shape,
 #                      accent orange.
 #     - adjacent     : entre deux couches voisines, passe dans le gutter
 #                      vertical, segment droit + virages à 90°.
@@ -22,7 +22,7 @@ layers:
     sublabel: Navigateur
     boxes:
       - id: panels
-        title: "25 panels React"
+        title: "29 onglets React"
         subtitle: "Brief · Veille · Radar · Jarvis · Perf · Musique…"
         meta:
           - "Router hash + thèmes Dawn/Obsidian/Atlas"
@@ -77,7 +77,7 @@ layers:
         title: "Supabase"
         subtitle: "Postgres + Auth + pgvector + Realtime"
         meta:
-          - "~40 tables · RLS authenticated"
+          - "~55 tables · RLS authenticated"
           - "service_role pour les pipelines backend"
         accent: true
       - id: gh_actions
