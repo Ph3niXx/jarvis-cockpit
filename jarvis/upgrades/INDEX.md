@@ -127,7 +127,7 @@ Historique de toutes les propositions de Jarvis Upgrade Scout.
 | 2026-04-30 | S2 | Fix `panel:opps` TypeError sur `w.urgency` (P35 promu, sous condition Phase 0) | SHIP | XS | shipped | Commit ce34742 |
 | 2026-04-30 | K1 | Hygiène v21 — 4 prompts pending → done/, commit audit v21 untracked, sync INDEX/README | KILL | XS | shipped | Commit 27738a8 |
 | 2026-05-01 | S1 | Restaurer entrée `{ id: "claude" }` dans `cockpit/nav.js::Veille` (régression silencieuse `004f55a` — section `claude` jamais ouverte sur 3 extractions) | SHIP | XS | proposed | 1 ligne nav.js. Spec [tab-claude.md](../../docs/specs/tab-claude.md) explicitement référence la sidebar comme parcours principal. |
-| 2026-05-01 | S2 | Commit + apply migration `sql/013_jobs_inherit_status.sql` (trigger jobs republication LinkedIn) | SHIP | S | proposed | Migration untracked + 4 modifs staged. Phase 0 vérifie via MCP Supabase si trigger déjà en prod (verdict a/b/c). |
+| 2026-05-01 | S2 | Commit + apply migration `sql/013_jobs_inherit_status.sql` (trigger jobs republication LinkedIn) | SHIP | S | shipped | Commit `953b029`. Verdict (a) — trigger déjà appliqué en prod (function body identique au .sql commité, smoke test BEGIN/ROLLBACK confirme l'héritage `archived`). Repo était simplement en retard. |
 | 2026-05-01 | K1 | Hygiène v22 — 3 prompts pending → done/ + sync INDEX (v22-S1/S2/K1 = `shipped`) + commit 2 artefacts cowork untracked (audit + ecosystem 30/04) | KILL | XS | proposed | Pattern auto-référentiel récidive. P37 réveil 5/05 — si v24 même pattern, promotion. |
 
 ## Stats
