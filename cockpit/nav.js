@@ -26,6 +26,7 @@ window.COCKPIT_NAV = [
   ]},
   { group: "Veille", items: [
     { id: "updates", label: "Veille IA", icon: "sparkles" },
+    { id: "claude", label: "Claude", icon: "bot" },
     { id: "veille-outils", label: "Veille outils", icon: "toolbox" },
     { id: "sport", label: "Sport", icon: "flag" },
     { id: "gaming_news", label: "Gaming", icon: "wrench" },
