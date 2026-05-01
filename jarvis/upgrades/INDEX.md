@@ -123,18 +123,21 @@ Historique de toutes les propositions de Jarvis Upgrade Scout.
 | 2026-04-29v21 | P38 | Phi-4-mini-instruct (Microsoft, 3.8B Q4_K_M ~3.5 Go) comme modèle d'extraction nightly + briefs (vs Qwen3.5 9B chat Deep) | PARK | M | deferred | Quand 1 nuit nightly_learner échoue OR latence p90 > 60s sur _compact_history 3j consécutifs (ex-veille 29/04) |
 | 2026-04-29v21 | P39 | Outlook Graph + msal `tenant=consumers` en remplacement de l'observer COM pywin32 | PARK | M | deferred | Si observer COM crashe ≥ 2x/sem OR Jean travaille un jour sans Outlook desktop ouvert (ex-veille 29/04, élargit P22) |
 | 2026-04-29v21 | P40 | VectorChord-BM25 / pg_search hybrid + RRF dans retriever.py (fusionne P28/P2/P6) | PARK | M | deferred | Quand un retrieval test "trouve la conv où on parlait de RLS" rate par cosine pure ET P38 shippé (ex-veille 29/04) |
-| 2026-04-30 | S1 | Fix `panel:history` TypeError sur `t.total_articles.toLocaleString` (P33 promu, fenêtre UX-focused) | SHIP | XS | proposed | Guards défensifs `?? 0` + `t.peak_day?.short_label` sur 6 accès non gardés (lignes 426, 444, 449, 450, 454, 455, 459) |
-| 2026-04-30 | S2 | Fix `panel:opps` TypeError sur `w.urgency` (P35 promu, sous condition Phase 0) | SHIP | XS | proposed | `const w = opp.window \|\| {}` aux lignes 130 et 196 + `URGENCY_LABEL[w.urgency] \|\| URGENCY_LABEL.right_time`. Auto-rétrograde si Phase 0 montre `window` NOT NULL en base. |
-| 2026-04-30 | K1 | Hygiène v21 — 4 prompts pending → done/, commit audit v21 untracked, sync INDEX/README | KILL | XS | proposed | `git mv` 4 fichiers + `git add jarvis/upgrades/2026-04-29v21-audit.md` + commit batch |
+| 2026-04-30 | S1 | Fix `panel:history` TypeError sur `t.total_articles.toLocaleString` (P33 promu, fenêtre UX-focused) | SHIP | XS | shipped | Commit 69ea05b |
+| 2026-04-30 | S2 | Fix `panel:opps` TypeError sur `w.urgency` (P35 promu, sous condition Phase 0) | SHIP | XS | shipped | Commit ce34742 |
+| 2026-04-30 | K1 | Hygiène v21 — 4 prompts pending → done/, commit audit v21 untracked, sync INDEX/README | KILL | XS | shipped | Commit 27738a8 |
+| 2026-05-01 | S1 | Restaurer entrée `{ id: "claude" }` dans `cockpit/nav.js::Veille` (régression silencieuse `004f55a` — section `claude` jamais ouverte sur 3 extractions) | SHIP | XS | proposed | 1 ligne nav.js. Spec [tab-claude.md](../../docs/specs/tab-claude.md) explicitement référence la sidebar comme parcours principal. |
+| 2026-05-01 | S2 | Commit + apply migration `sql/013_jobs_inherit_status.sql` (trigger jobs republication LinkedIn) | SHIP | S | proposed | Migration untracked + 4 modifs staged. Phase 0 vérifie via MCP Supabase si trigger déjà en prod (verdict a/b/c). |
+| 2026-05-01 | K1 | Hygiène v22 — 3 prompts pending → done/ + sync INDEX (v22-S1/S2/K1 = `shipped`) + commit 2 artefacts cowork untracked (audit + ecosystem 30/04) | KILL | XS | proposed | Pattern auto-référentiel récidive. P37 réveil 5/05 — si v24 même pattern, promotion. |
 
 ## Stats
 
-- Propositions totales : 107 (+3 en v22 : 2 SHIP + 1 KILL ; 0 nouveau PARK)
-- SHIP shippés : 36 (v1: 5, v2: 2, v3: 3, v4: 3, v5: 2, v6: 3, v7: 3, v8: 2, v9: 2, v10: 0, v11: 0, v12: 1, v13: 2, v14: 2, v15: 2, v16: 1, v17: 0, v21: 3, v22: 0)
-- SHIP proposés (en attente) : 2 (v22-S1, v22-S2)
-- SHIP rétrogradés : 7 (v7-S3 → P17, v10-S3 → P20, v10-S1 → P31, v13-S3 → P27, v14-S3 cloud fallback → P32, v14-S4 wiki TypeError → P33, v16-S2 audit_commit → P36) ; 0 rétrogradé v17, v21, v22
-- KILL shippés : 19 (v1: 2, v2: 1, v3: 2, v4: 2, v5: 1, v6: 1, v7: 1, v8: 1, v9: 1, v12: 1, v13: 1, v14: 1, v15: 1, v16: 1, v17: 1, v21: 1, v22: 0)
-- KILL proposés : 1 (v22-K1)
+- Propositions totales : 110 (+3 en v23 : 2 SHIP + 1 KILL ; 0 nouveau PARK)
+- SHIP shippés : 38 (v1: 5, v2: 2, v3: 3, v4: 3, v5: 2, v6: 3, v7: 3, v8: 2, v9: 2, v10: 0, v11: 0, v12: 1, v13: 2, v14: 2, v15: 2, v16: 1, v17: 0, v21: 3, v22: 2, v23: 0)
+- SHIP proposés (en attente) : 2 (v23-S1, v23-S2)
+- SHIP rétrogradés : 7 (v7-S3 → P17, v10-S3 → P20, v10-S1 → P31, v13-S3 → P27, v14-S3 cloud fallback → P32, v14-S4 wiki TypeError → P33, v16-S2 audit_commit → P36) ; 0 rétrogradé v17, v21, v22, v23
+- KILL shippés : 20 (v1: 2, v2: 1, v3: 2, v4: 2, v5: 1, v6: 1, v7: 1, v8: 1, v9: 1, v12: 1, v13: 1, v14: 1, v15: 1, v16: 1, v17: 1, v21: 1, v22: 1, v23: 0)
+- KILL proposés : 1 (v23-K1)
 - PARK (différé) : 38 (inchangé ; P31 toujours killed)
 - Taux d'exécution v1→v9 : 96% (25/26 shippés)
 - Taux d'exécution v13 : 3/3 shippés (100%) — meilleur sprint depuis v9
