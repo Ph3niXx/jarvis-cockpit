@@ -377,6 +377,15 @@ GARDE-FOUS D'EXÉCUTION
   UPSERT les colonnes `status`, `user_notes`, `updated_at` si
   elles ont été modifiées depuis le cockpit. Ces colonnes sont la
   source de vérité côté user.
+- **Safety net DB** (migration `sql/013_jobs_inherit_status.sql`) :
+  un trigger Postgres `BEFORE INSERT` hérite automatiquement du
+  `status` archived (≤30j) ou snoozed (≤7j) et copie les
+  `user_notes` quand une paire `(lower(trim(title)),
+  lower(trim(company)))` matche une ligne précédente. Ça neutralise
+  les republications LinkedIn qui changent de `linkedin_job_id`
+  sans que l'offre soit réellement nouvelle. Ne pas désactiver
+  sans en discuter — le bug "offres archivées qui ressortent le
+  lendemain" en dépend.
 
 SORTIE CONSOLE (pour debug dans l'historique Cowork)
 
@@ -401,5 +410,7 @@ Supabase.
 - **Pas de différenciation candid vs warm intro dans le calcul** : l'effet réseau est intégré qualitativement dans le `target` mais pas quantifié. Si on accumule des données, on pourrait extraire un coefficient.
 
 ## Dernière MAJ
+
+2026-04-30 — ajout d'un safety net DB (trigger `jobs_inherit_user_status`, migration `sql/013_jobs_inherit_status.sql`) qui hérite automatiquement du `status` archived/snoozed quand LinkedIn republie une offre déjà décidée. Documenté dans les garde-fous d'exécution. Le prompt Cowork lui-même n'a pas besoin d'être touché — l'UPSERT actuel reste correct, le trigger se déclenche en amont.
 
 2026-04-26 — création de la routine versionnée + ajout Étape 4.5 (estimation salaire calibrée). Récupération du prompt v3 existant chez Cowork et ajout de la nouvelle section pour `intel.salary_estimate` (consommée par le panel Jobs Radar).
