@@ -53,6 +53,7 @@ SELECT scan_date, raw_count, jsonb_pretty(tendances) FROM job_scans ORDER BY sca
 - Colonne `is_remote` (boolean, NULL = inconnu) — depuis JSearch `job_is_remote`. Seules les offres **FULLTIME** sont insérées (filtre amont, ADR-20).
 - `role_category` ∈ {produit,rte,pgm,pjm,cos,em} ; `company_stage` ∈ {seed,A,B,C,scale,grand_groupe}. Un **Technical Program Manager relève de `pgm`** (ADR-50).
 - `status` = `new` si `score_total ≥ 5`, sinon `archived`. **Vieillissement (ÉTAPE 6)** : un `new` non revu depuis 13 **scans réussis** repasse `archived` (auto, réversible).
+- **Sens de `applied` (ADR-52)** : depuis le 2026-09-24, `applied` = candidature **envoyée** — le front sépare « Lire l'annonce » (aucune écriture) de « J'ai postulé ». Avant cette date, `applied` pouvait ne vouloir dire qu'« annonce ouverte » : les lignes sans `applied_at` sont à lire avec prudence. Le front écrit aussi les issues `interview` / `rejected` / `ghosted`, que le trigger hérite comme `applied` (`sql/035`).
 - **Jamais écrit ni écrasé** : `user_notes`, `user_verdict*`, `closed_at`, `cv_recommended`, `cv_reason`, et `status` après création.
 
 `job_scans` (UPSERT sur `scan_date`) : `raw_count`, `dedup_strict_count`, `processed_count`, `hot_leads_count`, `actions` (`[]`), et `tendances` = `{"fetch": {…}}` (journal de diagnostic, ADR-31). **Le front ne lit pas `tendances`** — il recalcule ses propres `volumes_7d` / `ratios_category` dans `data-loader.js::transformJobScan()`. **Pas de `signal_cv`** (retiré côté front).

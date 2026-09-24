@@ -701,7 +701,7 @@
             "id": "jobs",
             "label": "Jobs Radar",
             "icon": "target",
-            "description": "Scan LinkedIn scoré par fit (hot/mid/low). Scan banner, hero leads, liste dense. Status + notes personnelles.",
+            "description": "Scan d'offres scoré par fit (hot/mid/low). Trois zones : à décider (hot leads des 7 derniers jours), tes candidatures (issues), reste du scan. Tri en un geste : lire, j'ai postulé, pas pour moi.",
             "panel_file": "cockpit/panel-jobs-radar.jsx",
             "data_sources": ["jobs"],
             "frequency": "daily",

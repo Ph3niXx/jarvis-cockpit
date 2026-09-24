@@ -1,15 +1,20 @@
 // ═══════════════════════════════════════════════════════════════
 // PANEL JOBS RADAR — Offres LinkedIn scorées par fit
 // ─────────────────────────────────────────────
-// Layout:
-//   1. Scan banner (tendances 7j + signal CV + actions du jour)
-//   2. Hot leads hero (score ≥ 7) — grandes cards avec intel déplié
-//   3. Liste dense du reste (mid + low) — sortable, filtrable
+// Layout (ADR-52) :
+//   1. Scan banner (tendances 7j + actions du jour)
+//   2. « À décider » — hot leads (≥ 7) non triés des 7 derniers jours
+//   3. « Tes candidatures » — suivi et issues (entretien / refus / sans réponse)
+//   4. Liste dense du reste — sortable, filtrable
 //
-// Actions dominantes : Postuler (ouvre URL) + Ouvrir lead LinkedIn
+// Tri en un geste : Lire l'annonce / J'ai postulé / Pas pour moi.
 // ═══════════════════════════════════════════════════════════════
 
 const { useState: useStateJr, useMemo: useMemoJr, useEffect: useEffectJr, useRef: useRefJr } = React;
+
+// Logique pure du tri (cockpit/lib/jobs-view.js, script classique chargé avant
+// les panels Babel) — spec 2026-09-24, ADR-52.
+const JV = window.jobsView;
 
 // ─── Supabase write (user-editable fields: status, user_notes, user_verdict*, closed_at) ───
 async function patchJobSupabase(id, patch) {
@@ -78,7 +83,7 @@ const STATUS_LABEL = {
 // Libellés des puces de filtres actifs (toolbar) — module-level pour éviter
 // la réallocation à chaque render. STATUS distinct de STATUS_LABEL (clés + libellés différents).
 const JR_SCORE_LABEL  = { hot: "Hot ≥7", mid: "Mid 5-7", low: "Low <5" };
-const JR_STATUS_LABEL = { new: "Nouvelles", to_apply: "À postuler", applied: "Candidaté", closed: "Clôturées", all: "Tout" };
+const JR_STATUS_LABEL = { new: "Nouvelles", to_apply: "À postuler", closed: "Clôturées", all: "Tout" };
 const JR_FRESH_LABEL  = { "24h": "< 24h", "7j": "< 7j" };
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -87,8 +92,9 @@ function scoreBand(score) {
   if (score >= 5) return "mid";
   return "low";
 }
-// Une offre clôturée est "morte" et masquée — sauf si déjà postulée (reste dans le pipeline applied).
-function jrIsDead(o) { return !!o.closed_at && o.status !== "applied"; }
+// Une offre clôturée est « morte » et masquée — sauf une candidature, quelle
+// que soit son issue (ADR-52).
+function jrIsDead(o) { return JV.isDead(o); }
 
 function dayLabel(n) {
   if (n === 0) return "aujourd'hui";
@@ -101,7 +107,9 @@ const JR_FILTERS_KEY = "jr.filters.v1";
 function loadJrFilters() {
   try {
     const raw = localStorage.getItem(JR_FILTERS_KEY);
-    return raw ? JSON.parse(raw) : {};
+    // Une version antérieure a pu mémoriser le filtre « Candidaté », qui
+    // n'existe plus : les candidatures ont leur zone (ADR-52).
+    return raw ? JV.normalizeStoredFilters(JSON.parse(raw)) : {};
   } catch { return {}; }
 }
 
@@ -109,28 +117,46 @@ function numberFmt(n) {
   return n.toFixed(1).replace(".", ",");
 }
 
-// ─── Toast — discreet feedback after a write op ───────────
-function JrToast({ message, tone }) {
+// ─── Toast — feedback discret après une écriture, « Annuler » optionnel ───
+function JrToast({ message, tone, action }) {
   if (!message) return null;
   return (
     <div className={`jr-toast jr-toast--${tone || "ok"}`} role="status" aria-live="polite">
       <Icon name={tone === "error" ? "x" : "check"} size={13} stroke={2.2} />
       <span>{message}</span>
+      {action && (
+        <button type="button" className="jr-toast-action" onClick={action.onClick}>{action.label}</button>
+      )}
     </div>
   );
 }
 
-// ─── Actions menu — kebab popover (snooze / archive / notes) ───
-function JrActionsMenu({ offer, open, onToggle, onSnooze, onArchive, onEditNotes, onClose, onReopen }) {
-  const ref = useRefJr(null);
+// Ferme un popover au clic extérieur ou sur Échap (menu ⋯, « Pas pour moi »).
+function useJrDismiss(ref, open, close) {
   useEffectJr(() => {
     if (!open) return;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) onToggle(null); };
-    const onKey = (e) => { if (e.key === "Escape") onToggle(null); };
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) close(); };
+    const onKey = (e) => { if (e.key === "Escape") close(); };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
-  }, [open, onToggle]);
+  }, [open]);
+}
+
+// Après un geste, la ligne sort ou se re-trie aussitôt : le 2e clic d'un
+// double-clic tomberait sur le bouton de la ligne voisine, glissé sous le
+// pointeur, et écrirait sur la mauvaise offre. Ce 2e clic porte
+// event.detail = 2 : on l'ignore. Le clavier donne detail = 0.
+function jrSingleClick(fn) {
+  return (e) => { if (e && e.detail > 1) return; fn(e); };
+}
+
+// ─── Actions menu — kebab popover (snooze / notes / clôture) ───
+// « Archiver » a disparu (ADR-52) : « Pas pour moi » le remplace, et un
+// archivage sans raison est un signal perdu.
+function JrActionsMenu({ offer, open, onToggle, onSnooze, onEditNotes, onClose, onReopen }) {
+  const ref = useRefJr(null);
+  useJrDismiss(ref, open, () => onToggle(null));
   return (
     <div className="jr-menu" ref={ref}>
       <button
@@ -144,26 +170,22 @@ function JrActionsMenu({ offer, open, onToggle, onSnooze, onArchive, onEditNotes
       </button>
       {open && (
         <div className="jr-menu-pop" role="menu">
-          <button className="jr-menu-item" role="menuitem" disabled={offer.status === "snoozed"} onClick={() => onSnooze(offer.id)}>
+          <button className="jr-menu-item" role="menuitem" disabled={offer.status === "snoozed"} onClick={jrSingleClick(() => onSnooze(offer.id))}>
             <Icon name="clock" size={13} stroke={2} />
             <span>Snoozer 7 jours</span>
           </button>
-          <button className="jr-menu-item" role="menuitem" disabled={offer.status === "archived"} onClick={() => onArchive(offer.id)}>
-            <Icon name="archive" size={13} stroke={2} />
-            <span>Archiver</span>
-          </button>
-          <button className="jr-menu-item" role="menuitem" onClick={() => onEditNotes(offer.id)}>
+          <button className="jr-menu-item" role="menuitem" onClick={jrSingleClick(() => onEditNotes(offer.id))}>
             <Icon name="file_text" size={13} stroke={2} />
             <span>Éditer les notes</span>
           </button>
-          {!offer.closed_at && offer.status !== "applied" && (
-            <button className="jr-menu-item" role="menuitem" onClick={() => onClose(offer.id)}>
+          {!offer.closed_at && !JV.isApplication(offer) && (
+            <button className="jr-menu-item" role="menuitem" onClick={jrSingleClick(() => onClose(offer.id))}>
               <Icon name="x" size={13} stroke={2} />
               <span>Marquer clôturée</span>
             </button>
           )}
           {offer.closed_at && (
-            <button className="jr-menu-item" role="menuitem" onClick={() => onReopen(offer.id)}>
+            <button className="jr-menu-item" role="menuitem" onClick={jrSingleClick(() => onReopen(offer.id))}>
               <Icon name="refresh" size={13} stroke={2} />
               <span>Rouvrir</span>
             </button>
@@ -196,125 +218,80 @@ function JrNotesEditor({ offer, onSave, onCancel }) {
   );
 }
 
-// ─── Vote 👍/👎 + raisons (popover multi-sélection) ───────
-const VERDICT_REASONS = {
-  down: ["trop junior", "run/BAU", "secteur", "boîte", "lieu/remote"],
-  up:   ["scope parfait", "secteur", "la boîte", "coup de cœur"],
-};
-
-// Sérialisation dans la colonne texte unique user_verdict_reason :
-//   "raison1 · raison2 [ — texte libre ]". Le ` — ` (présent ou non)
-//   sépare les raisons du texte libre ; les raisons sont jointes par ` · `.
-function jrParseReason(raw) {
-  const s = raw || "";
-  const i = s.indexOf(" — ");
-  const reasonsPart = i >= 0 ? s.slice(0, i) : s;
-  const free = i >= 0 ? s.slice(i + 3) : "";
-  const reasons = reasonsPart.trim() ? reasonsPart.split(" · ").map(x => x.trim()).filter(Boolean) : [];
-  return { reasons, free };
-}
-function jrComposeReason(reasons, free) {
-  const f = (free || "").trim();
-  if (!reasons.length && !f) return null;
-  return reasons.join(" · ") + (f ? " — " + f : "");
-}
-
-function JrVote({ offer, onVote, compact = false }) {
-  const verdict = offer.user_verdict || null;
-  const parsed = jrParseReason(offer.user_verdict_reason);
-  const selected = parsed.reasons;            // source de vérité = l'offre (optimistic)
+// ─── « Pas pour moi » — une raison = une décision (ADR-52) ───
+// Précision libre facultative en tête, puis trois raisons à un clic.
+// « Lien mort » est à part : il clôture l'offre et n'est pas un avis.
+function JrNotForMe({ offer, compact = false, onDecide, onDeadLink }) {
   const [open, setOpen] = useStateJr(false);
-  const [draft, setDraft] = useStateJr(parsed.free);
+  const [free, setFree] = useStateJr("");
   const ref = useRefJr(null);
-
-  // Ferme le popover au clic extérieur / Escape (même pattern que JrActionsMenu)
-  useEffectJr(() => {
-    if (!open) return;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
-  }, [open]);
-
-  const isOn = (r) => selected.includes(r);
-
-  const clickThumb = (v) => {
-    if (verdict === v) {
-      onVote(offer.id, { user_verdict: null, user_verdict_reason: null, user_verdict_at: null });
-      setOpen(false); setDraft("");
-    } else {
-      onVote(offer.id, { user_verdict: v, user_verdict_reason: null, user_verdict_at: new Date().toISOString() }, v === "up" ? "Noté 👍" : "Noté 👎");
-      setDraft(""); setOpen(true);
-    }
-  };
-  const toggleReason = (r) => {
-    const next = isOn(r) ? selected.filter(x => x !== r) : [...selected, r];
-    onVote(offer.id, { user_verdict_reason: jrComposeReason(next, draft) });
-  };
-  const commitFree = () => {
-    onVote(offer.id, { user_verdict_reason: jrComposeReason(selected, draft) });
-  };
-
+  useJrDismiss(ref, open, () => setOpen(false));
+  const decide = (code) => { setOpen(false); onDecide(offer, code, free); setFree(""); };
   return (
-    <div className={`jr-vote ${compact ? "jr-vote--compact" : ""}`} ref={ref}>
-      <div className="jr-vote-row">
-        <div className="jr-vote-thumbs">
-          <button
-            className={`jr-vote-btn ${verdict === "up" ? "is-up" : ""}`}
-            onClick={(e) => { e.stopPropagation(); clickThumb("up"); }}
-            aria-pressed={verdict === "up"} title="J'aime cette offre">
-            <Icon name="thumbs_up" size={compact ? 13 : 15} stroke={2} />
-          </button>
-          <button
-            className={`jr-vote-btn ${verdict === "down" ? "is-down" : ""}`}
-            onClick={(e) => { e.stopPropagation(); clickThumb("down"); }}
-            aria-pressed={verdict === "down"} title="Pas pour moi">
-            <Icon name="thumbs_down" size={compact ? 13 : 15} stroke={2} />
-          </button>
-        </div>
-
-        {verdict && selected.length > 0 && (
-          <span className="jr-vote-tags">
-            {selected.map(r => <span key={r} className="jr-vote-tag">{r}</span>)}
-          </span>
-        )}
-
-        {verdict && (
-          <button
-            className="jr-vote-why"
-            onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-            aria-expanded={open} aria-controls={`jr-pop-${offer.id}`}
-            aria-label={open ? "Fermer les raisons" : "Choisir une raison"}>
-            <Icon name={open ? "chevron_up" : "chevron_down"} size={13} stroke={2} />
-            <span>{selected.length ? "raison" : "pourquoi ?"}</span>
-          </button>
-        )}
-      </div>
-
-      {verdict && open && (
-        <div className="jr-vote-pop" id={`jr-pop-${offer.id}`} role="group" aria-label="Raisons du vote">
-          <div className="jr-vote-pop-head">Pourquoi ? (plusieurs possibles)</div>
-          {VERDICT_REASONS[verdict].map(r => (
-            <button
-              key={r}
-              className={`jr-vote-opt ${isOn(r) ? "is-on" : ""}`}
-              role="checkbox" aria-checked={isOn(r)}
-              onClick={(e) => { e.stopPropagation(); toggleReason(r); }}>
-              <span className="jr-vote-box"><Icon name="check" size={11} stroke={3} /></span>
-              <span>{r}</span>
+    <div className={`jr-nfm ${compact ? "jr-nfm--compact" : ""}`} ref={ref}>
+      <button
+        className={compact ? "jr-btn jr-btn--icon" : "jr-btn jr-btn--ghost"}
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        aria-expanded={open}
+        title="Pas pour moi">
+        <Icon name="x" size={compact ? 14 : 13} stroke={2.2} />
+        {!compact && <span>Pas pour moi</span>}
+        {!compact && <Icon name={open ? "chevron_up" : "chevron_down"} size={12} stroke={2} />}
+      </button>
+      {open && (
+        <div className="jr-nfm-pop" role="menu" aria-label="Pourquoi pas pour toi ?">
+          <input
+            className="jr-nfm-free"
+            value={free}
+            autoFocus
+            placeholder="préciser (optionnel)…"
+            onChange={(e) => setFree(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => { if (e.key === "Enter" && free.trim()) decide(null); }} />
+          {JV.NOT_FOR_ME_REASONS.map((r) => (
+            <button key={r.code} className="jr-nfm-opt" role="menuitem"
+              onClick={jrSingleClick((e) => { e.stopPropagation(); decide(r.code); })}>
+              {r.label}
             </button>
           ))}
-          <div className="jr-vote-pop-sep" />
-          <input
-            className="jr-vote-free-input"
-            value={draft}
-            placeholder="préciser (optionnel)…"
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitFree}
-            onKeyDown={(e) => { if (e.key === "Enter") { commitFree(); setOpen(false); } if (e.key === "Escape") setOpen(false); }}
-            onClick={(e) => e.stopPropagation()} />
+          <div className="jr-nfm-sep" />
+          <button className="jr-nfm-opt jr-nfm-opt--dead" role="menuitem"
+            onClick={jrSingleClick((e) => { e.stopPropagation(); setOpen(false); setFree(""); onDeadLink(offer); })}>
+            <Icon name="x" size={12} stroke={2} />
+            <span>{JV.DEAD_LINK_LABEL}</span>
+          </button>
+          <div className="jr-nfm-foot">Lien mort = offre clôturée, pas un avis.</div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Actions de tri : lire ≠ postuler (ADR-52) ───
+// Sur une candidature, seul « Lire l'annonce » reste : la décision est prise.
+function JrTriageActions({ offer, zone, compact = false, onRead, onApplied, onNotForMe, onDeadLink }) {
+  const decided = JV.isApplication(offer);
+  return (
+    <div className={`jr-triage ${compact ? "jr-triage--compact" : ""}`}>
+      <button
+        className={compact ? "jr-btn jr-btn--icon" : "jr-btn jr-btn--ghost"}
+        onClick={jrSingleClick(() => onRead(offer, zone))}
+        disabled={!offer.url}
+        title="Lire l'annonce">
+        <Icon name="eye" size={14} stroke={2} />
+        {!compact && <span>Lire l'annonce</span>}
+      </button>
+      {!decided && (
+        <button
+          className={compact ? "jr-btn jr-btn--icon" : "jr-btn jr-btn--primary"}
+          onClick={jrSingleClick(() => onApplied(offer))}
+          title="J'ai postulé">
+          <Icon name="check" size={14} stroke={2.2} />
+          {!compact && <span>J'ai postulé</span>}
+        </button>
+      )}
+      {!decided && (
+        <JrNotForMe offer={offer} compact={compact} onDecide={onNotForMe} onDeadLink={onDeadLink} />
       )}
     </div>
   );
@@ -467,7 +444,7 @@ function JrSkills({ skills, source }) {
 }
 
 // ─── Hot lead card (big, intel déplié) ────────────────────
-function HotLeadCard({ offer, rank, onApply, onSnooze, onArchive, onEditNotes, onSaveNotes, onCancelNotes, onVote, onClose, onReopen, openMenu, onMenuToggle, notesEditing }) {
+function HotLeadCard({ offer, rank, zone = "decide", onRead, onApplied, onNotForMe, onDeadLink, onSnooze, onEditNotes, onSaveNotes, onCancelNotes, onClose, onReopen, openMenu, onMenuToggle, notesEditing }) {
   const intel = offer.intel;
   const logo = (intel && intel.employer_logo) || null;
   const isNotesOpen = notesEditing === offer.id;
@@ -540,22 +517,17 @@ function HotLeadCard({ offer, rank, onApply, onSnooze, onArchive, onEditNotes, o
 
       {/* Actions footer */}
       <footer className="jr-hot-foot">
-        <JrVote offer={offer} onVote={onVote} />
+        <JrTriageActions offer={offer} zone={zone} onRead={onRead} onApplied={onApplied} onNotForMe={onNotForMe} onDeadLink={onDeadLink} />
         <div className="jr-hot-actions">
           <JrActionsMenu
             offer={offer}
             open={openMenu === offer.id}
             onToggle={onMenuToggle}
             onSnooze={onSnooze}
-            onArchive={onArchive}
             onEditNotes={onEditNotes}
             onClose={onClose}
             onReopen={onReopen}
           />
-          <button className="jr-btn jr-btn--primary" onClick={() => onApply(offer)} disabled={!offer.url}>
-            <span>{offer.status === "applied" ? "Rouvrir sur LinkedIn" : "Postuler sur LinkedIn"}</span>
-            <Icon name="arrow_right" size={14} stroke={2} />
-          </button>
         </div>
       </footer>
     </article>
@@ -563,7 +535,7 @@ function HotLeadCard({ offer, rank, onApply, onSnooze, onArchive, onEditNotes, o
 }
 
 // ─── List row (mid + low, dense) ──────────────────────────
-function OfferRow({ offer, onApply, onSnooze, onArchive, onEditNotes, onSaveNotes, onCancelNotes, onVote, onClose, onReopen, openMenu, onMenuToggle, notesEditing }) {
+function OfferRow({ offer, onRead, onApplied, onNotForMe, onDeadLink, onSnooze, onEditNotes, onSaveNotes, onCancelNotes, onClose, onReopen, openMenu, onMenuToggle, notesEditing }) {
   const band = scoreBand(offer.score_total);
   const isNotesOpen = notesEditing === offer.id;
   return (
@@ -586,6 +558,9 @@ function OfferRow({ offer, onApply, onSnooze, onArchive, onEditNotes, onSaveNote
               <span className={`jr-tag jr-tag--status jr-tag--status-${offer.status}`}>
                 {STATUS_LABEL[offer.status]}
               </span>
+            )}
+            {offer.user_verdict === "down" && (
+              <span className="jr-tag jr-tag--reason">{JV.reasonTag(offer.user_verdict_reason)}</span>
             )}
           </div>
         </div>
@@ -618,22 +593,140 @@ function OfferRow({ offer, onApply, onSnooze, onArchive, onEditNotes, onSaveNote
       </div>
 
       <div className="jr-row-actions">
-        <JrVote offer={offer} onVote={onVote} compact />
+        <JrTriageActions offer={offer} zone="list" compact onRead={onRead} onApplied={onApplied} onNotForMe={onNotForMe} onDeadLink={onDeadLink} />
         <JrActionsMenu
           offer={offer}
           open={openMenu === offer.id}
           onToggle={onMenuToggle}
           onSnooze={onSnooze}
-          onArchive={onArchive}
           onEditNotes={onEditNotes}
           onClose={onClose}
           onReopen={onReopen}
         />
-        <button className="jr-btn jr-btn--icon" onClick={() => onApply(offer)} disabled={!offer.url} title={offer.status === "applied" ? "Rouvrir sur LinkedIn" : "Postuler sur LinkedIn"}>
-          <Icon name="arrow_right" size={14} stroke={2.2} />
-        </button>
       </div>
     </article>
+  );
+}
+
+// ─── Zone 2 — Tes candidatures (ADR-52) ───────────────────
+// Repliée par défaut ; l'état plié/déplié est une commodité de ce navigateur.
+const JR_APPS_OPEN_KEY = "jr.apps.open.v1";
+function loadAppsOpen() {
+  try { return localStorage.getItem(JR_APPS_OPEN_KEY) === "1"; } catch { return false; }
+}
+
+function JrAppMenu({ offer, open, onToggle, onRead, onFollowUp, onEditNotes, onNotApplied }) {
+  const ref = useRefJr(null);
+  useJrDismiss(ref, open, () => onToggle(null));
+  return (
+    <div className="jr-menu" ref={ref}>
+      <button
+        className="jr-btn jr-btn--icon jr-menu-trigger"
+        onClick={(e) => { e.stopPropagation(); onToggle(open ? null : offer.id); }}
+        aria-label="Actions"
+        aria-expanded={open}
+        title="Actions"
+      >
+        <span className="jr-menu-dots" aria-hidden="true">⋯</span>
+      </button>
+      {open && (
+        <div className="jr-menu-pop" role="menu">
+          {offer.status === "applied" && (
+            <button className="jr-menu-item" role="menuitem" onClick={jrSingleClick(() => { onToggle(null); onFollowUp(offer.id); })}>
+              <Icon name="envelope" size={13} stroke={2} />
+              <span>Relancer</span>
+            </button>
+          )}
+          <button className="jr-menu-item" role="menuitem" disabled={!offer.url} onClick={jrSingleClick(() => { onToggle(null); onRead(offer, "applications"); })}>
+            <Icon name="eye" size={13} stroke={2} />
+            <span>Lire l'annonce</span>
+          </button>
+          <button className="jr-menu-item" role="menuitem" onClick={jrSingleClick(() => onEditNotes(offer.id))}>
+            <Icon name="file_text" size={13} stroke={2} />
+            <span>Éditer les notes</span>
+          </button>
+          <button className="jr-menu-item" role="menuitem" onClick={jrSingleClick(() => onNotApplied(offer))}>
+            <Icon name="archive" size={13} stroke={2} />
+            <span>Pas candidaté en fait</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function JrApplicationRow({ offer, onRead, onOutcome, onFollowUp, onNotApplied, onEditNotes, onSaveNotes, onCancelNotes, notesEditing, openMenu, onMenuToggle }) {
+  const isNotesOpen = notesEditing === offer.id;
+  return (
+    <article className={`jr-app jr-app--${offer.status}`}>
+      <div className="jr-app-main">
+        <div className="jr-app-title"><strong>{offer.company}</strong> — {offer.title}</div>
+        <div className="jr-app-meta">{JV.applicationAgeLabel(offer, Date.now())}</div>
+        {isNotesOpen && <JrNotesEditor offer={offer} onSave={onSaveNotes} onCancel={onCancelNotes} />}
+        {!isNotesOpen && offer.user_notes && <div className="jr-app-notes">{offer.user_notes}</div>}
+      </div>
+      <div className="jr-app-outcomes" role="group" aria-label="Issue de la candidature">
+        {JV.OUTCOMES.map((x) => (
+          <button
+            key={x.status}
+            className={`jr-app-outcome ${offer.status === x.status ? "is-on" : ""}`}
+            aria-pressed={offer.status === x.status}
+            onClick={jrSingleClick(() => onOutcome(offer, x.status))}>{x.label}</button>
+        ))}
+      </div>
+      <JrAppMenu
+        offer={offer}
+        open={openMenu === offer.id}
+        onToggle={onMenuToggle}
+        onRead={onRead}
+        onFollowUp={onFollowUp}
+        onEditNotes={onEditNotes}
+        onNotApplied={onNotApplied}
+      />
+    </article>
+  );
+}
+
+function JrApplications({ offers, handlers }) {
+  const [open, setOpen] = useStateJr(loadAppsOpen);
+  const [showUndated, setShowUndated] = useStateJr(false);
+  const { dated, undated } = JV.splitApplications(offers);
+  if (!dated.length && !undated.length) return null;
+  const c = JV.applicationCounts(offers);
+  const parts = [];
+  if (c.applied)   parts.push(`${c.applied} en attente`);
+  if (c.interview) parts.push(`${c.interview} entretien${c.interview > 1 ? "s" : ""}`);
+  if (c.rejected)  parts.push(`${c.rejected} refus`);
+  if (c.ghosted)   parts.push(`${c.ghosted} sans réponse`);
+  if (c.undated)   parts.push(`${c.undated} avant le 17/08`);
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    try { localStorage.setItem(JR_APPS_OPEN_KEY, next ? "1" : "0"); } catch {}
+  };
+  return (
+    <section className="jr-apps">
+      <button className="jr-apps-head" onClick={toggle} aria-expanded={open}>
+        <span className="jr-section-kicker">Tes candidatures</span>
+        <span className="jr-apps-counts">{parts.join(" · ")}</span>
+        <Icon name={open ? "chevron_up" : "chevron_down"} size={16} stroke={2} />
+      </button>
+      {open && (
+        <div className="jr-apps-body">
+          {dated.length === 0 && <p className="jr-apps-empty">Aucune candidature datée pour l'instant.</p>}
+          {dated.map((o) => <JrApplicationRow key={o.id} offer={o} {...handlers} />)}
+          {undated.length > 0 && (
+            <div className="jr-apps-undated">
+              <button className="jr-apps-undated-head" onClick={() => setShowUndated((v) => !v)} aria-expanded={showUndated}>
+                <Icon name={showUndated ? "chevron_up" : "chevron_down"} size={13} stroke={2} />
+                <span>Avant le 17/08 · date de candidature inconnue ({undated.length})</span>
+              </button>
+              {showUndated && undated.map((o) => <JrApplicationRow key={o.id} offer={o} {...handlers} />)}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -702,7 +795,7 @@ function JrCalibrage() {
           <div className="jr-calib-block">
             <div className="jr-section-kicker">Observé par le radar <span className="jr-calib-auto">auto</span></div>
             <p className="jr-calib-text jr-calib-text--observed">
-              {observed || "Pas encore assez de votes pour inférer un profil. Note quelques offres 👍/👎 — le radar synthétise après quelques retours."}
+              {observed || "Pas encore assez de retours pour inférer un profil. Chaque « Pas pour moi » compte — le radar recalibre le lundi dès 3 nouveaux retours."}
             </p>
           </div>
         </div>
@@ -898,10 +991,10 @@ function PanelJobsRadar({ data, onNavigate }) {
     return () => { try { client.removeChannel(ch); } catch {} };
   }, []);
 
-  const showToast = (message, tone) => {
+  const showToast = (message, tone, action) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ message, tone: tone || "ok" });
-    toastTimer.current = setTimeout(() => setToast(null), 2400);
+    setToast({ message, tone: tone || "ok", action: action || null });
+    toastTimer.current = setTimeout(() => setToast(null), action ? 5000 : 2400);
   };
 
   // Mécanique commune : optimistic state + mirror global + PATCH + toast.
@@ -931,38 +1024,91 @@ function PanelJobsRadar({ data, onNavigate }) {
     persistJobPatch(id, patch, toastMsg);
   };
 
-  // vote 👍/👎 (+ raison) — event jobs_feedback, porte le score au moment du vote.
-  const voteJob = (id, patch, toastMsg) => {
-    const offer = offers.find(o => o.id === id);
-    const verdict = ("user_verdict" in patch) ? patch.user_verdict : (offer && offer.user_verdict);
-    const reason  = ("user_verdict_reason" in patch) ? patch.user_verdict_reason : (offer && offer.user_verdict_reason);
+  // ─── Gestes de tri (ADR-52) ───────────────────────────────
+  // Optimiste → PATCH → succès : event + toast « Annuler » (5 s) ; échec :
+  // l'inverse est réappliqué localement et aucun event ne part. Un échec ne
+  // laisse ni carte fantôme ni event fantôme.
+  const mirrorPatch = (id, patch) => {
+    setOffers(prev => JV.applyPatch(prev, id, patch));
     try {
-      window.track && window.track("jobs_feedback", {
-        verdict: String(verdict ?? "").slice(0, 8),
-        reason: String(reason ?? "").slice(0, 64),
-        job_id: String(id).slice(0, 64),
-        score_at_vote: offer ? offer.score_total : null,
-      });
+      if (window.JOBS_DATA && Array.isArray(window.JOBS_DATA.offers)) {
+        window.JOBS_DATA.offers = JV.applyPatch(window.JOBS_DATA.offers, id, patch);
+      }
     } catch {}
-    persistJobPatch(id, patch, toastMsg);
+  };
+  const jobKey = (offer) => String(offer.id).slice(0, 64);
+  const nowIso = () => new Date().toISOString();
+
+  const undoGesture = (id, patch, inverse, gesture) => {
+    mirrorPatch(id, inverse);
+    setToast(null);
+    patchJobSupabase(id, inverse)
+      .then(() => {
+        try { window.track && window.track("jobs_action", { action: "undo", job_id: String(id).slice(0, 64), value: gesture }); } catch {}
+        showToast("Geste annulé", "ok");
+      })
+      .catch(() => {
+        mirrorPatch(id, patch);
+        showToast("Annulation impossible — le geste reste enregistré", "error");
+      });
+  };
+  const runGesture = (offer, patch, { label, gesture, emit }) => {
+    if (!offer) return;
+    const inverse = JV.inversePatch(offer, patch);
+    mirrorPatch(offer.id, patch);
+    setOpenMenu(null);
+    patchJobSupabase(offer.id, patch)
+      .then(() => {
+        try { emit(); } catch {}
+        showToast(label, "ok", { label: "Annuler", onClick: () => undoGesture(offer.id, patch, inverse, gesture) });
+      })
+      .catch(() => {
+        mirrorPatch(offer.id, inverse);
+        showToast("Écriture impossible — geste annulé", "error");
+      });
   };
 
-  const applyToJob = (offer) => {
+  // Lire ≠ postuler : ouvre l'annonce, n'écrit rien en base.
+  const readOffer = (offer, zone) => {
     if (!offer || !offer.url) return;
     try { window.open(offer.url, "_blank", "noopener,noreferrer"); } catch {}
-    if (offer.status !== "applied") {
-      // On horodate la candidature ICI, au seul moment où on la connaît.
-      // Aucune autre colonne ne portait cette date : `last_seen_date` est la
-      // dernière re-parution de l'offre chez JSearch et `updated_at` bouge à
-      // chaque rescan de la routine.
-      updateJob(
-        offer.id,
-        { status: "applied", applied_at: new Date().toISOString() },
-        "Postulé · statut mis à jour"
-      );
-    }
-    setOpenMenu(null);
+    try { window.track && window.track("jobs_action", { action: "open", job_id: jobKey(offer), value: zone || "list" }); } catch {}
   };
+  const markApplied = (offer) => runGesture(offer, JV.patchApplied(nowIso()), {
+    label: "Candidature enregistrée", gesture: "applied",
+    emit: () => window.track && window.track("jobs_action", { action: "status", job_id: jobKey(offer), value: "applied" }),
+  });
+  const notForMe = (offer, code, free) => {
+    const patch = JV.patchNotForMe(code, free, nowIso());
+    runGesture(offer, patch, {
+      label: code ? `Écartée · ${code}` : "Écartée", gesture: "not_for_me",
+      emit: () => window.track && window.track("jobs_feedback", {
+        verdict: "down",
+        reason: String(patch.user_verdict_reason ?? "").slice(0, 64),
+        job_id: jobKey(offer),
+        score_at_vote: offer.score_total,
+      }),
+    });
+  };
+  const deadLink = (offer) => runGesture(offer, JV.patchDeadLink(nowIso()), {
+    label: "Offre clôturée · lien mort", gesture: "dead_link",
+    emit: () => window.track && window.track("jobs_action", { action: "close", job_id: jobKey(offer), value: "dead_link" }),
+  });
+  // Issues de candidature : re-cliquer l'issue active la retire (retour à applied).
+  const setOutcome = (offer, outcome) => {
+    const patch = JV.patchOutcome(offer, outcome);
+    const found = JV.OUTCOMES.find(x => x.status === patch.status);
+    runGesture(offer, patch, {
+      label: found ? `Issue enregistrée · ${found.label}` : "Issue retirée",
+      gesture: "outcome",
+      emit: () => window.track && window.track("jobs_action", { action: "status", job_id: jobKey(offer), value: patch.status }),
+    });
+  };
+  // Corrige un « applied » qui n'était qu'une lecture (avant ADR-52).
+  const notApplied = (offer) => runGesture(offer, JV.patchNotApplied(), {
+    label: "Retirée de tes candidatures", gesture: "not_applied",
+    emit: () => window.track && window.track("jobs_action", { action: "not_applied", job_id: jobKey(offer), value: "" }),
+  });
 
   // Relance d'une candidature restée sans réponse. Le calcul de la liste
   // existait déjà dans data-loader.js ; le bouton qui l'affichait n'avait
@@ -993,7 +1139,6 @@ function PanelJobsRadar({ data, onNavigate }) {
     );
   };
   const snoozeJob = (id) => { updateJob(id, { status: "snoozed" }, "Snoozée 7 jours"); setOpenMenu(null); };
-  const archiveJob = (id) => { updateJob(id, { status: "archived" }, "Archivée"); setOpenMenu(null); };
   const startEditNotes = (id) => { setNotesEditing(id); setOpenMenu(null); };
   const cancelEditNotes = () => setNotesEditing(null);
   const saveNotes = (id, notes) => { updateJob(id, { user_notes: notes }, "Notes enregistrées"); setNotesEditing(null); };
@@ -1012,18 +1157,31 @@ function PanelJobsRadar({ data, onNavigate }) {
   };
 
   const cardHandlers = {
-    onApply: applyToJob,
+    onRead: readOffer,
+    onApplied: markApplied,
+    onNotForMe: notForMe,
+    onDeadLink: deadLink,
     onSnooze: snoozeJob,
-    onArchive: archiveJob,
     onEditNotes: startEditNotes,
     onSaveNotes: saveNotes,
     onCancelNotes: cancelEditNotes,
-    onVote: voteJob,
     onClose: closeJob,
     onReopen: reopenJob,
     openMenu,
     onMenuToggle: setOpenMenu,
     notesEditing,
+  };
+  const appHandlers = {
+    onRead: readOffer,
+    onOutcome: setOutcome,
+    onFollowUp: followUpJob,
+    onNotApplied: notApplied,
+    onEditNotes: startEditNotes,
+    onSaveNotes: saveNotes,
+    onCancelNotes: cancelEditNotes,
+    notesEditing,
+    openMenu,
+    onMenuToggle: setOpenMenu,
   };
 
   // Filters — hydratés depuis localStorage (sauf la recherche), persistés via l'effet ci-dessous.
@@ -1031,7 +1189,7 @@ function PanelJobsRadar({ data, onNavigate }) {
   const [scoreFilter, setScoreFilter]   = useStateJr(f0.scoreFilter  ?? "all");   // all | hot | mid | low
   const [catFilter,   setCatFilter]     = useStateJr(f0.catFilter    ?? "all");
   const [remoteFilter,setRemoteFilter]  = useStateJr(f0.remoteFilter ?? "all");   // all | remote
-  const [statusFilter,setStatusFilter]  = useStateJr(f0.statusFilter ?? "active");// active = new+to_apply+applied
+  const [statusFilter,setStatusFilter]  = useStateJr(f0.statusFilter ?? "active");// active = new + to_apply (les candidatures ont leur zone)
   const [freshFilter, setFreshFilter]   = useStateJr(f0.freshFilter  ?? "all");   // all | 24h | 7j
   const [query,       setQuery]         = useStateJr("");                          // non persisté (design §5)
   const [sort,        setSort]          = useStateJr(f0.sort          ?? "score"); // score | recent
@@ -1044,8 +1202,8 @@ function PanelJobsRadar({ data, onNavigate }) {
     } catch {}
   }, [scoreFilter, catFilter, remoteFilter, statusFilter, freshFilter, sort]);
 
-  // ─── Prédicat de filtrage partagé (hero + liste) — hero-filters 2026-05-31 ───
-  // Couvre catégorie + remote + statut/clôturé + recherche. La bande de score est gérée par section.
+  // ─── Filtre « écart de compétence » (les prédicats passesFacets /
+  // passesFilters sont définis juste après) ───
   // Cliquer un axe de l'écart de compétences restreint la liste à ses offres.
   // On force `statusFilter` à "all" : le défaut ("active") masquerait la plupart
   // des offres concernées, et le compteur du bloc ne correspondrait plus à ce
@@ -1073,28 +1231,34 @@ function PanelJobsRadar({ data, onNavigate }) {
   };
   const clearGap = () => setGapFilter(null);
 
-  const passesFilters = (o) => {
-    // Filtre « écart de compétence » : restreint la liste aux offres qui
-    // exigent l'axe cliqué ET où il est absent du CV. Placé en tête parce
-    // qu'il est le plus discriminant.
+  // Facettes : rôle, lieu, recherche, écart de compétence. Elles pilotent la
+  // zone « À décider » ET la liste (ADR-52).
+  const passesFacets = (o) => {
     if (gapFilter && !gapFilter.ids.has(o.id)) return false;
     if (catFilter !== "all" && o.role_category !== catFilter) return false;
     if (remoteFilter === "remote" && o.is_remote !== true) return false;
-    if (statusFilter === "closed") {
-      if (!o.closed_at) return false;
-    } else {
-      if (jrIsDead(o)) return false;  // masque les clôturées (sauf applied)
-      if (statusFilter === "active") {
-        if (!(o.status === "new" || o.status === "to_apply" || o.status === "applied")) return false;
-      } else if (statusFilter !== "all") {
-        if (o.status !== statusFilter) return false;
-      }
-    }
     if (query.trim()) {
       const q = query.trim().toLowerCase();
       if (!(o.title.toLowerCase().includes(q) ||
             o.company.toLowerCase().includes(q) ||
             (o.pitch || "").toLowerCase().includes(q))) return false;
+    }
+    return true;
+  };
+  const facetsActive = !!gapFilter || catFilter !== "all" || remoteFilter === "remote" || !!query.trim();
+
+  // Liste : facettes + statut + fraîcheur. La bande de score est gérée par section.
+  const passesFilters = (o) => {
+    if (!passesFacets(o)) return false;
+    if (statusFilter === "closed") {
+      if (!o.closed_at) return false;
+    } else {
+      if (jrIsDead(o)) return false;  // masque les clôturées (sauf candidatures)
+      if (statusFilter === "active") {
+        if (!(o.status === "new" || o.status === "to_apply")) return false;
+      } else if (statusFilter !== "all") {
+        if (o.status !== statusFilter) return false;
+      }
     }
     // Fraîcheur = depuis quand l'offre est dans le radar (first_seen_date), pas la
     // date de publication LinkedIn (antidatée + souvent null → filtre quasi-vide).
@@ -1103,23 +1267,27 @@ function PanelJobsRadar({ data, onNavigate }) {
     return true;
   };
 
-  // Compteur header GLOBAL (cohérent avec « nouvelles » et « total ») — non filtré.
-  const hotLeadsCount = useMemoJr(() =>
-    offers.filter(o => o.score_total >= 7 && o.status !== "archived" && o.status !== "snoozed" && !jrIsDead(o)).length,
+  // Compteur d'en-tête GLOBAL (non filtré) : la taille de la zone « À décider ».
+  const decideCount = useMemoJr(() => offers.filter(JV.inDecideZone).length, [offers]);
+  // « En cours » = candidatures datées en attente ou en entretien.
+  const inProgressCount = useMemoJr(() =>
+    JV.splitApplications(offers).dated.filter(o => o.status === "applied" || o.status === "interview").length,
   [offers]);
 
-  // Hero = tranche ≥ 7 du set FILTRÉ. Affiché seulement si le filtre score autorise « hot ».
+  // Zone « À décider » : hot leads non triés entrés depuis moins de 7 jours,
+  // filtrés par facettes seulement. Masquée si la bande score vise mid ou low.
   const showHero = scoreFilter === "all" || scoreFilter === "hot";
   const heroLeads = useMemoJr(() =>
     showHero
-      ? offers.filter(o => passesFilters(o) && o.score_total >= 7).sort((a, b) => b.score_total - a.score_total)
+      ? offers.filter(o => JV.inDecideZone(o) && passesFacets(o)).sort(JV.byDecide)
       : [],
-  [offers, scoreFilter, catFilter, remoteFilter, statusFilter, freshFilter, query, gapFilter]);
+  [offers, scoreFilter, catFilter, remoteFilter, query, gapFilter]);
 
   // Liste dense = set filtré, moins les membres du hero, avec le filtre de bande score.
   const listOffers = useMemoJr(() => {
     const heroIds = new Set(heroLeads.map(h => h.id));
-    let arr = offers.filter(o => passesFilters(o) && !heroIds.has(o.id));
+    // Les candidatures vivent dans « Tes candidatures », jamais dans la liste.
+    let arr = offers.filter(o => passesFilters(o) && !heroIds.has(o.id) && !JV.isApplication(o));
     if (scoreFilter !== "all") {
       arr = arr.filter(o => scoreBand(o.score_total) === scoreFilter);
     }
@@ -1133,7 +1301,6 @@ function PanelJobsRadar({ data, onNavigate }) {
 
   // Stats line
   const totalCount = offers.length;
-  const newCount = offers.filter(o => o.status === "new").length;
   const closedCount = offers.filter(jrIsDead).length;
 
   // ─── Toolbar : compteur filtré + puces des filtres actifs (design §3-4) ───
@@ -1157,9 +1324,9 @@ function PanelJobsRadar({ data, onNavigate }) {
         <div className="jr-header-top">
           <div className="jr-kicker">Jobs Radar · {scan.date_label}</div>
           <div className="jr-header-stats">
-            <span><strong>{newCount}</strong> nouvelles</span>
+            <span><strong>{decideCount}</strong> à décider</span>
             <span className="jr-sep">·</span>
-            <span><strong>{hotLeadsCount}</strong> hot leads</span>
+            <span><strong>{inProgressCount}</strong> candidatures en cours</span>
             <span className="jr-sep">·</span>
             <span><strong>{totalCount}</strong> au total dans le radar</span>
             {closedCount > 0 && (<>
@@ -1192,7 +1359,7 @@ function PanelJobsRadar({ data, onNavigate }) {
 
       {/* ─── FILTRES (toolbar collant) ─── */}
       <JrFilterBar
-        hotLeadsCount={hotLeadsCount} filteredCount={filteredCount}
+        decideCount={decideCount} filteredCount={filteredCount}
         activeChips={activeChips} resetAllFilters={resetAllFilters}
         scoreFilter={scoreFilter} setScoreFilter={setScoreFilter}
         catFilter={catFilter} setCatFilter={setCatFilter}
@@ -1203,25 +1370,36 @@ function PanelJobsRadar({ data, onNavigate }) {
         sort={sort} setSort={setSort}
       />
 
-      {/* ─── HOT LEADS HERO ─── */}
-      {heroLeads.length > 0 && (
+      {/* ─── ZONE 1 — À DÉCIDER (7 derniers jours) ─── */}
+      {showHero && (
         <section className="jr-hot-section">
           <div className="jr-section-head">
             <div className="jr-section-kicker jr-section-kicker--hero">
               <span className="jr-hot-marker" />
-              Hot leads · score ≥ 7
+              À décider · 7 derniers jours
             </div>
             <h2 className="jr-section-title">
-              {heroLeads.length === 1
-                ? "1 offre qui mérite ton matin"
-                : `${heroLeads.length} offres qui méritent ton matin`}
+              {heroLeads.length === 0
+                ? "Rien à décider"
+                : heroLeads.length === 1
+                  ? "1 offre qui mérite ton matin"
+                  : `${heroLeads.length} offres qui méritent ton matin`}
             </h2>
           </div>
-          <div className="jr-hot-grid">
-            {heroLeads.map((o, i) => <HotLeadCard key={o.id} offer={o} rank={i} {...cardHandlers} />)}
-          </div>
+          {heroLeads.length === 0 ? (
+            <p className="jr-decide-empty">
+              {facetsActive ? "Rien à décider avec ces filtres." : "Rien de nouveau à trier sur les 7 derniers jours."}
+            </p>
+          ) : (
+            <div className="jr-hot-grid">
+              {heroLeads.map((o, i) => <HotLeadCard key={o.id} offer={o} rank={i} zone="decide" {...cardHandlers} />)}
+            </div>
+          )}
         </section>
       )}
+
+      {/* ─── ZONE 2 — TES CANDIDATURES ─── */}
+      <JrApplications offers={offers} handlers={appHandlers} />
 
       {/* ─── FILTERS + LIST ─── */}
       <section className="jr-list-section">
@@ -1245,7 +1423,7 @@ function PanelJobsRadar({ data, onNavigate }) {
         )}
       </section>
 
-      {toast && <JrToast message={toast.message} tone={toast.tone} />}
+      {toast && <JrToast message={toast.message} tone={toast.tone} action={toast.action} />}
     </div>
   );
 }
@@ -1266,7 +1444,7 @@ function FilterGroup({ value, onChange, options }) {
 }
 
 function JrFilterBar({
-  hotLeadsCount, filteredCount, activeChips, resetAllFilters,
+  decideCount, filteredCount, activeChips, resetAllFilters,
   scoreFilter, setScoreFilter, catFilter, setCatFilter,
   remoteFilter, setRemoteFilter, statusFilter, setStatusFilter,
   freshFilter, setFreshFilter, query, setQuery, sort, setSort,
@@ -1275,7 +1453,7 @@ function JrFilterBar({
   return (
     <div className="jr-filterbar">
       <div className="jr-filterbar-row">
-        <span className="jr-fb-hot" title="Total hot leads (non filtré)">🔥 {hotLeadsCount} hot</span>
+        <span className="jr-fb-hot" title="Offres à décider — 7 derniers jours, non filtré">🔥 {decideCount} à décider</span>
         <div className="jr-fb-chips">
           {activeChips.length === 0
             ? <span className="jr-fb-empty">Aucun filtre actif</span>
@@ -1338,7 +1516,7 @@ function JrFilterBar({
             <span className="jr-fb-label">Statut</span>
             <FilterGroup value={statusFilter} onChange={setStatusFilter} options={[
               { id: "active", label: "Actives" }, { id: "new", label: "Nouvelles" },
-              { id: "to_apply", label: "À postuler" }, { id: "applied", label: "Candidaté" },
+              { id: "to_apply", label: "À postuler" },
               { id: "closed", label: "Clôturées" }, { id: "all", label: "Tout" },
             ]} />
           </div>

@@ -393,7 +393,7 @@ tables:
       - name: closed_at
         type: timestamptz
         writer: front  # bouton cockpit "Marquer clôturée"/"Rouvrir" (réversible) — ADR-18. Détection auto abandonnée avec la migration JSearch (plus de navigateur) — ADR-19. JSearch n'expose AUCUN champ d'expiration (vérifié 2026-07-29) : c'est la seule source de vérité sur la clôture, d'où son héritage sans péremption par le trigger — ADR-32
-        reader: front  # masquage feed + filtre Clôturées (migration 015) ; + trigger jobs_inherit_user_status (hérite closed_at sur republication — ADR-32)
+        reader: front  # masquage feed + filtre Clôturées (migration 015) ; + trigger jobs_inherit_user_status (hérite closed_at sur republication — ADR-32 ; depuis sql/035, hérite aussi sans péremption les statuts de candidature applied / interview / rejected / ghosted — ADR-52)
       - name: logical_key
         type: text  # GENERATED ALWAYS AS jobs_logical_key(company, title) STORED, indexé (migration 026)
         writer: postgres  # colonne GÉNÉRÉE — aucun writer applicatif ; un INSERT qui la vise échoue

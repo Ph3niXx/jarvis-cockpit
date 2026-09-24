@@ -1971,7 +1971,10 @@
 
     if (!actions.length) {
       const stale = (allJobs || [])
-        .filter(j => j.status === "applied")
+        // Relances : seulement les candidatures datées. Les candidatures
+        // d'avant le 2026-08-17 n'ont pas d'applied_at, et une partie n'était
+        // qu'une lecture d'annonce (ADR-52) : les relancer n'aurait aucun sens.
+        .filter(j => j.status === "applied" && j.applied_at)
         .map(j => ({ j, age: followupAge(j) }))
         .filter(x => x.age.days >= 10)
         // Les plus anciennes d'abord : c'est l'ordre dans lequel on veut agir.

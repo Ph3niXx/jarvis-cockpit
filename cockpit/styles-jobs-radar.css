@@ -964,7 +964,16 @@
   background: var(--bd);
   border: 1px solid var(--bd);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+}
+/* Pas d'overflow:hidden sur la liste : il rognait les popovers des dernières
+   lignes (revue 2026-09-24). Les lignes d'extrémité arrondissent elles-mêmes. */
+.jr-list > .jr-row:first-child {
+  border-top-left-radius: calc(var(--radius-lg) - 1px);
+  border-top-right-radius: calc(var(--radius-lg) - 1px);
+}
+.jr-list > .jr-row:last-child {
+  border-bottom-left-radius: calc(var(--radius-lg) - 1px);
+  border-bottom-right-radius: calc(var(--radius-lg) - 1px);
 }
 .jr-row {
   display: grid;
@@ -1267,67 +1276,6 @@
   .jr-row-actions { grid-area: actions; justify-content: flex-end; }
 }
 
-/* ─── Vote (popover multi-raison) ────────────────────────── */
-.jr-vote { position: relative; display: inline-flex; flex-direction: column; gap: 8px; }
-.jr-vote-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.jr-vote-thumbs { display: inline-flex; gap: 7px; }
-.jr-vote-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: 7px;
-  border: 1px solid var(--bd2); background: transparent;
-  color: var(--tx2); cursor: pointer; transition: all .12s ease;
-}
-.jr-vote-btn:hover { color: var(--tx); border-color: var(--tx2); }
-.jr-vote-btn.is-up   { background: var(--positive-tint); border-color: var(--positive); color: var(--positive); }
-.jr-vote-btn.is-down { background: var(--alert-tint); border-color: var(--alert); color: var(--alert); }
-.jr-vote--compact .jr-vote-btn { width: 29px; height: 29px; }
-
-.jr-vote-tags { display: inline-flex; flex-wrap: wrap; gap: 6px; }
-.jr-vote-tag {
-  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--brand-ink, var(--brand)); background: var(--brand-tint);
-  border-radius: 3px; padding: 3px 7px;
-}
-.jr-vote-why {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-family: var(--font-sans); font-size: 11.5px; color: var(--tx2);
-  background: transparent; border: 1px solid var(--bd2); border-radius: var(--radius);
-  padding: 4px 9px; cursor: pointer; transition: all .12s ease;
-}
-.jr-vote-why:hover { color: var(--tx); border-color: var(--tx2); }
-
-.jr-vote-pop {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
-  width: 250px; background: var(--surface); border: 1px solid var(--bd2);
-  border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 6px;
-}
-.jr-vote--compact .jr-vote-pop { left: auto; right: 0; }
-.jr-vote-pop-head {
-  font-family: var(--font-mono); font-size: 9px; letter-spacing: .13em; text-transform: uppercase;
-  color: var(--tx3); padding: 6px 8px 4px;
-}
-.jr-vote-opt {
-  width: 100%; display: flex; align-items: center; gap: 9px;
-  padding: 7px 9px; border-radius: 4px; border: none; background: transparent;
-  font-family: var(--font-sans); font-size: 12.5px; color: var(--tx); cursor: pointer; text-align: left;
-}
-.jr-vote-opt:hover { background: var(--bg3); }
-.jr-vote-box {
-  width: 15px; height: 15px; flex: 0 0 auto; border-radius: 3px;
-  border: 1px solid var(--bd2); display: inline-flex; align-items: center; justify-content: center;
-  color: var(--bg);
-}
-.jr-vote-box svg { opacity: 0; transition: opacity .1s ease; }
-.jr-vote-opt.is-on .jr-vote-box { background: var(--brand); border-color: var(--brand); }
-.jr-vote-opt.is-on .jr-vote-box svg { opacity: 1; }
-.jr-vote-pop-sep { height: 1px; background: var(--bd); margin: 5px 2px; }
-.jr-vote-free-input {
-  width: 100%; font-family: var(--font-sans); font-size: 12px; line-height: 1.4;
-  padding: 7px 9px; margin-top: 2px;
-  background: var(--bg); color: var(--tx); border: 1px solid var(--bd2); border-radius: 5px;
-}
-.jr-vote-free-input::placeholder { color: var(--tx3); }
-
 /* ─── Encart calibrage ─────────────────────────────────── */
 .jr-calib { margin: 16px 0; border: 1px solid var(--bd); border-radius: 12px; overflow: hidden; }
 .jr-calib-head {
@@ -1458,4 +1406,98 @@
   }
   .jr-gap-bar { display: none; }
   .jr-gap-axe { white-space: normal; }
+}
+
+/* ─── Tri en un geste — lire ≠ postuler (ADR-52) ─────────── */
+/* Une ligne atténuée (opacity) crée son propre contexte d'empilement : son
+   popover y restait enfermé sous les lignes suivantes, et un clic dans le menu
+   tombait sur la ligne voisine (revue 2026-09-24). La ligne qui porte un
+   popover ouvert passe au-dessus de ses voisines. */
+.jr-row:has(.jr-menu-pop, .jr-nfm-pop),
+.jr-app:has(.jr-menu-pop) { position: relative; z-index: 5; }
+.jr-triage { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.jr-triage--compact { gap: 6px; }
+.jr-nfm { position: relative; display: inline-flex; }
+.jr-nfm-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+  width: 290px; background: var(--surface); border: 1px solid var(--bd2);
+  border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 6px;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.jr-nfm--compact .jr-nfm-pop { left: auto; right: 0; }
+.jr-nfm-free {
+  width: 100%; font-family: var(--font-sans); font-size: 12px; line-height: 1.4;
+  padding: 7px 9px; margin-bottom: 4px;
+  background: var(--bg); color: var(--tx); border: 1px solid var(--bd2); border-radius: 5px;
+}
+.jr-nfm-free::placeholder { color: var(--tx3); }
+.jr-nfm-opt {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: 3px; background: transparent;
+  font-family: var(--font-sans); font-size: 12.5px; color: var(--tx); text-align: left; cursor: pointer;
+}
+.jr-nfm-opt:hover { background: var(--bg3); }
+.jr-nfm-opt--dead { color: var(--tx2); }
+.jr-nfm-opt--dead svg { color: var(--tx3); }
+.jr-nfm-sep { height: 1px; background: var(--bd); margin: 5px 2px; }
+.jr-nfm-foot {
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .06em;
+  color: var(--tx3); padding: 2px 10px 4px;
+}
+.jr-toast-action {
+  margin-left: 6px; padding: 3px 9px; border-radius: 3px;
+  border: 1px solid currentColor; background: transparent; color: inherit;
+  font-family: var(--font-sans); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.jr-toast-action:hover { opacity: .8; }
+.jr-tag--reason { background: var(--alert-tint); color: var(--alert); border-color: transparent; }
+.jr-decide-empty {
+  margin: 0; padding: 18px 20px; border: 1px dashed var(--bd); border-radius: var(--radius-lg);
+  font-family: var(--font-sans); font-size: 13px; color: var(--tx2);
+}
+
+/* ─── Zone 2 — Tes candidatures (ADR-52) ──────────────────── */
+.jr-apps {
+  margin: 0 0 40px; border: 1px solid var(--bd); border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.jr-apps-head {
+  width: 100%; display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px; background: transparent; border: 0; cursor: pointer;
+  color: var(--tx); text-align: left;
+}
+.jr-apps-head .jr-section-kicker { margin: 0; color: var(--tx); }
+.jr-apps-counts { flex: 1; font-family: var(--font-sans); font-size: 12.5px; color: var(--tx2); }
+.jr-apps-body { border-top: 1px solid var(--bd); }
+.jr-apps-empty { margin: 0; padding: 14px 18px; font-family: var(--font-sans); font-size: 13px; color: var(--tx2); }
+.jr-app {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: center;
+  padding: 12px 18px; border-bottom: 1px solid var(--bd);
+}
+.jr-app:last-child { border-bottom: 0; }
+.jr-app--rejected, .jr-app--ghosted { opacity: 0.6; }
+.jr-app-main { min-width: 0; }
+.jr-app-title {
+  font-family: var(--font-sans); font-size: 13.5px; color: var(--tx);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.jr-app-meta { font-family: var(--font-mono); font-size: 11px; color: var(--tx3); margin-top: 3px; }
+.jr-app-notes { font-family: var(--font-sans); font-size: 12.5px; color: var(--tx2); margin-top: 6px; }
+.jr-app-outcomes { display: inline-flex; gap: 4px; }
+.jr-app-outcome {
+  padding: 5px 10px; border-radius: var(--radius); border: 1px solid var(--bd2);
+  background: transparent; color: var(--tx2); font-family: var(--font-sans); font-size: 11.5px; cursor: pointer;
+}
+.jr-app-outcome:hover { color: var(--tx); border-color: var(--tx2); }
+.jr-app-outcome.is-on { background: var(--tx); border-color: var(--tx); color: var(--bg); }
+.jr-apps-undated { border-top: 1px dashed var(--bd); }
+.jr-apps-undated-head {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 18px; background: transparent; border: 0; cursor: pointer;
+  font-family: var(--font-sans); font-size: 12px; color: var(--tx3); text-align: left;
+}
+.jr-apps-undated-head:hover { color: var(--tx); }
+@media (max-width: 900px) {
+  .jr-app { grid-template-columns: 1fr auto; }
+  .jr-app-outcomes { grid-column: 1 / -1; }
 }
