@@ -9,7 +9,7 @@
 
 ## 0. Cadrage — le repo a redémarré
 
-Les 14 audits du 30/04 → 13/05 étaient **gelés sur `6600b64`** (repo figé, matrice immuable à 4.02/5) et avaient fini par recommander la suspension de la routine. **Ce diagnostic est caduc** : il y a eu **36 commits depuis `6600b64`** — slim CLAUDE.md (611→100 lignes), bootstrap Symphony, et surtout un gros chantier **Jobs Radar** (vote multi-raison, calibrage par feedback, offres clôturées, migrations 014/015). Le canal d'exécution fonctionne. Cet audit repart donc de zéro sur du code qui a réellement bougé, sans réimprimer la matrice gelée.
+Les 14 audits du 30/04 → 13/05 étaient **gelés sur `6600b64`** (repo figé, matrice immuable à 4.02/5) et avaient fini par recommander la suspension de la routine. **Ce diagnostic est caduc** : il y a eu **36 commits depuis `6600b64`** — slim CLAUDE.md (611→100 lignes) et surtout un gros chantier **Jobs Radar** (vote multi-raison, calibrage par feedback, offres clôturées, migrations 014/015). Le canal d'exécution fonctionne. Cet audit repart donc de zéro sur du code qui a réellement bougé, sans réimprimer la matrice gelée.
 
 **Verdict global** : design system **mature et non-générique** (rare pour un projet perso), mais une **dette de tokenisation systémique** mine la promesse tri-thème. Moyenne fraîche : **~3.75/5** (vs 4.02 figé) — la baisse vient d'un regard neuf qui a trouvé les tokens fantômes, pas d'une régression.
 
