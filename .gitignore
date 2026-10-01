@@ -22,12 +22,14 @@ video/out/
 .DS_Store
 Thumbs.db
 
-# Symphony orchestrator (service de dev, voir symphony/README.md)
-symphony/node_modules/
-symphony/dist/
-symphony/workspaces/
-symphony/.env
-symphony/*.log
+# Secrets locaux — ce depot est PUBLIC. Les scripts OAuth (scripts/*_oauth_init.py)
+# lisent Config.txt ; la CLI et le MCP Supabase ecrivent supabase/.temp et .mcp.json.
+.env
+.env.*
+!.env.example
+Config.txt
+.mcp.json
+supabase/.temp/
 
 # Exports bureautiques — ce depot est PUBLIC.
 # Pose le 2026-08-31 apres decouverte de 2 exports Jira employeur pousses
