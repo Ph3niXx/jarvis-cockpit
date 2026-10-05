@@ -37,7 +37,7 @@ def main():
         sys.exit(1)
 
     proc = subprocess.Popen(
-        [cf_bin, "tunnel", "--url", "http://localhost:8765"],
+        [cf_bin, "tunnel", "--url", "http://127.0.0.1:8765"],
         stdout=log_fh,
         stderr=subprocess.STDOUT,
     )

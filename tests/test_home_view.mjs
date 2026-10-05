@@ -24,17 +24,13 @@ const require = createRequire(import.meta.url);
 
 // data-loader.js est un script navigateur (IIFE qui pose window.cockpitDataLoader).
 // Deux bouchons suffisent a le charger sous node : `window` pour recuperer
-// l'API, `document` pour stripHtml(). Le bouchon DOM reste volontairement
+// l'API, `DOMParser` pour stripHtml(). Le bouchon DOM reste volontairement
 // naif — aucun test ici ne juge la qualite du strip HTML.
 globalThis.window = {};
-globalThis.document = {
-  createElement() {
-    let raw = "";
-    return {
-      set innerHTML(v) { raw = String(v); },
-      get textContent() { return raw.replace(/<[^>]*>/g, " "); },
-    };
-  },
+globalThis.DOMParser = class {
+  parseFromString(raw) {
+    return { body: { textContent: String(raw).replace(/<[^>]*>/g, " ") } };
+  }
 };
 require(path.join(ROOT, "cockpit", "lib", "data-loader.js"));
 const DL = globalThis.window.cockpitDataLoader;

@@ -41,18 +41,35 @@ from supabase_client import sb_get, sb_post
 
 app = FastAPI(title="Jarvis Server", version="0.1.0")
 
+# Le serveur n'a pas d'authentification : ce qui le protège, c'est de n'être
+# joignable que depuis cette machine (bind 127.0.0.1, plus bas) et de ne
+# répondre qu'aux pages servies en local. Trois origines ont été retirées
+# le 2026-10-05 : `*.github.io` (n'importe quelle page GitHub Pages, pas
+# seulement la nôtre), `*.trycloudflare.com` (n'importe quel tunnel) et
+# `null` (envoyée par file:// mais aussi par toute iframe sandboxée d'un
+# site tiers). Chacune permettait à une page visitée de lire la mémoire
+# RAG, le profil et Outlook. Pour itérer : `npx http-server . -p 8080`.
+_ALLOWED_ORIGIN_RE = re.compile(r"^http://(localhost|127\.0\.0\.1)(:\d+)?$")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "null",                        # file:// sends Origin: null
-        "http://localhost",
-        "http://127.0.0.1",
-        "https://ph3nixx.github.io",   # GitHub Pages
-    ],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://.*\.trycloudflare\.com$|^https://.*\.github\.io$",
+    allow_origin_regex=_ALLOWED_ORIGIN_RE.pattern,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def _reject_foreign_origin(request, call_next):
+    """Le CORS empêche une page tierce de LIRE la réponse, pas d'envoyer la
+    requête : un POST sans corps (/nightly-learner, /poll-outlook…) partirait
+    quand même. On refuse donc tout appel dont l'Origin n'est pas locale.
+    Sans en-tête Origin (curl, scripts locaux), la requête passe."""
+    origin = request.headers.get("origin")
+    if origin is not None and not _ALLOWED_ORIGIN_RE.match(origin):
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"detail": "origin refusée"}, status_code=403)
+    return await call_next(request)
 
 SYSTEM_PROMPT_BASE = (
     "Tu es Jarvis, l'assistant IA personnel de Jean. "
@@ -856,11 +873,11 @@ def _startup_checks():
     print("  Endpoints: GET /health | POST /chat | POST /search")
     print("             POST /nightly-learner | GET /activity | GET /outlook")
     print("             POST /generate-activity-brief | POST /evaluate-challenge")
-    print("  CORS: enabled for localhost + file://")
+    print("  CORS: localhost / 127.0.0.1 only")
     print("  Stop with Ctrl+C")
     print("=" * 50 + "\n")
 
 
 if __name__ == "__main__":
     _startup_checks()
-    uvicorn.run(app, host="0.0.0.0", port=8765, log_level="warning")
+    uvicorn.run(app, host="127.0.0.1", port=8765, log_level="warning")

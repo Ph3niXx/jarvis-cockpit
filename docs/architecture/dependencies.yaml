@@ -379,12 +379,12 @@ tables:
 
   - name: job_scans
     owner_pipeline: jobs_radar_routine  # routine Claude Code distante (claude.ai, cron 4×/sem) via MCP Supabase — ADR-19 (ex-cowork_external)
-    rls: public  # using(true) — pas aligné sur 006_rls_authenticated
+    rls: authenticated  # depuis sql/036 (ADR-53) ; la routine écrit via MCP, hors RLS
     domain: business
 
   - name: jobs
     owner_pipeline: jobs_radar_routine  # routine Claude Code distante (JSearch + Sonnet 4.6 + MCP Supabase) — ADR-19, remplace la routine Cowork LinkedIn
-    rls: public  # using(true), update whitelist status + user_notes + user_verdict* + closed_at
+    rls: authenticated  # SELECT fermé à anon par sql/036 (ADR-53) ; update whitelist status + user_notes + user_verdict* + closed_at
     domain: business
     columns_notable:
       - name: intel

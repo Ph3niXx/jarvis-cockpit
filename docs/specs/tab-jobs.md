@@ -232,7 +232,7 @@ Statuts de funnel ajoutés : `interview`, `rejected`, `ghosted`
 
 ## Limitations connues / TODO
 - [x] **Mock toujours affiché si tables vides** — résolu le 2026-04-29 (commit `5e83774`) : `data-jobs.js` supprimé, le panel utilise désormais l'état vide légitime quand Supabase ne remonte rien.
-- [ ] **RLS permissive** : `jobs_read_public` + `jobs_user_update` utilisent `using(true)` sans `TO authenticated`. Anon avec juste l'apikey lit toutes les offres + peut PATCH n'importe quoi. À aligner sur migration 006.
+- [x] **RLS permissive** — résolu : l'écriture anonyme a été fermée par `sql/028` (ADR-37), la lecture anonyme de `jobs` et `job_scans` par `sql/036` (ADR-53, 2026-10-05). Les deux tables exigent désormais `authenticated`.
 - [ ] **Toast ok trompeur si `sb.patchJSON` absent** : l'update reste purement local mais le toast affiche "Postulé · statut mis à jour". Devrait être un toast "Synchro indisponible — local only".
 - [ ] **Pas de rollback sur PATCH échoué** — corrigé pour les gestes de tri (ADR-52) ; reste vrai pour snooze et notes : l'offre garde son état local, la DB l'écrase au reload.
 - [x] **Bouton « Enrichir l'Intel → » retiré** (2026-05-28) — l'enrichissement intel warm est abandonné (migration vers API structurée).

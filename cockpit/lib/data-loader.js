@@ -82,9 +82,11 @@
   }
   function stripHtml(s){
     if (!s) return "";
-    const d = document.createElement("div");
-    d.innerHTML = String(s);
-    return (d.textContent || d.innerText || "").replace(/\s+/g, " ").trim();
+    // DOMParser et non un <div> détaché : un div créé par document.createElement
+    // appartient au document vivant, son <img onerror> se charge et s'exécute
+    // même sans être inséré. Les summaries viennent de flux RSS tiers.
+    const d = new DOMParser().parseFromString(String(s), "text/html");
+    return (d.body.textContent || "").replace(/\s+/g, " ").trim();
   }
   function getReadMap(){
     try { return JSON.parse(localStorage.getItem("read-articles") || "{}"); } catch { return {}; }

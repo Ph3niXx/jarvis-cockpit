@@ -57,8 +57,14 @@ function formatText(text) {
   });
   return parts;
 }
+// La réponse du LLM est une donnée non fiable : le RAG lui injecte des
+// articles RSS tiers, donc un `<img onerror>` glissé dans un flux ressortirait
+// ici et s'exécuterait avec le JWT Supabase (la CSP autorise 'unsafe-inline').
+// On échappe AVANT de poser nos propres balises.
 function inlineFormat(s) {
-  return s
+  return String(s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`(.+?)`/g, "<code>$1</code>")

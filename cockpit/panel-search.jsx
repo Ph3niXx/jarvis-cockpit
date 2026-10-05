@@ -71,9 +71,9 @@ async function saveCurrentSearch(q){
 }
 
 function stripSnippet(html){
-  const d = document.createElement("div");
-  d.innerHTML = String(html || "");
-  return (d.textContent || "");
+  // Document inerte : un <div> détaché exécuterait les <img onerror> du HTML RSS.
+  const d = new DOMParser().parseFromString(String(html || ""), "text/html");
+  return (d.body.textContent || "");
 }
 
 // ── Shortcut display helper ─────────────────────────────────
