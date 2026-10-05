@@ -111,7 +111,7 @@ panels:
 
   - id: atlas
     file: cockpit/panel-atlas.jsx
-    reads: []   # statique : liens vers l'app Atlas (domaine et connexion à part)
+    reads: [user_profile]   # clé atlas_url : l'adresse d'Atlas reste hors du dépôt public
     writes: []
 
   - id: opps

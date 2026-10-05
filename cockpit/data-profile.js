@@ -15,6 +15,7 @@ window.PROFILE_MISSION_EXCLUDED = ["current_role", "company_context", "current_p
 // Clés techniques / config que l'utilisateur n'a pas envie de voir en édition.
 window.PROFILE_HIDDEN_KEYS = [
   "__audit_test_deleteme__",
+  "atlas_url",
   "jarvis_tunnel_url",
   "lastfm_api_key",
   "lastfm_username",

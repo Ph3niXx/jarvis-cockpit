@@ -675,11 +675,11 @@
             "id": "atlas",
             "label": "Atlas",
             "icon": "flame",
-            "description": "Porte d'entrée vers Atlas, l'app de révisions (flashcards, quiz, examens blancs, séance du jour) : bouton Ouvrir Atlas et raccourcis Séance du jour, Parcours, Progrès, dans un nouvel onglet.",
+            "description": "Porte d'entrée vers Atlas, l'app de révisions (flashcards, quiz, examens blancs, séance du jour) : bouton Ouvrir Atlas et raccourcis Séance du jour, Parcours, Progrès, dans un nouvel onglet. L'adresse est lue dans le profil, jamais écrite dans le dépôt public.",
             "panel_file": "cockpit/panel-atlas.jsx",
-            "data_sources": ["aucune (liens vers l'app Atlas)"],
+            "data_sources": ["user_profile"],
             "frequency": "manual",
-            "update_details": "Contenu statique : aucune donnée chargée, Atlas garde sa propre connexion"
+            "update_details": "Clé user_profile.atlas_url, lue au boot (Tier 1) ; Atlas garde sa propre connexion"
           }
         ]
       },
