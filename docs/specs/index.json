@@ -182,9 +182,19 @@
       "last_updated": "2026-04-24"
     },
     {
+      "slug": "atlas",
+      "title": "Atlas",
+      "order": 19,
+      "group": "Apprentissage",
+      "dom_id": "atlas",
+      "scope": "mixte",
+      "status": "documented",
+      "last_updated": "2026-10-05"
+    },
+    {
       "slug": "opps",
       "title": "Opportunités",
-      "order": 19,
+      "order": 20,
       "group": "Business",
       "dom_id": "opps",
       "scope": "pro",
@@ -194,7 +204,7 @@
     {
       "slug": "ideas",
       "title": "Carnet d'idées",
-      "order": 20,
+      "order": 21,
       "group": "Business",
       "dom_id": "ideas",
       "scope": "pro",
@@ -204,7 +214,7 @@
     {
       "slug": "jobs",
       "title": "Jobs Radar",
-      "order": 21,
+      "order": 22,
       "group": "Business",
       "dom_id": "jobs",
       "scope": "pro",
@@ -214,7 +224,7 @@
     {
       "slug": "jarvis",
       "title": "Jarvis",
-      "order": 22,
+      "order": 23,
       "group": "Personnel",
       "dom_id": "jarvis",
       "scope": "mixte",
@@ -224,7 +234,7 @@
     {
       "slug": "jarvis-lab",
       "title": "Jarvis Lab",
-      "order": 23,
+      "order": 24,
       "group": "Coulisses",
       "dom_id": "jarvis-lab",
       "scope": "perso",
@@ -234,7 +244,7 @@
     {
       "slug": "profile",
       "title": "Mon profil",
-      "order": 24,
+      "order": 25,
       "group": "Personnel",
       "dom_id": "profile",
       "scope": "mixte",
@@ -244,7 +254,7 @@
     {
       "slug": "perf",
       "title": "Forme",
-      "order": 25,
+      "order": 26,
       "group": "Personnel",
       "dom_id": "perf",
       "scope": "perso",
@@ -254,7 +264,7 @@
     {
       "slug": "music",
       "title": "Musique",
-      "order": 26,
+      "order": 27,
       "group": "Personnel",
       "dom_id": "music",
       "scope": "perso",
@@ -264,7 +274,7 @@
     {
       "slug": "gaming",
       "title": "Gaming",
-      "order": 27,
+      "order": 28,
       "group": "Personnel",
       "dom_id": "gaming",
       "scope": "perso",
@@ -274,7 +284,7 @@
     {
       "slug": "mediatheque",
       "title": "Médiathèque",
-      "order": 28,
+      "order": 29,
       "group": "Personnel",
       "dom_id": "mediatheque",
       "scope": "perso",
@@ -284,7 +294,7 @@
     {
       "slug": "stacks",
       "title": "Stacks & Limits",
-      "order": 29,
+      "order": 30,
       "group": "Coulisses",
       "dom_id": "stacks",
       "scope": "mixte",
@@ -294,7 +304,7 @@
     {
       "slug": "history",
       "title": "Historique",
-      "order": 30,
+      "order": 31,
       "group": "Veille",
       "dom_id": "history",
       "scope": "mixte",
@@ -304,7 +314,7 @@
     {
       "slug": "sante",
       "title": "Santé",
-      "order": 31,
+      "order": 32,
       "group": "Coulisses",
       "dom_id": "sante",
       "scope": "mixte",

@@ -468,8 +468,8 @@
     }
   ],
   "cockpit_tabs": {
-    "summary": "Catalogue des 31 onglets du cockpit, leur rôle, leurs sources de données et leur cadence de mise à jour.",
-    "updated_at": "2026-08-20",
+    "summary": "Catalogue des 32 onglets du cockpit, leur rôle, leurs sources de données et leur cadence de mise à jour.",
+    "updated_at": "2026-10-05",
     "groups": [
       {
         "id": "aujourdhui",
@@ -670,6 +670,16 @@
             "data_sources": ["signal_tracking", "weekly_analysis"],
             "frequency": "mixed",
             "update_details": "Comptage quotidien + analyse hebdo Claude"
+          },
+          {
+            "id": "atlas",
+            "label": "Atlas",
+            "icon": "flame",
+            "description": "Porte d'entrée vers Atlas, l'app de révisions (flashcards, quiz, examens blancs, séance du jour) : bouton Ouvrir Atlas et raccourcis Séance du jour, Parcours, Progrès, dans un nouvel onglet.",
+            "panel_file": "cockpit/panel-atlas.jsx",
+            "data_sources": ["aucune (liens vers l'app Atlas)"],
+            "frequency": "manual",
+            "update_details": "Contenu statique : aucune donnée chargée, Atlas garde sa propre connexion"
           }
         ]
       },

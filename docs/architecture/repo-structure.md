@@ -26,7 +26,7 @@ Vue lisible du repo. Source de vérité fonctionnelle : `docs/architecture/pipel
 | `app.jsx` | Router + theme switcher + panel keys |
 | `sidebar.jsx` | Sidebar collapsible + 6 groupes |
 | `home.jsx` | Brief du jour (hero + top 3 + signaux + radar + week) |
-| `panel-*.jsx` | 23 panels dédiés (panel-veille mutualisé sur 6 corpus → 31 onglets visibles) |
+| `panel-*.jsx` | 24 panels dédiés (panel-veille mutualisé sur 6 corpus → 32 onglets visibles) |
 | `components-mobile.jsx` | `window.PanelSection` + `window.useIsMobile` — repli `<details>` sous 760px, passe-plat exact au-dessus (portage mobile, ADR-46) |
 | `styles.css` + `styles-*.css` | Shell + stylesheets par domaine |
 | `themes.js` | `THEMES = {dawn, obsidian, atlas}` |

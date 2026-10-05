@@ -45,6 +45,7 @@ window.COCKPIT_NAV = [
     { id: "challenges", label: "Challenges", icon: "trophy" },
     { id: "wiki", label: "Wiki IA", icon: "book" },
     { id: "signals", label: "Signaux faibles", icon: "wave" },
+    { id: "atlas", label: "Atlas", icon: "flame" },
   ]},
   { group: "Business", items: [
     { id: "opps", label: "Opportunités", icon: "lightbulb" },

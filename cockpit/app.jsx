@@ -637,6 +637,7 @@ function App() {
   else if (activePanel === "top") content = <PanelTop key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "review") content = <PanelReview key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "signals") content = <PanelSignals key={panelKey} data={data} onNavigate={handleNavigate} />;
+  else if (activePanel === "atlas") content = <PanelAtlas key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "radar") content = <PanelRadar key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "recos") content = <PanelRecos key={panelKey} data={data} onNavigate={handleNavigate} />;
   else if (activePanel === "challenges") content = <PanelChallenges key={panelKey} data={data} onNavigate={handleNavigate} />;

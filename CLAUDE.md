@@ -21,7 +21,7 @@ Cockpit IA personnel pour un manager en transformation digitale :
 
 ## Stack en une phrase
 
-Front React 18 + Babel standalone via CDN (no build step), GitHub Pages → Supabase Postgres (RLS `authenticated`) + Gemini Flash-Lite (volume, gratuit) + Claude Haiku (intelligence, hebdo) + Jarvis local (LM Studio sur RTX 5070 8 Go VRAM). 31 onglets côté cockpit. Arborescence détaillée : [docs/architecture/repo-structure.md](docs/architecture/repo-structure.md). Topologie déclarative : [docs/architecture/layers.yaml](docs/architecture/layers.yaml). Sidebar canonique : [cockpit/nav.js](cockpit/nav.js).
+Front React 18 + Babel standalone via CDN (no build step), GitHub Pages → Supabase Postgres (RLS `authenticated`) + Gemini Flash-Lite (volume, gratuit) + Claude Haiku (intelligence, hebdo) + Jarvis local (LM Studio sur RTX 5070 8 Go VRAM). 32 onglets côté cockpit. Arborescence détaillée : [docs/architecture/repo-structure.md](docs/architecture/repo-structure.md). Topologie déclarative : [docs/architecture/layers.yaml](docs/architecture/layers.yaml). Sidebar canonique : [cockpit/nav.js](cockpit/nav.js).
 
 ## Commandes
 
@@ -117,5 +117,5 @@ Tout nouveau secret GitHub Actions → entrée dans [docs/secrets.md](docs/secre
 | Weekly pipeline (signals/veille/audit, calendrier, fail-safe) | [docs/weekly-pipeline.md](docs/weekly-pipeline.md) |
 | Specs onglets (31 fichiers + index + template) | [docs/specs/](docs/specs/) |
 | Règles éditoriales specs + maintenance | [docs/specs/MAINTENANCE.md](docs/specs/MAINTENANCE.md) |
-| Sidebar — source canonique nav (6 groupes, 31 onglets) | [cockpit/nav.js](cockpit/nav.js) |
+| Sidebar — source canonique nav (6 groupes, 32 onglets) | [cockpit/nav.js](cockpit/nav.js) |
 | Setup pipelines API perso | [docs/strava-setup.md](docs/strava-setup.md) · [docs/withings-setup.md](docs/withings-setup.md) · [docs/lastfm-setup.md](docs/lastfm-setup.md) · [docs/steam-setup.md](docs/steam-setup.md) |

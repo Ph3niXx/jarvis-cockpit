@@ -109,6 +109,11 @@ panels:
     reads: [signal_tracking, wiki_concepts, weekly_analysis]
     writes: []
 
+  - id: atlas
+    file: cockpit/panel-atlas.jsx
+    reads: []   # statique : liens vers l'app Atlas (domaine et connexion à part)
+    writes: []
+
   - id: opps
     file: cockpit/panel-opportunities.jsx
     reads: [weekly_opportunities, articles, signal_tracking]
