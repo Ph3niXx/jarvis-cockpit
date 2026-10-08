@@ -37,11 +37,12 @@ by_id = {p["id"]: p for p in pipes}
 
 print("-- le catalogue")
 
-# 17 depuis le 2026-08-25, après 18 le 2026-08-21 et 19 avant : tft_sync puis
-# strava_sync sont passés en `status: paused` et sortent du catalogue surveillé.
+# 18 depuis le 2026-10-08 (creator_sync, ADR-54) ; 17 depuis le 2026-08-25, après
+# 18 le 2026-08-21 et 19 avant : tft_sync puis strava_sync sont passés en
+# `status: paused` et sortent du catalogue surveillé.
 # Ce compteur est un inventaire, pas un seuil : il doit bouger quand le catalogue
 # bouge, et c'est précisément ce qu'on veut voir.
-check("17 briques surveillees", len(pipes), 17)
+check("18 briques surveillees", len(pipes), 18)
 
 EXPECTED = {
     "veille_ia": {"daily_digest", "veille_picks"},
@@ -58,7 +59,7 @@ EXPECTED = {
     # puisse faire. withings_sync RESTE surveillé : lui est réparable ici.
     "perso": {"withings_sync", "lastfm_sync", "steam_sync",
               "igdb_tracker_sync"},
-    "business": {"jobs_radar_routine"},
+    "business": {"jobs_radar_routine", "creator_sync"},
     "socle": {"backup_supabase", "pipeline_health"},
 }
 actual = {}

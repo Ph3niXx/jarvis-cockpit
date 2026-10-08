@@ -2,13 +2,13 @@
 // Cache-first for static shell (cockpit/* + CDN libs pinned by SRI),
 // network-first for Supabase/API calls — so the app stays installable
 // and fast offline while always preferring fresh data when online.
-const CACHE = "cockpit-v157";
+const CACHE = "cockpit-v159";
 
 const STATIC = [
   "/jarvis-cockpit/",
   "/jarvis-cockpit/assets/icon-cockpit-180.png",
   "/jarvis-cockpit/assets/icon-mediatheque-180.png",
-  "/jarvis-cockpit/cockpit/app.jsx?v=34",
+  "/jarvis-cockpit/cockpit/app.jsx?v=35",
   "/jarvis-cockpit/cockpit/command-palette.jsx?v=1",
   "/jarvis-cockpit/cockpit/components-mobile.jsx?v=2",
   "/jarvis-cockpit/cockpit/components-ticket.jsx?v=2",
@@ -16,6 +16,7 @@ const STATIC = [
   "/jarvis-cockpit/cockpit/data-apprentissage.js?v=1",
   "/jarvis-cockpit/cockpit/data-challenges.js?v=1",
   "/jarvis-cockpit/cockpit/data-claude.js?v=1",
+  "/jarvis-cockpit/cockpit/data-creator.js?v=1",
   "/jarvis-cockpit/cockpit/data-forme.js?v=2",
   "/jarvis-cockpit/cockpit/data-gaming-perso.js?v=3",
   "/jarvis-cockpit/cockpit/data-gaming.js?v=2",
@@ -39,7 +40,8 @@ const STATIC = [
   "/jarvis-cockpit/cockpit/lib/auth.js?v=2",
   "/jarvis-cockpit/cockpit/lib/boot-mediatheque.js?v=4",
   "/jarvis-cockpit/cockpit/lib/bootstrap.js?v=3",
-  "/jarvis-cockpit/cockpit/lib/data-loader.js?v=44",
+  "/jarvis-cockpit/cockpit/lib/creator-view.js?v=1",
+  "/jarvis-cockpit/cockpit/lib/data-loader.js?v=45",
   "/jarvis-cockpit/cockpit/lib/dialog.js?v=1",
   "/jarvis-cockpit/cockpit/lib/games-view.js?v=3",
   "/jarvis-cockpit/cockpit/lib/jobs-view.js?v=1",
@@ -51,9 +53,10 @@ const STATIC = [
   "/jarvis-cockpit/cockpit/lib/telemetry.js?v=2",
   "/jarvis-cockpit/cockpit/lib/tmdb.js?v=1",
   "/jarvis-cockpit/cockpit/lib/wiki-tooltip.js?v=2",
-  "/jarvis-cockpit/cockpit/nav.js?v=2",
+  "/jarvis-cockpit/cockpit/nav.js?v=3",
   "/jarvis-cockpit/cockpit/panel-atlas.jsx?v=2",
   "/jarvis-cockpit/cockpit/panel-challenges.jsx?v=5",
+  "/jarvis-cockpit/cockpit/panel-creator.jsx?v=1",
   "/jarvis-cockpit/cockpit/panel-evening.jsx?v=1",
   "/jarvis-cockpit/cockpit/panel-forme.jsx?v=4",
   "/jarvis-cockpit/cockpit/panel-gaming.jsx?v=21",
@@ -80,6 +83,7 @@ const STATIC = [
   "/jarvis-cockpit/cockpit/panel-wiki.jsx?v=6",
   "/jarvis-cockpit/cockpit/sidebar.jsx?v=7",
   "/jarvis-cockpit/cockpit/styles-challenges.css?v=5",
+  "/jarvis-cockpit/cockpit/styles-creator.css?v=1",
   "/jarvis-cockpit/cockpit/styles-evening.css?v=1",
   "/jarvis-cockpit/cockpit/styles-forme.css?v=2",
   "/jarvis-cockpit/cockpit/styles-gaming.css?v=13",

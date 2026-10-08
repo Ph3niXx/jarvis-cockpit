@@ -51,6 +51,7 @@ window.COCKPIT_NAV = [
     { id: "opps", label: "Opportunités", icon: "lightbulb" },
     { id: "ideas", label: "Carnet d'idées", icon: "notebook" },
     { id: "jobs", label: "Jobs Radar", icon: "target" },
+    { id: "creator", label: "Once Upon a Nerd", icon: "play" },
   ]},
   { group: "Personnel", items: [
     { id: "jarvis", label: "Jarvis", icon: "assistant" },

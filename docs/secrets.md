@@ -103,6 +103,16 @@ Proxy IGDB pour l'onglet Gaming ([supabase/functions/igdb-proxy/index.ts](../sup
 - Token applicatif Twitch (`client_credentials`) mis en cache en mémoire (~60 j) pour ne pas brûler de quota à chaque requête.
 - **Lecture seule** : la fonction n'écrit rien en base et n'utilise aucune clé Supabase. Les insertions déclenchées par le mode `?collection=` sont faites par le front avec le JWT de l'utilisateur, donc soumises à la RLS — la fonction ne détient pas de pouvoir d'écriture à détourner.
 
+## Once Upon a Nerd (pipeline `pipelines/creator_sync.py`)
+
+Clé d'API Buffer de la chaîne Once Upon a Nerd (https://publish.buffer.com/settings/api). La même clé sert au dépôt privé `youtuber`, qui programme les posts : elle vit aussi dans `~/.config/onceuponanerd/secrets.json` sur le PC.
+
+| Secret | Usage |
+|---|---|
+| `BUFFER_API_KEY` | Buffer GraphQL API — `pipelines/creator_sync.py` lit les posts et leurs métriques (ADR-54) |
+
+⚠️ **La clé a aussi le droit d'écrire** : l'API Buffer n'a pas de clé en lecture seule, celle-ci peut créer et supprimer des posts. Le pipeline n'appelle que des requêtes de lecture (`posts`, `channels`, `account`). Régénérer une clé dans Buffer invalide l'ancienne : mettre à jour **les deux endroits** (secret GitHub et fichier du PC), sinon la publication ou la collecte casse en silence.
+
 ## Jobs Radar — routine Claude Code distante (aucun secret GitHub)
 
 La routine Jobs Radar ([cowork-routines/jobs-radar.md](cowork-routines/jobs-radar.md), ADR-19) **ne consomme aucun secret GitHub Actions** — elle tourne en remote sur claude.ai, pas dans un workflow.

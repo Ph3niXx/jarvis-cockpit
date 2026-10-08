@@ -73,6 +73,7 @@ Les 6 onglets Veille (updates / claude / sport / gaming-news / anime / news) par
 | tab-veille-outils.md | panel-veille-outils.jsx |
 | tab-radar/recos/challenges/wiki/signals.md | panel-radar/recos/challenges/wiki/signals.jsx |
 | tab-opps/ideas/jobs.md | panel-opportunities/ideas/jobs-radar.jsx |
+| tab-creator.md | panel-creator.jsx |
 | tab-jarvis/jarvis-lab/profile.md | panel-jarvis/jarvis-lab/profile.jsx |
 | tab-perf/music/gaming.md | panel-forme/musique/gaming.jsx |
 | tab-stacks/history.md | panel-stacks/history.jsx |

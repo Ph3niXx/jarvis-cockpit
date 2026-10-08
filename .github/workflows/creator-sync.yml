@@ -1,0 +1,31 @@
+name: Once Upon a Nerd — Buffer Sync
+
+on:
+  schedule:
+    # Buffer relit les réseaux vers 20:00 UTC : passage à 21:40 UTC (23:40 Paris)
+    # pour ses chiffres du jour, et à 06:40 UTC pour les posts Instagram partis
+    # à 22:30 UTC et un relevé Buffer en retard.
+    - cron: '40 6,21 * * *'
+  workflow_dispatch:
+
+jobs:
+  creator-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r pipelines/requirements-creator.txt
+
+      - name: Run Buffer sync
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python pipelines/creator_sync.py
