@@ -342,11 +342,12 @@ pipelines:
         Vérifier le secret BUFFER_API_KEY (clé régénérée dans Buffer → mettre à
         jour le secret GitHub) puis relancer le workflow à la main.
     script: "pipelines/creator_sync.py"
-    input_api: "Buffer GraphQL API (posts + métriques) + pages publiques TikTok / YouTube (abonnés)"
+    input_api: "Buffer GraphQL API (posts + métriques) + pages publiques TikTok / YouTube (compteurs des posts, abonnés)"
     output_tables:
       - creator_episodes
       - creator_posts
       - creator_post_readings
+      - creator_public_readings
       - creator_audience
     read_tables:
       - creator_episodes
@@ -355,7 +356,7 @@ pipelines:
     avg_duration_s: 20
     budget_usd: 0
     status: active
-    notes: "Buffer relit chaque réseau une fois par jour (metricsUpdatedAt, ~20:00 UTC observé) : le passage de 21:40 prend les chiffres du jour, celui de 06:40 les posts Instagram partis à 22:30 UTC. Épisode d'un post : base, puis URL de la vidéo hébergée (remplacée par Buffer après publication), puis post frère du même jour à New York (ADR-54)."
+    notes: "Buffer relit chaque réseau une fois par jour (metricsUpdatedAt, ~20:00 UTC observé) : le passage de 21:40 prend les chiffres du jour, celui de 06:40 les posts Instagram partis à 22:30 UTC. Épisode d'un post : base, puis URL de la vidéo hébergée (remplacée par Buffer après publication), puis post frère du même jour à New York (ADR-54). Compteurs publics des posts TikTok et YouTube des 14 derniers jours relus à chaque run, plus frais que Buffer (ADR-55)."
 
   - id: sport_sync
     name: "Veille sport RSS"

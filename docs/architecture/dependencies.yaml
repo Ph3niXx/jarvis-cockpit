@@ -134,7 +134,7 @@ panels:
 
   - id: creator
     file: cockpit/panel-creator.jsx
-    reads: [creator_episodes, creator_posts, creator_post_readings, creator_audience]
+    reads: [creator_episodes, creator_posts, creator_post_readings, creator_public_readings, creator_audience]
     writes: []
 
   - id: jobs
@@ -318,6 +318,11 @@ tables:
     domain: business
 
   - name: creator_posts
+    owner_pipeline: creator_sync
+    rls: authenticated
+    domain: business
+
+  - name: creator_public_readings
     owner_pipeline: creator_sync
     rls: authenticated
     domain: business

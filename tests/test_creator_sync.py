@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipelines"))
-from creator_sync import (assign_episodes, episode_in_assets, episode_rows, missing_rows, post_rows, reading_row,
-                          tiktok_followers, youtube_followers)
+from creator_sync import (assign_episodes, episode_in_assets, episode_rows, missing_rows, post_rows, public_rows,
+                          reading_row, tiktok_counts, tiktok_followers, youtube_counts, youtube_followers)
 
 failures = 0
 
@@ -106,6 +106,43 @@ check("TikTok : abonnes et j'aime du profil",
 check("YouTube : compteur arrondi par YouTube",
       youtube_followers('{"content":"1.2K subscribers"}'), {"followers": 1200, "likes": None})
 check("YouTube : compteur absent (chaine a zero abonne)", youtube_followers('{"content":"@onceuponan3rd"}'), None)
+
+# ── Compteurs publics (ADR-55) ───────────────────────────────────
+# Buffer relit une fois par jour : le 2026-10-08, le Short #1 avait 32 vues
+# publiques pendant que Buffer en annonçait 0.
+TIKTOK_PAGE = ('<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">'
+               '{"__DEFAULT_SCOPE__":{"webapp.video-detail":{"itemInfo":{"itemStruct":{'
+               '"stats":{"diggCount":7,"shareCount":1,"commentCount":2,"playCount":321,"collectCount":"3"},'
+               '"authorStats":{"diggCount":0,"followerCount":0}}}}}}</script>')
+check("TikTok : les stats de la video, pas celles de l'auteur",
+      tiktok_counts(TIKTOK_PAGE), {"views": 321, "likes": 7, "comments": 2, "shares": 1, "saves": 3})
+check("TikTok : page sans donnees", tiktok_counts("<html>captcha</html>"), None)
+check("YouTube : vues et j'aime du lecteur",
+      youtube_counts('{"videoDetails":{"viewCount":"32"}} ... "likeCount":"2"'),
+      {"views": 32, "likes": 2, "comments": None, "shares": None, "saves": None})
+check("YouTube : page sans compteur", youtube_counts("<html></html>"), None)
+
+asked = []
+
+
+def fake_fetch(network, url):
+    asked.append(network)
+    return {"views": 5, "likes": 1, "comments": None, "shares": None, "saves": None} if network == "youtube" else None
+
+
+fresh_yt = node("y1", "youtube", "2026-10-08T18:00:00.000Z", status="sent", sent="2026-10-08T18:00:51.740Z")
+fresh_yt["externalLink"] = "https://www.youtube.com/shorts/WmR1OtJy6ms"
+old_tt = node("t0", "tiktok", "2026-09-01T16:30:00.000Z", status="sent", sent="2026-09-01T16:32:00.000Z")
+old_tt["externalLink"] = "https://tiktok.com/@x/video/1"
+fresh_tt = node("t1", "tiktok", "2026-10-08T16:30:00.000Z", status="sent", sent="2026-10-08T16:32:56.860Z")
+fresh_tt["externalLink"] = "https://tiktok.com/@x/video/2"
+ig = node("i1", "instagram", "2026-10-08T22:30:00.000Z", status="sent", sent="2026-10-08T22:31:00.000Z")
+ig["externalLink"] = "https://instagram.com/p/x"
+rows = public_rows([fresh_yt, old_tt, fresh_tt, ig, youtube], NOW, fetch=fake_fetch, pause=0)
+check("compteurs publics : posts publies des 14 derniers jours, TikTok et YouTube seulement",
+      asked, ["youtube", "tiktok"])
+check("une page illisible ne donne pas de ligne", [r["post_id"] for r in rows], ["y1"])
+check("releve date de la collecte", rows[0]["read_at"], NOW.isoformat())
 
 if failures:
     print(f"\n{failures} echec(s)")

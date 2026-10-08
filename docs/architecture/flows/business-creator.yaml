@@ -21,6 +21,7 @@ pipeline:
     - "Lit tous les posts Buffer (repli sur 31 jours si l'offre gratuite refuse le reste)"
     - "Retrouve l'épisode de chaque post : base, URL de la vidéo hébergée, post frère du même jour à New York"
     - "Upsert creator_episodes, creator_posts (posts disparus de Buffer → missing), creator_post_readings (un relevé par passage de Buffer)"
+    - "Relit les compteurs publics des posts TikTok / YouTube des 14 derniers jours → creator_public_readings (ADR-55)"
     - "Lit les abonnés TikTok / YouTube → creator_audience (un relevé par jour de Paris)"
 
 tables:
@@ -29,6 +30,8 @@ tables:
   - name: creator_posts
     write: true
   - name: creator_post_readings
+    write: true
+  - name: creator_public_readings
     write: true
   - name: creator_audience
     write: true

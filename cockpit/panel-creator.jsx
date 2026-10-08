@@ -295,7 +295,13 @@ function CrNetDetail({ ep, net }) {
           ))}
         </dl>
       )}
-      {r && <p className="cr-det-foot">Relevé du {V.at(Date.parse(r.read_at))}, {V.plural(sl.readings.length, "relevé", "relevés")} en tout</p>}
+      {r && (
+        <p className="cr-det-foot">
+          {[r.liveAt && `Compteur public du ${V.at(Date.parse(r.liveAt))}`,
+            r.bufferAt && `relevé Buffer du ${V.at(Date.parse(r.bufferAt))}`,
+            `${V.plural(sl.readings.length + sl.live.length, "relevé", "relevés")} en tout`].filter(Boolean).join(" · ")}
+        </p>
+      )}
       {!r && sl.status === "sent" && <p className="cr-det-foot">Premiers chiffres au prochain relevé Buffer.</p>}
       {sl.url && <a className="cr-det-link" href={sl.url} target="_blank" rel="noopener noreferrer">Ouvrir sur {net.label} ↗</a>}
     </div>
@@ -550,6 +556,7 @@ function PanelCreator({ data, onNavigate }) {
       <h2 id="cr-notes-h">Comment lire l'onglet</h2>
       <ul>
         <li>Les chiffres viennent de Buffer, qui relit chaque réseau une fois par jour : jusqu'à 24 h de retard sur les applis. La collecte passe deux fois par jour, à 21 h 40 et 6 h 40 UTC.</li>
+        <li>À chaque collecte, les vues et j'aime des posts TikTok et YouTube des 14 derniers jours sont aussi relus sur leur page publique, plus frais que Buffer. Pour un même chiffre, l'onglet garde le plus haut des deux : un compteur ne recule pas.</li>
         <li>Les vues gagnées par jour sont l'écart entre deux relevés. Engagement = (j'aime + commentaires + partages + enregistrements) / vues.</li>
         <li>Regardé = durée moyenne de visionnage rapportée à la durée de la vidéo, pour les réseaux qui la donnent (TikTok, Instagram).</li>
         <li>Abonnés : lus sur les pages publiques TikTok et YouTube quand elles affichent le compteur. Instagram ne le permet pas sans connexion.</li>
@@ -563,7 +570,8 @@ function PanelCreator({ data, onNavigate }) {
       <div className="cr-eyebrow">Business · chaîne Once Upon a Nerd</div>
       <h1 className="cr-title">L'adoption des posts</h1>
       <p className="cr-sub">
-        {fresh.metricsAt ? `Relevé Buffer du ${V.at(Date.parse(fresh.metricsAt))}` : "Pas encore de relevé Buffer"}
+        {fresh.liveAt ? `Compteurs publics du ${V.at(Date.parse(fresh.liveAt))} · ` : ""}
+        {fresh.metricsAt ? `relevé Buffer du ${V.at(Date.parse(fresh.metricsAt))}` : "pas encore de relevé Buffer"}
         {fresh.updatedAt ? ` · collecte du ${V.at(Date.parse(fresh.updatedAt))}` : ""}
         {raw._demo ? " · données de démonstration" : ""}
       </p>
