@@ -1495,6 +1495,11 @@
         `&read_at=gte.${since}&order=read_at.asc`));
     },
     async creator_audience(){ return once("creator_audience", () => q("creator_audience", "select=*&order=day.asc&limit=1000")); },
+    async creator_live(){
+      const since = new Date(Date.now() - 400 * 86400000).toISOString();
+      return once("creator_live", () => qAll("creator_public_readings",
+        `select=post_id,read_at,views,likes,comments,shares,saves&read_at=gte.${since}&order=read_at.asc`));
+    },
     async sport(){ return once("sport_articles", () => q("sport_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async gaming_news(){ return once("gaming_articles", () => q("gaming_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async anime(){ return once("anime_articles", () => q("anime_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
@@ -5007,12 +5012,12 @@
         return { franchises, entries, progress, releases, dayLoad, jpWords, jpSeen };
       }
       case "creator": {
-        const [episodes, posts, readings, audience] = await Promise.all([
-          T2.creator_episodes(), T2.creator_posts(), T2.creator_readings(), T2.creator_audience(),
+        const [episodes, posts, readings, live, audience] = await Promise.all([
+          T2.creator_episodes(), T2.creator_posts(), T2.creator_readings(), T2.creator_live(), T2.creator_audience(),
         ]);
         // Toujours remplacer la démo, même par des tables vides : c'est l'état réel de la base.
-        if (window.CREATOR_DATA) replaceShape(window.CREATOR_DATA, { episodes, posts, readings, audience, _demo: false });
-        return { episodes, posts, readings, audience };
+        if (window.CREATOR_DATA) replaceShape(window.CREATOR_DATA, { episodes, posts, readings, live, audience, _demo: false });
+        return { episodes, posts, readings, live, audience };
       }
       default:
         // No Tier 2 work for this panel — return null so the App effect

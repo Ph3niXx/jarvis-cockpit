@@ -19,7 +19,8 @@ La chaîne publie un épisode par jour sur trois réseaux, programmés dans Buff
 8. Lecture de la programmation : les prochains jours, l'heure de chaque post, et la date du dernier épisode programmé.
 
 ## Fonctionnalités
-- **Fraîcheur affichée** : l'en-tête donne l'heure du dernier relevé Buffer et de la dernière collecte, pour savoir si les chiffres sont ceux de la veille ou d'il y a trois jours.
+- **Fraîcheur affichée** : l'en-tête donne l'heure des derniers compteurs publics et du dernier relevé Buffer, pour savoir si les chiffres sont ceux de la veille ou d'il y a trois jours.
+- **Compteurs publics** : les vues et j'aime des posts TikTok et YouTube des deux dernières semaines sont relus sur leur page à chaque collecte, sans attendre le passage quotidien de Buffer. Pour un même chiffre, l'onglet garde le plus haut des deux sources : un compteur ne recule jamais à l'écran.
 - **Alertes** : un post en échec de publication ou supprimé de Buffer, une collecte arrêtée depuis plus de 36 heures, une file de publication qui s'arrête dans deux jours ou moins. Chacune nomme l'épisode et le réseau concernés.
 - **Chiffres clés** : vues tous réseaux, gain sur 24 h, courbe des quinze derniers jours, posts en ligne sur le total programmé, engagement, part regardée, j'aime, commentaires, partages et enregistrements.
 - **Une tuile par réseau** : vues, part du total, gain sur 24 h, abonnés et leur évolution sur 7 jours, engagement, part regardée. Tant qu'un réseau n'a rien publié, la tuile donne l'heure de son premier post.
@@ -52,14 +53,15 @@ Quatre tables (`sql/037_creator_tower.sql`, RLS lecture `authenticated`, écritu
 - `creator_episodes` — un épisode par dossier du dépôt youtuber : numéro, titre YouTube, durée de la vidéo.
 - `creator_posts` — un post Buffer : réseau, statut, dates prévue et réelle, lien, erreur ; `updated_at` touché à chaque collecte (sonde de fraîcheur).
 - `creator_post_readings` — un relevé par passage de Buffer, clé (post, instant du relevé), chiffres cumulés depuis la publication. Le front lit 400 jours, par pages de 1000 lignes.
+- `creator_public_readings` — compteurs publics (vues, j'aime ; commentaires, partages et favoris pour TikTok) des posts TikTok et YouTube des 14 derniers jours, un relevé par collecte (`sql/038`). `creatorView.points()` les mêle aux relevés Buffer en gardant le maximum courant, `creatorView.lastReading()` prend le plus haut des deux chiffre par chiffre.
 - `creator_audience` — abonnés lus sur les pages publiques, un relevé par jour de Paris et par réseau.
 
 ## Back — pipelines qui alimentent
-- `pipelines/creator_sync.py` (workflow `.github/workflows/creator-sync.yml`, 06:40 et 21:40 UTC) → lit tous les posts Buffer et leurs métriques (API GraphQL), retrouve l'épisode de chaque post (URL de la vidéo hébergée, puis ce que la base sait déjà, puis un post frère du même jour à New York), écrit les quatre tables ; lit les abonnés TikTok et YouTube sur leurs pages publiques.
+- `pipelines/creator_sync.py` (workflow `.github/workflows/creator-sync.yml`, 06:40 et 21:40 UTC) → lit tous les posts Buffer et leurs métriques (API GraphQL), retrouve l'épisode de chaque post (URL de la vidéo hébergée, puis ce que la base sait déjà, puis un post frère du même jour à New York), écrit les quatre tables ; relit les compteurs publics des posts TikTok et YouTube des 14 derniers jours (`creator_public_readings`) ; lit les abonnés TikTok et YouTube sur leurs pages publiques.
 
 ## Appels externes
 - API GraphQL Buffer (`https://api.buffer.com`), clé `BUFFER_API_KEY`, deux fois par jour, côté pipeline uniquement.
-- Pages publiques TikTok et YouTube de la chaîne, deux fois par jour, sans authentification.
+- Pages publiques TikTok et YouTube de la chaîne et des posts des 14 derniers jours, deux fois par jour, sans authentification.
 
 ## Dépendances
 - Onglets : aucun.
@@ -73,6 +75,8 @@ Quatre tables (`sql/037_creator_tower.sql`, RLS lecture `authenticated`, écritu
 - Relevé tout à zéro après de vrais chiffres (Buffer a cessé de relire le post) : ignoré, pour ne pas dessiner un effondrement qui n'a pas eu lieu.
 - Post reprogrammé après un échec : l'ancien reste en base, l'épisode garde le post le plus avancé.
 - Abonnés illisibles (Instagram refuse sans connexion, YouTube masque le compteur tant que la chaîne n'en a pas, une IP de runner bloquée) : tuile à « — ».
+- Compteur public illisible (page bloquée, format changé) : le post garde ses relevés Buffer, sans erreur.
+- Relevé Buffer plus bas qu'un compteur public plus ancien (Buffer a jusqu'à un jour de retard) : la courbe et les totaux gardent le plus haut.
 - Démo en `file://` : chiffres inventés, signalés dans l'en-tête.
 
 ## Limitations connues / TODO
@@ -82,4 +86,5 @@ Quatre tables (`sql/037_creator_tower.sql`, RLS lecture `authenticated`, écritu
 - [ ] Les vues d'un jour sans collecte s'ajoutent au jour suivant.
 
 ## Dernière MAJ
+2026-10-08 — compteurs publics TikTok et YouTube relus à chaque collecte (ADR-55) : le Short #1 avait 32 vues pendant que Buffer en annonçait 0.
 2026-10-08 — création de l'onglet (ADR-54) : pipeline Buffer biquotidien, quatre tables, vues par jour, démarrage des épisodes, tableau dépliable, programmation et alertes.

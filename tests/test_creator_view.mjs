@@ -80,5 +80,30 @@ check("echelle ronde", V.niceScale(350), { max: 400, step: 100 });
 check("echelle vide", V.niceScale(0), { max: 10, step: 5 });
 check("libelle de jour", V.dayLabel(Date.parse("2026-10-11T16:30:00Z"), NOW), "demain");
 
+// ── Compteurs publics (ADR-55) ────────────────────────────────
+// Buffer relit une fois par jour ; le compteur public est plus frais, et un
+// relevé Buffer en retard ne doit jamais faire reculer une courbe.
+const withLive = V.build({
+  episodes: [{ slug: "001-naruto", number: 1, title: "Nine-Tails", video_seconds: 60 }],
+  posts: [{ post_id: "y", episode: "001-naruto", network: "youtube", status: "sent",
+            due_at: "2026-10-08T18:00:00Z", sent_at: "2026-10-08T18:00:51Z" }],
+  readings: [{ post_id: "y", read_at: "2026-10-08T18:03:42Z", views: 0, reactions: 0 },
+             { post_id: "y", read_at: "2026-10-09T20:01:00Z", views: 90, reactions: 4 }],
+  live: [{ post_id: "y", read_at: "2026-10-08T18:50:00Z", views: 32, likes: 2 },
+         { post_id: "y", read_at: "2026-10-09T06:40:00Z", views: 120, likes: 6 }],
+});
+const ySlot = V.slot(withLive[0], "youtube");
+check("courbe : jamais de recul quand Buffer est en retard sur le compteur public",
+      V.points(ySlot).map(p => p[1]), [0, 0, 32, 120, 120]);
+const yLast = V.lastReading(ySlot);
+check("dernier etat : le plus haut des deux sources, chiffre par chiffre",
+      [yLast.views, yLast.reactions], [120, 6]);
+check("dernier etat : dates des deux sources", [yLast.liveAt, yLast.bufferAt],
+      ["2026-10-09T06:40:00Z", "2026-10-09T20:01:00Z"]);
+check("un post sans releve Buffer a deja sa courbe grace au compteur public",
+      V.curves(V.build({ episodes: [{ slug: "e", number: 1 }],
+                         posts: [{ post_id: "t", episode: "e", network: "tiktok", status: "sent", sent_at: "2026-10-08T16:32:00Z" }],
+                         live: [{ post_id: "t", read_at: "2026-10-08T18:50:00Z", views: 0 }] }), "all").length, 1);
+
 if (failures) { console.log(`\n${failures} echec(s)`); process.exit(1); }
 console.log("\nTous les tests passent.");

@@ -12,6 +12,9 @@ ont jusqu'à ~24 h de retard sur les applis. Chaque run range :
   creator_posts          un post Buffer (réseau, statut, dates, lien, erreur)
   creator_post_readings  un relevé par passage de Buffer — clé (post_id, read_at),
                          donc relancer le pipeline ne duplique rien
+  creator_public_readings  les compteurs publics des posts TikTok et YouTube des
+                         14 derniers jours, lus sur leur page à chaque run : plus
+                         frais que Buffer (ADR-55)
   creator_audience       les abonnés lus sur les pages publiques TikTok et YouTube,
                          un relevé par jour de Paris (Buffer n'en donne pas)
 
@@ -47,6 +50,9 @@ PARIS = ZoneInfo("Europe/Paris")              # un relevé d'abonnés par jour d
 FREE_INSIGHTS_DAYS = 31                       # « Free-plan Insights are limited to the last 31 days »
 READINGS_LOOKBACK_DAYS = 40                   # au-delà, Buffer gratuit ne relit plus un post
 EPISODE_IN_URL = re.compile(r"/onceuponanerd/(\d{3}-[a-z0-9-]+)\.mp4")
+YOUTUBE_ID = re.compile(r"(?:shorts/|[?&]v=|youtu\.be/)([\w-]{11})")
+PUBLIC_WINDOW_DAYS = 14                       # compteurs publics : les posts des deux dernières semaines
+PUBLIC_PAUSE_S = 0.5                          # entre deux pages publiques
 MAX_RETRIES = 3
 PAGE = 1000
 
@@ -289,6 +295,67 @@ def youtube_followers(html):
 PARSERS = {"tiktok": tiktok_followers, "youtube": youtube_followers}
 
 
+def tiktok_counts(html):
+    """The video's own stats, from the JSON TikTok embeds in the page (a bare regex would also catch
+    the author's stats, which carry the same key names)."""
+    found = re.search(r'<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">(.*?)</script>',
+                      html, re.S)
+    try:
+        stats = json.loads(found.group(1))["__DEFAULT_SCOPE__"]["webapp.video-detail"]["itemInfo"]["itemStruct"]["stats"]
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return None
+    count = lambda key: int(stats[key]) if str(stats.get(key, "")).isdigit() else None
+    if count("playCount") is None:
+        return None
+    return {"views": count("playCount"), "likes": count("diggCount"), "comments": count("commentCount"),
+            "shares": count("shareCount"), "saves": count("collectCount")}
+
+
+def youtube_counts(html):
+    """The watch page's own counters: views (videoDetails) and likes. Comments load separately."""
+    views, likes = re.search(r'"viewCount":"(\d+)"', html), re.search(r'"likeCount":"(\d+)"', html)
+    if not views:
+        return None
+    return {"views": int(views.group(1)), "likes": int(likes.group(1)) if likes else None,
+            "comments": None, "shares": None, "saves": None}
+
+
+def public_counts(network, url):
+    """Live counters on the post's public page. Best effort: None when unreadable."""
+    try:
+        if network == "youtube":
+            video = YOUTUBE_ID.search(url or "")
+            if not video:
+                return None
+            resp = requests.get("https://www.youtube.com/watch", params={"v": video.group(1), "hl": "en"},
+                                headers=WEB_HEADERS, cookies={"SOCS": "CAI"}, timeout=30)
+            resp.raise_for_status()
+            return youtube_counts(resp.text)
+        if network == "tiktok" and url:
+            resp = requests.get(url, headers=WEB_HEADERS, timeout=30)
+            resp.raise_for_status()
+            return tiktok_counts(resp.text)
+    except requests.RequestException as err:
+        print(f"[public] {network}: {err}")
+    return None
+
+
+def public_rows(nodes, now, fetch=public_counts, pause=PUBLIC_PAUSE_S):
+    """One reading of the public counters per TikTok and YouTube post sent in the last 14 days.
+    Buffer reads each network once a day; these pages answer at once."""
+    rows = []
+    for node in nodes:
+        sent = parse_ts(node.get("sentAt"))
+        if (node["status"] != "sent" or not sent or node["channelService"] not in ("tiktok", "youtube")
+                or not node.get("externalLink") or now - sent > timedelta(days=PUBLIC_WINDOW_DAYS)):
+            continue
+        counts = fetch(node["channelService"], node["externalLink"])
+        if counts:
+            rows.append({"post_id": node["id"], "read_at": now.isoformat(), **counts})
+        time.sleep(pause)
+    return rows
+
+
 def read_followers(service, url):
     """Best effort: None when the page is unreadable (Instagram answers anonymous requests with 429,
     and some CDNs block the runners' datacenter IPs, cf. ADR-44)."""
@@ -369,11 +436,13 @@ def sync(dry_run=False):
     episodes = episode_rows(nodes, mapping, existing, now)
     posts = post_rows(nodes, mapping, now) + missing_rows(stored, nodes, since, now)
     readings = [r for r in (reading_row(n, last.get(n["id"])) for n in nodes) if r]
+    live = public_rows(nodes, now)
     unmapped = [n["id"] for n in nodes if n["id"] not in mapping]
     print(f"[buffer] {len(nodes)} posts ({sum(n['status'] == 'sent' for n in nodes)} publiés), "
           f"{len(episodes)} épisodes, {len(readings)} relevés neufs"
           + (f", {len(unmapped)} posts sans épisode" if unmapped else "")
           + (f" — fenêtre gratuite depuis {since:%Y-%m-%d}" if since else ""))
+    print(f"[public] {len(live)} compteurs publics lus")
 
     audience = []
     for channel in fetch_channels(api_key):
@@ -388,10 +457,13 @@ def sync(dry_run=False):
     if dry_run:
         for row in readings:
             print(f"[dry-run] {mapping.get(row['post_id'], '?')} {row['post_id']} {row['read_at']} vues={row['views']}")
+        for row in live:
+            print(f"[dry-run] public {mapping.get(row['post_id'], '?')} {row['post_id']} vues={row['views']} j'aime={row['likes']}")
         return
     sb_upsert(supabase_url, service_key, "creator_episodes", episodes)
     sb_upsert(supabase_url, service_key, "creator_posts", posts)
     sb_upsert(supabase_url, service_key, "creator_post_readings", readings)
+    sb_upsert(supabase_url, service_key, "creator_public_readings", live)
     sb_upsert(supabase_url, service_key, "creator_audience", audience)
     print("DONE")
 

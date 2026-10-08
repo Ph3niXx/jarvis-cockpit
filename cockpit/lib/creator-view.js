@@ -39,7 +39,7 @@
       const ep = episodes[p.episode];
       if (!ep || !NET[p.network]) continue;
       const slot = { postId: p.post_id, status: p.status, due_at: p.due_at, sent_at: p.sent_at,
-                     url: p.url, error: p.error, readings: [] };
+                     url: p.url, error: p.error, readings: [], live: [] };
       bySlot[p.post_id] = slot;
       const cur = ep.posts[p.network];
       if (!cur) { ep.posts[p.network] = slot; continue; }
@@ -50,22 +50,54 @@
       const slot = bySlot[row.post_id];
       if (slot) slot.readings.push(row);
     }
-    for (const sl of Object.values(bySlot)) sl.readings.sort((x, y) => ts(x.read_at) - ts(y.read_at));
+    // Compteurs publics (TikTok, YouTube) relus à chaque collecte : plus frais que Buffer.
+    for (const row of r.live || []) {
+      const slot = bySlot[row.post_id];
+      if (slot) slot.live.push(row);
+    }
+    const byTime = (x, y) => ts(x.read_at) - ts(y.read_at);
+    for (const sl of Object.values(bySlot)) { sl.readings.sort(byTime); sl.live.sort(byTime); }
     return Object.values(episodes).sort((a, b) => a.number - b.number);
   }
 
   const slot = (ep, id) => (ep && ep.posts && ep.posts[id]) || null;
   const netsOf = sel => (sel === "all" || !NET[sel] ? NETWORKS : [NET[sel]]);
-  const lastReading = sl => (sl && sl.readings && sl.readings.length ? sl.readings[sl.readings.length - 1] : null);
+  // Dernier état connu d'un post : le dernier relevé Buffer, complété par le dernier
+  // compteur public. Un compteur ne recule pas : pour les chiffres que donnent les
+  // deux sources, la plus haute l'emporte (Buffer a jusqu'à un jour de retard).
+  const LIVE_KEYS = { views: "views", reactions: "likes", comments: "comments", shares: "shares", saves: "saves" };
+  function lastReading(sl) {
+    if (!sl) return null;
+    const b = sl.readings && sl.readings.length ? sl.readings[sl.readings.length - 1] : null;
+    const l = sl.live && sl.live.length ? sl.live[sl.live.length - 1] : null;
+    if (!b && !l) return null;
+    const out = Object.assign({}, b || {});
+    for (const [key, liveKey] of Object.entries(LIVE_KEYS)) {
+      const bv = b ? num(b[key]) : null, lv = l ? num(l[liveKey]) : null;
+      out[key] = bv == null ? lv : lv == null ? bv : Math.max(bv, lv);
+    }
+    out.bufferAt = b ? b.read_at : null;
+    out.liveAt = l ? l.read_at : null;
+    out.read_at = !b ? l.read_at : !l ? b.read_at : (ts(l.read_at) > ts(b.read_at) ? l.read_at : b.read_at);
+    return out;
+  }
   const label = ep => `#${ep.number}`;
 
   // Vues cumulées dans le temps : [instant, vues], avec (mise en ligne, 0) en tête.
+  // Relevés Buffer et compteurs publics mêlés ; chaque point garde le plus haut déjà
+  // connu, pour qu'un relevé Buffer en retard ne fasse pas reculer la courbe.
   function points(sl) {
     if (!sl || !sl.sent_at) return [];
+    const marks = [...(sl.readings || []), ...(sl.live || [])]
+      .map(r => [ts(r.read_at), num(r.views)])
+      .filter(([t, v]) => isFinite(t) && v != null)
+      .sort((a, b) => a[0] - b[0]);
     const out = [[ts(sl.sent_at), 0]];
-    for (const r of sl.readings || []) {
-      const t = ts(r.read_at);
-      if (t > out[out.length - 1][0]) out.push([t, num(r.views) || 0]);
+    for (const [t, v] of marks) {
+      const lastPoint = out[out.length - 1];
+      if (t < lastPoint[0]) continue;
+      if (t === lastPoint[0]) { lastPoint[1] = Math.max(lastPoint[1], v); continue; }
+      out.push([t, Math.max(lastPoint[1], v)]);
     }
     return out;
   }
@@ -181,7 +213,7 @@
     const out = [];
     for (const ep of eps) {
       const parts = netsOf(sel).map(n => slot(ep, n.id))
-        .filter(sl => sl && sl.sent_at && sl.readings && sl.readings.length)
+        .filter(sl => sl && sl.sent_at && ((sl.readings && sl.readings.length) || (sl.live && sl.live.length)))
         .map(sl => ({ sent: ts(sl.sent_at), p: points(sl) }));
       if (!parts.length) continue;
       const maxAge = Math.max(...parts.map(x => (x.p[x.p.length - 1][0] - x.sent) / DAY));
@@ -259,11 +291,12 @@
   // Fraîcheur : dernier passage du pipeline, dernier relevé Buffer.
   function freshness(raw) {
     const r = raw || {};
-    let updated = 0, metrics = 0;
+    let updated = 0, metrics = 0, live = 0;
     for (const p of r.posts || []) updated = Math.max(updated, ts(p.updated_at) || 0);
     for (const x of r.readings || []) metrics = Math.max(metrics, ts(x.read_at) || 0);
-    return { updatedAt: updated ? new Date(updated).toISOString() : null,
-             metricsAt: metrics ? new Date(metrics).toISOString() : null };
+    for (const x of r.live || []) live = Math.max(live, ts(x.read_at) || 0);
+    const iso = t => (t ? new Date(t).toISOString() : null);
+    return { updatedAt: iso(updated), metricsAt: iso(metrics), liveAt: iso(live) };
   }
 
   // ── Formats ─────────────────────────────────────────────────
