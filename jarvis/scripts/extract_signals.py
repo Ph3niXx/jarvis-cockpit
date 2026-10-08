@@ -31,7 +31,7 @@ THRESHOLD_SESSION_GAP = 30            # Minutes gap to split sessions
 # .github/workflows/lint-known-sections.yml (bloquant).
 # Derniere mise a jour : 2026-04-26 (ajout evening).
 KNOWN_SECTIONS = {
-    "anime", "atlas", "brief", "challenges", "claude", "evening", "gaming",
+    "anime", "atlas", "brief", "challenges", "claude", "creator", "evening", "gaming",
     "gaming_news", "history", "ideas", "jarvis", "jarvis-lab", "jobs",
     "mediatheque", "music", "news", "opps", "perf", "profile", "radar",
     "recos", "review", "sante", "search", "signals", "sport", "stacks",

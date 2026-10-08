@@ -132,6 +132,11 @@ panels:
       - claude_ecosystem   # status + user_priority + is_pinned + user_notes via UPDATE, ajout manuel via INSERT (authenticated)
       - ai_landscape       # status + user_priority + is_pinned + user_notes via UPDATE (pas d'ajout manuel en v1 — ADR-51)
 
+  - id: creator
+    file: cockpit/panel-creator.jsx
+    reads: [creator_episodes, creator_posts, creator_post_readings, creator_audience]
+    writes: []
+
   - id: jobs
     file: cockpit/panel-jobs-radar.jsx
     reads:
@@ -296,6 +301,26 @@ tables:
     owner_pipeline: front
     rls: authenticated
     domain: personnel
+
+  - name: creator_audience
+    owner_pipeline: creator_sync
+    rls: authenticated
+    domain: business
+
+  - name: creator_episodes
+    owner_pipeline: creator_sync
+    rls: authenticated
+    domain: business
+
+  - name: creator_post_readings
+    owner_pipeline: creator_sync
+    rls: authenticated
+    domain: business
+
+  - name: creator_posts
+    owner_pipeline: creator_sync
+    rls: authenticated
+    domain: business
 
   - name: daily_briefs
     owner_pipeline: daily_digest

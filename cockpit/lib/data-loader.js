@@ -11,6 +11,16 @@
 (function(){
   const SB = () => window.SUPABASE_URL;
   const q = (t, s) => window.sb.query(t, s);
+  // Toutes les lignes, 1000 par page (plafond d'une réponse PostgREST).
+  async function qAll(t, s, maxPages = 40){
+    const out = [];
+    for (let page = 0; page < maxPages; page++) {
+      const rows = (await q(t, `${s}&limit=1000&offset=${page * 1000}`)) || [];
+      out.push(...rows);
+      if (rows.length < 1000) break;
+    }
+    return out;
+  }
 
   const cache = {};
   function once(key, loader){
@@ -1471,6 +1481,20 @@
     // (sql/031_market_skill_gap.sql) : l'agrégat n'a pas sa place côté client,
     // il déroule 2 156 paires compétence/offre.
     async market_skill_gap(){ return once("market_skill_gap", () => q("market_skill_gap", "select=*")); },
+    // Once Upon a Nerd (pipelines/creator_sync.py). Relevés et posts dépassent
+    // vite les 1000 lignes qu'une réponse PostgREST peut porter : pagination.
+    async creator_episodes(){ return once("creator_episodes", () => q("creator_episodes", "select=*&order=number.asc&limit=1000")); },
+    async creator_posts(){
+      return once("creator_posts", () => qAll("creator_posts",
+        "select=post_id,episode,network,status,due_at,sent_at,url,error,updated_at&order=due_at.asc"));
+    },
+    async creator_readings(){
+      const since = new Date(Date.now() - 400 * 86400000).toISOString();
+      return once("creator_readings", () => qAll("creator_post_readings",
+        "select=post_id,read_at,views,reactions,comments,shares,saves,reach,impressions,follows,avg_watch_s,total_watch_min,engagement_rate" +
+        `&read_at=gte.${since}&order=read_at.asc`));
+    },
+    async creator_audience(){ return once("creator_audience", () => q("creator_audience", "select=*&order=day.asc&limit=1000")); },
     async sport(){ return once("sport_articles", () => q("sport_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async gaming_news(){ return once("gaming_articles", () => q("gaming_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
     async anime(){ return once("anime_articles", () => q("anime_articles", "order=date_published.desc.nullslast,date_fetched.desc&limit=200")); },
@@ -4982,6 +5006,14 @@
         }
         return { franchises, entries, progress, releases, dayLoad, jpWords, jpSeen };
       }
+      case "creator": {
+        const [episodes, posts, readings, audience] = await Promise.all([
+          T2.creator_episodes(), T2.creator_posts(), T2.creator_readings(), T2.creator_audience(),
+        ]);
+        // Toujours remplacer la démo, même par des tables vides : c'est l'état réel de la base.
+        if (window.CREATOR_DATA) replaceShape(window.CREATOR_DATA, { episodes, posts, readings, audience, _demo: false });
+        return { episodes, posts, readings, audience };
+      }
       default:
         // No Tier 2 work for this panel — return null so the App effect
         // can skip the dataVersion bump (avoids a cosmetic re-mount on
@@ -4997,7 +5029,7 @@
     "updates", "claude", "wiki", "radar", "recos", "challenges", "opps", "ideas",
     "profile", "perf", "music", "gaming", "stacks", "history", "jobs",
     "sport", "gaming_news", "anime", "news", "jarvis", "signals",
-    "veille-outils", "mediatheque",
+    "veille-outils", "mediatheque", "creator",
   ]);
 
   // Hydrate globals with real data on boot (Tier 1 already fetched the

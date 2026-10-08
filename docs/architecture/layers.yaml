@@ -96,7 +96,7 @@ layers:
         accent: false
       - id: external_apis
         title: "APIs externes"
-        subtitle: "Strava · Withings · Last.fm · Steam · Riot · RSS · Jikan"
+        subtitle: "Strava · Withings · Last.fm · Steam · Riot · Buffer · RSS · Jikan"
         meta:
           - "OAuth2 ou clé API par source"
           - "Alimentent les tables <source>_raw + mappées"

@@ -468,8 +468,8 @@
     }
   ],
   "cockpit_tabs": {
-    "summary": "Catalogue des 32 onglets du cockpit, leur rôle, leurs sources de données et leur cadence de mise à jour.",
-    "updated_at": "2026-10-05",
+    "summary": "Catalogue des 33 onglets du cockpit, leur rôle, leurs sources de données et leur cadence de mise à jour.",
+    "updated_at": "2026-10-08",
     "groups": [
       {
         "id": "aujourdhui",
@@ -716,6 +716,16 @@
             "data_sources": ["jobs"],
             "frequency": "daily",
             "update_details": "Scan quotidien"
+          },
+          {
+            "id": "creator",
+            "label": "Once Upon a Nerd",
+            "icon": "play",
+            "description": "Tour de contrôle de la chaîne : vues, interactions et abonnés de chaque post TikTok, YouTube et Instagram, vues gagnées par jour, démarrage des épisodes au même âge, programmation et alertes.",
+            "panel_file": "cockpit/panel-creator.jsx",
+            "data_sources": ["creator_episodes", "creator_posts", "creator_post_readings", "creator_audience"],
+            "frequency": "daily",
+            "update_details": "Sync Buffer 06:40 et 21:40 UTC"
           }
         ]
       },

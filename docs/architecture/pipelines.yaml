@@ -325,6 +325,38 @@ pipelines:
     status: active
     notes: "Tourne avec --force pour bypasser la gate lundi des achievements. MAX_ENRICH_PER_RUN=20 sur Store API (catch-up lent)."
 
+  - id: creator_sync
+    name: "Once Upon a Nerd — posts Buffer et leurs chiffres"
+    cron: "40 6,21 * * *"
+    human_time: "Quotidien 06:40 et 21:40 UTC"
+    workflow_file: ".github/workflows/creator-sync.yml"
+    health:
+      domain: business
+      panels: [creator]
+      # Chaque run réécrit tous les posts (updated_at = maintenant), même sans
+      # nouveau chiffre : une table qui vieillit veut dire que le run n'écrit plus.
+      table: creator_posts
+      date_column: updated_at
+      max_age_hours: 36
+      remediation: >-
+        Vérifier le secret BUFFER_API_KEY (clé régénérée dans Buffer → mettre à
+        jour le secret GitHub) puis relancer le workflow à la main.
+    script: "pipelines/creator_sync.py"
+    input_api: "Buffer GraphQL API (posts + métriques) + pages publiques TikTok / YouTube (abonnés)"
+    output_tables:
+      - creator_episodes
+      - creator_posts
+      - creator_post_readings
+      - creator_audience
+    read_tables:
+      - creator_episodes
+      - creator_posts
+      - creator_post_readings
+    avg_duration_s: 20
+    budget_usd: 0
+    status: active
+    notes: "Buffer relit chaque réseau une fois par jour (metricsUpdatedAt, ~20:00 UTC observé) : le passage de 21:40 prend les chiffres du jour, celui de 06:40 les posts Instagram partis à 22:30 UTC. Épisode d'un post : base, puis URL de la vidéo hébergée (remplacée par Buffer après publication), puis post frère du même jour à New York (ADR-54)."
+
   - id: sport_sync
     name: "Veille sport RSS"
     cron: "30 6 * * *"
