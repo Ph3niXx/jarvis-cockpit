@@ -16,7 +16,7 @@ pipeline:
   id: creator_sync
   workflow: ".github/workflows/creator-sync.yml"
   script: "pipelines/creator_sync.py"
-  cron: "40 6,21 * * *"
+  cron: "0 6 * * *, 40 21 * * *"
   steps:
     - "Lit tous les posts Buffer (repli sur 31 jours si l'offre gratuite refuse le reste)"
     - "Retrouve l'épisode de chaque post : base, URL de la vidéo hébergée, post frère du même jour à New York"

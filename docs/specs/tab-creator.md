@@ -57,7 +57,7 @@ Quatre tables (`sql/037_creator_tower.sql`, RLS lecture `authenticated`, écritu
 - `creator_audience` — abonnés lus sur les pages publiques, un relevé par jour de Paris et par réseau.
 
 ## Back — pipelines qui alimentent
-- `pipelines/creator_sync.py` (workflow `.github/workflows/creator-sync.yml`, 06:40 et 21:40 UTC) → lit tous les posts Buffer et leurs métriques (API GraphQL), retrouve l'épisode de chaque post (URL de la vidéo hébergée, puis ce que la base sait déjà, puis un post frère du même jour à New York), écrit les quatre tables ; relit les compteurs publics des posts TikTok et YouTube des 14 derniers jours (`creator_public_readings`) ; lit les abonnés TikTok et YouTube sur leurs pages publiques.
+- `pipelines/creator_sync.py` (workflow `.github/workflows/creator-sync.yml`, 06:00 et 21:40 UTC, soit 8:00 heure de Paris en été) → lit tous les posts Buffer et leurs métriques (API GraphQL), retrouve l'épisode de chaque post (URL de la vidéo hébergée, puis ce que la base sait déjà, puis un post frère du même jour à New York), écrit les quatre tables ; relit les compteurs publics des posts TikTok et YouTube des 14 derniers jours (`creator_public_readings`) ; lit les abonnés TikTok et YouTube sur leurs pages publiques.
 
 ## Appels externes
 - API GraphQL Buffer (`https://api.buffer.com`), clé `BUFFER_API_KEY`, deux fois par jour, côté pipeline uniquement.
