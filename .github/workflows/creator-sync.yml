@@ -3,9 +3,11 @@ name: Once Upon a Nerd — Buffer Sync
 on:
   schedule:
     # Buffer relit les réseaux vers 20:00 UTC : passage à 21:40 UTC (23:40 Paris)
-    # pour ses chiffres du jour, et à 06:40 UTC pour les posts Instagram partis
+    # pour ses chiffres du jour, et à 06:00 UTC (8:00 Paris l'été, 7:00 l'hiver)
+    # pour le point du matin, les posts Instagram partis
     # à 22:30 UTC et un relevé Buffer en retard.
-    - cron: '40 6,21 * * *'
+    - cron: '0 6 * * *'
+    - cron: '40 21 * * *'
   workflow_dispatch:
 
 jobs:

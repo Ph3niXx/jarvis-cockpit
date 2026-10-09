@@ -327,8 +327,8 @@ pipelines:
 
   - id: creator_sync
     name: "Once Upon a Nerd — posts Buffer et leurs chiffres"
-    cron: "40 6,21 * * *"
-    human_time: "Quotidien 06:40 et 21:40 UTC"
+    cron: "0 6 * * *, 40 21 * * *"
+    human_time: "Quotidien 06:00 (8:00 Paris en été) et 21:40 UTC"
     workflow_file: ".github/workflows/creator-sync.yml"
     health:
       domain: business
@@ -356,7 +356,7 @@ pipelines:
     avg_duration_s: 20
     budget_usd: 0
     status: active
-    notes: "Buffer relit chaque réseau une fois par jour (metricsUpdatedAt, ~20:00 UTC observé) : le passage de 21:40 prend les chiffres du jour, celui de 06:40 les posts Instagram partis à 22:30 UTC. Épisode d'un post : base, puis URL de la vidéo hébergée (remplacée par Buffer après publication), puis post frère du même jour à New York (ADR-54). Compteurs publics des posts TikTok et YouTube des 14 derniers jours relus à chaque run, plus frais que Buffer (ADR-55)."
+    notes: "Buffer relit chaque réseau une fois par jour (metricsUpdatedAt, ~20:00 UTC observé) : le passage de 21:40 prend les chiffres du jour, celui de 06:00 donne le point du matin à 8:00 heure de Paris et les posts Instagram partis à 22:30 UTC. Épisode d'un post : base, puis URL de la vidéo hébergée (remplacée par Buffer après publication), puis post frère du même jour à New York (ADR-54). Compteurs publics des posts TikTok et YouTube des 14 derniers jours relus à chaque run, plus frais que Buffer (ADR-55)."
 
   - id: sport_sync
     name: "Veille sport RSS"
