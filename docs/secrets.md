@@ -103,6 +103,17 @@ Proxy IGDB pour l'onglet Gaming ([supabase/functions/igdb-proxy/index.ts](../sup
 - Token applicatif Twitch (`client_credentials`) mis en cache en mémoire (~60 j) pour ne pas brûler de quota à chaque requête.
 - **Lecture seule** : la fonction n'écrit rien en base et n'utilise aucune clé Supabase. Les insertions déclenchées par le mode `?collection=` sont faites par le front avec le JWT de l'utilisateur, donc soumises à la RLS — la fonction ne détient pas de pouvoir d'écriture à détourner.
 
+### Edge Function `creator-refresh`
+
+Bouton « Rafraîchir » de l'onglet Once Upon a Nerd ([supabase/functions/creator-refresh/index.ts](../supabase/functions/creator-refresh/index.ts)) : déclenche le workflow `creator-sync.yml` par `workflow_dispatch` (ADR-56).
+
+| Secret Supabase | Usage |
+|---|---|
+| `GITHUB_DISPATCH_TOKEN` | Jeton GitHub à grain fin, **dépôt `jarvis-cockpit` seul**, permission **Actions : Read and write** (rien d'autre). Posé via `supabase secrets set GITHUB_DISPATCH_TOKEN=…` — ce n'est **pas** un secret GitHub Actions. |
+
+- Mêmes garde-fous que `igdb-proxy` : `verify_jwt: true`, contrôle du rôle `authenticated`, CORS borné à `https://ph3nixx.github.io`, aucune écriture en base.
+- Le jeton expire (durée choisie à sa création) : le bouton répond alors « github 401 ». Le régénérer et le reposer dans les secrets Supabase.
+
 ## Once Upon a Nerd (pipeline `pipelines/creator_sync.py`)
 
 Clé d'API Buffer de la chaîne Once Upon a Nerd (https://publish.buffer.com/settings/api). La même clé sert au dépôt privé `youtuber`, qui programme les posts : elle vit aussi dans `~/.config/onceuponanerd/secrets.json` sur le PC.

@@ -534,9 +534,74 @@ function CrKpis({ eps, raw, now }) {
 }
 
 // ── Onglet ─────────────────────────────────────────────────────
+// Bouton « Rafraîchir » (ADR-56). Relire la base ne suffit pas : elle ne
+// bouge qu'au passage du pipeline. Le bouton relance donc la collecte via
+// l'Edge Function creator-refresh, puis guette creator_posts.updated_at
+// (chaque run réécrit tous les posts) jusqu'à ce qu'il dépasse l'heure du
+// lancement, et seulement alors recharge les tables.
+const CR_POLL_MS = 15000;
+const CR_POLL_MAX_MS = 6 * 60000;   // file d'attente GitHub + run ≈ 1 à 2 min d'habitude
+
+async function crLastCollect() {
+  const r = await fetch(window.SUPABASE_URL + "/rest/v1/creator_posts?select=updated_at&order=updated_at.desc&limit=1",
+                        { headers: window.sb.headers });
+  if (!r.ok) throw new Error(String(r.status));
+  const rows = await r.json();
+  return rows.length ? Date.parse(rows[0].updated_at) : 0;
+}
+
+function CrRefresh({ onDone }) {
+  const [st, setSt] = useCrState({ phase: "idle" });
+  const alive = useCrRef(true);
+  useCrEffect(() => () => { alive.current = false; }, []);
+
+  const run = async () => {
+    setSt({ phase: "running" });
+    try {
+      const r = await fetch(window.SUPABASE_URL + "/functions/v1/creator-refresh",
+                            { method: "POST", headers: window.sb.headers });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body.error || String(r.status));
+      const since = Date.parse(body.dispatched_at);
+      const started = Date.now();
+      while (alive.current && Date.now() - started < CR_POLL_MAX_MS) {
+        await new Promise(res => setTimeout(res, CR_POLL_MS));
+        if (!alive.current) return;
+        if ((await crLastCollect()) > since) {
+          const dl = window.cockpitDataLoader;
+          dl.invalidateCache("creator_");
+          await dl.loadPanel("creator");
+          if (!alive.current) return;
+          setSt({ phase: "done" });
+          onDone();
+          return;
+        }
+      }
+      if (alive.current) setSt({ phase: "error", text: "pas de nouvelle collecte au bout de 6 min, voir GitHub Actions" });
+    } catch (e) {
+      if (alive.current) setSt({ phase: "error", text: `lancement impossible (${e.message})` });
+    }
+  };
+
+  const busy = st.phase === "running";
+  return (
+    <div className="cr-refresh">
+      <button type="button" className="cr-view-t" onClick={run} disabled={busy} aria-busy={busy}>
+        {busy ? "Collecte en cours…" : "Rafraîchir"}
+      </button>
+      <span className="cr-refresh-s" role="status">
+        {busy ? "Relève Buffer et les compteurs publics, environ 1 à 2 min."
+          : st.phase === "done" ? "Chiffres à jour."
+          : st.phase === "error" ? `Échec : ${st.text}.` : ""}
+      </span>
+    </div>
+  );
+}
+
 function PanelCreator({ data, onNavigate }) {
   const V = window.creatorView;
   const raw = window.CREATOR_DATA || {};
+  const [, setTick] = useCrState(0);
   const now = Date.now();
   const eps = V.build(raw);
   const fresh = V.freshness(raw);
@@ -575,6 +640,7 @@ function PanelCreator({ data, onNavigate }) {
         {fresh.updatedAt ? ` · collecte du ${V.at(Date.parse(fresh.updatedAt))}` : ""}
         {raw._demo ? " · données de démonstration" : ""}
       </p>
+      {!raw._demo && <CrRefresh onDone={() => setTick(t => t + 1)} />}
     </header>
   );
 

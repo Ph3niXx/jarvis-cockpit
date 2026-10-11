@@ -356,7 +356,7 @@ pipelines:
     avg_duration_s: 20
     budget_usd: 0
     status: active
-    notes: "Buffer relit chaque réseau une fois par jour (metricsUpdatedAt, ~20:00 UTC observé) : le passage de 21:40 prend les chiffres du jour, celui de 06:00 donne le point du matin à 8:00 heure de Paris et les posts Instagram partis à 22:30 UTC. Épisode d'un post : base, puis URL de la vidéo hébergée (remplacée par Buffer après publication), puis post frère du même jour à New York (ADR-54). Compteurs publics des posts TikTok et YouTube des 14 derniers jours relus à chaque run, plus frais que Buffer (ADR-55)."
+    notes: "Buffer relit chaque réseau une fois par jour (metricsUpdatedAt, ~20:00 UTC observé) : le passage de 21:40 prend les chiffres du jour, celui de 06:00 donne le point du matin à 8:00 heure de Paris et les posts Instagram partis à 22:30 UTC. Épisode d'un post : base, puis URL de la vidéo hébergée (remplacée par Buffer après publication), puis post frère du même jour à New York (ADR-54). Compteurs publics des posts TikTok et YouTube des 14 derniers jours relus à chaque run, plus frais que Buffer (ADR-55). Aussi lancé à la demande par le bouton Rafraîchir de l'onglet (Edge Function creator-refresh, workflow_dispatch, concurrency creator-sync — ADR-56)."
 
   - id: sport_sync
     name: "Veille sport RSS"
