@@ -8,7 +8,15 @@ on:
     # à 22:30 UTC et un relevé Buffer en retard.
     - cron: '0 6 * * *'
     - cron: '40 21 * * *'
+  # Aussi lancé par le bouton « Rafraîchir » de l'onglet, via l'Edge Function
+  # creator-refresh (ADR-56).
   workflow_dispatch:
+
+# Un clic pendant le cron, ou deux clics : une collecte à la fois. Celle en
+# attente part après, aucune n'est annulée en cours d'écriture.
+concurrency:
+  group: creator-sync
+  cancel-in-progress: false
 
 jobs:
   creator-sync:
