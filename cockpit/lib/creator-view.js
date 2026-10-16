@@ -329,11 +329,126 @@
     return { max: Math.ceil(max / step) * step, step };
   }
 
+  // ── Prompt d'analyse ────────────────────────────────────────
+  // Le bouton « Copier le prompt » met tout l'état de l'onglet dans le
+  // presse-papiers, à coller dans une conversation Claude : la chaîne, les
+  // consignes, puis les chiffres en tableaux Markdown. Ce que la base ne sait
+  // pas (la recette des scripts) vit ici : à tenir à jour quand elle change.
+  const CHANNEL_NOTES = [
+    "Once Upon a Nerd : des Shorts de 61 à 70 s, en anglais, qui racontent la source réelle (mythe, histoire, folklore) d'un personnage ou d'un élément d'anime, de manga, de film ou de jeu vidéo.",
+    "Un épisode par jour, publié sur TikTok, YouTube Shorts et Instagram Reels via Buffer (heures exactes dans le détail des posts).",
+    "Format 2 pour #12, #13 et tous les épisodes à partir de #15, format 1 pour les autres. Format 2 : la première phrase nomme l'œuvre ou le personnage, le plan 0 montre côte à côte la source réelle et le personnage, le pont qui suit fait 14 mots au plus et apporte un fait nouveau, la fin boucle sur le plan 0. Il répond aux premiers chiffres de YouTube Studio : la moitié des spectateurs balayait dès le plan 0, et la moitié de ceux qui restaient partait entre 4 et 12 s.",
+  ];
+  const formatOf = n => (n === 12 || n === 13 || n >= 15 ? 2 : 1);
+  const STATUS_FR = { sent: "en ligne", sending: "en cours d'envoi", scheduled: "programmé", needs_approval: "à valider",
+                      draft: "brouillon", error: "échec", missing: "supprimé de Buffer" };
+
+  function prompt(raw, now) {
+    const eps = build(raw);
+    const fresh = freshness(raw);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const n0 = v => (v == null ? "—" : nf.format(Math.round(v)));
+    const pc = v => (v == null ? "—" : pf.format(v));
+    const when = t => (t ? at(t) : "—");
+    const cell = s => String(s).replace(/\|/g, "\\|");
+    const table = (head, rows) => [
+      `| ${head.join(" | ")} |`, `|${head.map(() => " --- ").join("|")}|`,
+      ...rows.map(r => `| ${r.map(cell).join(" | ")} |`),
+    ].join("\n");
+    const watchedOf = (ep, r) => {
+      const avg = r ? num(r.avg_watch_s) : null;
+      return avg != null && ep.seconds > 0 ? Math.min(1, avg / ep.seconds) : null;
+    };
+
+    const nets = [...NETWORKS.map(n => ({ id: n.id, label: n.label })), { id: "all", label: "Tous" }];
+    const state = table(
+      ["Réseau", "Posts en ligne", "Vues", "Gain 24 h", "J'aime", "Commentaires", "Partages", "Enregistrements",
+       "Engagement", "Regardé", "Abonnés (écart 7 j)"],
+      nets.map(o => {
+        const a = agg(eps, o.id), aud = o.id === "all" ? null : audience(raw && raw.audience, o.id);
+        return [o.label, `${n0(a.live)} sur ${n0(a.planned)}`, n0(a.views), n0(gain24(eps, o.id)),
+                ...INTERACTIONS.map(k => n0(total(eps, o.id, k))), pc(a.eng), pc(a.watched),
+                aud ? `${n0(aud.followers)}${aud.change != null ? ` (${aud.change > 0 ? "+" : ""}${n0(aud.change)})` : ""}` : "—"];
+      }));
+
+    const live = eps.filter(isLive);
+    const byEp = new Map(curves(eps, "all").map(c => [c.ep.slug, c]));
+    const episodes = table(
+      ["#", "Titre", "Durée", "Format", "Mis en ligne", "Âge", ...NETWORKS.map(n => n.label), "Total",
+       "J+1", "J+3", "J+7", "Engagement", "Regardé"],
+      live.map(ep => {
+        const a = agg([ep], "all"), c = byEp.get(ep.slug), pub = pubTime(ep);
+        return [label(ep), ep.title, ep.seconds ? `${n0(ep.seconds)} s` : "—", formatOf(ep.number), when(pub),
+                `${nf2.format(Math.max(0, (now - pub) / DAY))} j`,
+                ...NETWORKS.map(n => { const r = lastReading(slot(ep, n.id)); return r ? n0(r.views) : "—"; }),
+                n0(a.views), ...[1, 3, 7].map(j => (c ? n0(valueAt(c, j)) : "—")), pc(a.eng), pc(a.watched)];
+      }));
+
+    const postRows = [];
+    for (const ep of live) for (const n of NETWORKS) {
+      const sl = slot(ep, n.id);
+      if (!sl || PENDING.includes(sl.status)) continue;
+      const r = lastReading(sl), avg = r ? num(r.avg_watch_s) : null;
+      postRows.push([label(ep), n.label, STATUS_FR[sl.status] || sl.status, when(ts(sl.sent_at)),
+                     ...["views", ...INTERACTIONS].map(k => (r ? n0(r[k]) : "—")),
+                     avg == null ? "—" : `${nf2.format(avg)} s`, pc(watchedOf(ep, r)), r ? when(ts(r.read_at)) : "—"]);
+    }
+    const posts = table(["#", "Réseau", "Statut", "Mis en ligne", "Vues", "J'aime", "Commentaires", "Partages",
+                         "Enregistrements", "Durée moy. de visionnage", "Regardé", "Relevé du"], postRows);
+
+    const perDay = table(["Jour", ...NETWORKS.map(n => n.label), "Total"],
+      daily(eps, "all", 14, now).map(d => [dLong.format(d.day), ...NETWORKS.map(n => n0(d.vals[n.id])), n0(d.total)]));
+
+    const upcoming = programme(eps, now).filter(o => !isLive(o.ep)).map(({ ep }) => {
+      const times = NETWORKS.map(n => [n, slot(ep, n.id)]).filter(([, sl]) => sl && sl.due_at)
+        .map(([n, sl]) => `${n.label} ${when(ts(sl.due_at))}`);
+      return `- ${label(ep)} « ${ep.title} » (format ${formatOf(ep.number)}) : ${times.join(", ")}`;
+    });
+
+    return [
+      "Tu es l'analyste d'audience de ma chaîne. Voici l'état de ses posts, relevé par ma tour de contrôle. Analyse-le et dis-moi, en français, chiffres à l'appui :",
+      "1. Ce qui marche et ce qui ne marche pas, réseau par réseau.",
+      "2. Quels épisodes démarrent mieux que les autres au même âge (J+1, J+3) et ce qu'ils ont en commun : œuvre, sujet, titre, format.",
+      "3. L'effet du format 2 par rapport au format 1, s'il se voit déjà, et avec quelle confiance vu le nombre d'épisodes.",
+      "4. La tendance : la chaîne progresse-t-elle d'un épisode à l'autre ?",
+      "5. Trois actions concrètes pour les prochains épisodes, classées par impact attendu.",
+      "Ne tire pas de conclusion d'un post de moins de 48 h : signale-le à part. Si je joins des captures de YouTube Studio ou TikTok Studio (rétention, vus ou balayés), croise-les avec ces chiffres.",
+      "",
+      "## La chaîne",
+      ...CHANNEL_NOTES.map(s => `- ${s}`),
+      "",
+      "## Comment lire les chiffres",
+      "- Sources : Buffer, qui relit chaque réseau une fois par jour (jusqu'à 24 h de retard), et les compteurs publics des posts TikTok et YouTube de moins de 14 jours, relus à chaque collecte. Pour un même chiffre, le plus haut des deux est gardé.",
+      "- Engagement = (j'aime + commentaires + partages + enregistrements) / vues. Regardé = durée moyenne de visionnage / durée de la vidéo, pondérée par les vues (TikTok et Instagram seulement).",
+      "- J+1, J+3, J+7 = vues cumulées tous réseaux, chaque post compté depuis sa propre mise en ligne. « — » = pas encore de donnée ou âge pas encore atteint.",
+      "- L'offre gratuite de Buffer limite ses statistiques aux 31 derniers jours : un post plus vieux garde ses derniers chiffres.",
+      `- Dates en heure locale (${tz}).`,
+      "",
+      `## État au ${when(now)}`,
+      `Dernière collecte : ${when(ts(fresh.updatedAt))} · dernier relevé Buffer : ${when(ts(fresh.metricsAt))} · derniers compteurs publics : ${when(ts(fresh.liveAt))}.`,
+      "",
+      state,
+      "",
+      "## Épisodes en ligne",
+      live.length ? episodes : "Aucun épisode en ligne.",
+      "",
+      "## Détail des posts",
+      postRows.length ? posts : "Aucun post publié.",
+      "",
+      "## Vues gagnées par jour (14 derniers jours)",
+      perDay,
+      "",
+      "## Programmés, pas encore en ligne",
+      upcoming.length ? upcoming.join("\n") : "Rien.",
+      "",
+    ].join("\n");
+  }
+
   const api = {
     NETWORKS, NET, DAY, HOUR, PENDING,
     build, slot, netsOf, lastReading, label, points, stepAt, interpAt, pubTime, isLive,
     agg, total, latestReading, gain, gain24, startOfDay, addDays, daily, curves, valueAt,
-    queueEnd, programme, alerts, audience, freshness,
+    queueEnd, programme, alerts, audience, freshness, formatOf, prompt,
     nf, nf2, cf, pf, pf0, dLong, dShort, tFmt, big, plural, at, dayLabel, inDays, niceScale,
   };
   if (typeof window !== "undefined") window.creatorView = Object.assign(window.creatorView || {}, api);

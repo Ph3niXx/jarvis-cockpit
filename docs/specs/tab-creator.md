@@ -17,10 +17,12 @@ La chaîne publie un épisode par jour sur trois réseaux, programmés dans Buff
 6. Lecture du démarrage des épisodes : le dernier épisode en couleur, les autres en gris, tous alignés sur leur âge depuis la mise en ligne. Survol d'une courbe pour comparer les épisodes au même âge, ou bascule en tableau (vues à J+1, J+3, J+7, J+14, J+30).
 7. Tri du tableau des épisodes par colonne (date, total, réseau, engagement, part regardée), clic sur un épisode pour déplier le détail de ses trois posts : statut, chiffres du dernier relevé, lien vers le post.
 8. Lecture de la programmation : les prochains jours, l'heure de chaque post, et la date du dernier épisode programmé.
+9. Pour une analyse plus poussée, clic sur « Copier le prompt » dans l'en-tête, puis collage dans une conversation Claude, avec au besoin des captures YouTube Studio ou TikTok Studio.
 
 ## Fonctionnalités
 - **Fraîcheur affichée** : l'en-tête donne l'heure des derniers compteurs publics et du dernier relevé Buffer, pour savoir si les chiffres sont ceux de la veille ou d'il y a trois jours.
 - **Rafraîchir à la demande** : un bouton dans l'en-tête relance la collecte sans attendre les passages de 06:00 et 21:40 UTC. L'onglet annonce la collecte en cours, puis recharge ses chiffres dès qu'elle a écrit en base ; au bout de 6 minutes sans nouvelle collecte, il dit d'aller voir GitHub Actions. Instagram n'en profite pas : ses chiffres viennent de Buffer, qui ne relit qu'une fois par jour. Absent en démo.
+- **Copier le prompt** : un bouton dans l'en-tête copie un prompt d'analyse prêt à coller dans Claude : consignes (ce qui marche par réseau, les meilleurs démarrages, l'effet du format 2, la tendance, trois actions), la recette de la chaîne et ses formats, la façon de lire les chiffres, puis l'état complet en tableaux Markdown (réseaux, épisodes en ligne avec J+1, J+3, J+7, détail de chaque post, vues gagnées sur 14 jours, épisodes programmés). L'onglet confirme la copie et sa taille. La recette et la liste des épisodes en format 2 sont écrites dans `cockpit/lib/creator-view.js` (la base ne les connaît pas) : à mettre à jour quand la chaîne change de recette.
 - **Compteurs publics** : les vues et j'aime des posts TikTok et YouTube des deux dernières semaines sont relus sur leur page à chaque collecte, sans attendre le passage quotidien de Buffer. Pour un même chiffre, l'onglet garde le plus haut des deux sources : un compteur ne recule jamais à l'écran.
 - **Alertes** : un post en échec de publication ou supprimé de Buffer, une collecte arrêtée depuis plus de 36 heures, une file de publication qui s'arrête dans deux jours ou moins. Chacune nomme l'épisode et le réseau concernés.
 - **Chiffres clés** : vues tous réseaux, gain sur 24 h, courbe des quinze derniers jours, posts en ligne sur le total programmé, engagement, part regardée, j'aime, commentaires, partages et enregistrements.
@@ -32,13 +34,15 @@ La chaîne publie un épisode par jour sur trois réseaux, programmés dans Buff
 - **Programmation** : les prochains jours avec l'heure de chaque post, l'état de ceux déjà partis, et le dernier épisode programmé avec le nombre de jours restants.
 
 ## Front — structure UI
-En-tête (accroche, titre, fraîcheur, bouton Rafraîchir et son état), bandeau d'alertes, rangée de tuiles (une grande tuile globale avec sparkline, trois tuiles réseau avec jauge de part), filtre segmenté par réseau, deux cartes graphiques côte à côte (colonnes empilées SVG, courbes SVG avec curseur et tooltip, bascule tableau sur chacune), carte tableau des épisodes (en-têtes triables, lignes dépliables vers trois cartes de détail), carte programmation (jours en défilement horizontal), notes de lecture. Les graphiques sont dessinés à la largeur réelle du conteneur (`ResizeObserver`). Le filtre est persisté dans `localStorage` sous la clé `cockpit-creator-net`. Couleurs de réseau : palette catégorielle validée pour le daltonisme, une valeur claire (Dawn, Atlas) et une valeur sombre (Obsidian), réservées aux marques des graphiques. En mode `file://`, `cockpit/data-creator.js` fournit une démo signalée dans l'en-tête.
+En-tête (accroche, titre, fraîcheur, boutons Rafraîchir et Copier le prompt avec leur état), bandeau d'alertes, rangée de tuiles (une grande tuile globale avec sparkline, trois tuiles réseau avec jauge de part), filtre segmenté par réseau, deux cartes graphiques côte à côte (colonnes empilées SVG, courbes SVG avec curseur et tooltip, bascule tableau sur chacune), carte tableau des épisodes (en-têtes triables, lignes dépliables vers trois cartes de détail), carte programmation (jours en défilement horizontal), notes de lecture. Les graphiques sont dessinés à la largeur réelle du conteneur (`ResizeObserver`). Le filtre est persisté dans `localStorage` sous la clé `cockpit-creator-net`. Couleurs de réseau : palette catégorielle validée pour le daltonisme, une valeur claire (Dawn, Atlas) et une valeur sombre (Obsidian), réservées aux marques des graphiques. En mode `file://`, `cockpit/data-creator.js` fournit une démo signalée dans l'en-tête.
 
 ## Front — fonctions JS
 | Fonction | Rôle | Fichier/ligne |
 |----------|------|---------------|
 | `PanelCreator()` | Composant racine : en-tête, alertes, filtre, cartes | `cockpit/panel-creator.jsx` |
 | `CrRefresh()` | Bouton Rafraîchir : appelle l'Edge Function `creator-refresh`, guette `creator_posts.updated_at` toutes les 15 s, puis vide le cache `creator_` et relance `loadPanel("creator")` | `cockpit/panel-creator.jsx` |
+| `CrCopyPrompt()` | Bouton Copier le prompt : `creatorView.prompt()` vers le presse-papiers, repli `execCommand` en `file://` | `cockpit/panel-creator.jsx` |
+| `creatorView.prompt()` | État de l'onglet → prompt d'analyse Markdown (consignes, recette de la chaîne, tableaux) | `cockpit/lib/creator-view.js` |
 | `CrKpis()` | Tuile globale et tuiles réseau | `cockpit/panel-creator.jsx` |
 | `CrDaily()` | Colonnes empilées des vues gagnées par jour | `cockpit/panel-creator.jsx` |
 | `CrLaunch()` | Courbes de démarrage, curseur clavier et souris | `cockpit/panel-creator.jsx` |
@@ -91,6 +95,7 @@ Quatre tables (`sql/037_creator_tower.sql`, RLS lecture `authenticated`, écritu
 - [ ] Les vues d'un jour sans collecte s'ajoutent au jour suivant.
 
 ## Dernière MAJ
+2026-10-16 — bouton Copier le prompt : l'état de l'onglet et des consignes d'analyse, à coller dans Claude.
 2026-10-11 — bouton Rafraîchir (ADR-56) : relance la collecte via l'Edge Function `creator-refresh` et recharge l'onglet quand elle a écrit.
 2026-10-08 — compteurs publics TikTok et YouTube relus à chaque collecte (ADR-55) : le Short #1 avait 32 vues pendant que Buffer en annonçait 0.
 2026-10-08 — création de l'onglet (ADR-54) : pipeline Buffer biquotidien, quatre tables, vues par jour, démarrage des épisodes, tableau dépliable, programmation et alertes.
