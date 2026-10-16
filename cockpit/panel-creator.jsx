@@ -598,6 +598,41 @@ function CrRefresh({ onDone }) {
   );
 }
 
+// Bouton « Copier le prompt » : tout l'état de l'onglet en Markdown, avec la
+// chaîne et les consignes d'analyse (creatorView.prompt), à coller dans Claude.
+async function crCopy(text) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+  // file:// ou contexte non sécurisé
+  const ta = document.createElement("textarea");
+  ta.value = text; document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand("copy");
+  ta.remove();
+  if (!ok) throw new Error("copie refusée par le navigateur");
+}
+
+function CrCopyPrompt() {
+  const [st, setSt] = useCrState({ phase: "idle" });
+  const copy = async () => {
+    try {
+      const text = window.creatorView.prompt(window.CREATOR_DATA || {}, Date.now());
+      await crCopy(text);
+      setSt({ phase: "done", size: text.length });
+    } catch (e) {
+      setSt({ phase: "error", text: e.message });
+    }
+  };
+  return (
+    <div className="cr-refresh">
+      <button type="button" className="cr-view-t" onClick={copy}>Copier le prompt</button>
+      <span className="cr-refresh-s" role="status">
+        {st.phase === "done" ? `Copié (${window.creatorView.nf.format(st.size)} caractères), à coller dans Claude.`
+          : st.phase === "error" ? `Échec : ${st.text}.` : ""}
+      </span>
+    </div>
+  );
+}
+
 function PanelCreator({ data, onNavigate }) {
   const V = window.creatorView;
   const raw = window.CREATOR_DATA || {};
@@ -640,7 +675,10 @@ function PanelCreator({ data, onNavigate }) {
         {fresh.updatedAt ? ` · collecte du ${V.at(Date.parse(fresh.updatedAt))}` : ""}
         {raw._demo ? " · données de démonstration" : ""}
       </p>
-      {!raw._demo && <CrRefresh onDone={() => setTick(t => t + 1)} />}
+      <div className="cr-actions">
+        {!raw._demo && <CrRefresh onDone={() => setTick(t => t + 1)} />}
+        {eps.length > 0 && <CrCopyPrompt />}
+      </div>
     </header>
   );
 

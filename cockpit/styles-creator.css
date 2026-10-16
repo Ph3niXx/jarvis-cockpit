@@ -22,7 +22,8 @@
 }
 .cr-title { font-size: var(--text-2xl); color: var(--tx); margin: 0 0 var(--space-2); }
 .cr-sub { font-size: var(--text-sm); color: var(--tx2); margin: 0; font-variant-numeric: tabular-nums; }
-.cr-refresh { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
+.cr-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); margin-top: var(--space-2); }
+.cr-refresh { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .cr-refresh .cr-view-t:disabled { cursor: progress; opacity: .7; }
 .cr-refresh-s { font-size: var(--text-xs); color: var(--tx3); }
 .cr-state { border: 1px dashed var(--bd); border-radius: var(--radius); padding: var(--space-4); }

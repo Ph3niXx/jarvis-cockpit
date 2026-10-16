@@ -105,5 +105,20 @@ check("un post sans releve Buffer a deja sa courbe grace au compteur public",
                          posts: [{ post_id: "t", episode: "e", network: "tiktok", status: "sent", sent_at: "2026-10-08T16:32:00Z" }],
                          live: [{ post_id: "t", read_at: "2026-10-08T18:50:00Z", views: 0 }] }), "all").length, 1);
 
+// ── Prompt d'analyse (bouton Copier le prompt) ────────────────
+const md = V.prompt(raw, NOW);
+const rowOf = start => md.split("\n").find(l => l.startsWith(start)) || "";
+check("prompt : consignes puis sections dans l'ordre",
+      ["## La chaîne", "## État au", "## Épisodes en ligne", "## Détail des posts", "## Vues gagnées", "## Programmés"]
+        .map(h => md.indexOf(h)).every((i, k, a) => i > 0 && (k === 0 || i > a[k - 1])), true);
+check("prompt : ligne Tous du tableau d'etat", rowOf("| Tous |").split(" | ").slice(1, 3), ["2 sur 3", "350"]);
+check("prompt : seul l'episode en ligne est dans le tableau des episodes",
+      [rowOf("| #1 |").includes("Nine-Tails"), rowOf("| #2 |")], [true, ""]);
+check("prompt : le post en echec remplace n'apparait pas", md.includes("| échec |"), false);
+check("prompt : l'episode programme est annonce", md.includes("- #2 « Sukuna » (format 1) : TikTok"), true);
+check("prompt : une barre verticale dans un titre ne casse pas le tableau",
+      V.prompt({ ...raw, episodes: [{ ...raw.episodes[0], title: "A | B" }, raw.episodes[1]] }, NOW).includes("A \\| B"), true);
+check("format des episodes", [1, 12, 13, 14, 15, 22].map(V.formatOf), [1, 2, 2, 1, 2, 2]);
+
 if (failures) { console.log(`\n${failures} echec(s)`); process.exit(1); }
 console.log("\nTous les tests passent.");
