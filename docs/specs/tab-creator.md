@@ -85,6 +85,7 @@ Quatre tables (`sql/037_creator_tower.sql`, RLS lecture `authenticated`, écritu
 - Compteur public illisible (page bloquée, format changé) : le post garde ses relevés Buffer, sans erreur.
 - Relevé Buffer plus bas qu'un compteur public plus ancien (Buffer a jusqu'à un jour de retard) : la courbe et les totaux gardent le plus haut.
 - Rafraîchir pendant une collecte déjà lancée : le workflow n'en fait tourner qu'une à la fois (`concurrency`), la suivante attend son tour.
+- Onglet resté ouvert des heures (PC en veille, onglet en arrière-plan) : le jeton de connexion a expiré sans être renouvelé ; le bouton en redemande un avant d'appeler la fonction, au lieu d'échouer en 401.
 - Collecte en échec après un clic (clé Buffer invalide, runner en panne) : rien ne s'écrit, l'onglet le dit au bout de 6 minutes.
 - Démo en `file://` : chiffres inventés, signalés dans l'en-tête.
 
@@ -95,6 +96,7 @@ Quatre tables (`sql/037_creator_tower.sql`, RLS lecture `authenticated`, écritu
 - [ ] Les vues d'un jour sans collecte s'ajoutent au jour suivant.
 
 ## Dernière MAJ
+2026-10-18 — Rafraîchir renouvelle le jeton de connexion avant l'appel : après une veille, il échouait en 401.
 2026-10-16 — bouton Copier le prompt : l'état de l'onglet et des consignes d'analyse, à coller dans Claude.
 2026-10-11 — bouton Rafraîchir (ADR-56) : relance la collecte via l'Edge Function `creator-refresh` et recharge l'onglet quand elle a écrit.
 2026-10-08 — compteurs publics TikTok et YouTube relus à chaque collecte (ADR-55) : le Short #1 avait 32 vues pendant que Buffer en annonçait 0.

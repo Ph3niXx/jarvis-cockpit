@@ -18,6 +18,16 @@
     headers = { apikey: SUPABASE_KEY, Authorization: "Bearer " + token };
   }
 
+  // Le jeton (1 h) est renouvelé par un minuteur de supabase-js qui dort
+  // quand l'onglet est en arrière-plan ou le PC en veille : au retour,
+  // `headers` peut porter un jeton expiré (401 UNAUTHORIZED_ASYMMETRIC_JWT).
+  // getSession() renouvelle la session si elle expire, avant de la rendre.
+  async function freshHeaders(){
+    const { data: { session } } = await client.auth.getSession();
+    if (session) setSession(session);
+    return headers;
+  }
+
   async function fetchJSON(url){
     const r = await fetch(url, { headers });
     if (!r.ok) throw new Error(String(r.status));
@@ -66,6 +76,7 @@
     query,
     rpc,
     get headers(){ return headers; },
+    freshHeaders,
   };
   // Legacy aliases (to be dropped in Phase 6).
   window.fetchJSON = fetchJSON;
