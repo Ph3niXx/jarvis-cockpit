@@ -544,7 +544,7 @@ const CR_POLL_MAX_MS = 6 * 60000;   // file d'attente GitHub + run ≈ 1 à 2 mi
 
 async function crLastCollect() {
   const r = await fetch(window.SUPABASE_URL + "/rest/v1/creator_posts?select=updated_at&order=updated_at.desc&limit=1",
-                        { headers: window.sb.headers });
+                        { headers: await window.sb.freshHeaders() });
   if (!r.ok) throw new Error(String(r.status));
   const rows = await r.json();
   return rows.length ? Date.parse(rows[0].updated_at) : 0;
@@ -559,7 +559,7 @@ function CrRefresh({ onDone }) {
     setSt({ phase: "running" });
     try {
       const r = await fetch(window.SUPABASE_URL + "/functions/v1/creator-refresh",
-                            { method: "POST", headers: window.sb.headers });
+                            { method: "POST", headers: await window.sb.freshHeaders() });
       const body = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(body.error || String(r.status));
       const since = Date.parse(body.dispatched_at);
